@@ -95,7 +95,9 @@ const chatRoomHtml = `
                         </div>
                         <span class="expansion-item-name">重回</span>
                     </div>
-                    <div class="expansion-item" id="pause-generation-btn" role="button" tabindex="0" aria-label="暂停生成">
+                    <div class="expansion-item" id="hearu-menu-btn" role="button" tabindex="0" aria-label="一起听">
+ <div class="expansion-item-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 13v-3a7 7 0 0 1 14 0v3"/><rect x="3" y="11" width="4" height="9" rx="2"/><rect x="17" y="11" width="4" height="9" rx="2"/></svg></div><span class="expansion-item-name">一起听</span></div>
+ <div class="expansion-item" id="pause-generation-btn" role="button" tabindex="0" aria-label="暂停生成">
                         <div class="expansion-item-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 13h5m3 3v-4m0-4h3a2 2 0 0 1 2 2v1c0 .554-.225 1.055-.589 1.417M13 13h-1m8-5v8M9 16v-5.5a2.5 2.5 0 0 0-5 0V16M3 3l18 18"/></svg>
                         </div>
