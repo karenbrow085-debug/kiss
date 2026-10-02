@@ -1,0 +1,2772 @@
+#hearu-app {
+  position: absolute;
+  inset: 0;
+  z-index: 1200;
+  background: #fff;
+  color: #101010;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: inherit;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: border-box;
+}
+#hearu-app[hidden] {
+  display: none !important;
+}
+#hearu-app * {
+  box-sizing: border-box;
+}
+#hearu-app button,
+#hearu-app input,
+#hearu-app textarea {
+  font: inherit;
+  color: inherit;
+}
+#hearu-app button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+#hearu-app button:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+#hearu-app button:focus-visible,
+#hearu-app a:focus-visible {
+  outline: 2px solid #888;
+  outline-offset: 4px;
+}
+#hearu-app svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+#hearu-app .hu-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 19px 22px 16px;
+  border-bottom: 1px solid #ededed;
+  flex-shrink: 0;
+}
+#hearu-app .hu-header > button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+}
+#hearu-app .hu-header > div {
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-header strong {
+  display: block;
+  font-size: 19px;
+  letter-spacing: -0.6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#hearu-app small {
+  display: block;
+  color: #909090;
+  font-size: 10px;
+  letter-spacing: 1.3px;
+  margin-top: 5px;
+}
+#hearu-app .hu-home {
+  padding: 26px 24px;
+  overflow: auto;
+  flex: 1;
+}
+#hearu-app .hu-wordmark {
+  font-size: 72px;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -6px;
+  display: flex;
+  align-items: baseline;
+}
+#hearu-app .hu-wordmark span {
+  font-weight: 350;
+}
+#hearu-app .hu-wordmark i {
+  margin-left: auto;
+  font-size: 36px;
+  font-style: normal;
+  letter-spacing: 0;
+}
+#hearu-app .hu-tagline {
+  font-size: 13px;
+  color: #787878;
+  margin: 10px 0 28px;
+  letter-spacing: 1px;
+}
+#hearu-app .hu-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #f4f4f4;
+  border-radius: 12px;
+  padding: 13px 15px;
+  margin-bottom: 27px;
+}
+#hearu-app input:not([type="range"]),
+#hearu-app textarea {
+  border: 0;
+  outline: none;
+  background: transparent;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  width: 100%;
+}
+#hearu-app .hu-section-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 650;
+  color: #777;
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0 9px;
+}
+#hearu-app .hu-contact {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+#hearu-app .hu-contact img {
+  height: 48px;
+  width: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+#hearu-app .hu-contact > div {
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-contact strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-contact small {
+  font-size: 11px;
+  letter-spacing: 0;
+}
+#hearu-app .hu-contact > span {
+  font-size: 23px;
+}
+#hearu-app .hu-home-footer,
+#hearu-app .hu-room-footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 16px 22px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #eee;
+  font-size: 10px;
+  color: #777;
+  flex-shrink: 0;
+}
+#hearu-app .hu-home-footer button,
+#hearu-app .hu-room-footer button {
+  margin-left: auto;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#hearu-app .hu-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+#hearu-app .hu-tabs button {
+  padding: 17px 0;
+  font-size: 13px;
+  color: #999;
+  border-bottom: 2px solid transparent;
+  position: relative;
+}
+#hearu-app .hu-tabs .selected {
+  color: #111;
+  font-weight: 650;
+  border-bottom-color: #111;
+}
+#hearu-app .hu-tabs span {
+  font-size: 8px;
+  margin-left: 5px;
+}
+#hearu-app .hu-body {
+  padding: 20px 26px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+#hearu-app .hu-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  color: #777;
+  margin-bottom: 18px;
+}
+#hearu-app .hu-pair img {
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+#hearu-app .hu-pair i {
+  margin-left: auto;
+  font-size: 23px;
+  font-style: normal;
+  color: #111;
+}
+#hearu-app .hu-cover {
+  width: min(100%, 260px);
+  aspect-ratio: 1;
+  margin: auto;
+  background: #f4f4f4;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px #0000000e;
+}
+#hearu-app .hu-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#hearu-app .hu-empty-disc {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: radial-gradient(
+    circle,
+    #fafafa 12%,
+    #e9e9e9 13%,
+    #fafafa 15%,
+    #e8e8e8 16%,
+    #f6f6f6 55%,
+    #ededed 56%,
+    #f7f7f7 58%
+  );
+}
+#hearu-app .hu-empty-disc svg {
+  width: 60px;
+  height: 60px;
+}
+#hearu-app .hu-empty-disc span {
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+#hearu-app .hu-track {
+  margin: 22px 0 18px;
+  text-align: center;
+}
+#hearu-app .hu-track h2 {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-track p {
+  font-size: 11px;
+  color: #888;
+  margin: 7px 0;
+}
+#hearu-app .hu-progress {
+  width: 100%;
+  height: 3px;
+  accent-color: #111;
+  display: block;
+  margin: 18px 0 10px;
+  cursor: pointer;
+}
+#hearu-app .hu-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+}
+#hearu-app .hu-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 33px;
+  margin: 17px 0;
+}
+#hearu-app .hu-controls button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+}
+#hearu-app .hu-controls .hu-play {
+  background: #111;
+  color: #fff;
+  border-radius: 50%;
+  width: 54px;
+  height: 54px;
+}
+#hearu-app .hu-lyrics {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.8;
+  min-height: 28px;
+  margin: 16px 0;
+}
+#hearu-app .hu-listen-links {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  font-size: 11px;
+  color: #777;
+  margin: 18px 0;
+}
+#hearu-app .hu-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #111;
+}
+#hearu-app .hu-notice {
+  padding: 0 22px;
+  font-size: 11px;
+  color: #666;
+  flex-shrink: 0;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-notice:empty {
+  display: none;
+}
+#hearu-app .hu-song {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid #eee;
+  padding: 13px 0;
+}
+#hearu-app .hu-song > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+#hearu-app .hu-song img {
+  width: 43px;
+  height: 43px;
+  object-fit: cover;
+  border-radius: 7px;
+}
+#hearu-app .hu-song span {
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-song strong {
+  display: block;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-song small {
+  letter-spacing: 0;
+  font-size: 10px;
+}
+#hearu-app .hu-song > button:last-child {
+  width: 28px;
+  font-size: 20px;
+}
+#hearu-app .hu-empty {
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  line-height: 1.8;
+  padding: 35px 8px;
+}
+#hearu-app .hu-chat-caption {
+  text-align: center;
+  letter-spacing: 1.7px;
+  font-size: 8px;
+  color: #aaa;
+  padding: 0 0 19px;
+}
+#hearu-app .hu-body:has(.hu-messages) {
+  display: flex;
+  flex-direction: column;
+}
+#hearu-app .hu-messages {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding-bottom: 20px;
+}
+#hearu-app .hu-message {
+  max-width: 85%;
+  margin: 16px 0;
+}
+#hearu-app .hu-message p {
+  background: #f3f3f3;
+  border-radius: 0 16px 16px 16px;
+  padding: 12px 15px;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 7px 0;
+}
+#hearu-app .hu-message small {
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+#hearu-app .hu-message.mine {
+  margin-left: auto;
+}
+#hearu-app .hu-message.mine p {
+  background: #111;
+  color: #fff;
+  border-radius: 16px 0 16px 16px;
+}
+#hearu-app .hu-message.mine small {
+  text-align: right;
+}
+#hearu-app #hu-chat-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 15px;
+  border: 1px solid #e5e5e5;
+  border-radius: 25px;
+  background: #fff;
+}
+#hearu-app #hu-chat-form button {
+  width: 32px;
+  height: 32px;
+  background: #111;
+  color: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+#hearu-app textarea {
+  resize: none;
+  max-height: 100px;
+  line-height: 1.6;
+}
+#hearu-app .hu-thinking {
+  font-size: 10px;
+  color: #888;
+}
+#hearu-app .hu-settings h2 {
+  font-size: 26px;
+  letter-spacing: -1px;
+  margin-top: 25px;
+}
+#hearu-app .hu-settings p {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.9;
+}
+#hearu-app .hu-settings label {
+  display: block;
+  font-size: 12px;
+  margin: 25px 0;
+}
+#hearu-app .hu-settings input {
+  display: block;
+  background: #f4f4f4;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+#hearu-app .hu-primary {
+  width: 100%;
+  padding: 15px !important;
+  background: #111 !important;
+  color: #fff !important;
+  border-radius: 25px;
+  margin-bottom: 22px;
+}
+#hearu-app .hu-settings a {
+  display: block;
+  color: #111;
+  font-size: 12px;
+  margin: 15px 0;
+  text-decoration: none;
+}
+#hearu-app .hu-source {
+  width: 100%;
+  padding: 20px 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: 13px;
+}
+#hearu-app .hu-import {
+  color: #777;
+}
+#hearu-app .hu-import input {
+  font-size: 10px;
+}
+@media (max-height: 720px) {
+  #hearu-app .hu-cover {
+    width: 190px;
+  }
+  #hearu-app .hu-body {
+    padding-top: 12px;
+  }
+  #hearu-app .hu-track {
+    margin: 17px 0 10px;
+  }
+  #hearu-app .hu-lyrics {
+    margin: 8px 0;
+  }
+  #hearu-app .hu-home {
+    padding-top: 16px;
+  }
+}
+/* HearU v2 — monochrome player and iMessage conversation */
+#hearu-app .hu-body:has(.hu-player-top) {
+  padding: 21px 28px 14px;
+}
+#hearu-app .hu-player-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+#hearu-app .hu-player-top .hu-pair {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #333;
+}
+#hearu-app .hu-session-label {
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  color: #999;
+}
+#hearu-app .hu-cover {
+  width: min(100%, 270px);
+  border-radius: 9px;
+  box-shadow: 0 14px 28px #00000016;
+  background: #eee;
+}
+#hearu-app .hu-sleeve {
+  height: 100%;
+  width: 100%;
+  background: #e9e9e9;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  color: #171717;
+}
+#hearu-app .hu-sleeve-brand {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+  position: relative;
+  z-index: 1;
+}
+#hearu-app .hu-vinyl {
+  position: absolute;
+  left: 21%;
+  top: 17%;
+  width: 88%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle at center,
+    #171717 0 2px,
+    #222 3px,
+    #151515 4px
+  );
+  box-shadow: -5px 7px 14px #0002;
+  display: grid;
+  place-items: center;
+  transform: rotate(-19deg);
+}
+#hearu-app .hu-vinyl-label {
+  width: 27%;
+  height: 27%;
+  border-radius: 50%;
+  background: #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  align-items: center;
+  justify-content: center;
+}
+#hearu-app .hu-vinyl-label span {
+  font-size: 9px;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+#hearu-app .hu-vinyl-label i {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background: #171717;
+}
+#hearu-app .hu-sleeve-caption {
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 8px;
+  line-height: 1.5;
+  letter-spacing: 1px;
+  z-index: 2;
+  color: #111;
+}
+#hearu-app .hu-sleeve-caption > span {
+  background: #e9e9e9;
+  padding: 5px 6px;
+}
+#hearu-app .hu-track {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  text-align: left;
+  margin: 24px 0 22px;
+}
+#hearu-app .hu-track > div {
+  min-width: 0;
+  flex: 1;
+}
+#hearu-app .hu-track h2 {
+  font-size: 21px;
+  letter-spacing: -0.7px;
+  line-height: 1.35;
+}
+#hearu-app .hu-track p {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 6px 0 0;
+  color: #8c8c8c;
+}
+#hearu-app .hu-favorite {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #aaa;
+}
+#hearu-app .hu-favorite.saved {
+  color: #111;
+}
+#hearu-app .hu-favorite.saved svg {
+  fill: #111;
+}
+#hearu-app .hu-progress {
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(
+    to right,
+    #151515 0 var(--hu-progress, 0%),
+    #e3e3e3 var(--hu-progress, 0%) 100%
+  );
+  height: 3px;
+  border-radius: 5px;
+  margin: 5px 0 10px;
+  border: 0;
+}
+#hearu-app .hu-progress::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 9px;
+  height: 9px;
+  background: #111;
+  border-radius: 50%;
+  border: 0;
+}
+#hearu-app .hu-progress::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+  background: #111;
+  border: 0;
+  border-radius: 50%;
+}
+#hearu-app .hu-times {
+  font-size: 10px;
+  color: #999;
+}
+#hearu-app .hu-controls {
+  gap: 0;
+  justify-content: space-between;
+  margin: 18px 0 16px;
+}
+#hearu-app .hu-controls > button {
+  width: 35px;
+  height: 40px;
+}
+#hearu-app .hu-controls .hu-play {
+  width: 63px;
+  height: 63px;
+  background: #111;
+  color: #fff;
+}
+#hearu-app .hu-play svg {
+  width: 29px;
+  height: 29px;
+}
+#hearu-app .hu-controls .hu-mode {
+  color: #aaa;
+}
+#hearu-app .hu-controls .hu-mode svg {
+  width: 20px;
+  height: 20px;
+}
+#hearu-app .hu-controls .hu-mode.active {
+  color: #111;
+  position: relative;
+}
+#hearu-app .hu-mode.active:after {
+  content: "";
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #111;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+}
+#hearu-app .hu-lyric-preview {
+  display: block;
+  text-align: center;
+  width: 100%;
+  padding: 13px 0;
+  min-height: 48px;
+  color: #888;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#hearu-app .hu-lyric-preview small {
+  letter-spacing: 0;
+  font-size: 10px;
+  color: #aaa;
+  margin-top: 4px;
+}
+#hearu-app .hu-lyric-preview small:empty {
+  display: none;
+}
+#hearu-app .hu-player-bottom {
+  display: flex;
+  justify-content: space-around;
+  margin: 17px 0 0;
+  border-top: 1px solid #eee;
+  padding-top: 19px;
+}
+#hearu-app .hu-player-bottom button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #777;
+}
+#hearu-app .hu-player-bottom svg {
+  width: 17px;
+  height: 17px;
+}
+#hearu-app .hu-full-lyrics {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 28px 28px 50px;
+  scroll-behavior: smooth;
+  background: #f5f5f5;
+}
+#hearu-app .hu-full-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 13px 0;
+  color: #a0a09d;
+  transition: color 0.25s;
+}
+#hearu-app .hu-full-line strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1.4;
+  letter-spacing: -0.6px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-full-line small {
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: inherit;
+  font-weight: 400;
+  margin-top: 6px;
+}
+#hearu-app .hu-full-line.current {
+  color: #101010;
+}
+#hearu-app .hu-lyric-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid #eee;
+  font-size: 11px;
+  color: #888;
+  gap: 8px;
+}
+#hearu-app .hu-lyric-toolbar button {
+  font-size: 12px;
+  color: #111;
+}
+#hearu-app[data-hearu-tab="chat"] .hu-body {
+  background: #f9f9f9;
+  padding: 15px 16px 14px;
+}
+#hearu-app .hu-chat-caption {
+  padding: 0 0 12px;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: #9a9a9a;
+  font-weight: 400;
+  line-height: 1.6;
+}
+#hearu-app .hu-chat-caption > span {
+  display: block;
+}
+#hearu-app .hu-chat-caption small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: #a0a0a0;
+  letter-spacing: 0;
+  font-size: 10px;
+  gap: 3px;
+}
+#hearu-app .hu-chat-caption svg {
+  width: 10px;
+  height: 10px;
+}
+#hearu-app .hu-messages {
+  padding: 0 7px 18px;
+}
+#hearu-app .hu-message-date {
+  font-size: 10px;
+  text-align: center;
+  color: #9b9b9b;
+  margin: 10px 0 18px;
+  line-height: 1.5;
+}
+#hearu-app .hu-message {
+  width: fit-content;
+  max-width: 84%;
+  margin: 4px 0 7px;
+  position: relative;
+}
+#hearu-app .hu-message p {
+  position: relative;
+  margin: 0;
+  padding: 10px 15px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 400;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 0 0 1px #00000004;
+  z-index: 0;
+}
+#hearu-app .hu-message.mine {
+  margin-left: auto;
+}
+#hearu-app .hu-message.mine p {
+  border-radius: 20px;
+  background: #111;
+  color: #fff;
+  box-shadow: none;
+}
+#hearu-app .hu-message.tail p:before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 17px;
+  height: 17px;
+  z-index: -1;
+}
+#hearu-app .hu-message.tail p:after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  width: 12px;
+  height: 20px;
+  background: #f9f9f9;
+  z-index: -1;
+}
+#hearu-app .hu-message.theirs.tail p:before {
+  left: -6px;
+  border-bottom-right-radius: 13px;
+  background: #fff;
+}
+#hearu-app .hu-message.theirs.tail p:after {
+  left: -12px;
+  border-bottom-right-radius: 12px;
+}
+#hearu-app .hu-message.mine.tail p:before {
+  right: -6px;
+  border-bottom-left-radius: 13px;
+  background: #111;
+}
+#hearu-app .hu-message.mine.tail p:after {
+  right: -12px;
+  border-bottom-left-radius: 12px;
+}
+#hearu-app .hu-message-translation {
+  position: relative;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 750;
+  line-height: 1.45;
+  color: #fff;
+  -webkit-text-stroke: 0.75px #111;
+  paint-order: stroke fill;
+  text-shadow:
+    1px 1px 0 #111,
+    -1px -1px 0 #111;
+  letter-spacing: 0;
+  margin: -2px 5px 7px;
+  padding-top: 2px;
+  z-index: 1;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-message.mine .hu-message-translation {
+  text-align: right;
+}
+#hearu-app .hu-chat-event {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #999;
+  text-align: center;
+  padding: 13px 5px;
+}
+#hearu-app #hu-chat-form {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 23px;
+  padding: 6px 6px 6px 14px;
+  flex-shrink: 0;
+}
+#hearu-app #hu-chat-form textarea {
+  font-size: 14px;
+  line-height: 1.55;
+  padding-top: 2px;
+}
+#hearu-app #hu-chat-form button {
+  width: 29px;
+  height: 29px;
+}
+#hearu-app #hu-chat-form svg {
+  width: 20px;
+  height: 20px;
+}
+#hearu-app .hu-thinking {
+  margin: 6px 4px 0;
+  font-size: 10px;
+}
+@media (max-height: 740px) {
+  #hearu-app .hu-cover {
+    width: min(100%, 230px);
+  }
+  #hearu-app .hu-player-top {
+    margin-bottom: 13px;
+  }
+  #hearu-app .hu-track {
+    margin: 17px 0;
+  }
+  #hearu-app .hu-controls {
+    margin: 14px 0 5px;
+  }
+  #hearu-app .hu-controls .hu-play {
+    width: 53px;
+    height: 53px;
+  }
+  #hearu-app .hu-player-bottom {
+    margin-top: 6px;
+    padding-top: 12px;
+  }
+  #hearu-app .hu-lyric-preview {
+    padding: 8px 0;
+  }
+  #hearu-app .hu-body:has(.hu-player-top) {
+    padding-top: 14px;
+  }
+}
+
+#hearu-app .hu-body:has(.hu-player-top) {
+  padding-top: 16px;
+}
+#hearu-app .hu-player-top {
+  margin-bottom: 12px;
+}
+#hearu-app .hu-track {
+  margin-top: 18px;
+  margin-bottom: 17px;
+}
+#hearu-app .hu-controls {
+  margin-top: 14px;
+  margin-bottom: 12px;
+}
+#hearu-app .hu-player-bottom {
+  margin-top: 8px;
+  padding-top: 13px;
+}
+/* HearU: shared sleeve, lyric stage and music messages */
+#hearu-app .hu-vinyl.has-cover {
+  overflow: hidden;
+  transform: none;
+  background: #181818;
+}
+#hearu-app .hu-cover .hu-disc-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+#hearu-app .hu-vinyl.has-cover:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    #0000 0 3px,
+    #0002 4px,
+    #fff1 5px
+  );
+  pointer-events: none;
+}
+#hearu-app .hu-disc-hole {
+  width: 11px;
+  height: 11px;
+  background: #e9e9e9;
+  box-shadow: 0 0 0 3px #0004;
+  border-radius: 50%;
+  z-index: 1;
+}
+#hearu-app .hu-vinyl.has-cover {
+  animation: hu-record 24s linear infinite;
+  animation-play-state: paused;
+}
+#hearu-app[data-playing="true"] .hu-vinyl.has-cover {
+  animation-play-state: running;
+}
+@keyframes hu-record {
+  to {
+    transform: rotate(360deg);
+  }
+}
+#hearu-app .hu-header {
+  gap: 10px;
+}
+#hearu-app .hu-header [data-hu="reroll"],
+#hearu-app .hu-header [data-hu="stop-generation"] {
+  width: 24px;
+  flex-shrink: 0;
+}
+#hearu-app .hu-header [data-hu="reroll"] svg,
+#hearu-app .hu-header [data-hu="stop-generation"] svg {
+  width: 18px;
+  height: 18px;
+}
+#hearu-app #hu-chat-form .hu-send-local {
+  color: #888;
+  background: transparent;
+}
+#hearu-app .hu-message.hu-card-message {
+  width: 280px;
+  max-width: 90%;
+  margin: 10px 0 14px;
+}
+#hearu-app .hu-card-message.mine {
+  margin-left: auto;
+}
+#hearu-app .hu-music-card {
+  overflow: hidden;
+  border-radius: 7px;
+  background: #999;
+  box-shadow: 0 3px 12px #00000006;
+}
+#hearu-app .hu-card-play {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  align-items: center;
+  color: white;
+}
+#hearu-app .hu-card-play img {
+  width: 82px;
+  height: 82px;
+  object-fit: cover;
+  flex-shrink: 0;
+  filter: grayscale(1);
+}
+#hearu-app .hu-card-play > div {
+  padding: 12px 16px;
+  min-width: 0;
+}
+#hearu-app .hu-card-play strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-card-play span {
+  display: block;
+  color: #e0e0e0;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 5px;
+}
+#hearu-app .hu-card-lines {
+  padding: 13px 17px;
+  background: #eee;
+}
+#hearu-app .hu-card-message .hu-card-lines p {
+  font-size: 15px;
+  line-height: 1.6;
+  border-radius: 0;
+  background: none;
+  color: #222;
+  box-shadow: none;
+  padding: 4px 0;
+}
+#hearu-app .hu-card-lines small {
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #777;
+}
+#hearu-app .hu-card-lines p:before,
+#hearu-app .hu-card-lines p:after {
+  display: none;
+}
+#hearu-app .hu-clear-chat {
+  color: #555;
+  padding: 13px 0;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+#hearu-app .hu-song > button:not(:first-child) {
+  width: 28px;
+  flex-shrink: 0;
+}
+#hearu-app .hu-song > button:not(:first-child) svg {
+  width: 17px;
+  height: 17px;
+}
+#hearu-app .hu-queue-edit {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#hearu-app .hu-queue-edit button {
+  width: 19px;
+  height: 32px;
+  color: #999;
+  font-size: 16px;
+}
+#hearu-app .hu-queue-song.current {
+  border-left: 2px solid #111;
+  padding-left: 8px;
+}
+#hearu-app .hu-queue-song em {
+  display: block;
+  color: #888;
+  font-size: 10px;
+  font-style: normal;
+  margin-top: 4px;
+}
+#hearu-app .hu-queue-search {
+  margin: 12px 0 18px;
+}
+#hearu-app .hu-source-actions {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+}
+#hearu-app .hu-source-actions button {
+  background: #f1f1f1;
+  border-radius: 18px;
+  padding: 9px 13px;
+  font-size: 12px;
+}
+#hearu-app[data-hearu-view="lyrics"] {
+  background: #4b4b4b;
+  color: white;
+  isolation: isolate;
+}
+#hearu-app .hu-lyric-backdrop {
+  position: absolute;
+  width: 140%;
+  height: 140%;
+  inset: -20%;
+  object-fit: cover;
+  filter: grayscale(1) blur(65px);
+  opacity: 0.32;
+  z-index: -2;
+}
+#hearu-app[data-hearu-view="lyrics"]:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#aaa5, #3332 45%, #131313e6);
+  z-index: -1;
+  pointer-events: none;
+}
+#hearu-app .hu-lyric-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 28px 22px 15px;
+  flex-shrink: 0;
+}
+#hearu-app .hu-lyric-top > button:first-child {
+  width: 20px;
+  margin-left: -5px;
+}
+#hearu-app .hu-lyric-top > img {
+  width: 55px;
+  height: 55px;
+  object-fit: cover;
+  border-radius: 8px;
+  filter: grayscale(1);
+  box-shadow: 0 5px 15px #0002;
+}
+#hearu-app .hu-lyric-top > div {
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-lyric-top strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.5;
+}
+#hearu-app .hu-lyric-top span {
+  display: block;
+  font-size: 12px;
+  opacity: 0.6;
+  line-height: 1.5;
+}
+#hearu-app .hu-lyric-top small {
+  letter-spacing: 0;
+  color: #ddd;
+  font-size: 10px;
+}
+#hearu-app .hu-lyric-top [data-hu="toggle-translations"] {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff15;
+  font-size: 13px;
+  color: #ddd;
+}
+#hearu-app .hu-lyric-top [data-hu="toggle-translations"].active {
+  background: #ffffff35;
+  color: #fff;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-lyrics {
+  background: transparent;
+  padding: 35px 30px 70px;
+  scrollbar-width: none;
+  mask-image: linear-gradient(transparent, #000 8%, #000 87%, transparent);
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line {
+  padding: 15px 0;
+  color: #ffffff45;
+  transition:
+    filter 0.35s,
+    color 0.35s,
+    opacity 0.35s;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line strong {
+  font-size: 28px;
+  line-height: 1.35;
+  letter-spacing: -0.6px;
+  font-weight: 750;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line small {
+  font-size: 14px;
+  color: inherit;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.current {
+  color: #fff;
+  filter: none;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.near {
+  filter: blur(0.6px);
+  color: #ffffff55;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.far {
+  filter: blur(1.8px);
+  color: #ffffff35;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.selected {
+  filter: none;
+  color: white;
+  background: #ffffff12;
+  border-radius: 10px;
+  padding-left: 12px;
+}
+#hearu-app .hu-lyric-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 30px 12px;
+  flex-shrink: 0;
+}
+#hearu-app .hu-lyric-share button {
+  font-size: 10px;
+  color: #ddd;
+  letter-spacing: 0.3px;
+  padding: 7px 10px;
+  background: #ffffff12;
+  border-radius: 16px;
+}
+#hearu-app .hu-lyric-player {
+  padding: 4px 30px 12px;
+  flex-shrink: 0;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-progress {
+  background: linear-gradient(
+    to right,
+    #eee var(--hu-progress, 0%),
+    #ffffff25 var(--hu-progress, 0%)
+  );
+  height: 5px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-progress::-webkit-slider-thumb {
+  background: white;
+  width: 10px;
+  height: 10px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-times {
+  color: #ffffff70;
+  font-size: 10px;
+  margin-top: 8px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-controls {
+  margin: 20px 0 5px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-play {
+  background: none;
+  width: 56px;
+  height: 56px;
+  color: white;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-play svg {
+  width: 34px;
+  height: 34px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-mode {
+  color: #ffffff70;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-mode.active {
+  color: white;
+  background: #ffffff22;
+  border-radius: 6px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-notice {
+  color: #ddd;
+  background: transparent;
+  border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  #hearu-app .hu-vinyl.has-cover {
+    animation: none;
+  }
+}
+#hearu-app .hu-ta-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  letter-spacing: 0;
+  color: #777;
+  margin-top: 5px;
+}
+#hearu-app .hu-ta-note img {
+  width: 14px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+#hearu-app .hu-playlist-import {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+#hearu-app .hu-playlist-import input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  border-radius: 12px;
+  background: #f4f4f4;
+  padding: 12px;
+  font-size: 12px;
+  outline: none;
+}
+#hearu-app .hu-playlist-import button {
+  font-size: 12px;
+  padding: 10px;
+}
+/* HearU 04 — paper, ink, music. */
+#hearu-app .hu-message.hu-card-message {
+  width: 292px;
+  max-width: 92%;
+  margin-top: 12px;
+  margin-bottom: 18px;
+}
+#hearu-app .hu-music-card {
+  background: #fff;
+  border: 1px solid #e7e7e7;
+  border-radius: 15px;
+  box-shadow: 0 4px 14px #00000004;
+  padding: 17px 18px 12px;
+}
+#hearu-app .hu-card-kicker {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 8px;
+  letter-spacing: 1.25px;
+  color: #8d8d8d;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+#hearu-app .hu-card-play {
+  gap: 16px;
+  color: #111;
+  align-items: center;
+}
+#hearu-app .hu-card-play > .hu-card-art {
+  position: relative;
+  flex: none;
+  width: 74px;
+  height: 74px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+}
+#hearu-app .hu-card-art img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  filter: none;
+  object-fit: cover;
+}
+#hearu-app .hu-card-art > span {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 21px;
+  height: 21px;
+  margin: 0;
+  background: #111d;
+  color: #fff;
+  border-radius: 50%;
+}
+#hearu-app .hu-card-art > span svg {
+  width: 10px;
+  height: 10px;
+}
+#hearu-app .hu-card-play > div:not(.hu-card-art) {
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-card-play strong {
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+#hearu-app .hu-card-play > div > span {
+  font-size: 11px;
+  color: #888;
+  margin-top: 5px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+#hearu-app .hu-card-play small {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  letter-spacing: 0;
+  color: #222;
+  margin-top: 9px;
+}
+#hearu-app .hu-card-play small svg {
+  width: 14px;
+  height: 14px;
+}
+#hearu-app .hu-card-note {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #555;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+#hearu-app .hu-card-lines {
+  position: relative;
+  background: none;
+  padding: 15px 0 3px;
+  margin-top: 15px;
+  border-top: 1px solid #ededed;
+}
+#hearu-app .hu-card-quote {
+  font-size: 30px;
+  line-height: 1;
+  color: #bbb;
+  display: block;
+  margin-bottom: 2px;
+}
+#hearu-app .hu-card-message .hu-card-lines p {
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  text-align: left;
+  background: none;
+  color: #222;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+#hearu-app .hu-card-verse {
+  margin-bottom: 12px;
+}
+#hearu-app .hu-card-verse small {
+  font-size: 11px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: #999;
+  text-align: left;
+  font-weight: 400;
+  margin-top: 7px;
+}
+#hearu-app .hu-card-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  margin-top: 10px;
+  border-top: 1px solid #f0f0f0;
+  color: #aaa;
+  font-size: 8px;
+  letter-spacing: 0.4px;
+}
+#hearu-app .hu-song-credit {
+  padding: 12px 0;
+  margin: 2px 0 11px;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+#hearu-app .hu-credit-owner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #333;
+}
+#hearu-app .hu-credit-owner img {
+  width: 21px;
+  height: 21px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+#hearu-app .hu-credit-owner > svg {
+  width: 13px;
+  height: 13px;
+  color: #999;
+}
+#hearu-app .hu-credit-label {
+  margin-left: auto;
+  font-size: 7px;
+  letter-spacing: 1.8px;
+  color: #aaa;
+}
+#hearu-app .hu-song-credit p {
+  margin: 7px 0 0 28px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #444;
+  letter-spacing: 0.1px;
+}
+#hearu-app .hu-song-credit.from-you {
+  border: 0;
+  padding: 0;
+  margin: 0 0 12px;
+}
+#hearu-app .hu-dj-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-size: 10px;
+  color: #999;
+  margin: 0 0 17px;
+  text-align: left;
+}
+#hearu-app .hu-dj-toggle > span:last-child {
+  margin-left: auto;
+  color: #777;
+  font-size: 9px;
+}
+#hearu-app .hu-dj-dot {
+  width: 5px;
+  height: 5px;
+  border: 1px solid #bbb;
+  border-radius: 50%;
+}
+#hearu-app .hu-dj-toggle.active {
+  color: #222;
+}
+#hearu-app .hu-dj-toggle.active .hu-dj-dot {
+  background: #111;
+  border-color: #111;
+}
+#hearu-app .hu-setting-dj {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+#hearu-app .hu-cover {
+  width: min(100%, 240px);
+}
+#hearu-app .hu-track {
+  margin: 17px 0 14px;
+}
+#hearu-app[data-hearu-view="lyrics"] {
+  background: #fff;
+  color: #111;
+}
+#hearu-app[data-hearu-view="lyrics"]:before {
+  display: none;
+}
+#hearu-app .hu-lyric-top {
+  gap: 16px;
+  padding: 22px 23px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+}
+#hearu-app .hu-lyric-top > div {
+  flex: 1;
+}
+#hearu-app .hu-lyric-top .hu-lyric-eyebrow {
+  color: #aaa;
+  font-size: 8px;
+  letter-spacing: 1.8px;
+  line-height: 1.5;
+  opacity: 1;
+}
+#hearu-app .hu-lyric-top strong {
+  font-size: 24px;
+  letter-spacing: -0.8px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+#hearu-app .hu-lyric-top strong > span {
+  display: inline;
+  color: #111;
+  opacity: 1;
+  font-size: 25px;
+}
+#hearu-app .hu-lyric-top [data-hu="toggle-translations"],
+#hearu-app .hu-lyric-top [data-hu="toggle-translations"].active {
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  border-radius: 15px;
+  width: auto;
+  height: auto;
+  padding: 6px 10px;
+  font-size: 10px;
+  color: #999;
+  white-space: nowrap;
+}
+#hearu-app .hu-lyric-top [data-hu="toggle-translations"].active {
+  color: #111;
+  border-color: #bbb;
+}
+#hearu-app .hu-lyric-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 19px 25px 14px;
+  flex-shrink: 0;
+}
+#hearu-app .hu-lyric-track > img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 7px;
+}
+#hearu-app .hu-lyric-track > div {
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-lyric-track strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+}
+#hearu-app .hu-lyric-track span {
+  display: block;
+  font-size: 10px;
+  color: #999;
+  margin-top: 4px;
+}
+#hearu-app .hu-lyric-track > button {
+  color: #888;
+  padding: 5px;
+}
+#hearu-app .hu-lyric-track svg {
+  width: 17px;
+  height: 17px;
+}
+#hearu-app .hu-song-credit.compact {
+  flex-shrink: 0;
+  margin: 0 25px 9px;
+  padding: 10px 0;
+}
+#hearu-app .hu-song-credit.compact.from-you {
+  margin-bottom: 3px;
+  padding: 0;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-lyrics {
+  background: #fff;
+  padding: 20px 25px 50px;
+  mask-image: linear-gradient(transparent, #000 4%, #000 93%, transparent);
+  scrollbar-width: none;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 9px;
+  align-items: start;
+  position: relative;
+  padding: 17px 0 19px;
+  color: #bcbcbc;
+  filter: none;
+  transition: color 0.25s;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.near,
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.far {
+  filter: none;
+  color: #bbb;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line strong {
+  font-size: 23px;
+  line-height: 1.5;
+  letter-spacing: -0.65px;
+  font-weight: 600;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line small {
+  font-size: 12px;
+  line-height: 1.7;
+  color: inherit;
+  margin-top: 7px;
+  letter-spacing: 0.1px;
+  font-weight: 400;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.current {
+  color: #111;
+}
+#hearu-app .hu-line-number {
+  padding-top: 7px;
+  font-size: 8px;
+  line-height: 1.8;
+  letter-spacing: 1px;
+  color: #c7c7c7;
+  font-variant-numeric: tabular-nums;
+}
+#hearu-app .hu-full-line.current .hu-line-number {
+  color: #111;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.selected {
+  background: #f5f5f5;
+  color: #111;
+  border-radius: 10px;
+  padding-left: 9px;
+  padding-right: 9px;
+}
+#hearu-app .hu-lyric-share {
+  padding: 10px 25px;
+  gap: 12px;
+  justify-content: flex-start;
+  background: #fff;
+  border-top: 1px solid #eee;
+}
+#hearu-app .hu-lyric-share button {
+  font-size: 10px;
+  letter-spacing: 0;
+  background: none;
+  color: #888;
+  border-radius: 0;
+  padding: 5px 0;
+  white-space: nowrap;
+}
+#hearu-app .hu-lyric-share [data-hu="share-lyrics"] {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #111;
+}
+#hearu-app .hu-lyric-share svg {
+  width: 13px;
+  height: 13px;
+}
+#hearu-app .hu-lyric-player {
+  padding: 10px 25px 15px;
+  background: #fff;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-progress {
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    #111 var(--hu-progress, 0%),
+    #e6e6e6 var(--hu-progress, 0%)
+  );
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-progress::-webkit-slider-thumb {
+  background: #111;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-progress::-webkit-slider-thumb {
+  background: #111;
+  width: 8px;
+  height: 8px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-times {
+  color: #aaa;
+  font-size: 9px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-controls {
+  margin: 12px 0 0;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-play {
+  background: #111;
+  color: #fff;
+  width: 47px;
+  height: 47px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-play svg {
+  width: 21px;
+  height: 21px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-controls > button:not(.hu-play) svg {
+  width: 19px;
+  height: 19px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-mode {
+  color: #bbb;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-mode.active {
+  color: #111;
+  background: none;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-notice {
+  background: #fff;
+  color: #999;
+  font-size: 9px;
+}
+#hearu-app .hu-library-heading > span {
+  font-size: 8px;
+  color: #aaa;
+  letter-spacing: 1.7px;
+}
+#hearu-app .hu-library-heading h2 {
+  font-size: 26px;
+  line-height: 1.4;
+  letter-spacing: -1px;
+  margin: 8px 0;
+  font-weight: 650;
+}
+#hearu-app .hu-library-heading h2 span {
+  font-size: 30px;
+}
+#hearu-app .hu-library-heading p {
+  color: #999;
+  font-size: 11px;
+  margin: 0 0 22px;
+}
+#hearu-app .hu-collections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 23px;
+}
+#hearu-app .hu-collection {
+  border: 1px solid #e7e7e7;
+  border-radius: 12px;
+  padding: 15px 13px;
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  background: #fff;
+}
+#hearu-app .hu-collection.ta {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+#hearu-app .hu-collection-label {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 1.1px;
+  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#hearu-app .hu-collection strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 550;
+  letter-spacing: -0.5px;
+  margin: 13px 0 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#hearu-app .hu-collection-bottom {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  color: #999;
+  height: 25px;
+}
+#hearu-app .hu-collection-bottom > div {
+  display: flex;
+  margin-left: auto;
+}
+#hearu-app .hu-collection-bottom img {
+  width: 23px;
+  height: 23px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-left: -8px;
+  border: 1px solid #fff;
+}
+#hearu-app .hu-collection-bottom > span:last-child {
+  font-size: 18px;
+  color: inherit;
+}
+#hearu-app .hu-shelf-tabs {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+}
+#hearu-app .hu-shelf-tabs > button {
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 0 0 12px;
+  color: #aaa;
+  border-bottom: 1px solid transparent;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+#hearu-app .hu-shelf-tabs > button.active {
+  color: #111;
+  border-bottom-color: #111;
+}
+#hearu-app .hu-shelf-tabs small {
+  display: inline;
+  margin: 0;
+  font-size: 8px;
+  letter-spacing: 0;
+  color: inherit;
+}
+#hearu-app .hu-shelf-tabs .hu-shelf-load {
+  margin-left: auto;
+  font-size: 9px;
+}
+#hearu-app .hu-queue-search {
+  border-radius: 0;
+  background: none;
+  margin: 15px 0 8px;
+  padding: 4px 0;
+  color: #aaa;
+}
+#hearu-app .hu-queue-search svg {
+  width: 14px;
+  height: 14px;
+}
+#hearu-app .hu-queue-search input {
+  font-size: 10px;
+}
+#hearu-app .hu-queue-song {
+  gap: 9px;
+  padding: 13px 0;
+  border-bottom: 1px solid #f1f1f1;
+}
+#hearu-app .hu-queue-song.current {
+  border-left: 0;
+  padding-left: 0;
+}
+#hearu-app .hu-queue-number {
+  font-size: 8px;
+  color: #bbb;
+  letter-spacing: 0.6px;
+  min-width: 15px;
+  font-variant-numeric: tabular-nums;
+}
+#hearu-app .hu-queue-song.current .hu-queue-number {
+  color: #111;
+}
+#hearu-app .hu-queue-song > button:first-of-type {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+}
+#hearu-app .hu-queue-song > button:first-of-type > img {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+#hearu-app .hu-queue-song > button:first-of-type > span:not(.hu-equalizer) {
+  flex: 1;
+  min-width: 0;
+}
+#hearu-app .hu-queue-song strong {
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 550;
+}
+#hearu-app .hu-queue-song small {
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  margin-top: 2px;
+}
+#hearu-app .hu-queue-song em {
+  font-size: 8px;
+  line-height: 1.7;
+  color: #aaa;
+  display: block;
+  margin-top: 4px;
+  white-space: normal;
+}
+#hearu-app .hu-queue-song > button > svg {
+  width: 11px;
+  height: 11px;
+  color: #999;
+}
+#hearu-app .hu-queue-edit {
+  gap: 4px;
+}
+#hearu-app .hu-queue-edit button {
+  width: 14px;
+  font-size: 12px;
+  color: #aaa;
+}
+#hearu-app .hu-equalizer {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  width: 12px;
+  height: 12px;
+}
+#hearu-app .hu-equalizer i {
+  display: block;
+  width: 2px;
+  background: #111;
+  height: 8px;
+}
+#hearu-app .hu-equalizer i:nth-child(2) {
+  height: 12px;
+}
+#hearu-app .hu-equalizer i:nth-child(3) {
+  height: 5px;
+}
+#hearu-app .hu-library-empty {
+  text-align: center;
+  padding: 30px 15px;
+  color: #aaa;
+}
+#hearu-app .hu-library-empty > span {
+  font-size: 28px;
+  color: #ddd;
+}
+#hearu-app .hu-library-empty p {
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+#hearu-app .hu-message.hu-card-message .hu-card-verse small {
+  text-align: left;
+}
+#hearu-app .hu-queue-song .hu-queue-number {
+  flex: none;
+  width: 15px;
+}
+#hearu-app .hu-queue-song > button:first-of-type {
+  width: auto;
+  flex: 1 1 auto;
+}
+#hearu-app .hu-queue-song .hu-equalizer {
+  flex: none;
+}
+#hearu-app .hu-queue-edit {
+  flex-shrink: 0;
+}
+#hearu-app .hu-cover {
+  width: min(100%, 220px);
+}
+#hearu-app .hu-controls .hu-play {
+  width: 54px;
+  height: 54px;
+}
+#hearu-app .hu-lyric-preview {
+  padding: 7px 0;
+}
+#hearu-app .hu-song-credit {
+  padding: 10px 0;
+  margin-bottom: 10px;
+}
+#hearu-app .hu-dj-toggle {
+  margin-bottom: 12px;
+}
+#hearu-app .hu-player-bottom {
+  padding-top: 10px;
+  margin-top: 7px;
+}
+#hearu-app .hu-cover {
+  width: min(100%, 200px);
+}
+@media (max-height: 740px) {
+  #hearu-app .hu-cover {
+    width: min(100%, 165px);
+  }
+}
+/* HearU 05: reference player and quiet song notes */
+#hearu-app .hu-cover {
+  width: min(100%, 270px);
+}
+#hearu-app .hu-controls .hu-play {
+  width: 62px;
+  height: 62px;
+}
+#hearu-app .hu-player-top {
+  margin-bottom: 21px;
+}
+#hearu-app .hu-body:has(.hu-player-top) {
+  padding-top: 20px;
+}
+#hearu-app .hu-track {
+  margin-top: 22px;
+  margin-bottom: 20px;
+}
+#hearu-app .hu-controls {
+  margin-top: 17px;
+  margin-bottom: 15px;
+}
+#hearu-app .hu-lyric-preview {
+  padding: 16px 0;
+}
+#hearu-app .hu-player-bottom {
+  padding-top: 19px;
+  margin-top: 13px;
+}
+#hearu-app .hu-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+#hearu-app .hu-pair span {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: #777;
+}
+#hearu-app .hu-pair.from-ta span {
+  color: #333;
+}
+#hearu-app .hu-pair:focus-visible {
+  outline: 1px solid #888;
+  outline-offset: 5px;
+  border-radius: 20px;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+  text-align: left;
+}
+#hearu-app[data-hearu-view="lyrics"] .hu-full-line.selected {
+  padding-left: 12px;
+}
+#hearu-app .hu-thought {
+  padding: 27px 26px 22px;
+  background: #fff;
+}
+#hearu-app .hu-thought-heading > span {
+  font-size: 8px;
+  letter-spacing: 1.6px;
+  color: #aaa;
+}
+#hearu-app .hu-thought-heading h2 {
+  font-size: 28px;
+  line-height: 1.5;
+  letter-spacing: -1px;
+  font-weight: 600;
+  margin: 9px 0 25px;
+}
+#hearu-app .hu-thought-heading h2 > span {
+  color: #bbb;
+}
+#hearu-app .hu-thought-track {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid #eee;
+}
+#hearu-app .hu-thought-track > img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+#hearu-app .hu-thought-track > div {
+  min-width: 0;
+  flex: 1;
+}
+#hearu-app .hu-thought-track strong {
+  font-size: 15px;
+  line-height: 1.5;
+  display: block;
+}
+#hearu-app .hu-thought-track small {
+  font-size: 10px;
+  line-height: 1.7;
+  letter-spacing: 0;
+  color: #999;
+  margin-top: 4px;
+}
+#hearu-app .hu-thought-owner {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 24px 0 22px;
+  font-size: 12px;
+}
+#hearu-app .hu-thought-owner > img {
+  height: 29px;
+  width: 29px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+#hearu-app .hu-thought-owner small {
+  letter-spacing: 0;
+  color: #aaa;
+  font-size: 9px;
+  margin-top: 3px;
+}
+#hearu-app .hu-thought-kicker {
+  display: block;
+  font-size: 9px;
+  color: #aaa;
+  letter-spacing: 0.7px;
+}
+#hearu-app .hu-thought-note {
+  margin-bottom: 27px;
+}
+#hearu-app .hu-thought-note > p {
+  font-size: 20px;
+  line-height: 1.65;
+  letter-spacing: -0.4px;
+  margin: 13px 0 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+#hearu-app .hu-thought-lyric {
+  border-top: 1px solid #eee;
+  padding: 20px 0;
+}
+#hearu-app .hu-thought-quote {
+  text-align: left;
+  display: block;
+  width: 100%;
+  margin-top: 13px;
+  padding: 0;
+  color: #333;
+}
+#hearu-app .hu-thought-quote > span {
+  font-size: 28px;
+  line-height: 1;
+  color: #c8c8c8;
+  display: block;
+}
+#hearu-app .hu-thought-quote strong {
+  font-size: 18px;
+  line-height: 1.65;
+  font-weight: 500;
+  display: block;
+  letter-spacing: -0.35px;
+}
+#hearu-app .hu-thought-quote small {
+  font-size: 11px;
+  color: #999;
+  line-height: 1.7;
+  letter-spacing: 0;
+  margin-top: 8px;
+}
+#hearu-app .hu-thought-quote em {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  font-style: normal;
+  color: #aaa;
+  margin-top: 16px;
+  font-variant-numeric: tabular-nums;
+}
+#hearu-app .hu-thought-quote em svg {
+  height: 10px;
+  width: 10px;
+}
+#hearu-app .hu-thought-empty {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #aaa;
+  margin: 15px 0 5px;
+}
+#hearu-app .hu-thought-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 0 8px;
+  border-top: 1px solid #eee;
+  margin-top: 6px;
+}
+#hearu-app .hu-thought-actions button {
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #999;
+}
+#hearu-app .hu-thought-actions [data-hu="ask-song-thought"] {
+  color: #111;
+}
+#hearu-app .hu-thought-actions button:last-child {
+  margin-left: auto;
+}
+#hearu-app .hu-thought-actions svg {
+  width: 13px;
+  height: 13px;
+}
+#hearu-app .hu-thought-foot {
+  font-size: 9px;
+  color: #bbb;
+  letter-spacing: 0.5px;
+  margin: 28px 0 5px;
+}
+#hearu-app .hu-collections {
+  gap: 12px;
+}
+#hearu-app .hu-collection,
+#hearu-app .hu-collection.ta {
+  background: #f8f8f8;
+  border: 0;
+  border-radius: 18px;
+  color: #222;
+  padding: 18px 15px;
+}
+#hearu-app .hu-collection.ta {
+  background: #f0f0f0;
+}
+#hearu-app .hu-collection strong {
+  font-size: 16px;
+  margin: 13px 0 20px;
+}
+#hearu-app .hu-collection-bottom img {
+  border: 1px solid #f8f8f8;
+}
+#hearu-app .hu-queue-song {
+  padding: 16px 0;
+  gap: 11px;
+  border-bottom: 1px solid #f1f1f1;
+}
+#hearu-app .hu-queue-song em {
+  color: #999;
+  font-size: 9px;
+  line-height: 1.7;
+  margin-top: 6px;
+}
+#hearu-app .hu-queue-song .hu-queue-number {
+  color: #ccc;
+}
+#hearu-app .hu-shelf-tabs > button.active {
+  border-bottom-color: #555;
+}
+#hearu-app[data-hearu-tab="chat"] .hu-body {
+  background: #f5f5f5;
+}
+#hearu-app .hu-message.tail p:after {
+  background: #f5f5f5;
+}
+@media (max-height: 740px) {
+  #hearu-app .hu-cover {
+    width: min(100%, 230px);
+  }
+  #hearu-app .hu-player-top {
+    margin-bottom: 13px;
+  }
+  #hearu-app .hu-track {
+    margin-top: 17px;
+    margin-bottom: 17px;
+  }
+  #hearu-app .hu-controls {
+    margin: 14px 0 5px;
+  }
+  #hearu-app .hu-controls .hu-play {
+    width: 53px;
+    height: 53px;
+  }
+  #hearu-app .hu-lyric-preview {
+    padding: 8px 0;
+  }
+  #hearu-app .hu-player-bottom {
+    margin-top: 6px;
+    padding-top: 12px;
+  }
+}
+
+/* HearU 06: one responsive player for every playback state. */
+#hearu-app[data-hearu-tab="listen"][data-hearu-view="room"] .hu-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 26px 18px;
+}
+#hearu-app[data-hearu-tab="listen"] .hu-body > * { flex-shrink: 0; }
+#hearu-app .hu-art-stage {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#hearu-app .hu-art-stage .hu-cover {
+  height: min(100%, 270px);
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: 0;
+  flex: none;
+}
+#hearu-app .hu-vinyl.has-cover::after { content: none; }
+#hearu-app .hu-vinyl-label { width: 27%; height: 27%; }
+#hearu-app[data-hearu-tab="listen"] .hu-player-top { margin-bottom: 14px; }
+#hearu-app[data-hearu-tab="listen"] .hu-track { margin: 16px 0 14px; }
+#hearu-app[data-hearu-tab="listen"] .hu-track h2 {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#hearu-app[data-hearu-tab="listen"] .hu-track p {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#hearu-app[data-hearu-tab="listen"] .hu-controls { margin: 14px 0 8px; }
+#hearu-app[data-hearu-tab="listen"] .hu-controls .hu-play { width: 62px; height: 62px; }
+#hearu-app[data-hearu-tab="listen"] .hu-lyric-preview {
+  height: 52px; min-height: 52px; padding: 8px 0;
+}
+#hearu-app[data-hearu-tab="listen"] .hu-lyric-preview span,
+#hearu-app[data-hearu-tab="listen"] .hu-lyric-preview small {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#hearu-app[data-hearu-tab="listen"] .hu-player-bottom {
+  height: 38px; margin: 8px 0 0; padding: 14px 0 0;
+}
+@media (max-height: 740px) {
+  #hearu-app[data-hearu-tab="listen"][data-hearu-view="room"] .hu-body { padding: 12px 26px; }
+  #hearu-app[data-hearu-tab="listen"] .hu-player-top { margin-bottom: 10px; }
+  #hearu-app[data-hearu-tab="listen"] .hu-track { margin: 12px 0 10px; }
+  #hearu-app[data-hearu-tab="listen"] .hu-controls { margin: 10px 0 4px; }
+  #hearu-app[data-hearu-tab="listen"] .hu-controls .hu-play { width: 53px; height: 53px; }
+  #hearu-app[data-hearu-tab="listen"] .hu-lyric-preview { height: 42px; min-height: 42px; padding: 4px 0; }
+}
+
+#hearu-app .hu-settings .hu-login-link { display:block; margin:18px 0; font-size:12px; color:#555; text-align:left; }
+
+/* HearU / kiss · four pages, monochrome editorial rhythm */
+#hearu-app .hu-bottom{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #ededed;background:rgba(255,255,255,.97);flex-shrink:0;padding:10px 15px calc(9px + env(safe-area-inset-bottom,0px));gap:8px;order:100;z-index:5}
+#hearu-app .hu-bottom button{position:relative;display:flex;align-items:center;flex-direction:column;gap:5px;padding:4px;color:#929292;font-size:10px;letter-spacing:.12em;min-height:45px}
+#hearu-app .hu-bottom svg{width:20px;height:20px;stroke-width:1.5}
+#hearu-app .hu-bottom .selected{color:#111}
+#hearu-app .hu-bottom .selected i{width:3px;height:3px;background:#111;border-radius:50%;position:absolute;top:-3px}
+#hearu-app .hu-header{padding:17px 20px 14px;min-height:66px;border-bottom:1px solid #eee}
+#hearu-app .hu-header strong{font-size:17px;letter-spacing:-.04em}
+#hearu-app .hu-header small{font-size:8px;letter-spacing:.16em;line-height:1.5;color:#888;margin-top:4px}
+#hearu-app .hu-header>div{flex:1;min-width:0}
+#hearu-app .hu-header>button:last-child{margin-left:auto}
+#hearu-app .hu-body{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+#hearu-app .hu-body::-webkit-scrollbar{display:none}
+#hearu-app .hu-discover{padding:0 22px 24px}
+#hearu-app .hu-editorial{position:relative;padding:29px 0 24px}
+#hearu-app .hu-editorial>small{font-size:9px;letter-spacing:.22em;color:#777}
+#hearu-app .hu-editorial h1{font-size:42px;line-height:1.1;letter-spacing:-.055em;font-weight:650;margin:18px 0 0}
+#hearu-app .hu-editorial>span{position:absolute;right:0;bottom:28px;font-size:9px;letter-spacing:.15em;writing-mode:vertical-rl;color:#777}
+#hearu-app .hu-search{background:#f4f4f4;border:none;border-radius:10px;min-height:47px;margin:0 0 23px;padding:10px 13px;gap:10px;display:flex;align-items:center}
+#hearu-app .hu-search input{font-size:16px;background:transparent!important;color:#111;min-width:0;border:0;outline:none;width:100%}
+#hearu-app .hu-search input::placeholder{font-size:12px;color:#999}
+#hearu-app .hu-search svg{width:17px;height:17px}
+#hearu-app .hu-search button{font-size:20px}
+#hearu-app .hu-feed-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#hearu-app .hu-feed-shortcuts>button{position:relative;overflow:hidden;text-align:left;min-height:131px;background:#f4f4f4;border-radius:13px;padding:17px 15px}
+#hearu-app .hu-feed-shortcuts>button:first-child{background:#161616;color:white}
+#hearu-app .hu-feed-shortcuts>button:last-child{grid-column:1/-1;min-height:85px;background:#eee}
+#hearu-app .hu-feed-shortcuts span{display:block;font-size:7px;letter-spacing:.16em;opacity:.6;margin-bottom:13px}
+#hearu-app .hu-feed-shortcuts strong{font-size:19px;display:block;letter-spacing:-.04em;position:relative;z-index:1}
+#hearu-app .hu-feed-shortcuts small{display:block;font-size:10px;line-height:1.5;margin-top:9px;opacity:.65;position:relative;z-index:1;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hearu-app .hu-feed-shortcuts img{width:55px;height:55px;object-fit:cover;border-radius:8px;position:absolute;right:-7px;bottom:13px;transform:rotate(-12deg);opacity:.5;filter:grayscale(.35)}
+#hearu-app .hu-feed-shortcuts svg{position:absolute;right:15px;bottom:14px;opacity:.6}
+#hearu-app .hu-feed-shortcuts>button:last-child svg{width:30px;height:30px;right:23px;bottom:26px}
+#hearu-app .hu-feed-shortcuts>button:last-child small{max-width:none;margin-top:5px}
+#hearu-app .hu-feed-shortcuts>button:last-child span{margin-bottom:6px}
+#hearu-app .hu-section-label{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.14em;margin:29px 0 16px;color:#333}
+#hearu-app .hu-section-label>span{font-size:9px;color:#aaa;letter-spacing:.12em}
+#hearu-app .hu-playlist-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 13px}
+#hearu-app .hu-playlist-tile{text-align:left;min-width:0}
+#hearu-app .hu-playlist-tile>div{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:#efefef}
+#hearu-app .hu-playlist-tile img{width:100%;height:100%;object-fit:cover;display:block}
+#hearu-app .hu-playlist-tile>div>span{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.5));padding:20px 10px 9px;color:#fff;font-size:8px;letter-spacing:.13em}
+#hearu-app .hu-playlist-tile strong{display:block;font-size:12px;font-weight:550;line-height:1.5;margin-top:9px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#hearu-app .hu-playlist-tile small{display:block;font-size:9px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
+#hearu-app .hu-login-banner{display:flex;justify-content:space-between;width:100%;font-size:11px;padding:18px 0;margin:6px 0 0;border-bottom:1px solid #eee}
+#hearu-app .hu-login-banner span{color:#999;font-size:9px}
+#hearu-app .hu-feed-errors{margin-top:20px;font-size:10px;line-height:1.8;color:#999}
+#hearu-app .hu-feed-errors p{color:#777;margin:8px 0}
+#hearu-app .hu-mini{flex-shrink:0;background:#f6f6f6;border-top:1px solid #eee;display:flex;align-items:center;padding:10px 20px;gap:12px}
+#hearu-app .hu-mini[hidden]{display:none}
+#hearu-app .hu-mini>button:first-child{display:flex;align-items:center;flex:1;min-width:0;gap:10px;text-align:left}
+#hearu-app .hu-mini img{width:31px;height:31px;object-fit:cover;border-radius:6px}
+#hearu-app .hu-mini span{min-width:0;display:block;flex:1}
+#hearu-app .hu-mini strong,#hearu-app .hu-mini small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hearu-app .hu-mini strong{font-size:11px;font-weight:500}
+#hearu-app .hu-mini small{font-size:8px;color:#999;margin-top:3px}
+#hearu-app .hu-mini svg{width:17px;height:17px}
+#hearu-app[data-hearu-view="contacts"] .hu-home{padding:30px 22px 22px;overflow:auto;flex:1;min-height:0}
+#hearu-app[data-hearu-view="contacts"] .hu-wordmark{font-size:51px;line-height:1.1;letter-spacing:-.06em;font-weight:650}
+#hearu-app[data-hearu-view="contacts"] .hu-wordmark i{font-size:31px;font-style:normal;margin-left:12px;font-weight:300}
+#hearu-app[data-hearu-view="contacts"] .hu-tagline{font-size:12px;color:#999;margin:12px 0 28px}
+#hearu-app[data-hearu-view="contacts"] .hu-contact{display:flex;width:100%;padding:19px 0;border-radius:0;background:none;border-bottom:1px solid #ececec;gap:15px;text-align:left;align-items:center}
+#hearu-app[data-hearu-view="contacts"] .hu-contact img{width:52px;height:52px;border-radius:50%;object-fit:cover;filter:grayscale(.15)}
+#hearu-app[data-hearu-view="contacts"] .hu-contact>div{flex:1;min-width:0}
+#hearu-app[data-hearu-view="contacts"] .hu-contact strong{font-size:16px;font-weight:550;letter-spacing:-.02em;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hearu-app[data-hearu-view="contacts"] .hu-contact small{font-size:10px;color:#aaa;display:block;margin-top:7px}
+#hearu-app[data-hearu-view="contacts"] .hu-contact>span{font-size:21px;color:#888;font-weight:300}
+#hearu-app .hu-home-footer{padding:14px 22px;border-top:1px solid #eee;font-size:9px;color:#999;flex-shrink:0}
+#hearu-app .hu-chat-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0}
+#hearu-app .hu-conversation-header{gap:10px}
+#hearu-app[data-hearu-tab="chat"] .hu-body{padding:0;display:flex;flex-direction:column;background:#f6f6f6}
+#hearu-app .hu-live-listening{display:flex;align-items:center;gap:11px;padding:13px 20px;background:#fff;border-bottom:1px solid #eee;text-align:left;flex-shrink:0;width:100%;min-height:80px}
+#hearu-app .hu-live-listening img{width:39px;height:39px;object-fit:cover;border-radius:7px}
+#hearu-app .hu-live-listening>span{flex:1;min-width:0}
+#hearu-app .hu-live-listening small{font-size:7px;letter-spacing:.1em;color:#999;display:block}
+#hearu-app .hu-live-listening strong{font-size:11px;display:block;margin-top:4px;font-weight:550}
+#hearu-app .hu-live-listening em{font-size:9px;color:#bbb;margin-left:6px;font-style:normal}
+#hearu-app .hu-live-listening p{font-size:10px;color:#777;margin:5px 0 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#hearu-app .hu-live-listening i{font-style:normal;color:#888;font-size:20px}
+#hearu-app .hu-chat-caption{display:none}
+#hearu-app .hu-messages{padding:19px 20px;min-height:0;flex:1;overflow:auto}
+#hearu-app #hu-chat-form{margin:0;padding:13px 16px 14px;background:#fff;border-top:1px solid #eee;flex-shrink:0}
+#hearu-app .hu-thinking{background:#fff;margin:0;padding:0 20px 9px;font-size:10px;color:#aaa}
+#hearu-app .hu-profile{padding:0 0 25px;background:#fff}
+#hearu-app .hu-profile-banner{height:172px;background:#e8e8e8;background-size:cover;background-position:center;position:relative;padding:25px 24px;color:#fff;isolation:isolate}
+#hearu-app .hu-profile-banner:before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(0,0,0,.04),rgba(0,0,0,.32));z-index:-1}
+#hearu-app .hu-profile-banner>span{font-size:8px;letter-spacing:.18em}
+#hearu-app .hu-profile-banner>p{position:absolute;bottom:25px;right:24px;font-size:11px;letter-spacing:.02em;max-width:65%;text-align:right;line-height:1.6}
+#hearu-app .hu-profile-identity{position:relative;margin:0 24px;padding:44px 0 14px}
+#hearu-app .hu-profile-avatar{width:74px;height:74px;position:absolute;top:-40px;left:0;border-radius:50%;object-fit:cover;border:4px solid white;background:#f5f5f5}
+#hearu-app .hu-avatar-empty{display:grid;place-items:center;color:#666}
+#hearu-app .hu-profile-identity>button{position:absolute;right:0;top:17px;border:1px solid #ddd;padding:7px 12px;border-radius:30px;font-size:9px}
+#hearu-app .hu-profile-identity h1{font-size:24px;letter-spacing:-.04em;margin:7px 0 9px;font-weight:600;overflow-wrap:anywhere}
+#hearu-app .hu-profile-identity>p{font-size:11px;line-height:1.7;color:#999;margin:0}
+#hearu-app .hu-profile-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:13px}
+#hearu-app .hu-profile-tags span{font-size:8px;border:1px solid #e5e5e5;border-radius:30px;padding:3px 8px;color:#888}
+#hearu-app .hu-profile-stats{display:grid;grid-template-columns:repeat(3,1fr);margin:3px 24px 0;padding:13px 0 16px;border-bottom:1px solid #eee}
+#hearu-app .hu-profile-stats>div{display:flex;align-items:baseline;gap:6px}
+#hearu-app .hu-profile-stats strong{font-size:17px;font-weight:500;letter-spacing:-.025em}
+#hearu-app .hu-profile-stats span{font-size:9px;color:#aaa}
+#hearu-app .hu-profile .hu-section-label,#hearu-app .hu-profile-playlists,#hearu-app .hu-account-details,#hearu-app #hu-recent-songs{margin-left:24px;margin-right:24px}
+#hearu-app .hu-account-facts{display:flex;justify-content:space-between;padding:14px 24px;font-size:9px;color:#999}
+#hearu-app .hu-profile-switch{display:flex;align-items:center;gap:25px;padding:18px 24px 5px;border-top:7px solid #f6f6f6}
+#hearu-app .hu-profile-switch>span{font-size:13px;padding-bottom:11px}
+#hearu-app .hu-profile-switch>span:first-child{border-bottom:2px solid #111}
+#hearu-app .hu-profile-switch>span:nth-child(2){color:#aaa}
+#hearu-app .hu-profile-switch small{font-size:7px;letter-spacing:.12em;color:#bbb;margin-left:auto}
+#hearu-app .hu-profile-playlist{display:flex;align-items:center;gap:12px;width:100%;padding:8px 0;text-align:left}
+#hearu-app .hu-profile-playlist img{width:49px;height:49px;object-fit:cover;border-radius:8px}
+#hearu-app .hu-profile-playlist>span{flex:1;min-width:0}
+#hearu-app .hu-profile-playlist strong{font-size:12px;font-weight:500;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#hearu-app .hu-profile-playlist small{font-size:9px;display:block;color:#999;margin-top:6px}
+#hearu-app .hu-profile-playlist em{font-size:18px;font-style:normal;color:#bbb}
+#hearu-app .hu-account-details{margin-top:23px;font-size:11px;color:#777;line-height:1.8;border-top:1px solid #eee;padding-top:17px}
+#hearu-app .hu-account-details p{font-size:10px}
+#hearu-app .hu-logout{display:block;margin:22px 24px 0;font-size:10px;color:#999}
+#hearu-app .hu-account-empty{padding:33px 24px}
+#hearu-app .hu-account-empty>small{font-size:8px;letter-spacing:.18em;color:#999}
+#hearu-app .hu-account-empty h2{font-size:26px;font-weight:550;line-height:1.4;letter-spacing:-.03em;margin:16px 0}
+#hearu-app .hu-account-empty p{font-size:11px;line-height:1.7;color:#999;margin-bottom:23px}
+#hearu-app .hu-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.25);padding:12px;backdrop-filter:blur(3px)}
+#hearu-app .hu-modal>section{position:relative;background:white;border-radius:20px;width:100%;max-height:85%;overflow:auto;overscroll-behavior:contain;padding:32px 23px 25px;box-shadow:0 12px 60px #0002}
+#hearu-app .hu-modal-close{position:absolute;right:18px;top:17px;width:25px;height:25px;color:#777}
+#hearu-app .hu-modal-close svg{width:17px;height:17px}
+#hearu-app .hu-modal-kicker{font-size:8px;letter-spacing:.2em;color:#999;margin-bottom:13px}
+#hearu-app .hu-modal h2{font-size:27px;letter-spacing:-.04em;font-weight:550;margin:0 0 13px}
+#hearu-app .hu-modal p{font-size:11px;line-height:1.7;color:#999}
+#hearu-app .hu-modal label{display:block;font-size:10px;color:#777;margin:17px 0}
+#hearu-app .hu-modal input:not([type="file"]),#hearu-app .hu-modal textarea{display:block;width:100%;background:#f5f5f5;border:0;border-radius:8px;padding:11px;font-size:16px;margin-top:7px;outline:none}
+#hearu-app .hu-modal textarea{height:75px;resize:vertical}
+#hearu-app .hu-modal input[type="file"]{display:block;font-size:11px;margin-top:9px;max-width:100%}
+#hearu-app .hu-edit-preview{width:66px;height:66px;object-fit:cover;margin-top:10px;border-radius:8px}
+#hearu-app .hu-edit-preview[src=""]{display:none}
+#hearu-app .hu-menu-actions{margin:24px 0 10px}
+#hearu-app .hu-menu-actions button{display:flex;justify-content:space-between;width:100%;padding:17px 0;border-bottom:1px solid #eee;font-size:12px}
+#hearu-app .hu-menu-actions button>span{color:#888;font-size:13px}
+#hearu-app .hu-menu-actions label{padding:6px 0;font-size:12px;color:#111}
+#hearu-app .hu-modal .hu-modal-fine{font-size:9px;color:#aaa}
+#hearu-app .hu-qr{text-align:center;margin:25px 0 0}
+#hearu-app .hu-qr img{width:200px;max-width:100%;height:auto;padding:10px;border:1px solid #eee;border-radius:12px;margin:8px auto 12px}
+#hearu-app .hu-qr p{font-size:10px}
+#hearu-app .hu-qr button{font-size:11px;border:1px solid #ddd;border-radius:30px;padding:9px 17px}
+#hearu-app #hu-qr-state{color:#222;font-size:12px}
+#hearu-app .hu-contact-editor{margin-top:20px;max-height:45vh;overflow:auto}
+#hearu-app .hu-contact-editor>div,#hearu-app .hu-contact-editor>button{display:flex;align-items:center;width:100%;gap:12px;padding:12px 0;border-bottom:1px solid #eee}
+#hearu-app .hu-contact-editor img{width:35px;height:35px;object-fit:cover;border-radius:50%}
+#hearu-app .hu-contact-editor span{flex:1;text-align:left;font-size:12px}
+#hearu-app .hu-contact-editor button{font-size:10px}
+#hearu-app .hu-read-error{font-size:10px;color:#888;padding:0 24px}
+#hearu-app .hu-song-credit{margin-top:10px}
+#hearu-app .hu-room-footer{gap:10px;padding:12px 20px;flex-shrink:0}
+#hearu-app[data-hearu-tab="chat"] .hu-room-footer{display:none}
+@media(max-height:700px){#hearu-app .hu-header{padding-top:10px;padding-bottom:10px;min-height:54px}#hearu-app .hu-bottom{padding-top:6px;padding-bottom:calc(5px + env(safe-area-inset-bottom,0px))}#hearu-app .hu-bottom button{min-height:39px}#hearu-app .hu-editorial{padding-top:22px}#hearu-app .hu-profile-banner{height:145px}}
+@media(prefers-reduced-motion:reduce){#hearu-app *,#hearu-app *:before,#hearu-app *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+#hearu-app .hu-turn-song{display:block;text-align:center;margin:13px auto 20px;max-width:90%;color:#999;padding:5px 14px}
+#hearu-app .hu-turn-song>span{display:block;font-size:7px;letter-spacing:.15em;color:#bbb}
+#hearu-app .hu-turn-song strong{display:block;font-size:9px;font-weight:400;margin-top:5px}
+#hearu-app .hu-turn-song small{display:block;font-size:9px;color:#aaa;margin-top:4px;line-height:1.5}
+#hearu-app .hu-profile-switch>button{font-size:13px;padding-bottom:11px}
+#hearu-app .hu-profile-switch>button:first-child{border-bottom:2px solid #111}
+#hearu-app .hu-profile-switch>button:nth-child(2){color:#aaa}
+#hearu-app .hu-player-top .hu-pair>span{font-size:9px}
+#hearu-app .hu-fm-modes{display:flex;overflow-x:auto;gap:8px;padding:16px 0 0;scrollbar-width:none}
+#hearu-app .hu-fm-modes>button{white-space:nowrap;font-size:9px;border:1px solid #e8e8e8;border-radius:30px;padding:7px 11px;color:#777}
+#hearu-app .hu-scene-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:22px}
+#hearu-app .hu-scene-grid>button{display:flex;justify-content:space-between;align-items:center;padding:13px;background:#f5f5f5;border-radius:8px;font-size:11px}
+#hearu-app .hu-scene-grid span{color:#aaa}
+#hearu-app .hu-card-verse[role="button"]{cursor:pointer}
+
+/* HearU private archive and monochrome social layout. */
+#hearu-app[data-hearu-view="contacts"] .hu-contact{gap:17px;padding:20px 0}
+#hearu-app[data-hearu-view="contacts"] .hu-contact .hu-contact-avatar{display:grid;place-items:center;flex:0 0 62px;width:62px;height:62px;padding:5px;border:1px solid #111;border-radius:50%;background:#fff;box-sizing:border-box;position:relative}
+#hearu-app[data-hearu-view="contacts"] .hu-contact .hu-contact-avatar:after{content:"";position:absolute;right:0;bottom:3px;width:8px;height:8px;border:3px solid #fff;border-radius:50%;background:#111}
+#hearu-app[data-hearu-view="contacts"] .hu-contact .hu-contact-avatar img{display:block;width:50px;height:50px;filter:grayscale(.2)}
+#hearu-app[data-hearu-view="contacts"] .hu-contact strong{font-size:17px;font-weight:600}
+#hearu-app[data-hearu-view="contacts"] .hu-contact small{font-size:11px;color:#818181;letter-spacing:.015em}
+#hearu-app[data-hearu-tab="chat"] .hu-body{background:#f7f7f7}
+#hearu-app #hu-chat-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;margin:0;padding:12px 18px 10px;border:0;border-top:1px solid #e9e9e9;border-radius:0;background:#fff;align-items:end}
+#hearu-app .hu-composer-field{border:1px solid #e7e7e7;border-radius:17px;min-width:0;background:#f8f8f8;transition:border-color .2s,background .2s}
+#hearu-app .hu-composer-field:focus-within{border-color:#9c9c9c;background:#fff}
+#hearu-app #hu-chat-form textarea{display:block;width:100%;min-height:44px;max-height:100px;padding:11px 13px;margin:0;font-size:12px;line-height:1.65;border:0;border-radius:17px;background:transparent;box-sizing:border-box;outline:none;color:#111}
+#hearu-app #hu-chat-form textarea::placeholder{color:#909090;font-size:11px}
+#hearu-app .hu-composer-actions{display:flex;align-items:center;gap:5px;height:44px}
+#hearu-app #hu-chat-form button{width:36px;height:36px;border-radius:50%;background:#111;color:#fff}
+#hearu-app #hu-chat-form .hu-send-local{width:29px;background:transparent;color:#777}
+#hearu-app #hu-chat-form button:disabled{opacity:.35}
+#hearu-app #hu-chat-form button svg{width:19px;height:19px}
+#hearu-app .hu-composer-hint{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#999;line-height:1.5}
+#hearu-app .hu-composer-hint>span{font-size:6px;letter-spacing:.16em}
+#hearu-app .hu-composer-hint small{font-size:8px}
+#hearu-app .hu-profile-banner{height:142px;padding:19px 20px;background-color:#dededb;filter:grayscale(1);box-sizing:border-box}
+#hearu-app .hu-profile-banner>span{font-size:7px;letter-spacing:.22em}
+#hearu-app .hu-profile-banner>p{bottom:21px;right:20px;font-size:10px;max-width:60%;margin:0;color:#fff}
+#hearu-app .hu-profile-identity{margin:0 20px;padding:47px 0 8px}
+#hearu-app .hu-profile-avatar{width:82px;height:82px;top:-43px;left:-3px;border:4px solid #fff;box-sizing:border-box;outline:1px solid #e6e6e6;filter:grayscale(.15)}
+#hearu-app .hu-profile-identity>button{top:13px;right:0;border:1px solid #cfcfcf;padding:8px 16px;font-size:11px;font-weight:600;border-radius:24px;color:#111;background:#fff;min-height:34px}
+#hearu-app .hu-profile-identity h1{font-size:24px;font-weight:650;letter-spacing:-.045em;line-height:1.25;margin:3px 0 4px}
+#hearu-app .hu-profile-handle{display:block;font-size:9px;letter-spacing:.09em;color:#878787;margin:0 0 12px}
+#hearu-app .hu-profile-identity>p{font-size:12px;line-height:1.8;color:#333;margin:0;white-space:pre-line}
+#hearu-app .hu-profile-tags{gap:12px;margin-top:12px}
+#hearu-app .hu-profile-tags span{border:0;padding:0;border-radius:0;font-size:10px;color:#7b7b7b}
+#hearu-app .hu-profile-tags span+span:before{content:"·";display:inline-block;margin-right:10px;color:#aaa}
+#hearu-app .hu-profile-stats{display:flex;flex-wrap:wrap;gap:21px;margin:0 20px;padding:13px 0 11px;border:0}
+#hearu-app .hu-profile-stats>div{gap:5px}
+#hearu-app .hu-profile-stats strong{font-size:13px;font-weight:650;letter-spacing:0}
+#hearu-app .hu-profile-stats span{font-size:11px;color:#777}
+#hearu-app .hu-account-facts{margin:0 20px;padding:0 0 18px;border:0;font-size:10px;color:#898989;gap:20px;justify-content:flex-start}
+#hearu-app .hu-profile-switch{padding:0 20px;border-top:0;border-bottom:1px solid #e9e9e9;gap:28px;position:relative;margin-top:2px;height:49px;box-sizing:border-box}
+#hearu-app .hu-profile-switch>button{display:flex;align-items:center;height:49px;padding:0 1px;font-size:13px;font-weight:600;border:0;position:relative}
+#hearu-app .hu-profile-switch>button:first-child{border:0}
+#hearu-app .hu-profile-switch>button:first-child:after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:4px;background:#111}
+#hearu-app .hu-profile-switch small{font-size:6px;letter-spacing:.15em;color:#aaa}
+#hearu-app .hu-profile .hu-section-label{margin:24px 20px 10px;font-size:11px;color:#222;letter-spacing:.02em;font-weight:600}
+#hearu-app .hu-profile .hu-section-label>span{font-size:9px;font-weight:400;color:#999}
+#hearu-app .hu-profile-playlists,#hearu-app #hu-recent-songs,#hearu-app .hu-account-details{margin-left:20px;margin-right:20px}
+#hearu-app .hu-profile-playlist{padding:11px 0;gap:13px;border-bottom:1px solid #f0f0f0}
+#hearu-app .hu-profile-playlist img{width:54px;height:54px;border-radius:10px;filter:grayscale(.3)}
+#hearu-app .hu-profile-playlist strong{font-size:13px;font-weight:550}
+#hearu-app .hu-profile-playlist small{font-size:10px;color:#888;margin-top:7px}
+#hearu-app .hu-profile-playlist em{font-size:20px;color:#555}
+#hearu-app .hu-memory-list{margin-top:22px;max-height:52vh;overflow:auto}
+#hearu-app .hu-memory-list details{border-top:1px solid #e7e7e7;padding:16px 0}
+#hearu-app .hu-memory-list summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;gap:14px}
+#hearu-app .hu-memory-list summary::-webkit-details-marker{display:none}
+#hearu-app .hu-memory-list small{display:block;font-size:7px;letter-spacing:.17em;color:#888;margin-bottom:7px}
+#hearu-app .hu-memory-list strong{font-size:12px;font-weight:550}
+#hearu-app .hu-memory-list em{font-size:19px;font-style:normal;font-weight:300}
+#hearu-app .hu-memory-list details[open] em{transform:rotate(45deg)}
+#hearu-app .hu-memory-list p{white-space:pre-wrap;font-size:12px;line-height:1.9;color:#444;overflow-wrap:anywhere;padding:14px 0 4px;margin:0}
+#hearu-app .hu-memory-list footer{font-size:8px;color:#999;padding-top:10px;letter-spacing:.04em}
+#hearu-app .hu-memory-empty{padding:22px 0;color:#888;font-size:12px;line-height:1.9}
+@media(max-width:350px){#hearu-app #hu-chat-form{padding-left:12px;padding-right:12px;gap:8px 5px}#hearu-app .hu-composer-actions{gap:1px}#hearu-app #hu-chat-form textarea::placeholder{font-size:10px}#hearu-app .hu-profile-switch small{display:none}}
