@@ -1,5 +1,5 @@
-import * as player from "./music/player.js?v=kiss-2";
-import { apiRequest, API_BASE, musicLoginUrl, netease, readAccount, accountSnapshot, homeFeed, qrCreate, qrCheck, logout, allPlaylists, intelligenceSongs, fmSongs, privateDjSongs } from "./lib/api.js?v=kiss-2";
+import * as player from "./music/player.js?v=kiss-3";
+import { apiRequest, API_BASE, musicLoginUrl, netease, readAccount, accountSnapshot, homeFeed, qrCreate, qrCheck, logout, allPlaylists, intelligenceSongs, fmSongs, privateDjSongs } from "./lib/api.js?v=kiss-3";
 const icon = (path) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 const icons = {
@@ -174,18 +174,11 @@ function status() {
   return '<p class="hu-notice" role="status" aria-live="polite"></p>';
 }
 function renderContacts(query = "") {
-  root.scrollTop = 0;
-  view = "contacts";
-  root.dataset.hearuView = "contacts";
-  const list = characters().filter(c => listedIds.has(String(c.id))).filter((c) =>
-    name(c).toLowerCase().includes(query.toLowerCase()),
-  );
-  root.innerHTML =
-    header("HearU", "A LITTLE CLOSER, THROUGH MUSIC") +
-    `<div class="hu-home"><div class="hu-wordmark">hear<span>U</span><i>↗</i></div><p class="hu-tagline">同一首歌，另一边的你。</p><label class="hu-search">${icons.search}<input id="hu-contact-search" placeholder="寻找你的听歌搭子" value="${esc(query)}"></label><div class="hu-section-label">YOUR PEOPLE <span>${list.length.toString().padStart(2, "0")}</span></div><div class="hu-contacts">${list.map((c) => `<button class="hu-contact" data-role="${esc(c.id)}"><span class="hu-contact-avatar"><img src="${esc(c.avatar || "assets/hearu.svg")}" alt=""></span><div><strong>${esc(name(c))}</strong><small>一起听，也一起聊。</small></div><span>↗</span></button>`).join("") || '<p class="hu-empty">点右上角设置，添加在 404 聊过的角色。</p>'}</div></div>` +
-    status() +
-    `<footer class="hu-home-footer">${icons.head}<span>one song. two hearts.</span><button data-hu="export">导出记录</button></footer>`;
+  root.scrollTop=0;view='contacts';root.dataset.hearuView='contacts';
+  const list=characters().filter(c=>listedIds.has(String(c.id))).filter(c=>name(c).toLowerCase().includes(query.toLowerCase()));
+  root.innerHTML=header('聊天','HEARU / PEOPLE')+`<main class="hu-home"><div class="hu-people-intro"><h1>一起听的人</h1><span>${list.length}</span></div><label class="hu-search">${icons.search}<input id="hu-contact-search" placeholder="搜索联系人" value="${esc(query)}"></label><div class="hu-contacts">${list.map(c=>{const record=roomsCache.get(String(c.id)),last=record?.messages?.findLast(m=>m.role!=='system');return `<button class="hu-contact" data-role="${esc(c.id)}"><span class="hu-contact-avatar"><img src="${esc(c.avatar || 'assets/hearu.svg')}" alt=""></span><div><strong>${esc(name(c))}</strong><small>${esc(last?.card?'分享了 '+last.card.song.title:last?.content || '与你共享一首歌。')}</small></div>${last?.at?`<time>${esc(new Date(last.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}))}</time>`:''}</button>`;}).join('') || '<p class="hu-empty">点右上角，添加在 404 聊过的角色。</p>'}</div></main>`+status();
 }
+
 async function open(id) {
   previousFocus = document.activeElement;
   await ready;
@@ -287,15 +280,16 @@ function translatedLine(line, target = room) {
   return translated.trim() === String(line.text).trim() ? "" : translated;
 }
 function sleeveHtml(song) {
-  return `<div class="hu-sleeve"><span class="hu-sleeve-brand">HearU.</span><div class="hu-vinyl ${song?.coverUrl ? "has-cover" : ""}">${song?.coverUrl ? `<img class="hu-disc-art" src="${esc(song.coverUrl)}" alt="${esc(song.title)}的歌曲封面">` : '<div class="hu-vinyl-label"><i></i></div>'}</div><div class="hu-sleeve-caption"><span>A SOUND<br>TO STAY CLOSE.</span><span>01<br>STEREO</span></div></div>`;
+  return `<div class="hu-album-frame">${song?.coverUrl?`<img class="hu-album-art" src="${esc(song.coverUrl)}" alt="${esc(song.title)}的歌曲封面">`:'<div class="hu-album-empty"><span>HearU</span><small>ONE SONG. TWO HEARTS.</small></div>'}</div>`;
 }
+
 function controlsHtml() {
   return `<div class="hu-controls"><button data-hu="shuffle" class="hu-mode ${room.shuffle ? "active" : ""}" aria-label="随机播放">${shuffleIcon}</button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button class="hu-play" data-hu="toggle" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="repeat" class="hu-mode ${room.repeat ? "active" : ""}" aria-label="单曲循环">${repeatIcon}</button></div>`;
 }
 function listenHtml() {
   const song = room.song,
     saved = room.queue.some((x) => String(x.songId) === String(song?.songId));
-  return `<div class="hu-player-top"><button class="hu-pair ${song?.addedBy === "ta" ? "from-ta" : ""}" data-hu="song-thought" aria-label="查看${esc(name(character(roleId)))}的选曲留言和喜欢的歌词"><img src="${esc(character(roleId)?.avatar || "assets/hearu.svg")}" alt=""><span>Liner Notes ${roleId!=="__solo__" ? "· "+esc(name(character(roleId))) : ""}</span></button><span class="hu-session-label">${song?.addedBy === "ta" ? "PICKED BY " + esc(song.pickedBy || name(character(roleId))) : "SHARED MOMENT"}</span></div><div class="hu-art-stage"><div class="hu-cover">${sleeveHtml(song)}</div></div><div class="hu-track"><div><h2 id="hu-track-title">${esc(song?.title || "留一半旋律给你")}</h2><p id="hu-track-artist">${esc(song?.artist || "选一首歌，和 TA 一起听。")}</p></div><button data-hu="favorite" class="hu-favorite ${saved ? "saved" : ""}" aria-label="${saved ? "已收藏到列表" : "收藏到列表"}">${heartIcon}</button></div><input class="hu-progress" type="range" id="hu-seek" min="0" max="1000" value="0" aria-label="播放进度"><div class="hu-times"><span id="hu-time">0:00</span><span id="hu-duration">0:00</span></div><div class="hu-controls"><button data-hu="shuffle" class="hu-mode ${room.shuffle ? "active" : ""}" aria-label="随机播放">${shuffleIcon}</button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button class="hu-play" data-hu="toggle" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="repeat" class="hu-mode ${room.repeat ? "active" : ""}" aria-label="单曲循环">${repeatIcon}</button></div><button class="hu-lyric-preview" data-hu="lyrics"><span id="hu-lyrics">${song ? "点击查看完整歌词" : "让一首歌，成为我们的开始。"}</span><small id="hu-line-trans"></small></button>${song?.addedBy === "ta" ? creditHtml(song,true) : ""}<div class="hu-player-bottom"><button data-hu="lyrics">${textIcon}<span>歌词</span></button><button data-hu="sources">${icons.head}<span>歌单</span></button><button data-tab="queue">${icon('<path d="M4 6h16M4 12h16M4 18h10"/>')}<span>待播</span></button></div>`;
+  return `<div class="hu-player-top"><button class="hu-pair ${song?.addedBy === "ta" ? "from-ta" : ""}" data-hu="song-thought" aria-label="查看${esc(name(character(roleId)))}的选曲留言和喜欢的歌词"><img src="${esc(character(roleId)?.avatar || "assets/hearu.svg")}" alt=""><span>${roleId!=="__solo__" ? esc(name(character(roleId)))+" 的听歌房间" : "一起听"}</span></button><span class="hu-session-label">${song?.addedBy === "ta" ? "PICKED BY " + esc(song.pickedBy || name(character(roleId))) : "SHARED MOMENT"}</span></div><div class="hu-art-stage"><div class="hu-cover">${sleeveHtml(song)}</div></div><div class="hu-track"><div><h2 id="hu-track-title">${esc(song?.title || "留一半旋律给你")}</h2><p id="hu-track-artist">${esc(song?.artist || "选一首歌，和 TA 一起听。")}</p></div><button data-hu="favorite" class="hu-favorite ${saved ? "saved" : ""}" aria-label="${saved ? "已收藏到列表" : "收藏到列表"}">${heartIcon}</button></div><input class="hu-progress" type="range" id="hu-seek" min="0" max="1000" value="0" aria-label="播放进度"><div class="hu-times"><span id="hu-time">0:00</span><span id="hu-duration">0:00</span></div><div class="hu-controls"><button data-hu="shuffle" class="hu-mode ${room.shuffle ? "active" : ""}" aria-label="随机播放">${shuffleIcon}</button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button class="hu-play" data-hu="toggle" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="repeat" class="hu-mode ${room.repeat ? "active" : ""}" aria-label="单曲循环">${repeatIcon}</button></div><button class="hu-lyric-preview" data-hu="lyrics"><span id="hu-lyrics">${song ? "点击查看完整歌词" : "让一首歌，成为我们的开始。"}</span><small id="hu-line-trans"></small></button>${song?.addedBy === "ta" ? creditHtml(song,true) : ""}<div class="hu-player-bottom"><button data-hu="lyrics">${textIcon}<span>歌词</span></button><button data-hu="sources">${icons.head}<span>歌单</span></button><button data-tab="queue">${icon('<path d="M4 6h16M4 12h16M4 18h10"/>')}<span>待播</span></button></div>`;
 }
 function pickFavorite(song, index, target = room) {
   if (!Number.isInteger(index)) return null;
@@ -404,7 +398,7 @@ function messageParts(m) {
 function musicCardHtml(card, by = "user") {
   const song = card.song,
     ta = by === "assistant";
-  return `<div class="hu-music-card"><div class="hu-card-kicker"><span>${ta ? esc(name(character(roleId))) + " → YOU" : "YOU → " + esc(name(character(roleId)))}</span><span>HEARU / ${card.lines?.length ? "WORDS" : "MUSIC"}</span></div><button class="hu-card-play" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}"><div class="hu-card-art"><img src="${esc(song.coverUrl || "assets/hearu.svg")}" alt=""><span>${icons.play}</span></div><div><strong>${esc(song.title)}</strong><span>${esc(song.artist)}</span><small>听听这首 ${icon('<path d="M4 12h16m-5-5 5 5-5 5"/>')}</small></div></button>${song.note ? `<div class="hu-card-note">${esc(song.note)}</div>` : ""}${card.lines?.length ? `<div class="hu-card-lines"><span class="hu-card-quote">“</span>${card.lines.map((l) => `<div class="hu-card-verse" data-hu="card-line" data-card-line="${esc(song.songId)}:${Number(l.timeMs)||0}" role="button" tabindex="0"><p>${esc(l.text)}</p>${l.trans ? `<small>${esc(l.trans)}</small>` : ""}</div>`).join("")}</div>` : ""}<div class="hu-card-footer"><span>one song. two hearts.</span><span>${card.lines?.length ? format(card.lines[0].timeMs) : format(song.durationMs)}</span></div></div>`;
+  return `<div class="hu-music-card"><div class="hu-card-kicker"><span>${ta ? esc(name(character(roleId))) + " → YOU" : "YOU → " + esc(name(character(roleId)))}</span><span>HEARU / ${card.lines?.length ? "WORDS" : "MUSIC"}</span></div><button class="hu-card-play" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}"><div class="hu-card-art"><img src="${esc(song.coverUrl || "assets/hearu.svg")}" alt=""></div><div><strong>${esc(song.title)}</strong><span>${esc(song.artist)}</span><small>听听这首 ${icon('<path d="M4 12h16m-5-5 5 5-5 5"/>')}</small></div></button>${song.note ? `<div class="hu-card-note">${esc(song.note)}</div>` : ""}${card.lines?.length ? `<div class="hu-card-lines"><span class="hu-card-quote">“</span>${card.lines.map((l) => `<div class="hu-card-verse" data-hu="card-line" data-card-line="${esc(song.songId)}:${Number(l.timeMs)||0}" role="button" tabindex="0"><p>${esc(l.text)}</p>${l.trans ? `<small>${esc(l.trans)}</small>` : ""}</div>`).join("")}</div>` : ""}<div class="hu-card-footer"><span>one song. two hearts.</span><span>${card.lines?.length ? format(card.lines[0].timeMs) : format(song.durationMs)}</span></div></div>`;
 }
 async function shareSong(
   song,
@@ -449,8 +443,9 @@ function chatHtml() {
             ? `<div class="hu-message-date">${esc(day)} ${date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</div>`
             : "";
       previousDay = day;
+      if (m.role === "system" && !m.songSwitch && /^(点播|已准备好)：/.test(m.content || ""))return "";
       if (m.role === "system")
-        return separator + `<div class="hu-chat-event">${esc(m.content)}</div>`;
+        return separator + `<div class="hu-chat-event ${m.songSwitch?'hu-song-switch':''}">${m.songSwitch?`<small>切换歌曲</small><strong>${esc(m.songSwitch.title)}</strong><span>${esc(m.songSwitch.artist)}</span>`:esc(m.content)}</div>`;
       if (m.card)
         return (
           separator +
@@ -460,12 +455,12 @@ function chatHtml() {
         next = room.messages[i + 1],
         tail = !next || next.role !== m.role;
       return (
-        separator + (m.listening && (!room.messages[i-1]?.listening || m.role!==room.messages[i-1]?.role) ? snapshotHtml(m.listening,i) : "") +
+        separator +
         `<article class="hu-message ${m.role === "user" ? "mine" : "theirs"} ${tail ? "tail" : ""}"><p>${esc(parts.text)}</p>${parts.translation ? `<div class="hu-message-translation" lang="zh-CN">${esc(parts.translation)}</div>` : ""}</article>`
       );
     })
     .join("");
-  return `<div class="hu-chat-caption"><span>HearU 信息</span><small>${icon('<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>')}独立会话</small></div><div class="hu-messages">${rows || '<p class="hu-empty">这首歌里，有什么想说给 TA 听？</p>'}</div><form id="hu-chat-form"><div class="hu-composer-field"><textarea id="hu-message" rows="1" placeholder="说点什么，给耳机另一边的 TA…" aria-label="消息"></textarea></div><div class="hu-composer-actions"><button type="button" data-hu="save-message" class="hu-send-local" aria-label="发送消息（不调用模型）">${icon('<path d="m3 4 18 8-18 8 3-8-3-8Zm3 8h15"/>')}</button><button type="button" data-hu="generate" ${busy.has(roleId) ? "disabled" : ""} aria-label="调用模型回复" title="发送并让 TA 回复">${icons.send}</button></div><div class="hu-composer-hint"><span>ONLY BETWEEN US</span><small>纸飞机 · 仅发送　↑ · 让 TA 回复</small></div></form>${busy.has(roleId) ? '<p class="hu-thinking">TA 正在输入…</p>' : ""}`;
+  return `<div class="hu-messages">${rows || '<p class="hu-empty">这一首，有什么想说给 TA 听？</p>'}</div><form id="hu-chat-form"><textarea id="hu-message" rows="1" placeholder="发消息…" aria-label="消息"></textarea><button type="button" data-hu="generate" ${busy.has(roleId)?'disabled':''} aria-label="发送并让 TA 回复">${icons.send}</button></form>${busy.has(roleId)?'<p class="hu-thinking">正在输入…</p>':''}`;
 }
 function lyricsLayout() {
   const song = room.song;
@@ -570,7 +565,7 @@ function queueHtml() {
         (song) =>
           `<img src="${esc(song.coverUrl || "assets/hearu.svg")}" alt="">`,
       )
-      .join("")}</div><span>↗</span></div></button>`;
+      .join("")}</div><span></span></div></button>`;
   };
   return `<div class="hu-library-heading"><span>YOUR SHARED LIBRARY</span><h2>留在这里的歌<span>.</span></h2><p>你的一半，TA 的一半。</p></div><div class="hu-collections">${collection("you", "你的选曲")}${collection("ta", name(character(roleId)) + " 的选曲")}</div><div class="hu-shelf-tabs"><button data-shelf="queue" class="${queueShelf === "queue" ? "active" : ""}">待播 <small>${room.queue.length}</small></button><button data-shelf="you" class="${queueShelf === "you" ? "active" : ""}">你的 <small>${room.libraries.you.length}</small></button><button data-shelf="ta" class="${queueShelf === "ta" ? "active" : ""}">TA 的 <small>${room.libraries.ta.length}</small></button>${queueShelf !== "queue" ? '<button class="hu-shelf-load" data-hu="collection-append" aria-label="全部加入待播">＋ 全部</button>' : ""}</div><label class="hu-search hu-queue-search">${icons.search}<input id="hu-queue-search" placeholder="找一首留在这里的歌" value="${esc(queueQuery)}"></label><div id="hu-queue-rows">${queueRows()}</div>`;
 }
@@ -704,10 +699,17 @@ setInterval(() => {
     }
   }
 }, 5000);
+function recordSongSwitch(target,song,previous,turnId=null){
+  if(!previous || String(previous.songId)===String(song.songId) || target.id==='__solo__')return;
+  const last=target.messages.at(-1);
+  if(last?.songSwitch && String(last.songSwitch.songId)===String(song.songId))return;
+  target.messages.push({role:'system',content:'切换歌曲：'+song.title+' · '+song.artist,songSwitch:{songId:song.songId,title:song.title,artist:song.artist},at:Date.now(),turnId});
+}
 async function playSong(s, task) {
   task?.check();
   if (!room) throw Error("请先选择联系人");
   if (generations.get(roleId)?.kind === "thought") stopGeneration(roleId);
+  if(task?.switchRecorded!==true)recordSongSwitch(room,s,player.getState().song || room.song,task?.turnId);
   room.song = { ...s, addedBy: s.addedBy || "you" };
   rememberSong(room, room.song, room.song.addedBy);
   room.position = 0;
@@ -733,8 +735,9 @@ async function advance(dir, auto = false) {
 }
 function settings() {
   if(!room || roleId==='__solo__')return;
-  modal(`<div class="hu-modal-kicker">CONVERSATION</div><h2>这边的我们。</h2><p>${esc(name(character(roleId)))} · HearU</p><div class="hu-menu-actions"><button data-hu="clear-chat">清除当前聊天记录 <span>↗</span></button><button data-hu="reroll">重新生成 <span>↻</span></button><button data-hu="stop-generation">暂停生成 <span>□</span></button><button data-hu="memory-summary">记忆总结 <span>＋</span></button><button data-hu="memory-history">总结记录 <span>${room.summaries?.length || 0} ↗</span></button><button data-hu="auto-dj">TA 主动选歌 <span>${room.autoDj ? '开启' : '关闭'}</span></button><button data-hu="export">导出 HearU 记录 <span>↗</span></button><label>导入 HearU 记录<input type="file" id="hu-import" accept="application/json"></label></div><p class="hu-modal-fine">只读 404 的人设、世界书、提示词、启用的思维链与过往记忆。这里的聊天和总结独立保存，不写回 404。暂停会取消请求和本轮尚未发送的内容。</p>`);
+  modal(`<div class="hu-chat-settings"><header><small>CONVERSATION</small><h2>聊天设置</h2><p>${esc(name(character(roleId)))}</p></header><div class="hu-settings-group"><h3>对话</h3><div class="hu-setting-pair"><button data-hu="reroll">重新生成</button><button data-hu="stop-generation">暂停生成</button></div><button class="hu-setting-row" data-hu="auto-dj"><span>TA 主动选歌</span><i class="hu-switch ${room.autoDj?'on':''}" role="switch" aria-checked="${!!room.autoDj}" aria-label="TA 主动选歌"></i></button></div><div class="hu-settings-group"><h3>记忆</h3><button class="hu-setting-row" data-hu="memory-summary"><span>生成记忆总结</span><small>整理新增对话</small></button><button class="hu-setting-row" data-hu="memory-history"><span>总结记录</span><small>${room.summaries?.length || 0} 份</small></button></div><div class="hu-settings-group"><h3>此对话备份</h3><div class="hu-setting-pair"><button data-hu="export">导出记录</button><label class="hu-file-button">导入记录<input type="file" id="hu-import" accept="application/json"></label></div></div><button class="hu-clear-conversation" data-hu="clear-chat">清除当前聊天记录</button><p class="hu-modal-fine">聊天与总结独立保存，不写回 404。</p></div>`);
 }
+
 function search() {
   view = "search";
   root.dataset.hearuView = "search";
@@ -760,7 +763,7 @@ async function sources() {
       sourceList
         .map(
           (s) =>
-            `<button class="hu-source" data-source="${esc(s.id || s.playlistId)}"><strong>${esc(s.name || s.title)}</strong><span>↗</span></button>`,
+            `<button class="hu-source" data-source="${esc(s.id || s.playlistId)}"><strong>${esc(s.name || s.title)}</strong><span></span></button>`,
         )
         .join("") || "暂无可用歌单";
 }
@@ -962,6 +965,7 @@ async function musicAction(action, target, task) {
     const item={...song,itemId:crypto.randomUUID()};
     const at=target.queue.findIndex(s=>String(s.songId)===String(target.song?.songId));
     target.queue.splice(Math.max(0,at+1),0,item);
+    recordSongSwitch(target,item,target.song,task.turnId);task.switchRecorded=true;
     target.song = item;
     await shareSong(item,[],"assistant",target,task.turnId,item.note);
     target.position = 0;
@@ -1158,7 +1162,7 @@ async function generateReply(reroll = false) {
       try {
         const result = await musicAction(action, target, task);
         task.check();
-        if (action.type !== "share")
+        if (result.queued)
           target.messages.push({
             role: "system",
             content: result.queued
@@ -1202,6 +1206,8 @@ async function send(text) {
   await generateReply();
 }
 async function exportRooms() {
+  const exportId=roleId;
+  if(!exportId || exportId==='__solo__')throw Error("请从角色聊天设置导出");
   await ready;
   await saving;
   const records = await new Promise((resolve, reject) => {
@@ -1210,13 +1216,13 @@ async function exportRooms() {
     r.onerror = () => reject(r.error);
   });
   const blob = new Blob(
-    [JSON.stringify({ format: "HearU-v1", rooms: records }, null, 2)],
+    [JSON.stringify({ format: "HearU-v1", scope:"role", rooms: records.filter(r=>r.id===exportId) }, null, 2)],
     { type: "application/json" },
   );
   const url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
-  a.download = "HearU-backup.json";
+  a.download = "HearU-" + exportId + "-backup.json";
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
@@ -1546,7 +1552,7 @@ root.addEventListener("submit", (e) => {
       const field = root.querySelector("#hu-message");
       const text = field.value;
       field.value = "";
-      await saveMessage(text);
+      await send(text);
     }
   });
 });
@@ -1561,7 +1567,7 @@ root.addEventListener("keydown", (e) => {
     e.preventDefault();
     const value = e.target.value;
     e.target.value = "";
-    run(() => saveMessage(value));
+    run(() => send(value));
   }
 });
 root.addEventListener("dragstart", (e) => {
@@ -1610,6 +1616,7 @@ root.addEventListener("change", (e) =>
       await persist();
     }
     if (e.target.id === "hu-import") {
+      const importId=roleId;
       const file = e.target.files[0];
       if (!file) return;
       const data = JSON.parse(await file.text());
@@ -1623,9 +1630,11 @@ root.addEventListener("change", (e) =>
         )
           throw Error("备份格式错误");
       }
-      for (const item of data.rooms) await storeRoom(item);
+      const selected=data.rooms.filter(item=>item.id===importId);
+      if(!selected.length)throw Error("这份备份没有当前角色的记录，请在对应角色设置里导入");
+      for (const item of selected) await storeRoom(item);
       roomsCache.clear();
-      if (roleId) room = await readRoom(roleId);
+      if (roleId===importId) room = await readRoom(importId);
       notify("HearU 记录已恢复");
     }
   }),
@@ -1752,14 +1761,14 @@ function closeModal(){if(qrTask){qrTask.abort();qrTask=null;}root.querySelector(
 function modal(content){closeModal();const overlay=document.createElement('div');overlay.className='hu-modal';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.innerHTML=`<section><button class="hu-modal-close" data-hu="close-modal" aria-label="关闭">${icons.close}</button>${content}</section>`;root.append(overlay);overlay.querySelector('button,input')?.focus();}
 async function renderHome(){
   const epoch=++homeEpoch;view='feed';root.dataset.hearuView='feed';
-  root.innerHTML=header('HearU','A LITTLE CLOSER, THROUGH MUSIC')+`<main class="hu-body hu-discover"><div class="hu-editorial"><small>YOUR DAILY SOUNDTRACK</small><h1>与你，<br>同频。</h1><span>01 / FOR YOU</span></div><form class="hu-search" id="hu-home-search">${icons.search}<input id="hu-home-query" placeholder="搜索歌曲、歌手" aria-label="搜索歌曲、歌手" autocomplete="off"><button aria-label="搜索">↗</button></form><div id="hu-feed"><p class="hu-empty">正在收集今天的音乐…</p></div></main>`+status();
+  root.innerHTML=header('HearU','A LITTLE CLOSER, THROUGH MUSIC')+`<main class="hu-body hu-discover"><div class="hu-editorial"><small>YOUR DAILY SOUNDTRACK</small><h1>与你，<br>同频。</h1><span>01 / FOR YOU</span></div><form class="hu-search" id="hu-home-search">${icons.search}<input id="hu-home-query" placeholder="搜索歌曲、歌手" aria-label="搜索歌曲、歌手" autocomplete="off"><button aria-label="搜索">搜索</button></form><div id="hu-feed"><p class="hu-empty">正在收集今天的音乐…</p></div></main>`+status();
   if(feedData)paintFeed(feedData);
   try{const data=await homeFeed();if(view!=='feed'||homeEpoch!==epoch)return;feedData=data;paintFeed(data);}catch(e){if(view==='feed'&&homeEpoch===epoch)notify(e.message);}
 }
-function playlistTiles(list){return list.map(p=>`<button class="hu-playlist-tile" data-source="${esc(p.id)}"><div><img src="${esc(p.picUrl || p.coverImgUrl || 'assets/hearu.svg')}" alt="" loading="lazy"><span>${p.trackCount?esc(p.trackCount)+' TRACKS':'LISTEN ↗'}</span></div><strong>${esc(p.name)}</strong><small>${esc(p.copywriter || p.creator?.nickname || '为你留一些声音。')}</small></button>`).join('');}
+function playlistTiles(list){return list.map(p=>`<button class="hu-playlist-tile" data-source="${esc(p.id)}"><div><img src="${esc(p.picUrl || p.coverImgUrl || 'assets/hearu.svg')}" alt="" loading="lazy"><span>${p.trackCount?esc(p.trackCount)+' TRACKS':'LISTEN '}</span></div><strong>${esc(p.name)}</strong><small>${esc(p.copywriter || p.creator?.nickname || '为你留一些声音。')}</small></button>`).join('');}
 function paintFeed(d){const el=root.querySelector('#hu-feed');if(!el)return;const connected=!!accountSnapshot()?.connected;
   const daily=d.daily?.[0],fm=d.fm?.[0];
-  el.innerHTML=`<div class="hu-feed-shortcuts"><button data-collection="daily"><span>DAILY / ${new Date().getDate().toString().padStart(2,'0')}</span><strong>每日推荐</strong><small>${esc(daily?.title || (connected?'今天，听一点新的。':'登录后为你推荐'))}</small>${daily?.coverUrl?`<img src="${esc(daily.coverUrl)}" alt="">`:icons.head}</button><button data-collection="fm"><span>PRIVATE FREQUENCY</span><strong>私人漫游</strong><small>${esc(fm?.title || '从私人 FM 出发。')}</small>${fm?.coverUrl?`<img src="${esc(fm.coverUrl)}" alt="">`:icons.play}</button><button data-collection="heart"><span>FOLLOW YOUR HEART</span><strong>心动模式</strong><small>从你喜欢的歌开始。</small>${heartIcon}</button></div>${!connected?'<button class="hu-login-banner" data-hu="music-login">连接你的网易云 <span>让推荐属于你 ↗</span></button>':''}<div class="hu-fm-modes"><button data-fm-mode="FAMILIAR">熟悉漫游 ↗</button><button data-fm-mode="EXPLORE">探索发现 ↗</button><button data-hu="fm-scenes">场景音乐 ↗</button><button data-hu="netease-dj">私人 DJ ↗</button></div><div class="hu-section-label">PERSONAL RADAR <span>02</span></div><div class="hu-playlist-grid">${playlistTiles(d.radar?.length?d.radar:(d.recommended || []).filter(p=>/雷达/.test(p.name))) || '<p class="hu-empty">当前接口没有返回私人雷达歌单。</p>'}</div><div class="hu-section-label">MADE FOR YOU <span>03</span></div><div class="hu-playlist-grid">${playlistTiles([...(d.recommended || []),...(d.public || [])].filter((p,i,a)=>a.findIndex(x=>x.id===p.id)===i).slice(0,12))}</div><div class="hu-section-label">A FEW NEW SOUNDS <span>04</span></div><div id="hu-home-songs"></div>${Object.entries(d.errors).length?`<details class="hu-feed-errors"><summary>部分内容暂时未读取到</summary>${Object.entries(d.errors).map(([k,v])=>`<p>${esc(({daily:'每日推荐',fm:'私人 FM',radar:'雷达',recommended:'推荐歌单',public:'公开推荐',newSongs:'新歌',roam:'漫游'})[k]||k)}：${esc(v)}</p>`).join('')}</details>`:''}`;
+  el.innerHTML=`<div class="hu-feed-shortcuts"><button data-collection="daily"><span>DAILY / ${new Date().getDate().toString().padStart(2,'0')}</span><strong>每日推荐</strong><small>${esc(daily?.title || (connected?'今天，听一点新的。':'登录后为你推荐'))}</small>${daily?.coverUrl?`<img src="${esc(daily.coverUrl)}" alt="">`:icons.head}</button><button data-collection="fm"><span>PRIVATE FREQUENCY</span><strong>私人漫游</strong><small>${esc(fm?.title || '从私人 FM 出发。')}</small>${fm?.coverUrl?`<img src="${esc(fm.coverUrl)}" alt="">`:icons.play}</button><button data-collection="heart"><span>FOLLOW YOUR HEART</span><strong>心动模式</strong><small>从你喜欢的歌开始。</small>${heartIcon}</button></div>${!connected?'<button class="hu-login-banner" data-hu="music-login">连接你的网易云 <span>让推荐属于你 </span></button>':''}<div class="hu-fm-modes"><button data-fm-mode="FAMILIAR">熟悉漫游 </button><button data-fm-mode="EXPLORE">探索发现 </button><button data-hu="fm-scenes">场景音乐 </button><button data-hu="netease-dj">私人 DJ </button></div><div class="hu-section-label">PERSONAL RADAR <span>02</span></div><div class="hu-playlist-grid">${playlistTiles(d.radar?.length?d.radar:(d.recommended || []).filter(p=>/雷达/.test(p.name))) || '<p class="hu-empty">当前接口没有返回私人雷达歌单。</p>'}</div><div class="hu-section-label">MADE FOR YOU <span>03</span></div><div class="hu-playlist-grid">${playlistTiles([...(d.recommended || []),...(d.public || [])].filter((p,i,a)=>a.findIndex(x=>x.id===p.id)===i).slice(0,12))}</div><div class="hu-section-label">A FEW NEW SOUNDS <span>04</span></div><div id="hu-home-songs"></div>${Object.entries(d.errors).length?`<details class="hu-feed-errors"><summary>部分内容暂时未读取到</summary>${Object.entries(d.errors).map(([k,v])=>`<p>${esc(({daily:'每日推荐',fm:'私人 FM',radar:'雷达',recommended:'推荐歌单',public:'公开推荐',newSongs:'新歌',roam:'漫游'})[k]||k)}：${esc(v)}</p>`).join('')}</details>`:''}`;
   results=d.newSongs || [];root.querySelector('#hu-home-songs').innerHTML=songRows(results);
 }
 function localProfile(uid){try{return JSON.parse(localStorage.getItem('hearu.profile.'+uid)||'{}');}catch{return {};}}
@@ -1776,14 +1785,15 @@ async function renderProfile(){
 }
 function paintProfile(){
   const a=profileData,p=a?.profile || {},local=localProfile(a?.uid || 'guest');
-  const avatar=local.avatar || p.avatarUrl, banner=local.banner || p.backgroundUrl;
-  const count=(v)=>v===undefined?'—':v;
+  const avatar=local.avatar || p.avatarUrl,banner=local.banner || p.backgroundUrl,count=v=>v===undefined?'—':v;
   const created=playlistData.filter(x=>x.kind==='created'),saved=playlistData.filter(x=>x.kind==='saved');
-  root.innerHTML=header('我的','YOUR OWN LITTLE UNIVERSE')+`<main class="hu-body hu-profile"><div class="hu-profile-banner" ${banner?`style="background-image:url('${esc(safeImageUrl(banner))}')"`:''}><span>HEARU / MY SPACE</span><p>${esc(local.caption || '把喜欢的声音，收进生活。')}</p></div><div class="hu-profile-identity">${avatar?`<img class="hu-profile-avatar" src="${esc(safeImageUrl(avatar))}" alt="头像">`:`<div class="hu-profile-avatar hu-avatar-empty">${navIcons.profile}</div>`}<button data-hu="${a?.connected?'edit-profile':'music-login'}">${a?.connected?'编辑资料':'登录网易云'} ↗</button><h1>${esc(local.nickname || p.nickname || '你的音乐空间')}</h1><small class="hu-profile-handle">${a?.connected?'NETEASE · '+esc(a.uid):'YOUR OWN LITTLE UNIVERSE'}</small><p>${esc(local.signature ?? p.signature ?? '一首歌的距离，刚好是你和我。')}</p><div class="hu-profile-tags"><span>Lv.${count(a?.level)}</span>${p.vipType?'<span>网易云会员</span>':''}${p.city?`<span>${esc(cityName(p.city))}</span>`:''}${p.gender?`<span>${p.gender===1?'男':'女'}</span>`:''}</div></div><div class="hu-profile-stats"><div><strong>${count(p.follows)}</strong><span>关注</span></div><div><strong>${count(p.followeds)}</strong><span>粉丝</span></div><div><strong>${count(p.eventCount)}</strong><span>动态</span></div></div>${a?.connected?`<div class="hu-account-facts"><span>听歌 ${count(a.listenSongs)} 首</span><span>歌单 ${playlistData.length || count(a.counts?.createdPlaylistCount)} 份</span></div><div class="hu-profile-switch"><button data-hu="profile-music">音乐</button><button data-hu="profile-details">资料</button><small>SAVED SOUNDS ↗</small></div><div class="hu-section-label">创建的歌单 <span>${created.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(created)}</div><div class="hu-section-label">收藏的歌单 <span>${saved.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(saved)}</div>${a.playlistError?`<p class="hu-read-error">${esc(a.playlistError)} <button data-hu="refresh-profile">重新读取</button></p>`:''}${a.records?.length?'<div class="hu-section-label">最近常听 <span>THIS WEEK</span></div><div id="hu-recent-songs"></div>':''}<details class="hu-account-details"><summary>账号资料</summary><p>网易云 ID · ${esc(a.uid)}</p>${a.createTime?`<p>加入网易云 · ${new Date(a.createTime).toLocaleDateString('zh-CN')}</p>`:''}${p.birthday>0?`<p>生日 · ${new Date(p.birthday).toLocaleDateString('zh-CN')}</p>`:''}${a.identify?.imageDesc?`<p>${esc(a.identify.imageDesc)}</p>`:''}</details><button data-hu="logout" class="hu-logout">退出网易云登录 ↗</button>`:'<div class="hu-account-empty"><small>A SPACE OF YOUR OWN</small><h2>让每一首歌，<br>都与你有关。</h2><p>登录后读取真实头像、账号资料、创建与收藏的歌单。</p><button data-hu="music-login" class="hu-primary">扫码连接网易云</button></div>'}</main>`+status();
+  root.innerHTML=header('我的','HEARU / PROFILE')+`<main class="hu-body hu-profile"><div class="hu-profile-banner" ${banner?`style="background-image:url('${esc(safeImageUrl(banner))}')"`:''}><p>${esc(local.caption || '把喜欢的声音，收进生活。')}</p></div><section class="hu-profile-social"><div class="hu-profile-identity"><div class="hu-profile-avatar-wrap">${avatar?`<img class="hu-profile-avatar" src="${esc(safeImageUrl(avatar))}" alt="头像">`:`<div class="hu-profile-avatar hu-avatar-empty">${navIcons.profile}</div>`}</div><div class="hu-profile-name"><h1>${esc(local.nickname || p.nickname || '你的音乐空间')}</h1><small class="hu-profile-handle">${a?.connected?'@'+esc(a.uid):'HEARU'}</small></div><button data-hu="${a?.connected?'edit-profile':'music-login'}">${a?.connected?'编辑资料':'登录'}</button></div><p class="hu-profile-bio">${esc(local.signature ?? p.signature ?? '一首歌的距离，刚好是你和我。')}</p><div class="hu-profile-tags">${a?.level!==undefined?`<span>Lv.${esc(a.level)}</span>`:''}${p.vipType?'<span>网易云会员</span>':''}${p.gender?`<span>${p.gender===1?'男':'女'}</span>`:''}</div>${a?.connected?`<div class="hu-profile-stats"><div><strong>${count(p.follows)}</strong><span>关注</span></div><div><strong>${count(p.followeds)}</strong><span>粉丝</span></div><div><strong>${count(p.eventCount)}</strong><span>动态</span></div></div><div class="hu-account-facts"><span>听歌 <b>${count(a.listenSongs)}</b> 首</span><span>收藏 <b>${playlistData.length}</b> 份歌单</span></div>`:''}</section>${a?.connected?`<div class="hu-profile-switch" role="tablist"><button data-hu="profile-music" role="tab" aria-selected="true">音乐</button><button data-hu="profile-details" role="tab" aria-selected="false">资料</button></div><section class="hu-profile-music-panel"><div class="hu-section-label">创建的歌单 <span>${created.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(created)}</div><div class="hu-section-label">收藏的歌单 <span>${saved.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(saved)}</div>${a.playlistError?`<p class="hu-read-error">${esc(a.playlistError)} <button data-hu="refresh-profile">重新读取</button></p>`:''}${a.records?.length?'<div class="hu-section-label">最近常听 <span>THIS WEEK</span></div><div id="hu-recent-songs"></div>':''}</section><section class="hu-account-details" hidden><h2>账号资料</h2><dl><div><dt>网易云 ID</dt><dd>${esc(a.uid)}</dd></div>${a.createTime?`<div><dt>加入时间</dt><dd>${new Date(a.createTime).toLocaleDateString('zh-CN')}</dd></div>`:''}${p.birthday>0?`<div><dt>生日</dt><dd>${new Date(p.birthday).toLocaleDateString('zh-CN')}</dd></div>`:''}${a.identify?.imageDesc?`<div><dt>认证</dt><dd>${esc(a.identify.imageDesc)}</dd></div>`:''}</dl><button data-hu="edit-profile" class="hu-details-edit">编辑展示资料</button><button data-hu="logout" class="hu-logout">退出网易云登录</button></section>`:'<div class="hu-account-empty"><small>YOUR SOUND, YOUR SPACE</small><h2>让音乐，<br>更靠近你。</h2><p>连接网易云，听见你的收藏与偏爱。</p><button data-hu="music-login" class="hu-primary">扫码连接网易云</button></div>'}</main>`+status();
   if(a?.records?.length){results=a.records.slice(0,10).map(x=>({songId:String(x.song.id),title:x.song.name,artist:(x.song.ar||[]).map(a=>a.name).join(' / '),coverUrl:x.song.al?.picUrl,durationMs:x.song.dt}));root.querySelector('#hu-recent-songs').innerHTML=songRows(results);}
 }
-function cityName(code){return ({110100:'北京',310100:'上海',440100:'广州',440300:'深圳',330100:'杭州',510100:'成都',420100:'武汉'})[code] || '地区 '+code;}
-function profilePlaylistRows(rows){return rows.map(p=>`<button class="hu-profile-playlist" data-source="${esc(p.id)}"><img src="${esc(p.coverImgUrl || 'assets/hearu.svg')}" alt="" loading="lazy"><span><strong>${esc(p.name)}</strong><small>${esc(p.trackCount)} 首 · ${esc(p.creator?.nickname || '')}</small></span><em>↗</em></button>`).join('') || '<p class="hu-empty">暂无歌单，或仍在读取。</p>';}
+function profilePanel(which){const details=which==='details';root.querySelector('.hu-account-details').hidden=!details;root.querySelector('.hu-profile-music-panel').hidden=details;root.querySelectorAll('.hu-profile-switch button').forEach(b=>b.setAttribute('aria-selected',String((b.dataset.hu==='profile-details')===details)));}
+
+
+function profilePlaylistRows(rows){return rows.map(p=>`<button class="hu-profile-playlist" data-source="${esc(p.id)}"><img src="${esc(p.coverImgUrl || 'assets/hearu.svg')}" alt="" loading="lazy"><span><strong>${esc(p.name)}</strong><small>${esc(p.trackCount)} 首 · ${esc(p.creator?.nickname || '')}</small></span><em></em></button>`).join('') || '<p class="hu-empty">暂无歌单，或仍在读取。</p>';}
 function safeImageUrl(v){const s=String(v||'').trim();return /^(https?:\/\/|data:image\/(?:png|jpe?g|webp|gif);base64,)/i.test(s) && !/["'<>\n\r]/.test(s)?s:'';}
 function editProfile(){const a=profileData || accountSnapshot(),local=localProfile(a?.uid || 'guest'),p=a?.profile || {};modal(`<div class="hu-modal-kicker">EDIT YOUR SPACE</div><h2>你的样子。</h2><p>编辑 HearU 展示资料，网易云账号资料仍从账号读取。</p><form id="hu-profile-form"><label>显示昵称<input name="nickname" value="${esc(local.nickname || p.nickname || '')}" maxlength="60"></label><label>签名<textarea name="signature" maxlength="300">${esc(local.signature ?? p.signature ?? '')}</textarea></label><label>封面文案<input name="caption" value="${esc(local.caption || '')}" maxlength="100"></label>${[['avatar','头像',local.avatar || p.avatarUrl],['banner','背景封面',local.banner || p.backgroundUrl]].map(([key,label,value])=>`<label>${label}链接<input type="url" name="${key}" value="${esc(value || '')}" placeholder="https://…"><input type="file" data-profile-image="${key}" accept="image/*"><img class="hu-edit-preview" data-preview="${key}" src="${esc(safeImageUrl(value))}" alt="${label}预览"></label>`).join('')}<button class="hu-primary">保存资料</button><button type="button" data-hu="reset-profile">恢复网易云资料</button></form>`);}
 async function loginModal(){
@@ -1801,7 +1811,7 @@ async function loginModal(){
   }catch(e){if(!signal.aborted){const label=root.querySelector('#hu-qr-state');if(label)label.textContent=e.message;}}
 }
 function contactSettings(){const eligible=characters().filter(c=>c.history?.length || listedIds.has(String(c.id)));modal(`<div class="hu-modal-kicker">YOUR PEOPLE</div><h2>与谁同频。</h2><p>只显示已在 404 聊过的角色，添加后才会出现在这里。</p><div class="hu-contact-editor">${eligible.map(c=>`<div><img src="${esc(c.avatar || 'assets/hearu.svg')}" alt=""><span>${esc(name(c))}</span><button data-contact-toggle="${esc(c.id)}">${listedIds.has(String(c.id))?'移除':'添加 ＋'}</button></div>`).join('') || '<p class="hu-empty">先在 404 与角色聊几句，再来添加。</p>'}</div>`);}
-function pickRecipient(song){const eligible=characters().filter(c=>c.history?.length);modal(`<div class="hu-modal-kicker">SEND A SONG</div><h2>这首给谁。</h2><div class="hu-contact-editor">${eligible.map(c=>`<button data-recipient="${esc(c.id)}"><img src="${esc(c.avatar || 'assets/hearu.svg')}" alt=""><span>${esc(name(c))}</span><em>↗</em></button>`).join('') || '<p>先在 404 聊天中添加角色。</p>'}</div>`);root.querySelectorAll('[data-recipient]').forEach(b=>b.addEventListener('click',()=>run(async()=>{closeModal();await openRole(b.dataset.recipient);await shareSong(song);})));}
+function pickRecipient(song){const eligible=characters().filter(c=>c.history?.length);modal(`<div class="hu-modal-kicker">SEND A SONG</div><h2>这首给谁。</h2><div class="hu-contact-editor">${eligible.map(c=>`<button data-recipient="${esc(c.id)}"><img src="${esc(c.avatar || 'assets/hearu.svg')}" alt=""><span>${esc(name(c))}</span><em></em></button>`).join('') || '<p>先在 404 聊天中添加角色。</p>'}</div>`);root.querySelectorAll('[data-recipient]').forEach(b=>b.addEventListener('click',()=>run(async()=>{closeModal();await openRole(b.dataset.recipient);await shareSong(song);})));}
 async function openCollection(id){
   if(!accountSnapshot()?.connected)return loginModal();
   let songs;if(id==='heart')songs=await intelligenceSongs();else{const d=await homeFeed();if(d.errors[id])throw Error(d.errors[id]);songs=d[id] || [];}
@@ -1821,8 +1831,8 @@ async function handleNewClick(b){
   if(action==='contact-settings'){contactSettings();return true;}
   if(action==='edit-profile'){editProfile();return true;}
   if(action==='reset-profile'){localStorage.removeItem('hearu.profile.'+(profileData?.uid || 'guest'));closeModal();paintProfile();return true;}
-  if(action==='profile-details'){const el=root.querySelector('.hu-account-details');if(el){el.open=true;el.scrollIntoView({behavior:'smooth',block:'center'});}return true;}
-  if(action==='profile-music'){root.querySelector('.hu-profile-playlists')?.scrollIntoView({behavior:'smooth',block:'start'});return true;}
+  if(action==='profile-details'){profilePanel('details');return true;}
+  if(action==='profile-music'){profilePanel('music');return true;}
   if(action==='refresh-profile'){await renderProfile();return true;}
   if(action==='logout'){await logout();profileData=null;playlistData=[];feedData=null;await renderProfile();return true;}
   if(action==='queue'){await ensureRoom();tab='queue';renderRoom();return true;}
@@ -1842,8 +1852,8 @@ root.addEventListener('click',e=>{if(e.target.classList.contains('hu-modal'))clo
 window.HearU={open:(id)=>run(()=>open(id))};
 
 function listeningSnapshot(){const s=player.getState();if(!s.song || s.closed)return null;const line=s.lyrics[player.currentLineIndex()];return {song:{...s.song,lyrics:undefined},positionMs:player.positionMs(),playing:s.playing,line:line?.text || '',at:Date.now()};}
-function snapshotHtml(s,i){return `<button class="hu-turn-song" data-snapshot="${i}" aria-label="回到这轮正在听的位置"><span>${s.playing?'LISTENING':'PAUSED'} · ${format(s.positionMs)}</span><strong>${esc(s.song.title)} — ${esc(s.song.artist)}</strong>${s.line?`<small>${esc(s.line)}</small>`:''}</button>`;}
+
 
 async function openFmMode(mode,scene){if(!accountSnapshot()?.connected)return loginModal();notify('正在读取音乐漫游…');const songs=await fmSongs(mode,scene);if(!songs.length)throw Error('当前接口没有返回此模式的歌曲');closeModal();showModeSongs(songs,mode==='FAMILIAR'?'熟悉漫游':mode==='EXPLORE'?'探索发现':'场景音乐');}
 function showModeSongs(songs,title){view='sources';root.dataset.hearuView='sources';results=songs;root.innerHTML=header(title,'A SOUND FOR THIS MOMENT')+`<main class="hu-body" id="hu-sources"><div class="hu-source-actions"><button data-hu="source-append">全部加入</button><button data-hu="source-replace">全部播放</button></div>${songRows(results)}</main>`+status();}
-function fmSceneMenu(){modal(`<div class="hu-modal-kicker">A SOUND FOR THE MOMENT</div><h2>此刻的频率。</h2><div class="hu-scene-grid">${[['FOCUS','专注'],['RELAX','放松'],['NIGHT_EMO','夜晚'],['CURE','治愈'],['SLEEP_HELP','助眠'],['SWEET','情歌'],['RAINY','雨天'],['COFFEE_SHOP','咖啡馆'],['COMMUTE','出行'],['EXERCISE','运动'],['FOLK','民谣'],['JAZZ','爵士'],['YUEYU','粤语'],['JAPANESE','日语'],['ROCK','摇滚'],['LIGHT','轻音乐']].map(([id,label])=>`<button data-fm-mode="SCENE_RCMD" data-fm-scene="${id}">${label}<span>↗</span></button>`).join('')}</div>`);}
+function fmSceneMenu(){modal(`<div class="hu-modal-kicker">A SOUND FOR THE MOMENT</div><h2>此刻的频率。</h2><div class="hu-scene-grid">${[['FOCUS','专注'],['RELAX','放松'],['NIGHT_EMO','夜晚'],['CURE','治愈'],['SLEEP_HELP','助眠'],['SWEET','情歌'],['RAINY','雨天'],['COFFEE_SHOP','咖啡馆'],['COMMUTE','出行'],['EXERCISE','运动'],['FOLK','民谣'],['JAZZ','爵士'],['YUEYU','粤语'],['JAPANESE','日语'],['ROCK','摇滚'],['LIGHT','轻音乐']].map(([id,label])=>`<button data-fm-mode="SCENE_RCMD" data-fm-scene="${id}">${label}<span></span></button>`).join('')}</div>`);}
