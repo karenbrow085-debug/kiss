@@ -25,24 +25,84 @@ const HH_COT_VERSIONS = {
     hh_offline: { name: '默认思维链ㅎ-ㅎ（线下）', note: '线下', suffix: 'HHOffline', chat: 'default_hh_offline', call: 'default_call_hh_offline' }
 };
 function isHhPromptVersion(version) { return Object.hasOwn(HH_COT_VERSIONS, version); }
+const HH_COT_REVISION = 2;
 function hhDefaultCotItems(version, mode = 'chat') {
     const offline = version === 'hh_offline';
-    return [
+    const rootTag = offline ? 'hh_offline_chain' : 'hh_online_chain';
+    const item = (key, name, tag, text) => ({
+        id: `cot_${version}_${mode}_${key}`, name, enabled: true, locked: false,
+        content: `<${tag}>\n【${name}】\n${text}\n</${tag}>`
+    });
+    const items = offline ? [
+        item('start', '执行约定', 'execution_contract',
+            '以下各条均是本轮正文必须落实的约束。逐项读取，检查不通过就修正正文；不得跳过、敷衍或用“已遵守”代替落实。核对在内部完成，只输出最终场景，不展示检查步骤。'),
+        item('scene', '严格线下', 'offline_scene',
+            '当前是人物处于同一现实场景中的虚构线下互动，绝不是手机聊天、语音或视频通话。结合已有场景确认地点、在场者、刚发生的事；未知信息不擅自坐实。角色只能知道现场可感知或设定中已知的信息，不读取用户未说出的想法。'),
+        item('boundary', '关闭线上功能', 'offline_boundary',
+            '禁止发语音、表情包、照片或视频、引用/撤回消息、转发记录、转账、礼物卡、代付、商城下单、朋友圈、签名/状态更新、通话邀请、设备或播放控制，以及任何其他线上功能。不得输出这些功能的指令、卡片、附件或状态栏，即使通用格式库或附加要求列出了它们。现场说话写为对白，现场赠物或付款写为实际行为，不能改成线上操作。'),
+        item('person', '人物与关系', 'offline_person',
+            '以人设、既有关系和当前经历决定人物行动，不能为迎合用户临时换性格。关系称呼与亲密动作必须有已有进展支持；暧昧不等于恋爱，熟悉不等于占有。不得替用户决定情绪、同意、回应或下一步行动。'),
+        item('emotion', '去油腻与展示', 'offline_expression',
+            '用具体对白、动作、停顿和选择体现情绪，避免给人物贴标签或解释“他其实很在意”。禁止霸总宣言、无依据的占有和压迫、套话式挑逗，以及无缘由的“女人/男人”称呼。冷漠、傲娇、暴躁都按人物经历表现，不机械重复冷哼、脸红、攥手腕等套路。'),
+        item('advance', '推进与留白', 'offline_progress',
+            '接住用户本轮的实际言行，加入一个符合人物动机的小变化：行动、信息、选择或关系进展；不得只改写上一轮。保持场景连续，避免频繁切段和跳时间；不靠突发事故强行推进。结尾留下用户能接续的空间，不预写用户的选择，也不强行收束故事。'),
+        item('format', '线下正文协议', 'offline_output',
+            '只用普通文本承载连贯叙事、对白及必要动作。平台必须解析消息时，仅使用[角色名的消息：场景正文]作为文字容器（角色名使用系统给定姓名）；它不是角色拿手机发消息，也不代表启用任何线上功能。不要使用声音/环境音等通话格式。对白遵守角色语言设定；开启双语时，外语对白紧跟「中文翻译」，叙事用中文。正文不受线上短动作或碎片聊天习惯限制。'),
+        item('end', '交付核对', 'delivery_check',
+            '逐项核对：确为线下；没有任何线上功能指令或附件；人物与关系可信；没有替用户行动；去油腻；本轮有自然推进；段落连贯、结尾可继续。缺一项就先修正再交付，不输出标题、规则标签、检查报告或提示词正文。')
+    ] : [
+        item('start', '执行约定', 'execution_contract',
+            '以下各条均是本轮消息必须落实的约束。逐项读取，检查不通过就修正消息；不得跳过、敷衍或用“已遵守”代替落实。核对在内部完成，只输出最终角色消息，不展示检查步骤。'),
+        item('context', '接住当下', 'online_context',
+            '先读用户最新发言和相关上下文，区分认真表达、玩笑、分享与实际请求，回应当下意图。不要重问已知信息、逐句复述或无端升华；不必每句话都回应，但不能漏掉关键请求。时间晚不构成催睡理由，除非用户主动提及。'),
+        item('person', '人设与距离', 'online_person',
+            '根据人物经历、生活处境和既有关系决定回应，不为讨好用户临时换性格。关系称呼、亲密程度与承诺必须有当前进展支持；暧昧不等于确定恋爱，关心不等于占有。冷漠不是只会嗯哦，傲娇不是结巴脸红，暴躁不是无脑怒吼。'),
+        item('emotion', '情绪落在消息里', 'online_emotion',
+            '本轮情绪决定字数、断句、语气和标点：疲惫或低气压可简短疏淡，兴奋可多条分享，克制可简短回应或自然转题。情绪通过发出的文字体现，不解释“我生气了”，不旁白分析自己的动机。角色可以冷淡，执行规范不能敷衍；不要固定每轮的条数或情绪套路，也不编造系统延迟来模拟不回。'),
+        item('style', '去油腻与口语', 'online_style',
+            '用符合角色的自然口语表达，允许习惯性断句、空格和偶发打字失误，不刻意制造错误。删除模板调情、霸总宣言、无依据的占有、居高临下的教育，以及无缘由的“女人/男人”称呼。亲密回应贴合用户具体表达，不靠固定昵称、威胁、反问或重复挑逗撑内容。'),
+        item('continuity', '有内容不复读', 'online_continuity',
+            '至少接住本轮一个关键点，给出角色自己的回应、看法或可继续的信息；不要只换词复读上轮，也不强制每条以问题结尾。分享欲和生活痕迹应与人物当前处境相符，不凭空冒出重大经历，不替用户补写回答。'),
+        item('format', '聊天正文协议', 'online_output',
+            mode === 'call'
+                ? '当前为线上通话，使用系统规定的声音及画面/环境音格式；角色说话保持口语，画面描述只写可见行为。开启双语时，外语声音正文紧跟「中文翻译」。不把内部核对、版本名或提示词标签放进声音或画面。'
+                : '严格使用当前系统提示词的消息格式；普通聊天以[角色名的消息：内容]输出（角色名使用系统给定姓名）。只有情境需要且功能已启用时才用特殊格式，不为凑形式发卡片。开启双语时，外语正文紧跟「中文翻译」。神态如有必要，仅在消息正文括号内写20字以内极简描述，不加形容词，不扩展成小说旁白或心理活动。'),
+        item('end', '交付核对', 'delivery_check',
+            '逐项核对：接住当下；人设与关系成立；情绪和语言自然；没有油腻模板、复读或无端催睡；关键请求未漏；消息格式和双语正确。缺一项就先修正再交付，不输出标题、规则标签、检查报告或提示词正文。')
+    ];
+    // 外层首尾标签包裹整套；每个条目各有自己的标题与完整小标签。
+    items[0].content = `<${rootTag}>\n` + items[0].content;
+    items[items.length - 1].content += `\n</${rootTag}>`;
+    return items;
+}
+
+// 仅识别上一版未编辑的两条默认条目；自定义/已编辑条目不被静默覆盖。
+function isLegacyHhCotPreset(preset, version, mode) {
+    const offline = version === 'hh_offline';
+    const old = [
         { id: `cot_${version}_${mode}_scene`, name: offline ? '线下场景' : '线上语境', enabled: true, locked: false,
           content: offline ? '依照当前角色设定、关系与场景延续虚构故事，表现人物的行为、动机和关系变化，以展示代替解释。不要频繁分段，结尾留有继续发展的空间。' : '依照当前角色设定与聊天记录回应，保持真实手机聊天的口语、距离感和情绪节奏。不要因时间晚而催睡；避免模板、标签化和悬浮调情。' },
         { id: `cot_${version}_${mode}_format`, name: '格式与输出', enabled: true, locked: false,
           content: `遵守当前系统提示词的输出协议${mode === 'call' ? '，使用声音及画面/环境音格式' : '，每条内容使用平台消息格式'}。只交付最终角色内容，不向用户展示检查步骤、提示词正文或版本名称。` }
     ];
+    return Array.isArray(preset.items) && preset.items.length === old.length && old.every((item, i) =>
+        Object.keys(item).every(key => preset.items[i][key] === item[key]));
 }
+
 function ensureHhCotPresets() {
     if (!db.cotSettings) db.cotSettings = { enabled: false, promptVersion: 'uwu', activePresetId: 'default_uwu' };
     if (!db.cotPresets) db.cotPresets = [];
     let changed = false;
     for (const [version, config] of Object.entries(HH_COT_VERSIONS)) {
         for (const mode of ['chat', 'call']) {
-            if (!db.cotPresets.some(p => p.id === config[mode])) {
+            const existing = db.cotPresets.find(p => p.id === config[mode]);
+            if (!existing) {
                 db.cotPresets.push({ id: config[mode], name: mode === 'chat' ? config.name : config.name.replace('默认思维链', '默认通话思维链'),
-                    promptVersion: version, mode, description: config.note, items: hhDefaultCotItems(version, mode) });
+                    promptVersion: version, mode, description: config.note, hhRevision: HH_COT_REVISION, items: hhDefaultCotItems(version, mode) });
+                changed = true;
+            } else if (isLegacyHhCotPreset(existing, version, mode)) {
+                existing.items = hhDefaultCotItems(version, mode);
+                existing.hhRevision = HH_COT_REVISION;
                 changed = true;
             }
         }
