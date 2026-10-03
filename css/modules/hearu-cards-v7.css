@@ -940,15 +940,17 @@
   right: -12px;
   border-bottom-left-radius: 12px;
 }
-/* Translation remains inside its original bubble, directly below the text. */
-#hearu-app .hu-message-original {
-  display: block;
-}
-#hearu-app .hu-message p .hu-message-translation {
-  display: block;
-  position: static;
-  margin: 3px 0 0;
-  padding: 0;
+/* Overlap the bubble edge without changing its original dimensions. */
+#hearu-app .hu-message .hu-message-translation {
+  display: flex;
+  justify-content: flex-start;
+  position: relative;
+  z-index: 1;
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
+  margin: -0.725em 0 7px;
+  padding: 0 11px;
   font-family: inherit;
   font-size: 11px;
   font-style: italic;
@@ -962,10 +964,17 @@
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
-#hearu-app .hu-message.mine p .hu-message-translation {
+#hearu-app .hu-message .hu-message-translation>span {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 3em;
+}
+#hearu-app .hu-message.mine .hu-message-translation {
+  justify-content: flex-end;
   text-align: right;
 }
-#hearu-app .hu-message.theirs p .hu-message-translation {
+#hearu-app .hu-message.theirs .hu-message-translation {
   text-align: left;
 }
 #hearu-app .hu-chat-event {
