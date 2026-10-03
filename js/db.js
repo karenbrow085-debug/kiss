@@ -164,7 +164,7 @@ const globalSettingKeys = [
     'cotSettings', 'cotPresets', 'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint',
     'workshopSettings', 'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder',
     'homeLayoutPages', 'widgetTemplates', 'addedWidgets', 'backupReminderSettings',
-    'stUnlocked'
+    'stUnlocked', 'stickerMatchSettings'
 ];
 
 
@@ -605,7 +605,7 @@ function initDatabase() {
 
 // 数据保存与加载
 const saveData = async () => {
-    if (!dexieDB) return;
+    if (!dexieDB || window.kissCleanupLocked) return;
     if (typeof syncAllActiveArchives === 'function') {
         syncAllActiveArchives();
     }
@@ -653,6 +653,7 @@ const loadData = async () => {
 
     globalSettingKeys.forEach(key => {
         const defaultValue = {
+            stickerMatchSettings: { '404': false, hu: false },
             apiSettings: {},
             wallpaper: 'https://i.postimg.cc/W4Z9R9x4/ins-1.jpg',
             homeScreenMode: 'night',
