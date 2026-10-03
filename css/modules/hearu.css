@@ -2907,3 +2907,174 @@
 @media(max-height:700px){#hearu-app .hu-art-stage{min-height:130px;max-height:210px}#hearu-app .hu-art-stage .hu-cover{width:180px}#hearu-app[data-hearu-tab="listen"][data-hearu-view="room"] .hu-body{padding:12px 22px}#hearu-app[data-hearu-tab="listen"] .hu-controls{gap:19px;margin:10px 0 5px}#hearu-app[data-hearu-tab="listen"] .hu-track{margin:12px 0 10px}#hearu-app .hu-profile-banner{height:95px}}
 #hearu-app[data-hearu-tab="listen"] .hu-song-credit .hu-credit-owner{max-width:40%;min-width:0}
 #hearu-app[data-hearu-tab="listen"] .hu-song-credit .hu-credit-owner>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* HearU 04 — gallery covers, floating composer and a flat personal journal. */
+#hearu-app[data-hearu-view="room"][data-hearu-tab="chat"] .hu-body{position:relative;overflow:hidden;background:#ededed}
+#hearu-app .hu-chat-stage{position:relative;flex:1;min-height:0;overflow:hidden}
+#hearu-app .hu-chat-stage .hu-messages{position:absolute;inset:0;overflow:auto;padding:15px 18px 88px;overscroll-behavior:contain;scrollbar-width:none}
+#hearu-app .hu-chat-stage #hu-chat-form{position:absolute;left:14px;right:14px;bottom:12px;z-index:4;margin:0;background:#fff;border-color:#ddd;box-shadow:0 2px 12px #00000005;pointer-events:auto}
+#hearu-app .hu-chat-stage:has(.hu-thinking) #hu-chat-form{bottom:21px}
+#hearu-app .hu-chat-stage .hu-thinking{position:absolute;bottom:1px;left:21px;z-index:4;background:transparent;padding:0;margin:0;font-size:8px;pointer-events:none}
+#hearu-app .hu-live-listening{display:block;position:relative;flex:0 0 auto;width:auto;margin:12px 14px 0;padding:10px 11px 8px;border:1px solid #e2e2e2;border-radius:13px;min-height:0;background:#fff;text-align:left;overflow:hidden}
+#hearu-app .hu-live-main{display:flex;align-items:center;gap:10px}
+#hearu-app .hu-live-track{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
+#hearu-app .hu-live-track img{width:34px;height:34px;flex-shrink:0;border-radius:7px;object-fit:cover}
+#hearu-app .hu-live-track>span{min-width:0;flex:1}
+#hearu-app .hu-live-track strong{font-size:12px;font-weight:550;line-height:1.5;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#hearu-app .hu-live-track small{display:block;font-size:9px;letter-spacing:0;color:#aaa;margin-top:2px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hearu-app .hu-live-control{display:grid;place-items:center;width:29px;height:29px;border-radius:50%;background:#f3f3f3;color:#111;flex-shrink:0}
+#hearu-app .hu-live-control svg{width:14px;height:14px}
+#hearu-app .hu-live-caption{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:8px;color:#969696;line-height:1.5}
+#hearu-app .hu-live-caption>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hearu-app .hu-live-caption i{font-style:normal;padding:0 5px;font-size:8px;color:#bbb}
+#hearu-app .hu-live-caption time{font-size:8px;color:#aaa;flex-shrink:0;font-variant-numeric:tabular-nums}
+#hearu-app .hu-live-progress{height:1px;background:#f0f0f0;margin-top:7px;border-radius:1px;overflow:hidden}
+#hearu-app .hu-live-progress i{display:block;height:100%;background:#777}
+#hearu-app .hu-message.hu-card-message{width:244px;max-width:82%;margin:8px 0 12px}
+#hearu-app .hu-music-card{padding:13px 13px 10px;border-radius:13px;border-color:#e5e5e5;box-shadow:none}
+#hearu-app .hu-card-kicker{font-size:6px;letter-spacing:.09em;margin-bottom:11px;gap:8px}
+#hearu-app .hu-card-play{gap:11px}
+#hearu-app .hu-card-play>.hu-card-art{width:54px;height:54px;border-radius:7px}
+#hearu-app .hu-card-play strong{font-size:13px;font-weight:550;line-height:1.45}
+#hearu-app .hu-card-play>div>span{font-size:9px;margin-top:5px;color:#999}
+#hearu-app .hu-card-play small{font-size:8px;margin-top:8px;gap:6px}
+#hearu-app .hu-card-play small svg{display:none}
+#hearu-app .hu-card-note{font-size:10px;font-weight:400;line-height:1.6;margin-top:12px;padding:11px 0 0;border-top:1px solid #f0f0f0}
+#hearu-app .hu-card-footer{font-size:6px;margin-top:12px;padding-top:9px;border-color:#f0f0f0;letter-spacing:.02em}
+#hearu-app .hu-card-lines{margin-top:13px;padding-top:12px}
+#hearu-app .hu-card-verse p{font-size:11px;line-height:1.6;padding:0;border-radius:0;background:none}
+#hearu-app .hu-card-verse small{font-size:9px;line-height:1.6}
+#hearu-app .hu-art-stage{display:flex;flex-direction:column;justify-content:center;align-items:center;flex:0 0 auto;min-height:0;max-height:none;padding:0;margin:4px 0 2px}
+#hearu-app .hu-art-stage .hu-cover{width:min(66vw,235px,38dvh);height:auto;aspect-ratio:1;max-height:none;border-radius:11px;box-shadow:0 8px 26px #00000009;background:#fff;overflow:hidden}
+#hearu-app .hu-album-frame{padding:7px;border:1px solid #e4e4e4;border-radius:11px;background:#fff;overflow:hidden}
+#hearu-app .hu-cover .hu-album-art{border-radius:5px}
+#hearu-app .hu-art-label{display:flex;justify-content:space-between;width:min(66vw,235px,38dvh);font-size:6px;color:#aaa;letter-spacing:.1em;margin-top:10px;line-height:1.6}
+#hearu-app[data-hearu-tab="listen"] .hu-player-top{margin-bottom:13px}
+#hearu-app[data-hearu-tab="listen"] .hu-track{margin:19px 0 16px}
+#hearu-app[data-hearu-view="lyrics"] .hu-lyric-player{padding-top:12px}
+#hearu-app .hu-lyric-note{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:10px 12px;margin:0 0 13px;background:#f7f7f7;border-radius:10px;text-align:left}
+#hearu-app .hu-lyric-note>span{flex:0 0 auto;max-width:35%;font-size:10px;line-height:1.45;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#777}
+#hearu-app .hu-lyric-note small{display:block;font-size:7px;font-weight:400;color:#aaa;margin-top:3px}
+#hearu-app .hu-lyric-note p{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;font-size:10px;font-weight:400;line-height:1.6;color:#777}
+#hearu-app[data-hearu-view="profile"] .hu-profile{display:block;overflow-y:auto;flex:1;min-height:0;padding:0 0 24px;background:#fff}
+#hearu-app .hu-profile-banner{height:142px;min-height:142px;position:relative;background-color:#e8e8e8;background-position:center;background-size:cover;filter:grayscale(.5)}
+#hearu-app .hu-profile-banner>p{left:20px;top:21px;bottom:auto;max-width:85%;font-size:9px;font-weight:400;letter-spacing:.05em;text-align:left;line-height:1.7;color:white}
+#hearu-app .hu-profile-social{margin:0;padding:0 20px 16px;border:0;border-radius:0;background:#fff;position:relative}
+#hearu-app .hu-profile-identity{display:block;position:relative;padding:47px 0 0;min-height:92px;margin:0}
+#hearu-app .hu-profile-avatar-wrap{position:absolute;top:-31px;left:-3px;width:64px;height:64px}
+#hearu-app .hu-profile-avatar{width:64px;height:64px;border:3px solid #fff;outline:1px solid #eee;filter:none;background:#eee}
+#hearu-app .hu-profile-name{display:block;min-width:0;padding:0}
+#hearu-app .hu-profile-identity h1{font-size:21px;font-weight:600;line-height:1.4;letter-spacing:-.035em;margin:0 0 3px;overflow-wrap:anywhere}
+#hearu-app .hu-profile-handle{font-size:8px;letter-spacing:.05em;color:#aaa;margin:0}
+#hearu-app .hu-profile-identity>button{position:absolute;top:12px;right:0;border:1px solid #ddd;border-radius:18px;padding:7px 14px;font-size:9px;min-height:30px;font-weight:500}
+#hearu-app .hu-profile-bio{font-size:12px;font-weight:400;line-height:1.7;color:#555;margin:12px 0 10px;white-space:pre-line}
+#hearu-app .hu-profile-tags{gap:12px;font-size:9px}
+#hearu-app .hu-profile-tags span{font-size:8px}
+#hearu-app .hu-profile-stats{display:flex;gap:22px;margin:14px 0 0;padding:0 0 12px;border:0}
+#hearu-app .hu-profile-stats>div{border:0;justify-content:flex-start;gap:5px}
+#hearu-app .hu-profile-stats>div+div{border:0}
+#hearu-app .hu-profile-stats strong{font-size:12px;font-weight:600}
+#hearu-app .hu-profile-stats span{font-size:9px;color:#999}
+#hearu-app .hu-account-facts{justify-content:flex-start;padding:0;font-size:9px;color:#aaa;gap:18px}
+#hearu-app .hu-account-facts b{font-weight:400}
+#hearu-app .hu-profile-switch{display:flex;gap:28px;height:43px;margin:0;padding:0 20px;border-top:1px solid #f0f0f0;border-bottom:1px solid #eee}
+#hearu-app .hu-profile-switch>button{height:43px;font-size:12px;padding:0 2px}
+#hearu-app .hu-profile-switch>button[aria-selected="true"]:after{width:100%;left:0;height:2px}
+#hearu-app .hu-profile .hu-section-label{margin:23px 20px 13px;font-size:11px;font-weight:500;color:#333;letter-spacing:.01em}
+#hearu-app .hu-profile-playlists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;margin:0 20px}
+#hearu-app .hu-profile-playlist{display:block;width:100%;padding:0;border:0;text-align:left;min-width:0}
+#hearu-app .hu-profile-playlist img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin:0 0 9px}
+#hearu-app .hu-profile-playlist>span{display:block;min-width:0}
+#hearu-app .hu-profile-playlist strong{display:block;font-size:11px;font-weight:500;line-height:1.6;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+#hearu-app .hu-profile-playlist small{font-size:8px;line-height:1.6;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#aaa}
+#hearu-app .hu-profile-playlists>.hu-empty,#hearu-app .hu-playlist-loading{grid-column:1/-1;text-align:left;font-size:10px;color:#aaa;padding:12px 0;margin:0;line-height:1.7}
+@media(max-height:700px){#hearu-app .hu-art-stage{min-height:0;max-height:none}#hearu-app .hu-art-stage .hu-cover,#hearu-app .hu-art-label{width:min(56vw,190px,34dvh)}#hearu-app .hu-profile-banner{height:120px;min-height:120px}#hearu-app .hu-lyric-note{padding:7px 10px;margin-bottom:10px}#hearu-app .hu-chat-stage .hu-messages{padding-bottom:80px}}
+#hearu-app .hu-chat-stage #hu-chat-form{left:22px;right:22px}
+#hearu-app .hu-chat-stage .hu-messages{padding-left:14px;padding-right:14px}
+
+/* HearU 10 — a quieter profile, horizontal attachments and breathing player. */
+#hearu-app .hu-profile-masthead{position:relative;isolation:isolate;min-height:200px;margin:14px 16px 0;border-radius:5px;overflow:hidden;background:#181818;color:#fff}
+#hearu-app .hu-profile-banner{position:absolute;inset:0;height:100%;min-height:100%;filter:grayscale(1);background-color:#242424}
+#hearu-app .hu-profile-masthead:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#00000024,#000000b3)}
+#hearu-app .hu-profile-banner{z-index:-2}
+#hearu-app .hu-profile-cover-caption{position:relative;padding:19px 18px;font-size:9px;letter-spacing:.04em;line-height:1.6;color:#ffffffb0;max-width:75%}
+#hearu-app .hu-profile-identity{position:relative;display:flex;align-items:center;gap:12px;padding:36px 18px 20px;min-height:0}
+#hearu-app .hu-profile-avatar-wrap{position:static;flex:0 0 52px;width:52px;height:52px}
+#hearu-app .hu-profile-avatar{width:52px;height:52px;border:2px solid #ffffffc0;outline:0}
+#hearu-app .hu-profile-name{flex:1;min-width:0}
+#hearu-app .hu-profile-identity h1{font-size:21px;font-weight:550;line-height:1.35;color:#fff}
+#hearu-app .hu-profile-handle{color:#ffffff9c;font-size:8px}
+#hearu-app .hu-profile-identity>button{top:auto;bottom:91px;right:18px;border-color:#ffffff70;color:#fff;background:#00000015;font-size:8px;padding:5px 10px;min-height:25px}
+#hearu-app .hu-profile-social{padding:0 22px 18px}
+#hearu-app .hu-profile-bio{font-size:11px;color:#555;margin:18px 0 9px}
+#hearu-app .hu-profile-tags{margin:0;color:#aaa}
+#hearu-app .hu-profile-stats{justify-content:space-between;gap:8px;margin-top:19px;padding-bottom:13px}
+#hearu-app .hu-profile-stats>div{display:flex;flex:0 1 auto;align-items:baseline;gap:5px}
+#hearu-app .hu-profile-stats strong{font-size:17px;letter-spacing:-.04em}
+#hearu-app .hu-profile-stats span{font-size:8px}
+#hearu-app .hu-account-facts{font-size:8px;justify-content:space-between;color:#999}
+#hearu-app .hu-profile-switch{margin:0 22px;padding:0;border-top:0;gap:26px}
+#hearu-app .hu-profile .hu-section-label{margin:21px 22px 9px;font-size:10px}
+#hearu-app .hu-profile-playlists{display:flex;flex-direction:column;gap:0;margin:0 22px}
+#hearu-app .hu-profile-playlist{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f1f1}
+#hearu-app .hu-profile-playlist img{width:45px;height:45px;aspect-ratio:1;flex:none;border-radius:5px;margin:0}
+#hearu-app .hu-profile-playlist>span{flex:1}
+#hearu-app .hu-profile-playlist strong{font-size:11px}
+#hearu-app .hu-profile-playlist small{font-size:8px;margin-top:4px}
+#hearu-app .hu-profile-playlist em{display:none}
+#hearu-app .hu-message.hu-card-message{width:308px;max-width:94%;margin:7px 0 10px}
+#hearu-app .hu-music-card{padding:10px 12px 12px;border:1px solid #e6e6e6;border-radius:12px;box-shadow:0 2px 8px #00000002}
+#hearu-app .hu-card-kicker{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:7px;letter-spacing:0;color:#aaa}
+#hearu-app .hu-card-kicker time{font-variant-numeric:tabular-nums;font-size:7px;color:#aaa}
+#hearu-app .hu-card-play{gap:12px;width:100%;text-align:left}
+#hearu-app .hu-card-play>.hu-card-art{width:48px;height:48px;flex:0 0 48px;border-radius:5px}
+#hearu-app .hu-card-play>div:last-child{flex:1;min-width:0}
+#hearu-app .hu-card-play strong{font-size:13px;line-height:1.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#hearu-app .hu-card-play>div>span{font-size:9px;margin-top:5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#hearu-app .hu-card-note{margin:9px 0 0;padding:0 0 0 60px;border:0;font-size:10px;font-weight:400;line-height:1.6;color:#777}
+#hearu-app .hu-card-lines{margin-top:10px;padding-top:9px;border-top:1px solid #eee}
+#hearu-app .hu-live-listening{margin:0;padding:12px 19px 9px;border:0;border-bottom:1px solid #e6e6e6;border-radius:0;background:#fafafa;overflow:hidden}
+#hearu-app .hu-live-main{gap:12px}
+#hearu-app .hu-live-track{gap:11px}
+#hearu-app .hu-live-track img{width:38px;height:38px;border-radius:4px}
+#hearu-app .hu-live-track strong{font-size:11px;font-weight:500;line-height:1.6}
+#hearu-app .hu-live-track em{display:inline;font-style:normal;font-size:8px;font-weight:400;color:#aaa;margin-left:8px}
+#hearu-app .hu-live-track small{font-size:9px;line-height:1.6;margin-top:3px;color:#888}
+#hearu-app .hu-live-actions{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none}
+#hearu-app .hu-live-control{background:transparent;width:25px;height:25px;border-radius:0}
+#hearu-app .hu-live-control svg{width:16px;height:16px}
+#hearu-app .hu-live-actions time{font-size:7px;color:#aaa;font-variant-numeric:tabular-nums}
+#hearu-app .hu-live-caption{display:block;margin:6px 0 0 49px;font-size:7px;color:#aaa;letter-spacing:.04em}
+#hearu-app .hu-live-progress{position:absolute;bottom:0;left:68px;right:19px;margin:0;background:#e8e8e8;height:1px}
+#hearu-app .hu-live-progress i{background:#555}
+#hearu-app[data-hearu-tab="listen"] .hu-art-stage{flex:1 1 0;min-height:0;margin:0;padding:6px 0 8px;justify-content:center}
+#hearu-app[data-hearu-tab="listen"] .hu-art-stage .hu-cover{width:auto;height: min(100% - 23px, 290px);max-width:100%;aspect-ratio:1;flex:0 1 auto;border-radius:7px;box-shadow:0 10px 30px #00000009}
+#hearu-app .hu-album-frame{padding:6px;border-radius:7px}
+#hearu-app .hu-art-label{width:auto;align-self:stretch;margin:9px 0 0;justify-content:space-between;font-size:6px}
+#hearu-app[data-hearu-tab="listen"] .hu-track{margin:12px 0 13px}
+#hearu-app[data-hearu-tab="listen"] .hu-song-credit.compact{justify-content:center;padding:8px 0 5px;max-height:34px}
+#hearu-app[data-hearu-tab="listen"] .hu-player-bottom{margin-top:8px}
+#hearu-app .hu-lyric-note{display:block;flex:none;width:calc(100% - 64px);max-width:360px;margin:0 auto 13px;padding:10px 0 9px;background:transparent;border:0;border-radius:0;text-align:center}
+#hearu-app .hu-lyric-note p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;text-overflow:ellipsis;font-size:11px;line-height:1.7;color:#666;font-weight:400;margin:0}
+#hearu-app .hu-lyric-note>span{display:block;max-width:100%;margin-top:5px;font-size:7px;line-height:1.5;letter-spacing:.04em;color:#aaa;font-weight:400}
+#hearu-app[data-hearu-view="lyrics"] .hu-lyric-top:has(+.hu-lyric-note){border-bottom:0;padding-bottom:5px}
+#hearu-app[data-hearu-view="lyrics"] .hu-lyric-track{margin-top:0}
+@media(max-height:700px){#hearu-app .hu-profile-masthead{min-height:180px}#hearu-app .hu-profile-identity{padding-top:24px}#hearu-app .hu-profile-identity>button{bottom:79px}#hearu-app[data-hearu-tab="listen"] .hu-art-stage .hu-cover{width:auto;height:min(100% - 23px,240px)}#hearu-app .hu-lyric-note{padding:6px 0;margin-bottom:7px}}
+#hearu-app .hu-profile-identity{position:absolute;bottom:0;left:0;right:0;padding:18px}
+@media(max-height:700px){#hearu-app .hu-profile-identity{padding:18px}#hearu-app .hu-profile-identity>button{bottom:91px}}
+@media(max-height:620px){
+ #hearu-app[data-hearu-tab="listen"][data-hearu-view="room"] .hu-body{padding:8px 20px}
+ #hearu-app[data-hearu-tab="listen"] .hu-player-top{margin-bottom:4px;min-height:18px}
+ #hearu-app[data-hearu-tab="listen"] .hu-player-top img{width:18px;height:18px}
+ #hearu-app[data-hearu-tab="listen"] .hu-art-stage{padding:3px 0;min-height:100px}
+ #hearu-app[data-hearu-tab="listen"] .hu-art-label{margin-top:5px;font-size:5px}
+ #hearu-app[data-hearu-tab="listen"] .hu-track{margin:8px 0 9px}
+ #hearu-app[data-hearu-tab="listen"] .hu-track h2{font-size:18px;line-height:1.3}
+ #hearu-app[data-hearu-tab="listen"] .hu-track p{font-size:9px;margin-top:4px}
+ #hearu-app[data-hearu-tab="listen"] .hu-controls{margin:6px 0 2px}
+ #hearu-app[data-hearu-tab="listen"] .hu-controls .hu-play{width:42px;height:42px}
+ #hearu-app[data-hearu-tab="listen"] .hu-lyric-preview{height:26px;min-height:26px;padding:3px 0}
+ #hearu-app[data-hearu-tab="listen"] .hu-player-bottom{height:28px;padding-top:7px;margin-top:6px}
+ #hearu-app[data-hearu-tab="listen"] .hu-song-credit.compact{padding:3px 0}
+}
+@media(max-height:620px){#hearu-app[data-hearu-tab="listen"] .hu-art-label{display:none}#hearu-app[data-hearu-tab="listen"] .hu-art-stage .hu-cover{height:min(100%,180px)}}
