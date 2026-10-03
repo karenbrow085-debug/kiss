@@ -9,7 +9,8 @@ export class ApiError extends Error {
   constructor(message, {status=0, code=''}={}) { super(message); this.status=status; this.code=code; }
 }
 export function cookie() { return localStorage.getItem(COOKIE_KEY) || ''; }
-export function accountSnapshot() { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; } }
+function withoutRegion(profile){if(!profile)return profile;const {city,province,country,location,...rest}=profile;return rest;}
+export function accountSnapshot() { try { const a=JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null');if(a?.profile)a.profile=withoutRegion(a.profile);return a; } catch { return null; } }
 export function acceptLoginSession() {}
 export function ensureMusicSession() { return Promise.resolve(cookie()); }
 export function musicLoginUrl() { return Promise.resolve(GATEWAY); }
@@ -105,7 +106,7 @@ export async function readAccount(opts={}) {
   const detail=await netease('/user/detail',{uid},opts);
   if(epoch!==accountEpoch) throw new DOMException('账号已更换','AbortError');
   if(detail.profile?.userId && String(detail.profile.userId)!==String(uid)) throw new ApiError('账号信息不一致，请重新登录');
-  const result={connected:true,uid:String(uid),profile:{...p,...detail.profile},account:base.account || {},level:detail.level,listenSongs:detail.listenSongs,createTime:detail.createTime,identify:detail.identify,peopleCanSeeMyPlayRecord:detail.peopleCanSeeMyPlayRecord};
+  const result={connected:true,uid:String(uid),profile:withoutRegion({...p,...detail.profile}),account:base.account || {},level:detail.level,listenSongs:detail.listenSongs,createTime:detail.createTime,identify:detail.identify,peopleCanSeeMyPlayRecord:detail.peopleCanSeeMyPlayRecord};
   localStorage.setItem(ACCOUNT_KEY,JSON.stringify(result)); return result;
 }
 export async function qrCreate(opts={}) {
