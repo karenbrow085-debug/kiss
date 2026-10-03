@@ -14,7 +14,7 @@ function panel(title,kicker,body,footer='',kind=''){
 }
 function editor(source){
  const initial=source.value,disabled=source.disabled;
- const el=panel(source.id==='global-beautification-css'?'全局 CSS':'气泡 CSS','CODE / YOUR OWN STYLE',`<div class="kt-editor-tools"><input type="search" placeholder="搜索关键词…" aria-label="搜索代码"><output>0 / 0</output><button data-prev aria-label="上一个匹配">↑</button><button data-next aria-label="下一个匹配">↓</button><button data-wrap>自动换行</button></div><textarea class="kt-code" aria-label="CSS代码编辑器" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>`,`<span>${disabled?'当前样式未启用，可查看和搜索':'完成后写回原输入框，再按原页面的应用 / 保存按钮生效'}</span><button data-cancel>取消</button><button class="kt-primary" data-done>完成编辑</button>`,'kt-editor');
+ const el=panel(source.id==='global-beautification-css'?'全局 CSS':'气泡 CSS','CODE / YOUR OWN STYLE',`<div class="kt-editor-tools"><input type="search" placeholder="搜索关键词…" aria-label="搜索代码"><output>0 / 0</output><button data-prev aria-label="上一个匹配">上一处</button><button data-next aria-label="下一个匹配">下一处</button><button data-wrap>自动换行</button></div><textarea class="kt-code" aria-label="CSS代码编辑器" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>`,`<span>${disabled?'当前样式未启用，可查看和搜索':'完成后写回原输入框，再按原页面的应用 / 保存按钮生效'}</span><button data-cancel>取消</button><button class="kt-primary" data-done>完成编辑</button>`,'kt-editor');
  const code=el.querySelector('textarea'),query=el.querySelector('input'),out=el.querySelector('output');code.value=initial;code.readOnly=disabled;let hits=[],index=-1;
  function count(){hits=[];index=-1;const q=query.value.toLowerCase(),v=code.value.toLowerCase();if(q){let i=0;while((i=v.indexOf(q,i))>=0){hits.push(i);i+=q.length;}}out.textContent='0 / '+hits.length;}
  function move(delta){if(!hits.length)return;index=(index+delta+hits.length)%hits.length;const pos=hits[index];code.focus();code.setSelectionRange(pos,pos+query.value.length);const line=code.value.slice(0,pos).split('\n').length-1;code.scrollTop=Math.max(0,(line-3)*parseFloat(getComputedStyle(code).lineHeight));out.textContent=(index+1)+' / '+hits.length;}
@@ -27,8 +27,23 @@ function enabled(surface){return db.stickerMatchSettings?.[surface]===true;}
 window.KissStickerMatch={enabled,resolve:(q,p,s)=>C.resolve(q,p,enabled(s))};
 function addSetting(parent,surface){
  if(!parent || parent.querySelector('[data-kt-sticker="'+surface+'"]'))return;
- const box=document.createElement('div');box.className='kt-setting';box.dataset.ktSticker=surface;box.innerHTML=`<label><span>表情包匹配 <small>${surface==='hu'?'HearU':'404'}</small></span><input type="checkbox" aria-label="开启表情包匹配"></label><p>输入文字时匹配已有表情包，点击后发送。名称相近且唯一时兼容角色表情输出；不额外调用 AI。</p>`;
- const input=box.querySelector('input');input.checked=enabled(surface);input.onchange=async()=>{const before=db.stickerMatchSettings;db.stickerMatchSettings={...before,[surface]:input.checked};try{await saveData();}catch(e){db.stickerMatchSettings=before;input.checked=enabled(surface);showToast('开关保存失败');}hideSuggestions();};parent.prepend(box);
+ const box=document.createElement(surface==='hu'?'button':'div');box.dataset.ktSticker=surface;
+ if(surface==='hu'){
+  box.type='button';box.className='hu-setting-row';box.setAttribute('role','switch');box.setAttribute('aria-label','表情包匹配');
+  box.innerHTML='<span>表情包匹配</span><i class="hu-switch" aria-hidden="true"></i>';
+  const group=parent.querySelector('.hu-settings-group');if(!group)return;group.append(box);
+ }else{
+  box.className='feature-card';box.dataset.feature='sticker-match';
+  box.innerHTML='<div class="feature-card-header"><div class="feature-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 14c1 3 7 3 8 0"/><path d="M8 9h.01M16 9h.01"/></svg></div><label class="kkt-switch"><input type="checkbox" id="setting-sticker-match" aria-label="表情包匹配"><span class="kkt-slider"></span></label></div><div class="feature-card-body"><div class="feature-card-title">表情包匹配</div><div class="feature-card-desc">输入文字匹配表情包</div></div>';
+  const gallery=parent.querySelector('[data-feature="gallery"]');if(gallery)gallery.after(box);else parent.append(box);
+ }
+ const input=box.querySelector('input');
+ function sync(){const on=enabled(surface);if(input)input.checked=on;box.classList.toggle('is-on',on);if(surface==='hu'){box.setAttribute('aria-checked',String(on));box.querySelector('.hu-switch').classList.toggle('on',on);}}
+ let saving=false;
+ async function save(on){if(saving){sync();return;}saving=true;const before=db.stickerMatchSettings;db.stickerMatchSettings={...before,[surface]:on};sync();try{await saveData();}catch(e){db.stickerMatchSettings=before;sync();showToast('开关保存失败');}finally{saving=false;}hideSuggestions();}
+ if(input)input.onchange=()=>save(input.checked);
+ box.addEventListener('click',e=>{e.stopImmediatePropagation();if(surface==='hu'){e.preventDefault();save(!enabled(surface));}else if(!e.target.closest('.kkt-switch')){input.checked=!input.checked;input.dispatchEvent(new Event('change'));}});
+ sync();
 }
 let suggestions=null,draftInput=null,timer=null;
 function hideSuggestions(){suggestions?.remove();suggestions=null;draftInput=null;}
@@ -104,11 +119,20 @@ async function manager(){
  clean.onclick=async()=>{const names=[...selected].map(k=>C.catalog[k][0]).join('、');if(!confirm('确定清除：'+names+'？\n未选的数据保留。清理后将刷新页面；选中人设、记忆、聊天或规则会影响后续对话。'))return;clean.disabled=true;el.querySelector('[data-kt-close]').disabled=true;try{if(busy())throw Error('请等待生成结束');data=await scan();if(el.querySelector('[data-backup]').checked)await downloadBackup(data);await apply(data,selected);}catch(e){window.kissCleanupLocked=false;alert('清理未完成：'+e.message+'。已下载的备份可用于恢复；请刷新后检查。');clean.disabled=false;el.querySelector('[data-kt-close]').disabled=false;}};
  el.querySelector('[data-restore]').onclick=()=>el.querySelector('[data-restore-file]').click();el.querySelector('[data-restore-file]').onchange=async e=>{try{const value=await decodeBackup(JSON.parse(await e.target.files[0].text()));if(value.format!=='kiss-cleanup-safety-v1'||!Array.isArray(value.records))throw Error('不是本功能导出的清理备份');if(busy())throw Error('请等待生成结束');if(!confirm('恢复备份会覆盖备份中的同名记录，确定恢复？'))return;const allowed=new Set(dexieDB.tables.map(t=>t.name));for(const r of value.records)if(!['dexie','hu','local'].includes(r.store)||r.store==='dexie'&&!allowed.has(r.table))throw Error('备份含不支持的类型');await dexieDB.transaction('rw',dexieDB.tables,async()=>{for(const r of value.records.filter(r=>r.store==='dexie'))await dexieDB.table(r.table).put(r.row);});const hu=value.records.filter(r=>r.store==='hu').map(r=>r.row);if(hu.length)await window.KissHearUData.replace(hu);await loadData();for(const r of value.records.filter(r=>r.store==='local'))localStorage.setItem(r.key,r.row);location.reload();}catch(e){alert('恢复失败：'+e.message);}};
 }
+let heroReading=false;
+async function refreshStorageHero(){
+ const value=document.querySelector('[data-kt-total-size]');if(!value || heroReading)return;heroReading=true;
+ try{const data=await scan();value.textContent=fmt(Object.values(data.sizes).reduce((a,b)=>a+b,0));}catch(e){value.textContent='暂不可用';}finally{heroReading=false;}
+}
 function enhance(){
- for(const id of ['global-beautification-css','setting-custom-bubble-css']){const source=document.getElementById(id);if(!source||source.parentNode.querySelector('[data-kt-editor="'+id+'"]'))continue;const b=document.createElement('button');b.type='button';b.className='kt-launch';b.dataset.ktEditor=id;b.textContent='↗ 放大编辑 / 关键词搜索';b.onclick=()=>editor(source);source.before(b);}
- addSetting(document.querySelector('#chat-settings-screen #setting-tab-basic'),'404');
+ for(const id of ['global-beautification-css','setting-custom-bubble-css']){const source=document.getElementById(id);if(!source||source.parentNode.querySelector('[data-kt-editor="'+id+'"]'))continue;const b=document.createElement('button');b.type='button';b.className='kt-launch';b.dataset.ktEditor=id;b.textContent='放大编辑 · 搜索代码';b.onclick=()=>editor(source);source.before(b);}
+ document.querySelector('#setting-tab-basic [data-kt-sticker="404"]')?.remove();
+ addSetting(document.querySelector('#chat-settings-screen #setting-tab-func .feature-grid'),'404');
  addSetting(document.querySelector('#hearu-app .hu-chat-settings'),'hu');
- const screen=document.querySelector('#storage-analysis-screen .storage-content-scroll');if(screen&&!screen.querySelector('[data-kt-manager]')){const b=document.createElement('button');b.type='button';b.className='kt-launch';b.dataset.ktManager='';b.style.cssText='width:100%;padding:18px;margin:4px 0 18px;text-align:left;border-radius:15px;background:#111;color:white';b.innerHTML='<span style="font-size:9px;letter-spacing:.12em;opacity:.6">DATA / EDIT YOUR SPACE</span><br><span style="display:block;margin-top:7px;font-size:15px">分类占用与全方位清理 ↗</span>';b.onclick=manager;screen.prepend(b);}
+ const screen=document.querySelector('#storage-analysis-screen');
+ const open=screen?.querySelector('[data-kt-manager]');if(open && !open.dataset.ktBound){open.dataset.ktBound='true';open.onclick=manager;}
+ if(screen && !screen.dataset.ktObserved){screen.dataset.ktObserved='true';new MutationObserver(()=>{if(screen.classList.contains('active'))refreshStorageHero();}).observe(screen,{attributes:true,attributeFilter:['class']});if(screen.classList.contains('active'))refreshStorageHero();}
+
 }
 window.KissDataManager={scan,open:manager};let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;enhance();});}).observe(document.body,{childList:true,subtree:true});enhance();
 })();
