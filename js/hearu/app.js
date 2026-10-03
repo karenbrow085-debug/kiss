@@ -82,6 +82,7 @@ const characters = () => (typeof db !== "undefined" ? db.characters || [] : []);
 const character = (id) => characters().find((c) => String(c.id) === String(id));
 const name = (c) => c?.remarkName || c?.realName || "联系人";
 function storeRoom(record) {
+  if(window.kissCleanupLocked)return Promise.resolve();
   roomsCache.set(record.id, record);
   if(record===room) player.queueChanged();
   const copy = structuredClone(record);
@@ -470,9 +471,9 @@ function assistantMessages(message,c,turnId){
   const pattern=/\[(?:[^\]\n]*?的|[^\]\n]*?发送的)?表情包[：:]([^\]\n]+)\]/g;
   let cursor=0,match;
   const addText=text=>{if(text.trim())result.push({...base,content:text.trim(),translation:message?.translation || ''});};
-  while((match=pattern.exec(content))){addText(content.slice(cursor,match.index));const sticker=pool.find(x=>x.name===match[1].trim());if(sticker)result.push({...base,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data}});cursor=pattern.lastIndex;}
+  while((match=pattern.exec(content))){addText(content.slice(cursor,match.index));const sticker=(window.KissStickerMatch?.resolve(match[1].trim(),pool,'hu') || pool.find(x=>x.name===match[1].trim()));if(sticker)result.push({...base,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data}});cursor=pattern.lastIndex;}
   addText(content.slice(cursor));
-  if(typeof message?.sticker==='string'){const sticker=pool.find(x=>x.name===message.sticker);if(sticker)result.push({...base,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data}});}
+  if(typeof message?.sticker==='string'){const sticker=(window.KissStickerMatch?.resolve(message.sticker,pool,'hu') || pool.find(x=>x.name===message.sticker));if(sticker)result.push({...base,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data}});}
   return result;
 }
 function musicCardHtml(card, by = "user") {
@@ -977,6 +978,7 @@ function stopGeneration(id = roleId) {
   }
 }
 function generationTask(id) {
+  if(window.kissCleanupLocked)throw new DOMException('正在清理数据','AbortError');
   const controller = new AbortController(),
     turnId = crypto.randomUUID();
   const task = {
@@ -2076,3 +2078,13 @@ function listeningSnapshot(){const s=player.getState();if(!s.song || s.closed)re
 async function openFmMode(mode,scene){if(!accountSnapshot()?.connected)return loginModal();notify('正在读取音乐漫游…');const songs=await fmSongs(mode,scene);if(!songs.length)throw Error('当前接口没有返回此模式的歌曲');closeModal();showModeSongs(songs,mode==='FAMILIAR'?'熟悉漫游':mode==='EXPLORE'?'探索发现':'场景音乐');}
 function showModeSongs(songs,title){view='sources';root.dataset.hearuView='sources';results=songs;root.innerHTML=header(title,'A SOUND FOR THIS MOMENT')+`<main class="hu-body" id="hu-sources"><div class="hu-source-actions"><button data-hu="source-append">全部加入</button><button data-hu="source-replace">全部播放</button></div>${songRows(results)}</main>`+status();}
 function fmSceneMenu(){modal(`<div class="hu-modal-kicker">A SOUND FOR THE MOMENT</div><h2>此刻的频率。</h2><div class="hu-scene-grid">${[['FOCUS','专注'],['RELAX','放松'],['NIGHT_EMO','夜晚'],['CURE','治愈'],['SLEEP_HELP','助眠'],['SWEET','情歌'],['RAINY','雨天'],['COFFEE_SHOP','咖啡馆'],['COMMUTE','出行'],['EXERCISE','运动'],['FOLK','民谣'],['JAZZ','爵士'],['YUEYU','粤语'],['JAPANESE','日语'],['ROCK','摇滚'],['LIGHT','轻音乐']].map(([id,label])=>`<button data-fm-mode="SCENE_RCMD" data-fm-scene="${id}">${label}<span></span></button>`).join('')}</div>`);}
+
+// Narrow bridge for storage management and user-triggered sticker suggestions.
+window.KissHearUData={
+ busy:()=>generations.size>0 || busy.size>0,
+ flush:async()=>{await ready;await saving;},
+ stickers:()=>nativeStickers(),
+ snapshot:async()=>{await ready;await saving;return new Promise((resolve,reject)=>{const tx=database.transaction('rooms');const r=tx.objectStore('rooms').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});},
+ replace:async rows=>{await ready;await saving;if(generations.size || busy.size)throw Error('HearU 正在生成');await new Promise((resolve,reject)=>{const tx=database.transaction('rooms','readwrite');for(const row of rows)tx.objectStore('rooms').put(row);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);});roomsCache.clear();room=null;},
+ sendSticker:async sticker=>{if(!room)throw Error('请先打开聊天');const current=nativeStickers().find(s=>s.id===sticker.id && s.name===sticker.name);if(!current)throw Error('表情包已被移除');const draft=root.querySelector('#hu-message')?.value||'';room.messages.push({role:'user',deliveryTracked:true,content:'[表情包：'+current.name+']',sticker:{name:current.name,data:current.data},at:Date.now()});await storeRoom(room);renderRoom();const field=root.querySelector('#hu-message');if(field)field.value=draft;}
+};
