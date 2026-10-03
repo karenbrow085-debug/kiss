@@ -1,4 +1,4 @@
-import { playUrl, songDetail } from '../lib/api.js?v=kiss-2';
+import { playUrl, songDetail } from '../lib/api.js?v=kiss-3';
 const state={song:null,lyrics:[],playing:false,loading:false,buffering:false,error:'',closed:true,trial:false,pausedAt:0};
 const listeners=new Set();
 let audio, generation=0, controller, wantPlay=false, fetchedAt=0, detailNeeded=false;
