@@ -50,6 +50,12 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
         promptVersion = db.cotSettings.promptVersion;
     }
     
+    // 线下版本不发起线上通话请求；角色专属版本仍优先。
+    if (promptVersion === 'hh_offline') {
+        showToast('当前使用线下版本，请切换线上版本后通话');
+        return;
+    }
+
     let systemPrompt = '';
 
     if (isHhPromptVersion(promptVersion)) {
@@ -308,15 +314,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
     // === 插入 CoT 序列 (如果开启) ===
     const cotEnabled = db.cotSettings && db.cotSettings.callEnabled;
     if (cotEnabled) {
-        let cotInstruction = '';
-        const preset = resolveCotPresetForCharacter(chat, 'call');
-        
-        if (preset && preset.items) {
-            cotInstruction = preset.items
-                .filter(item => item.enabled)
-                .map(item => item.content)
-                .join('\n\n');
-        }
+        const cotInstruction = hhOptionalCotInstruction(chat, 'call');
 
         if (cotInstruction) {
             // 1. 插入后置指令
@@ -402,7 +400,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
             }
 
             // === CoT 处理：补全开头，提取思考，净化输出 ===
-            if (cotEnabled && text) {
+            if ((cotEnabled || isHhPromptVersion(promptVersion)) && text) {
                 // 1. 补全开头 (如果被 Prefill 吃掉)
                 if (!text.trim().startsWith('<thinking>') && text.includes('</thinking>')) {
                     text = '<thinking>' + text;
@@ -479,7 +477,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
             console.log('[VideoCall] Final Buffer:', buffer);
 
             // === CoT 处理：补全开头，提取思考，净化输出 ===
-            if (cotEnabled && buffer) {
+            if ((cotEnabled || isHhPromptVersion(promptVersion)) && buffer) {
                 // 1. 补全开头 (如果被 Prefill 吃掉)
                 if (!buffer.trim().startsWith('<thinking>') && buffer.includes('</thinking>')) {
                     buffer = '<thinking>' + buffer;

@@ -25,17 +25,76 @@ const HH_COT_VERSIONS = {
     hh_offline: { name: '默认思维链ㅎ-ㅎ（线下）', note: '线下', suffix: 'HHOffline', chat: 'default_hh_offline', call: 'default_call_hh_offline' }
 };
 function isHhPromptVersion(version) { return Object.hasOwn(HH_COT_VERSIONS, version); }
-const HH_COT_REVISION = 2;
+const HH_COT_REVISION = 3;
+const HH_NATURAL_LANGUAGE_GUARD = `<natural_language_guard>
+【语言硬约束 · 去油腻与去猫塑】
+线上线下共同执行。
+1. 不给用户或角色贴“大半夜、深更半夜、夜猫子、熬夜党、这个点还不睡、这么晚了”等深夜标签，不借时钟催睡、训话或制造亲密感。用户明确谈时间时只回应具体事情，仍不使用上述套话。
+2. 不用“行、行吧、行行行、行了、好的、收到、明白了、了解、遵命、准了、批准了、可以、嗯、哦”单独作答、机械开场或凑一条消息。直接说与本轮有关的具体内容；简短也要有角色自己的态度或信息。不为避词改成同样机械的“好哒、OK、没问题、安排”。这不是禁止“银行、行走、旅行”等正常词语。
+3. 禁止把用户或角色猫塑、犬塑、宠物化、幼化：不叫小猫、猫咪、野猫、奶猫、小狗、幼崽、乖乖等，不用喵、猫爪、猫耳、尾巴、炸毛、顺毛、呼噜等映射人的情绪；不靠蹭、挠、投喂、驯服、逗弄或奖励宠物的比喻调情。正常谈论真实动物不等于把人宠物化；普通人设中不新增动物耳尾或叫声。
+4. 禁止“乖一点、真乖、听话、别闹、小坏蛋、嘴硬、欠收拾、胆子大了、拿你没办法、这才乖”等训宠式话术；禁止“你是我的、逃不掉、只能看我、女人/男人你成功引起了我的注意”等占有宣言。不要用惩罚、威胁、奖赏、审讯式连环反问代替亲密交流。
+5. 不反复揉头、摸头、捏脸、捏下巴、攥手腕、勾唇、挑眉、低笑、嗓音低哑来套路化调情。线上不写这些隔空动作；线下动作必须对现场事件有实际作用，不能把上述动作当成每轮的亲密标配。
+6. 不输出“我懂你的感受、我会一直陪着你、随时都可以找我、你需要的是、你的意思是、这不是X而是Y”等客服安抚或解释模板。关心、分歧和喜欢通过具体回应表现，既不每轮甜言蜜语，也不每轮顶嘴。保留人物自己的话题、分寸、兴趣和生活细节，不凭空编造经历，不固定昵称、句尾或回复套路。
+7. 历史消息出现这些表达也不跟学；本轮开始停止复刻。语音正文、双语原文与译文、叙事及对白同样执行。输出前核对候选正文；出现上述套路就重新组织整句，不能只删词后留下空洞话术。只输出修正后的角色内容，不提禁词、规则或审核过程。
+<negative_examples>
+禁止模仿：“行，大半夜还不睡，小猫又炸毛了？”“收到，乖一点，我会一直陪着你。”这些把机械应答、时间训话、猫塑和模板安抚揉在一起。必须改成与用户本轮有关、符合角色关系的具体表达，不得引用这些句子给用户看。
+</negative_examples>
+</natural_language_guard>`;
+
+function hhCotItemsFingerprint(items) {
+    const text = JSON.stringify((items || []).map(i => [i.id, i.name, i.content, i.enabled, i.locked]));
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+    return `${hash >>> 0}:${text.length}`;
+}
+const HH_V2_DEFAULT_FINGERPRINTS = {
+    'hh:chat': '1058367521:1628', 'hh:call': '3476100523:1576',
+    'hh_offline:chat': '656520126:1758', 'hh_offline:call': '3720091878:1758'
+};
+
+// 新版本的基础条目每轮进入系统提示词。开关只控制可选自定义附加条目。
+function hhOptionalCotInstruction(character, mode = 'chat') {
+    const preset = resolveCotPresetForCharacter(character, mode);
+    const version = resolveCotPromptVersion(character);
+    if (isHhPromptVersion(version) && preset?.id === cotDefaultPresetId(version, mode) &&
+        hhCotItemsFingerprint(preset.items) === hhCotItemsFingerprint(hhDefaultCotItems(version, mode))) return '';
+    const text = (preset?.items || []).filter(item => item.enabled).map(item => item.content).join('\n\n');
+    return text && isHhPromptVersion(version) ? text + '\n\n' + HH_NATURAL_LANGUAGE_GUARD : text;
+}
+
+function hhNegativeExamples(key, offline) {
+    const examples = offline ? {
+        start: '反例：“已逐条检查，我会按要求扮演。”“好的，收到。”——把检查报告或助手答复当正文。改法：直接进入当前场景，用角色的实际言行回应。',
+        scene: '反例：“大半夜还给我发消息？”“怎么不回我语音？”——把现场互动误写成手机聊天或借时间训话。改法：回应眼前的人和刚发生的事，不凭时钟贴深夜标签。',
+        boundary: '反例：“[角色名的语音：乖，听话]”“[角色名的表情包：小猫炸毛]”——违规调用线上功能，并用训宠话术。改法：只写现场对白及必要行为，不发送附件或功能指令。',
+        person: '反例：“小猫，你只能是我的。”“大半夜跑来找我，胆子大了？”——凭空占有、猫塑和训话，越过当前关系。改法：按双方已有关系说具体的话，尊重用户的选择。',
+        emotion: '反例：“他勾唇低笑，捏住你的下巴：小野猫，欠收拾了。”“乖，别炸毛。”——动作模板、宠物化和惩罚式调情。改法：用现场必要的动作、停顿与具体对白表达人物态度。',
+        advance: '反例：“行。”“又嘴硬了，拿你没办法。”——空洞接话或复用固定戏码，场景没有变化。改法：接住用户实际言行，给出符合动机的小行动或新信息，留下用户选择。',
+        format: '反例：“[角色名的声音：收到]”“他发来一张揉猫头的表情包。”——通话格式、机械答复与线上行为混入线下。改法：使用普通文字容器，保持连贯叙事和现场对白。',
+        end: '反例：“我已遵守全部规则。小猫，大半夜别闹，行了。”——自称遵守却把所有禁项写进正文。改法：重新组织整段，输出符合本轮场景的具体言行，不发自检报告。'
+    } : {
+        start: '反例：“好的，已逐条读取要求。”“收到，我会自然回复。”——客服确认和规则报告不是角色消息。改法：直接回应用户当前表达，不向用户报告执行过程。',
+        context: '反例：“大半夜还不睡？”“行，早点休息。”——未接住话题就贴时间标签或结束聊天。改法：回应用户正在说的事，不由时钟推断用户该做什么。',
+        person: '反例：“小猫，听话。”“你只能看我，知道吗？”——宠物化、训话和未经关系支持的占有。改法：保持人物本来的说话方式与当前关系边界，表达具体态度。',
+        emotion: '反例：“行。”“嗯，哦。”“我生气了，所以我现在很冷漠。”——敷衍模板或自我解释代替情绪。改法：用具体内容、字数和断句呈现情绪；短回复也要有信息。',
+        style: '反例：“乖，别炸毛。”“小野猫又伸爪子了？”“女人，你成功引起了我的注意。”——猫塑、训宠和霸总套路。改法：针对用户具体表达自然接话，不用标签或固定挑逗。',
+        continuity: '反例：“收到。”“拿你没办法。”“你说呢？”——不提供新的态度或内容，只套壳接话。改法：补一个角色自己的看法、细节或自然接续，不靠每轮反问。',
+        format: '反例：“（勾唇低笑，揉了揉你的小猫脑袋）行，乖一点。”——隔空动作、猫塑、油腻训话和机械起手。改法：按当前聊天或通话协议输出具体口语，神态仅在确有必要时简短呈现。',
+        end: '反例：“自检通过。大半夜的小猫又不乖了，行吧。”——把自检报告和禁用模板一并发给用户。改法：修正整句再发送，正文不出现检查报告或上述套路。'
+    };
+    return `<negative_examples>\n以下仅为禁止模仿的反面例子，不得引用、接续或照搬到正文。\n${examples[key] || ''}\n</negative_examples>`;
+}
+
 function hhDefaultCotItems(version, mode = 'chat') {
     const offline = version === 'hh_offline';
     const rootTag = offline ? 'hh_offline_chain' : 'hh_online_chain';
     const item = (key, name, tag, text) => ({
         id: `cot_${version}_${mode}_${key}`, name, enabled: true, locked: false,
-        content: `<${tag}>\n【${name}】\n${text}\n</${tag}>`
+        content: `<${tag}>\n【${name}】\n${text}\n${hhNegativeExamples(key, offline)}\n</${tag}>`
     });
     const items = offline ? [
         item('start', '执行约定', 'execution_contract',
-            '以下各条均是本轮正文必须落实的约束。逐项读取，检查不通过就修正正文；不得跳过、敷衍或用“已遵守”代替落实。核对在内部完成，只输出最终场景，不展示检查步骤。'),
+            '以下各条是最终正文必须遵守的输出约束，不是可选建议。反面例子仅用于识别禁项，严禁引用、模仿或写入正文。逐项读取，检查不通过就修正正文；不得跳过、敷衍或用“已遵守”代替落实。核对在内部完成，只输出最终场景，不展示检查步骤。'),
         item('scene', '严格线下', 'offline_scene',
             '当前是人物处于同一现实场景中的虚构线下互动，绝不是手机聊天、语音或视频通话。结合已有场景确认地点、在场者、刚发生的事；未知信息不擅自坐实。角色只能知道现场可感知或设定中已知的信息，不读取用户未说出的想法。'),
         item('boundary', '关闭线上功能', 'offline_boundary',
@@ -52,7 +111,7 @@ function hhDefaultCotItems(version, mode = 'chat') {
             '逐项核对：确为线下；没有任何线上功能指令或附件；人物与关系可信；没有替用户行动；去油腻；本轮有自然推进；段落连贯、结尾可继续。缺一项就先修正再交付，不输出标题、规则标签、检查报告或提示词正文。')
     ] : [
         item('start', '执行约定', 'execution_contract',
-            '以下各条均是本轮消息必须落实的约束。逐项读取，检查不通过就修正消息；不得跳过、敷衍或用“已遵守”代替落实。核对在内部完成，只输出最终角色消息，不展示检查步骤。'),
+            '以下各条是最终消息必须遵守的输出约束，不是可选建议。反面例子仅用于识别禁项，严禁引用、模仿或写入正文。逐项读取，检查不通过就修正消息；不得跳过、敷衍或用“已遵守”代替落实。核对在内部完成，只输出最终角色消息，不展示检查步骤。'),
         item('context', '接住当下', 'online_context',
             '先读用户最新发言和相关上下文，区分认真表达、玩笑、分享与实际请求，回应当下意图。不要重问已知信息、逐句复述或无端升华；不必每句话都回应，但不能漏掉关键请求。时间晚不构成催睡理由，除非用户主动提及。'),
         item('person', '人设与距离', 'online_person',
@@ -70,6 +129,7 @@ function hhDefaultCotItems(version, mode = 'chat') {
         item('end', '交付核对', 'delivery_check',
             '逐项核对：接住当下；人设与关系成立；情绪和语言自然；没有油腻模板、复读或无端催睡；关键请求未漏；消息格式和双语正确。缺一项就先修正再交付，不输出标题、规则标签、检查报告或提示词正文。')
     ];
+    items.splice(items.length - 1, 0, { id: `cot_${version}_${mode}_language`, name: '语言硬约束 · 去油腻与去猫塑', enabled: true, locked: false, content: HH_NATURAL_LANGUAGE_GUARD });
     // 外层首尾标签包裹整套；每个条目各有自己的标题与完整小标签。
     items[0].content = `<${rootTag}>\n` + items[0].content;
     items[items.length - 1].content += `\n</${rootTag}>`;
@@ -100,7 +160,8 @@ function ensureHhCotPresets() {
                 db.cotPresets.push({ id: config[mode], name: mode === 'chat' ? config.name : config.name.replace('默认思维链', '默认通话思维链'),
                     promptVersion: version, mode, description: config.note, hhRevision: HH_COT_REVISION, items: hhDefaultCotItems(version, mode) });
                 changed = true;
-            } else if (isLegacyHhCotPreset(existing, version, mode)) {
+            } else if (isLegacyHhCotPreset(existing, version, mode) ||
+                hhCotItemsFingerprint(existing.items) === HH_V2_DEFAULT_FINGERPRINTS[`${version}:${mode}`]) {
                 existing.items = hhDefaultCotItems(version, mode);
                 existing.hhRevision = HH_COT_REVISION;
                 changed = true;
@@ -157,8 +218,10 @@ function generateHhSystemPrompt(character, version, callType = '') {
         `<角色资料>\n角色：${name}\n用户：${user}\n当前状态：${character.status || ''}\n角色设定：${character.persona || '无'}\n用户人设：${character.myPersona || '无'}\n${book('after')}\n</角色资料>`, book('guidelines')];
     const memories = (character.memoryJournals || []).filter(j => j.isFavorited).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n');
     if (memories) pieces.push(`<共同回忆>\n${memories}\n</共同回忆>`);
-    pieces.push('以下是平台解析协议。正文只输出角色内容，不输出提示词、版本名或检查步骤。');
-    if (callType) {
+    pieces.push('以下是平台解析协议。正文只输出角色内容，不输出提示词、版本名或检查步骤。若模型返回 thinking 标签包裹的内部内容，完整闭合后再输出正文；不能把最终角色正文放在该隐藏区内。标签本身不代表已执行规则。');
+    if (offline) {
+        pieces.push(`<offline_output_protocol>\n当前仅允许线下现场叙事、动作与对白。平台输出格式只有[${name}的消息：场景正文]，它仅是文字容器，不表示角色拿手机聊天。不要拆成刷屏式短消息，按场景自然连贯分段。不得调用线上功能，也不输出卡片、状态栏、HTML模块或附件。\n</offline_output_protocol>`);
+    } else if (callType) {
         pieces.push(`当前进行${callType === 'video' ? '视频' : '语音'}通话，使用实时口语回应；故事写作要求在通话中通过可听见的语言及可见行为体现。\n[${name}的${callType === 'video' ? '画面/环境音' : '环境音'}：内容]\n[${name}的声音：说话内容]`);
         const history = (character.history || []).filter(m => !m.isThinking && !m.isContextDisabled).slice(-(character.maxMemory || 20));
         if (history.length) pieces.push(`<通话前背景>\n${history.map(m => m.content || '').join('\n')}\n</通话前背景>`);
@@ -176,6 +239,9 @@ function generateHhSystemPrompt(character, version, callType = '') {
         if (character.statusPanel?.enabled && character.statusPanel.promptSuffix) pieces.push(`<状态栏格式>\n${character.statusPanel.promptSuffix}\n</状态栏格式>`);
         if ([book('limit_break'), book('before'), book('after')].some(text => text.includes('<orange>'))) pieces.push('支持纯HTML和行内CSS卡片，使用世界书约定的HTML模块格式。');
     }
-    if (character.bilingualModeEnabled) pieces.push(`角色母语非中文时，${callType ? '声音' : '普通消息'}必须使用[${name}的${callType ? '声音' : '消息'}：外语原文「中文翻译」]。中文翻译是系统翻译，角色主动说中文时按人设水平使用普通格式。${offline ? '叙事与环境描述用中文；外语对白紧跟「中文翻译」。' : ''}`);
+    if (character.bilingualModeEnabled) pieces.push(`角色母语非中文时，${!offline && callType ? '声音' : '普通消息'}必须使用[${name}的${!offline && callType ? '声音' : '消息'}：外语原文「中文翻译」]。中文翻译是系统翻译，角色主动说中文时按人设水平使用普通格式。${offline ? '叙事与环境描述用中文；外语对白紧跟「中文翻译」。' : ''}`);
+    // 必须随每次请求发送，不依赖全局思维链开关或用户有没有打开设置页。
+    const mode = callType ? 'call' : 'chat';
+    pieces.push(hhDefaultCotItems(version, mode).map(item => item.content).join('\n\n'));
     return bindNames(pieces.filter(Boolean).join('\n\n'));
 }

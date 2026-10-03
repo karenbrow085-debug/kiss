@@ -353,8 +353,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
 
             // 新版本的条目在 Gemini 原生请求里也随同当前系统提示词发送。
             if (chatType === 'private' && db.cotSettings?.enabled && isHhPromptVersion(resolveCotPromptVersion(chat))) {
-                const preset = resolveCotPresetForCharacter(chat, 'chat');
-                const instruction = (preset?.items || []).filter(item => item.enabled).map(item => item.content).join('\n\n');
+                const instruction = hhOptionalCotInstruction(chat, 'chat');
                 if (instruction) systemPrompt += '\n\n' + instruction;
             }
 
@@ -519,15 +518,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             const cotEnabled = db.cotSettings && db.cotSettings.enabled;
             
             if (cotEnabled) {
-                let cotInstruction = '';
-                const preset = resolveCotPresetForCharacter(chat, 'chat');
-                
-                if (preset && preset.items) {
-                    cotInstruction = preset.items
-                        .filter(item => item.enabled)
-                        .map(item => item.content)
-                        .join('\n\n');
-                }
+                const cotInstruction = hhOptionalCotInstruction(chat, 'chat');
 
                 if (cotInstruction) {
                     // 1. 插入后置指令
