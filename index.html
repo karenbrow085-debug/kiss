@@ -59,6 +59,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <link rel="stylesheet" href="css/modules/hearu-cards-v7.css?v=kiss-7">
+<link rel="stylesheet" href="css/modules/kiss-tools.css?v=20261003-1">
 </head>
 
 <body>
@@ -2726,9 +2727,10 @@
 
 <!-- [1. 基础层] -->
 <script src="js/utils.js"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
-<script src="js/db.js"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
+<script src="js/db.js?v=kiss-tools-1"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
 <!-- [2. 核心交互层] -->
+<script src="js/modules/kiss-tools-core.js?v=20261003-1"></script>
 <script src="js/ui.js"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
 <script src="js/modules/chat_list.js"></script>
@@ -2738,7 +2740,7 @@
     <script src="js/modules/chat_ai_airdrop.js"></script>
     <script src="js/modules/chat_ai_prompt.js"></script>
     <script src="js/modules/chat_ai_call.js"></script>
-    <script src="js/modules/chat_ai.js"></script>
+    <script src="js/modules/chat_ai.js?v=kiss-tools-1"></script>
 <script src="js/modules/chat_features.js"></script>
 <script src="js/modules/chat_ops.js"></script>
 <script src="js/chat.js"></script>     <!-- 聊天核心入口 -->
@@ -2761,7 +2763,7 @@
 <script src="js/modules/peek.js"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js"></script> <!-- 存储空间HTML注入 -->
-<script src="js/modules/storage.js"></script>   <!-- 存储空间分析图表 -->
+<script src="js/modules/storage.js?v=kiss-tools-1"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
 <script src="js/modules/widget_market.js"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js"></script>  <!-- 教程、更新日志、GitHub备份 -->
@@ -2791,6 +2793,7 @@
 <!-- [4. 程序入口] -->
 <script src="js/modules/home_presets.js?v=20260930"></script>
 <script src="js/main.js"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
-<script type="module" src="js/hearu/app.js?v=kiss-22"></script>
+<script src="js/modules/kiss-tools.js?v=20261003-1"></script>
+<script type="module" src="js/hearu/app.js?v=kiss-23"></script>
 </body>
 </html>
