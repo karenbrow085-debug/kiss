@@ -568,7 +568,7 @@ function chatHtml() {
         tail = !next || next.role !== m.role;
       return (
         separator +
-        `<article data-message-index="${i}" class="hu-message ${m.role === "user" ? "mine" : "theirs"} ${tail ? "tail" : ""}"><p>${esc(parts.text)}</p>${parts.translation ? `<div class="hu-message-translation" lang="zh-CN">${esc(parts.translation)}</div>` : ""}</article>` + deliveryHtml(m,i)
+        `<article data-message-index="${i}" class="hu-message ${m.role === "user" ? "mine" : "theirs"} ${tail ? "tail" : ""}"><p>${parts.translation ? `<span class="hu-message-original">${esc(parts.text)}</span><span class="hu-message-translation" lang="zh-CN">${esc(parts.translation)}</span>` : esc(parts.text)}</p></article>` + deliveryHtml(m,i)
       );
     })
     .join("");
