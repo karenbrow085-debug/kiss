@@ -17,6 +17,7 @@ const aiGenerationControl = (() => {
         if (typeof typingIndicator !== 'undefined' && typingIndicator) typingIndicator.style.display = 'none';
     }
     function begin(chatId, chatType, isBackground) {
+        if (window.kissCleanupLocked) throw new DOMException('正在清理数据', 'AbortError');
         const key = keyFor(chatId, chatType);
         active.get(key)?.cancel();
         const controller = new AbortController();
@@ -82,7 +83,7 @@ const aiGenerationControl = (() => {
         task.cancel();
         return true;
     }
-    return {begin,finish,stop};
+    return {begin,finish,stop,isActive:()=>active.size>0};
 })();
 
 function scheduleAiGeneration(generation,callback,delay) {
@@ -968,6 +969,12 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                     targetSticker = db.myStickers.find(s => s.name === stickerName);
                 }
                 
+                // Optional conservative matching only after the original exact lookup.
+                if (!targetSticker && window.KissStickerMatch?.enabled('404')) {
+                    const pool = groups.length ? db.myStickers.filter(s => groups.includes(s.group)) : [];
+                    targetSticker = window.KissStickerMatch.resolve(stickerName, pool, '404');
+                    if (targetSticker) item.content = item.content.replace(stickerMatch[0], stickerMatch[0].replace(stickerName, targetSticker.name));
+                }
                 // 3. 如果完全找不到，则剔除该消息
                 if (!targetSticker) {
                     console.log(`[Auto-Filter] 剔除不存在的表情包: ${stickerName}`);

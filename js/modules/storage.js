@@ -103,7 +103,7 @@ async function calculateStorageSize() {
         'globalReceiveSound', 'multiMsgSoundEnabled', 'soundPresets', 'galleryPresets', 
         'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint', 'workshopSettings', 
         'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder', 'homeLayoutPages', 
-        'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked',
+        'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stickerMatchSettings',
         'homePresets', 'activeHomePresetId', 'homePresetUndo'
     ];
     settingsKeys.forEach(key => {
@@ -392,7 +392,7 @@ async function handleExport() {
                 'globalReceiveSound', 'multiMsgSoundEnabled', 'soundPresets', 'galleryPresets', 
                 'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint', 'workshopSettings', 
                 'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder', 'homeLayoutPages', 
-                'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked',
+                'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stickerMatchSettings',
                     'homePresets', 'activeHomePresetId', 'homePresetUndo'
             ];
             settingsKeys.forEach(key => {
@@ -570,7 +570,7 @@ async function handleImport(event) {
                     'globalReceiveSound', 'multiMsgSoundEnabled', 'soundPresets', 'galleryPresets', 
                     'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint', 'workshopSettings', 
                     'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder', 'homeLayoutPages', 
-                    'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked',
+                    'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stickerMatchSettings',
                     'homePresets', 'activeHomePresetId', 'homePresetUndo'
                 ];
                 settingsKeys.forEach(key => {
