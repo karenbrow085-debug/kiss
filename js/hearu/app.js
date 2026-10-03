@@ -30,6 +30,8 @@ const esc = (v) =>
 const componentStyle = document.getElementById("hearu-component-style") || document.createElement("style");
 componentStyle.id = "hearu-component-style";
 componentStyle.textContent = "\n#hearu-app .hu-message.hu-card-message{width:75%;max-width:280px;margin:7px 0 10px}\n#hearu-app .hu-music-card.hu-c-card{position:relative;display:flex;align-items:center;gap:11px;width:100%;min-width:0;min-height:95px;padding:25px 12px 22px;text-align:left;border:0;border-radius:13px;background:#fafafa;box-shadow:none;color:#111;font:inherit}\n#hearu-app .hu-c-card>.hu-card-art,#hearu-app .hu-c-card .hu-card-play>.hu-card-art{display:block;width:52px;height:52px;flex:0 0 52px;border-radius:7px;overflow:hidden;background:#eee}\n#hearu-app .hu-c-card .hu-card-art img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}\n#hearu-app .hu-c-copy{display:block;flex:1;min-width:0}\n#hearu-app .hu-c-copy strong{display:block;font-size:13px;font-weight:500;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#hearu-app .hu-c-copy .hu-c-artist{display:block;font-size:9px;line-height:1.6;margin-top:3px;color:#929292;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#hearu-app .hu-c-copy .hu-c-note{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:10px;line-height:1.6;color:#777;margin-top:5px;overflow-wrap:anywhere}\n#hearu-app .hu-c-note i{font-style:normal;font-size:15px;line-height:10px;margin-right:5px;color:#aaa}\n#hearu-app .hu-c-sender{position:absolute;top:9px;right:12px;max-width:60%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:7px;line-height:1.5;color:#aaa;letter-spacing:.035em}\n#hearu-app .hu-c-time{position:absolute;bottom:8px;right:12px;font-size:7px;line-height:1.5;font-variant-numeric:tabular-nums;color:#aaa}\n#hearu-app .hu-c-card.with-lyrics{display:block;padding:25px 13px 12px}\n#hearu-app .hu-c-card.with-lyrics .hu-card-play{display:flex;align-items:center;gap:11px;width:100%;padding:0;background:transparent;color:inherit;border:0;text-align:left}\n#hearu-app .hu-c-card.with-lyrics .hu-card-play>.hu-card-art{width:45px;height:45px;flex-basis:45px}\n#hearu-app .hu-c-card .hu-card-lines{position:relative;margin:14px 0 0;padding:14px 0 0 22px;border-top:1px solid #e6e6e6;background:transparent}\n#hearu-app .hu-c-card .hu-card-quote{position:absolute;top:14px;left:0;font-size:26px;line-height:1;color:#aaa}\n#hearu-app .hu-c-card .hu-card-verse{display:block;text-align:left;width:100%;padding:0;margin:0 0 10px;background:transparent;border:0;color:#444;font:inherit}\n#hearu-app .hu-c-card .hu-card-verse>span{display:block;font-size:12px;line-height:1.7;font-weight:400;white-space:pre-wrap;overflow-wrap:anywhere}\n#hearu-app .hu-c-card .hu-card-verse small{display:block;font-size:9px;line-height:1.7;font-weight:400;color:#999;margin:3px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}\n#hearu-app .hu-c-words-footer{display:flex;justify-content:space-between;gap:10px;margin-top:15px;font-size:7px;line-height:1.5;color:#aaa}\n#hearu-app .hu-c-words-footer time{font-variant-numeric:tabular-nums}\n#hearu-app .hu-c-lyric-note{font-size:10px;line-height:1.6;color:#888;margin:10px 0 0;overflow-wrap:anywhere}\n#hearu-app .hu-live-listening{margin:10px 14px 0;padding:12px;border:1px solid #e5e5e5;border-radius:12px;background:#fff;min-height:0}\n#hearu-app .hu-live-main{gap:13px;align-items:center}\n#hearu-app .hu-live-track{gap:12px;align-items:center}\n#hearu-app .hu-live-track img{width:48px;height:48px;border-radius:6px;flex:0 0 48px}\n#hearu-app .hu-live-track strong{font-size:12px;font-weight:500;line-height:1.4}\n#hearu-app .hu-live-track em{display:block;margin:4px 0 0;font-size:9px;line-height:1.4;color:#999;font-weight:400;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#hearu-app .hu-live-track small{display:block;font-size:10px;line-height:1.5;margin-top:5px;color:#888}\n#hearu-app .hu-live-track .hu-live-progress{display:block;position:static;height:2px;margin-top:6px;background:#e7e7e7;border-radius:2px;overflow:hidden}\n#hearu-app .hu-live-progress i{display:block;height:100%;background:#333;font-size:0}\n#hearu-app .hu-live-actions{align-self:center;transform:translateY(4px);gap:4px;min-width:24px}\n#hearu-app .hu-live-control{width:27px;height:27px;background:transparent;color:#111}\n#hearu-app .hu-live-control svg{width:18px;height:18px}\n#hearu-app .hu-live-actions time{font-size:8px;color:#aaa}\n#hearu-app .hu-c-card .hu-card-play .hu-c-copy{margin:0;color:#111}\n#hearu-app .hu-c-card .hu-c-copy strong{color:#111}\n#hearu-app .hu-c-card .hu-card-play>.hu-card-art{margin:0}\n#hearu-app .hu-c-card .hu-card-art img{filter:none}\n";
+componentStyle.textContent += "\n#hearu-app .hu-message.hu-card-message{width:86%;max-width:330px;margin:7px 0 10px}\n#hearu-app .hu-message.hu-card-message.mine{align-self:flex-end;margin-left:auto;margin-right:0}\n#hearu-app .hu-message.hu-card-message.theirs{align-self:flex-start;margin-right:auto;margin-left:0}\n#hearu-app .hu-music-card.hu-c-card:not(.with-lyrics){min-height:86px;padding:19px 13px 18px;gap:12px}\n#hearu-app .hu-c-card .hu-c-copy .hu-c-dedication{display:block;color:#a0a0a0;font-size:7px;letter-spacing:.11em;margin-top:6px;line-height:1.5}\n#hearu-app .hu-c-card .hu-c-sender{top:6px;right:13px;font-size:6px}\n#hearu-app .hu-c-card .hu-c-time{bottom:6px;right:13px}\n#hearu-app .hu-chat-stage .hu-live-floating{position:absolute;inset:0 0 auto;z-index:5;pointer-events:none;background:transparent;padding:0 0 9px}\n#hearu-app .hu-live-floating .hu-live-listening{pointer-events:auto;margin:10px 14px 0;width:auto;box-shadow:0 3px 12px #00000004;padding:13px 14px}\n#hearu-app .hu-live-floating .hu-live-hide{position:absolute;right:19px;top:13px;width:17px;height:17px;border:0;background:transparent;color:#aaa;font-size:13px;line-height:17px;padding:0;z-index:2;pointer-events:auto}\n#hearu-app .hu-live-floating .hu-live-actions{margin-top:7px}\n#hearu-app .hu-live-floating .hu-live-restore{display:block;margin:9px auto 0;padding:5px 13px;border:1px solid #e5e5e5;border-radius:20px;background:#fff;color:#777;font-size:8px;letter-spacing:.08em;pointer-events:auto}\n#hearu-app .hu-chat-stage .hu-messages{padding-top:119px}\n#hearu-app .hu-chat-stage:has(.hu-live-restore) .hu-messages{padding-top:43px}\n#hearu-app #hu-chat-form .hu-sticker-toggle{flex:0 0 24px;width:24px;height:28px;padding:0;background:transparent;color:#999;border:0;border-radius:0;align-self:center}\n#hearu-app #hu-chat-form .hu-sticker-toggle svg{width:18px;height:18px}\n#hearu-app .hu-message.hu-sticker-message{background:transparent;padding:0;margin-top:7px;margin-bottom:9px;width:96px;max-width:96px}\n#hearu-app .hu-sticker-message.mine{align-self:flex-end;margin-left:auto}\n#hearu-app .hu-sticker-message.theirs{align-self:flex-start;margin-right:auto}\n#hearu-app .hu-sticker-message img{display:block;width:96px;height:96px;object-fit:contain}\n#hearu-app .hu-sticker-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-height:44dvh;overflow:auto;padding:9px 0}\n#hearu-app .hu-sticker-grid button{border:0;background:#f7f7f7;border-radius:10px;padding:7px;min-width:0;color:#888}\n#hearu-app .hu-sticker-grid img{display:block;width:100%;height:52px;object-fit:contain}\n#hearu-app .hu-sticker-grid small{display:block;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}\n";
+componentStyle.textContent += "\n#hearu-app .hu-chat-stage #hu-chat-form{display:flex;align-items:flex-end;gap:9px;left:14px;right:14px;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;pointer-events:none}\n#hearu-app #hu-chat-form .hu-sticker-toggle{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#fff;color:#111;pointer-events:auto;align-self:flex-end;border:1px solid #ececec}\n#hearu-app #hu-chat-form .hu-sticker-toggle svg{width:23px;height:23px;stroke-width:1.8}\n#hearu-app .hu-imessage-field{display:flex;flex:1;min-width:0;align-items:flex-end;gap:5px;padding:5px 8px 5px 15px;border:1px solid #e7e7e7;border-radius:25px;background:#fff;pointer-events:auto;min-height:44px;box-sizing:border-box}\n#hearu-app .hu-imessage-field:focus-within{border-color:#cfcfcf}\n#hearu-app #hu-chat-form .hu-imessage-field textarea{min-height:32px;padding:3px 0;line-height:1.6;color:#111}\n#hearu-app #hu-chat-form .hu-imessage-field textarea::placeholder{font-size:12px;letter-spacing:.025em;color:#aaa}\n#hearu-app #hu-chat-form .hu-imessage-field button{width:28px;height:32px;flex:0 0 28px;border:0;background:transparent;color:#999;border-radius:0;padding:3px;box-shadow:none}\n#hearu-app #hu-chat-form .hu-imessage-field button svg{width:20px;height:24px;stroke-width:1.65}\n#hearu-app .hu-delivery-status{align-self:flex-end;margin:0 2px 9px auto;padding:0;font-size:9px;line-height:1.5;color:#999;text-align:right;font-variant-numeric:tabular-nums;background:transparent;white-space:nowrap}\n";
 document.head.append(componentStyle);
 const root = document.createElement("section");
 root.id = "hearu-app";
@@ -241,7 +243,7 @@ function renderRoom() {
   root.innerHTML =
     header(c ? name(c) : "HearU", tab === "chat" ? "CLOSER WITH EVERY SONG" : "OUR FREQUENCY") +
     (tab === "queue" ? nav() : "") +
-    `<main class="hu-body">${tab === "listen" ? listenHtml() : tab === "chat" ? liveListeningHtml()+chatHtml() : queueHtml()}</main>` +
+    `<main class="hu-body">${tab === "listen" ? listenHtml() : tab === "chat" ? chatHtml() : queueHtml()}</main>` +
     status() +
     `<footer class="hu-room-footer"><span class="hu-dot"></span><span>与你共享这一刻</span><button data-hu="queue">${icon('<path d="M4 6h16M4 12h16M4 18h10"/>')} 列表</button><button data-hu="search">${icons.search} 找歌</button></footer>`;
   if (tab === "queue") {
@@ -400,11 +402,30 @@ function messageParts(m) {
     ? { text: match[1], translation: match[2] }
     : { text: m.content, translation: "" };
 }
+function nativeStickers(c = null) {
+  const groups = c ? String(c.stickerGroups || '').split(/[,，]/).map(x=>x.trim()).filter(Boolean) : null;
+  return (typeof db !== 'undefined' ? db.myStickers || [] : []).filter(x=>x.name && safeImageUrl(x.data) && (!groups || groups.includes(x.group)));
+}
+function stickerPicker(){
+  const stickers=nativeStickers();
+  modal(`<div class="hu-modal-kicker">EXPRESS YOURSELF</div><h2>表情包</h2><p>来自 404 已上传的表情包</p><div class="hu-sticker-grid">${stickers.map((s,i)=>`<button data-sticker-index="${i}" aria-label="发送${esc(s.name)}"><img src="${esc(safeImageUrl(s.data))}" alt="${esc(s.name)}" loading="lazy"><small>${esc(s.name)}</small></button>`).join('') || '<p class="hu-empty">请先在 404 上传表情包。</p>'}</div>`);
+}
+function assistantMessages(message,c,turnId){
+  const content=typeof message==='string'?message:message?.text || '';
+  const pool=nativeStickers(c),result=[],base={role:'assistant',at:Date.now(),turnId,listening:listeningSnapshot()};
+  const pattern=/\[(?:[^\]\n]*?的|[^\]\n]*?发送的)?表情包[：:]([^\]\n]+)\]/g;
+  let cursor=0,match;
+  const addText=text=>{if(text.trim())result.push({...base,content:text.trim(),translation:message?.translation || ''});};
+  while((match=pattern.exec(content))){addText(content.slice(cursor,match.index));const sticker=pool.find(x=>x.name===match[1].trim());if(sticker)result.push({...base,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data}});cursor=pattern.lastIndex;}
+  addText(content.slice(cursor));
+  if(typeof message?.sticker==='string'){const sticker=pool.find(x=>x.name===message.sticker);if(sticker)result.push({...base,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data}});}
+  return result;
+}
 function musicCardHtml(card, by = "user") {
   const song = card.song,
     ta = by === "assistant";
   const hasLyrics=Boolean(card.lines?.length),sender=ta?name(character(roleId)):'YOU';
-  const track=`<span class="hu-card-art"><img src="${esc(song.coverUrl || 'assets/hearu.svg')}" alt=""></span><span class="hu-c-copy"><strong>${esc(song.title)}</strong><span class="hu-c-artist">${esc(song.artist)}</span>${!hasLyrics && song.note?`<span class="hu-c-note"><i>“</i>${esc(song.note)}</span>`:''}</span>`;
+  const track=`<span class="hu-card-art"><img src="${esc(song.coverUrl || 'assets/hearu.svg')}" alt=""></span><span class="hu-c-copy"><strong>${esc(song.title)}</strong><span class="hu-c-artist">${esc(song.artist)}</span>${!hasLyrics && !ta?'<span class="hu-c-dedication">A LITTLE OF MY WORLD</span>':''}${!hasLyrics && song.note?`<span class="hu-c-note"><i>“</i>${esc(song.note)}</span>`:''}</span>`;
   const meta=`<span class="hu-c-sender">${esc(sender)}</span><time class="hu-c-time">${format(hasLyrics?card.lines[0].timeMs:song.durationMs)}</time>`;
   if(!hasLyrics)return `<button class="hu-music-card hu-c-card" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}">${track}${meta}</button>`;
   return `<div class="hu-music-card hu-c-card with-lyrics"><button class="hu-card-play" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}">${track}</button><span class="hu-c-sender">${esc(sender)}</span>${song.note?`<div class="hu-c-lyric-note">${esc(song.note)}</div>`:''}<div class="hu-card-lines"><span class="hu-card-quote">“</span>${card.lines.map(l=>`<button class="hu-card-verse" data-hu="card-line" data-card-line="${esc(song.songId)}:${Number(l.timeMs)||0}" aria-label="播放这句歌词"><span>${esc(l.text)}</span>${l.trans?`<small>${esc(l.trans)}</small>`:''}</button>`).join('')}</div><div class="hu-c-words-footer"><span>HEARU / WORDS</span><time>${format(card.lines[0].timeMs)}</time></div></div>`;
@@ -420,6 +441,7 @@ async function shareSong(
   if (!song) throw Error("先选一首歌");
   target.messages.push({
     role: by,
+    deliveryTracked: by === "user",
     content: `${lines.length ? "分享歌词" : "分享歌曲"}：${song.title} · ${song.artist}${note ? "；" + note : ""}`,
     card: { song: structuredClone(song), lines: structuredClone(lines) },
     at: Date.now(),
@@ -441,6 +463,14 @@ function messageForModel(m) {
       String(m.content || "") + (m.card ? "\n[音乐卡片]" + JSON.stringify(m.card) : "") + (m.listening ? "\n[本轮历史播放快照，非当前状态]" + JSON.stringify(m.listening) : ""),
   };
 }
+function deliveryHtml(m,i){
+  if(m.role!=='user')return '';
+  const following=room.messages.slice(i+1),next=following.find(x=>x.role!=='system');
+  if(next?.role==='user')return '';
+  const read=!!m.readAt || (!m.deliveryTracked && following.some(x=>x.role==='assistant'));
+  const time=new Date(m.at || Date.now()).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+  return `<div class="hu-delivery-status" aria-label="消息${read?'已读':'已送达'}">${esc(time)} ${read?'已读':'已送达'}</div>`;
+}
 function chatHtml() {
   let previousDay = "";
   const rows = room.messages
@@ -455,21 +485,22 @@ function chatHtml() {
       if (m.role === "system" && !m.songSwitch && /^(点播|已准备好)：/.test(m.content || ""))return "";
       if (m.role === "system")
         return separator + `<div class="hu-chat-event ${m.songSwitch?'hu-song-switch':''}">${m.songSwitch?`<small>切换歌曲</small><strong>${esc(m.songSwitch.title)}</strong><span>${esc(m.songSwitch.artist)}</span>`:esc(m.content)}</div>`;
+      if (m.sticker && safeImageUrl(m.sticker.data)) return separator + `<article class="hu-message hu-sticker-message ${m.role === "user" ? "mine" : "theirs"}"><img src="${esc(safeImageUrl(m.sticker.data))}" alt="${esc(m.sticker.name)}" loading="lazy"></article>` + deliveryHtml(m,i);
       if (m.card)
         return (
           separator +
-          `<article class="hu-message hu-card-message ${m.role === "user" ? "mine" : "theirs"}">${musicCardHtml(m.card, m.role)}</article>`
+          `<article class="hu-message hu-card-message ${m.role === "user" ? "mine" : "theirs"}">${musicCardHtml(m.card, m.role)}</article>` + deliveryHtml(m,i)
         );
       const parts = messageParts(m),
         next = room.messages[i + 1],
         tail = !next || next.role !== m.role;
       return (
         separator +
-        `<article class="hu-message ${m.role === "user" ? "mine" : "theirs"} ${tail ? "tail" : ""}"><p>${esc(parts.text)}</p>${parts.translation ? `<div class="hu-message-translation" lang="zh-CN">${esc(parts.translation)}</div>` : ""}</article>`
+        `<article class="hu-message ${m.role === "user" ? "mine" : "theirs"} ${tail ? "tail" : ""}"><p>${esc(parts.text)}</p>${parts.translation ? `<div class="hu-message-translation" lang="zh-CN">${esc(parts.translation)}</div>` : ""}</article>` + deliveryHtml(m,i)
       );
     })
     .join("");
-  return `<div class="hu-chat-stage"><div class="hu-messages">${rows || '<p class="hu-empty">这一首，有什么想说给 TA 听？</p>'}</div><form id="hu-chat-form"><textarea id="hu-message" rows="1" placeholder="发消息…" aria-label="消息"></textarea><button type="button" data-hu="generate" ${busy.has(roleId)?'disabled':''} aria-label="发送并让 TA 回复">${icons.send}</button></form>${busy.has(roleId)?'<p class="hu-thinking">正在输入…</p>':''}</div>`;
+  return `<div class="hu-chat-stage">${liveListeningHtml()}<div class="hu-messages">${rows || '<p class="hu-empty">这一首，有什么想说给 TA 听？</p>'}</div><form id="hu-chat-form"><button class="hu-sticker-toggle" type="button" data-hu="stickers" aria-label="展开404表情包">${icon('<path d="M12 4v16M4 12h16"/>')}</button><div class="hu-imessage-field"><textarea id="hu-message" rows="1" placeholder="a little closer…" aria-label="消息"></textarea><button type="button" data-hu="generate" ${busy.has(roleId)?'disabled':''} aria-label="调用角色 API 并回复">${icon('<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/>')}</button></div></form>${busy.has(roleId)?'<p class="hu-thinking">正在输入…</p>':''}</div>`;
 }
 function lyricNoteHtml(song){
   if(!song?.note)return '';
@@ -853,7 +884,7 @@ async function modelText(c, system, history, signal) {
 async function saveMessage(text) {
   const value = String(text || "").trim();
   if (!value) return;
-  room.messages.push({ role: "user", content: value, at: Date.now(), listening: listeningSnapshot() });
+  room.messages.push({ role: "user", content: value, deliveryTracked:true, at: Date.now(), listening: listeningSnapshot() });
   await persist();
   renderRoom();
 }
@@ -1098,6 +1129,7 @@ async function generateReply(reroll = false) {
   }
   if (!target.messages.some((m) => m.role === "user"))
     throw Error("先发送消息或音乐卡片");
+  const pendingUsers = target.messages.filter(m=>m.role === "user");
   const task = generationTask(id);
   try {
     await storeRoom(target);
@@ -1107,7 +1139,7 @@ async function generateReply(reroll = false) {
     let output = null;
     for (let round = 0; round < 5; round++) {
       task.check();
-      const system = `你是${c.realName || name(c)}。人设：${c.persona || ""}。用户是${c.myName || "我"}。在 HearU 一起听歌，自然短句聊天。可参考只读的 404 过往记忆与 HearU 独立历史，区分两个场景。当前歌曲与前后歌词：${JSON.stringify(nowPlaying(target))}。你能用一个音乐工具的动作：now_playing；seek(lineIndex)跳到当前歌曲的真实歌词行；lyrics(songId)获得整首带翻译/行号的歌词；search(query)；queue；share(songId或query,lineIndices可选,note)分享歌卡；play_next；queue_add；play_now。后三者接受songId或query和note。play_now正在听则切歌，未播放则准备好供用户点击。你可按自身品味和当前氛围主动选歌/切歌，不必等用户提出点歌请求；每次选歌留下短句 note 和 favoriteLineIndex（你偏爱的一句歌词的真实行号，先用 lyrics 查完整歌词，不得编造歌词），不要每轮机械切歌。删歌、排序、模式只归用户。需要信息时只输出JSON {"toolCalls":[{"type":"search","query":"歌名 歌手"}]}，工具结果会在下一轮给你。拿到资料后输出JSON {"messages":[{"text":"角色原话","translation":"简体中文，普通话中文留空"}],"userTranslation":"本轮用户外语或粤语的简体中文翻译，普通话中文留空","actions":[{"type":"share","songId":"真实id","note":"给用户的话","favoriteLineIndex":0}]}。messages可多条；actions可为空。外语/粤语角色用相应语言并附翻译；不得伪造歌词或歌卡。尽量通过search核对歌曲。${observations.length ? "工具实际结果：" + JSON.stringify(observations) : ""}`;
+      const system = `你是${c.realName || name(c)}。人设：${c.persona || ""}。用户是${c.myName || "我"}。在 HearU 一起听歌，自然短句聊天。可参考只读的 404 过往记忆与 HearU 独立历史，区分两个场景。当前歌曲与前后歌词：${JSON.stringify(nowPlaying(target))}。你能用一个音乐工具的动作：now_playing；seek(lineIndex)跳到当前歌曲的真实歌词行；lyrics(songId)获得整首带翻译/行号的歌词；search(query)；queue；share(songId或query,lineIndices可选,note)分享歌卡；play_next；queue_add；play_now。后三者接受songId或query和note。play_now正在听则切歌，未播放则准备好供用户点击。你可按自身品味和当前氛围主动选歌/切歌，不必等用户提出点歌请求；每次选歌留下短句 note 和 favoriteLineIndex（你偏爱的一句歌词的真实行号，先用 lyrics 查完整歌词，不得编造歌词），不要每轮机械切歌。删歌、排序、模式只归用户。需要信息时只输出JSON {"toolCalls":[{"type":"search","query":"歌名 歌手"}]}，工具结果会在下一轮给你。拿到资料后输出JSON {"messages":[{"text":"角色原话","translation":"简体中文，普通话中文留空"}],"userTranslation":"本轮用户外语或粤语的简体中文翻译，普通话中文留空","actions":[{"type":"share","songId":"真实id","note":"给用户的话","favoriteLineIndex":0}]}。messages可多条；actions可为空。你可以偶尔发送当前角色在404绑定分组中的表情包，允许名称为${JSON.stringify(nativeStickers(c).map(s=>s.name))}，使用messages中的对象{"sticker":"精确名称"}，可另发text对象。禁止使用未绑定、不存在的表情包或生成图片URL。外语/粤语角色用相应语言并附翻译；不得伪造歌词或歌卡。尽量通过search核对歌曲。${observations.length ? "工具实际结果：" + JSON.stringify(observations) : ""}`;
       output = parseModelOutput(
         await modelText(
           c,
@@ -1143,16 +1175,8 @@ async function generateReply(reroll = false) {
       task.check();
       if(delivered++) await task.delay(450);
       task.check();
-      const content = typeof message === "string" ? message : message?.text;
-      if (typeof content === "string" && content.trim())
-        target.messages.push({
-          role: "assistant",
-          content,
-          translation: message?.translation || "",
-          listening: listeningSnapshot(),
-          at: Date.now(),
-          turnId: task.turnId,
-        });
+      const received = assistantMessages(message,c,task.turnId);
+      if(received.length){for(const user of pendingUsers)user.readAt=Date.now();target.messages.push(...received);}
       target.lastTurnId=task.turnId;
       await storeRoom(target);
       task.check();
@@ -1197,6 +1221,7 @@ async function generateReply(reroll = false) {
       }
     }
     task.check();
+    if(target.messages.some(m=>m.role === "assistant" && m.turnId === task.turnId)){for(const user of pendingUsers)user.readAt ||= Date.now();}
     await storeRoom(target);
   } catch (e) {
     if (e.name !== "AbortError" && id === roleId) lastError = e.message;
@@ -1243,6 +1268,9 @@ root.addEventListener("click", (e) => {
   const b = e.target.closest("button,[data-hu]");
   if (!b) return;
   run(async () => {
+    if(b.dataset.hu==='stickers')return stickerPicker();
+    if(b.dataset.hu==='hide-live' || b.dataset.hu==='show-live'){room.liveHidden=b.dataset.hu==='hide-live';await storeRoom(room);const stage=root.querySelector('.hu-chat-stage');if(stage){stage.querySelector('.hu-live-floating')?.remove();stage.insertAdjacentHTML('afterbegin',liveListeningHtml());const live=stage.querySelector('.hu-live-listening');if(live)updateLiveListening(live);}return;}
+    if(b.dataset.stickerIndex!==undefined){const sticker=nativeStickers()[Number(b.dataset.stickerIndex)];if(!sticker)return;const draft=root.querySelector('#hu-message')?.value || '';room.messages.push({role:'user',deliveryTracked:true,content:'[表情包：'+sticker.name+']',sticker:{name:sticker.name,data:sticker.data},at:Date.now()});await storeRoom(room);closeModal();renderRoom();const field=root.querySelector('#hu-message');if(field)field.value=draft;return;}
     if (b.dataset.role) { await openRole(b.dataset.role); tab="chat";room.tab=tab;return renderRoom(); }
     if (await handleNewClick(b)) return; 
     if (b.dataset.shelf) {
@@ -1713,7 +1741,7 @@ function decorate(){if(root.hidden)return;if(view!=='room')delete root.dataset.h
 new MutationObserver(decorate).observe(root,{childList:true});
 function nextLocalSong(){if(!room || !room.queue.length)return null;if(room.repeat)return room.song;const i=room.queue.findIndex(s=>s.itemId ? s.itemId===room.song?.itemId : String(s.songId)===String(room.song?.songId));if(room.shuffle){const list=room.queue.filter(s=>String(s.songId)!==String(room.song?.songId));if(!list.length)return room.queue[0];room.shuffleNext ||= list[Math.floor(Math.random()*list.length)].songId;return list.find(s=>s.songId===room.shuffleNext)||list[0];}return room.queue[(i+1)%room.queue.length];}
 async function ensureRoom(){if(!room){const last=localStorage.getItem('hearu.lastRole.v2'),id=last && character(last) && listedIds.has(last)?last:'__solo__';room=await readRoom(id);roleId=id;const active=player.getState();if(active.song && !active.closed){room.song={...active.song};room.lyrics=active.lyrics;room.position=player.positionMs();}else if(room.song)player.warm(room.song,room.position);}return room;}
-function liveListeningHtml(){return '<section class="hu-live-listening" aria-label="共听播放条"></section>';}
+function liveListeningHtml(){return `<div class="hu-live-floating">${room.liveHidden?'<button class="hu-live-restore" data-hu="show-live">NOW LISTENING</button>':'<section class="hu-live-listening" aria-label="共听播放条"></section><button class="hu-live-hide" data-hu="hide-live" aria-label="隐藏播放条">×</button>'}</div>`;}
 function updateLiveListening(el){
   const s=player.getState(),song=s.song || room?.song,lines=s.lyrics?.length?s.lyrics:lyricsFor(),position=player.positionMs(),index=lines.findLastIndex(l=>l.timeMs<=position);
   const signature=JSON.stringify([song?.songId,s.playing,song?.pickedBy,index,Math.floor(position/1000)]);if(el.dataset.signature===signature)return;el.dataset.signature=signature;
