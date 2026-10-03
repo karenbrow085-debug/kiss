@@ -40,6 +40,7 @@ let currentCotMode = 'chat'; // 'chat' or 'call'
 
 // 初始化 CoT 设置
 function initCotSettings() {
+    if (ensureHhCotPresets()) saveData();
     // 绑定入口按钮事件 (在更多菜单中)
     const cotEntryBtn = document.querySelector('.menu-item[data-action="cot-settings"]');
     if (cotEntryBtn) {
@@ -73,8 +74,12 @@ function initCotSettings() {
         promptVersionSelect.addEventListener('change', async (e) => {
             if (!db.cotSettings) db.cotSettings = { enabled: false, activePresetId: 'default_uwu', promptVersion: 'uwu' };
             
+            ensureHhCotPresets();
             const oldVersion = db.cotSettings.promptVersion || 'uwu';
             const newVersion = e.target.value;
+            if (!['uwu', 'tt', 'hh', 'hh_offline'].includes(newVersion)) return;
+            rememberCotVersionPreset('chat');
+            rememberCotVersionPreset('call');
             
             // 保存当前版本使用的预设
             if (oldVersion === 'uwu') {
@@ -87,7 +92,11 @@ function initCotSettings() {
 
             db.cotSettings.promptVersion = newVersion;
             
-            if (newVersion === 'tt') {
+            if (isHhPromptVersion(newVersion)) {
+                db.cotSettings.activePresetId = rememberedCotPresetId(newVersion, 'chat');
+                db.cotSettings.activeCallPresetId = rememberedCotPresetId(newVersion, 'call');
+                showToast('提示词版本已切换');
+            } else if (newVersion === 'tt') {
                 let showMsg = false;
                 if (!db.cotSettings.hasSwitchedToTT) {
                     db.cotSettings.hasSwitchedToTT = true;
@@ -95,7 +104,7 @@ function initCotSettings() {
                     db.cotSettings.lastPresetTT = 'default_tt';
                     showMsg = true;
                 } else {
-                    db.cotSettings.activePresetId = db.cotSettings.lastPresetTT || 'default_tt';
+                    db.cotSettings.activePresetId = rememberedCotPresetId('tt', 'chat');
                 }
 
                 if (!db.cotSettings.hasSwitchedToTTCall) {
@@ -105,7 +114,7 @@ function initCotSettings() {
                     db.cotSettings.hasShownTTCallToast = true;
                     showMsg = true;
                 } else {
-                    db.cotSettings.activeCallPresetId = db.cotSettings.lastCallPresetTT || 'default_call_tt';
+                    db.cotSettings.activeCallPresetId = rememberedCotPresetId('tt', 'call');
                 }
 
                 if (showMsg) {
@@ -115,8 +124,8 @@ function initCotSettings() {
                 }
             } else {
                 // 切换回 uwu
-                db.cotSettings.activePresetId = db.cotSettings.lastPresetUwU || 'default_uwu';
-                db.cotSettings.activeCallPresetId = db.cotSettings.lastCallPresetUwU || 'default_call_uwu';
+                db.cotSettings.activePresetId = rememberedCotPresetId('uwu', 'chat');
+                db.cotSettings.activeCallPresetId = rememberedCotPresetId('uwu', 'call');
                 showToast('提示词版本已切换');
             }
             
@@ -178,14 +187,18 @@ function initCotSettings() {
             if (presetId) {
                 if (currentCotMode === 'chat') {
                     db.cotSettings.activePresetId = presetId;
-                    if (db.cotSettings.promptVersion === 'tt') {
+                    if (isHhPromptVersion(db.cotSettings.promptVersion)) {
+                        rememberCotVersionPreset('chat');
+                    } else if (db.cotSettings.promptVersion === 'tt') {
                         db.cotSettings.lastPresetTT = presetId;
                     } else {
                         db.cotSettings.lastPresetUwU = presetId;
                     }
                 } else {
                     db.cotSettings.activeCallPresetId = presetId;
-                    if (db.cotSettings.promptVersion === 'tt') {
+                    if (isHhPromptVersion(db.cotSettings.promptVersion)) {
+                        rememberCotVersionPreset('call');
+                    } else if (db.cotSettings.promptVersion === 'tt') {
                         db.cotSettings.lastCallPresetTT = presetId;
                     } else {
                         db.cotSettings.lastCallPresetUwU = presetId;
@@ -316,6 +329,7 @@ function openXmlHelpModal() {
 
 // 加载设置到界面
 function loadCotSettings() {
+    if (ensureHhCotPresets()) saveData();
     if (!db.cotSettings) db.cotSettings = { enabled: false, activePresetId: 'default_uwu', promptVersion: 'uwu' };
     if (!db.cotPresets) db.cotPresets = [];
 
@@ -384,13 +398,13 @@ function loadCotSettings() {
 
     // 确保 activePresetId 存在
     if (!db.cotSettings.activePresetId) {
-        db.cotSettings.activePresetId = db.cotSettings.promptVersion === 'tt' ? 'default_tt' : 'default_uwu';
+        db.cotSettings.activePresetId = cotDefaultPresetId(db.cotSettings.promptVersion || 'uwu', 'chat');
         saveData();
     }
 
     // 确保 activeCallPresetId 存在
     if (!db.cotSettings.activeCallPresetId) {
-        db.cotSettings.activeCallPresetId = db.cotSettings.promptVersion === 'tt' ? 'default_call_tt' : 'default_call_uwu';
+        db.cotSettings.activeCallPresetId = cotDefaultPresetId(db.cotSettings.promptVersion || 'uwu', 'call');
         saveData();
     }
 
@@ -400,6 +414,19 @@ function loadCotSettings() {
         db.cotSettings.activeCallPresetId = 'default_call_tt';
         db.cotSettings.lastCallPresetTT = 'default_call_tt';
         saveData();
+    }
+
+    if (isHhPromptVersion(db.cotSettings.promptVersion)) {
+        let repaired = false;
+        for (const mode of ['chat', 'call']) {
+            const key = mode === 'call' ? 'activeCallPresetId' : 'activePresetId';
+            const id = db.cotSettings[key];
+            if (!db.cotPresets.some(p => p.id === id) || (/^default_/.test(id) && id !== cotDefaultPresetId(db.cotSettings.promptVersion, mode))) {
+                db.cotSettings[key] = rememberedCotPresetId(db.cotSettings.promptVersion, mode);
+                repaired = true;
+            }
+        }
+        if (repaired) saveData();
     }
 
     // 数据库修复逻辑：强制解锁历史数据中的“引子”和“尾声”
@@ -439,7 +466,7 @@ function loadCotSettings() {
     const humanRunItem = document.getElementById('cot-human-run-switch')?.closest('.kkt-item');
     if (humanRunItem) {
         // 只要是 T.T 版本，无论聊天还是通话，都隐藏“角色活人运转”开关
-        if (db.cotSettings.promptVersion === 'tt') {
+        if (db.cotSettings.promptVersion === 'tt' || isHhPromptVersion(db.cotSettings.promptVersion)) {
             humanRunItem.style.display = 'none';
         } else {
             humanRunItem.style.display = 'flex';
@@ -479,6 +506,11 @@ function renderCotPresetSelect() {
     select.innerHTML = '';
     
     db.cotPresets.forEach(preset => {
+        const version = db.cotSettings.promptVersion || 'uwu';
+        const isNewDefault = /^default_(?:call_)?hh(?:_offline)?$/.test(preset.id);
+        if ((isHhPromptVersion(version) && /^default(?:_|$)/.test(preset.id)) || isNewDefault) {
+            if (preset.id !== cotDefaultPresetId(version, currentCotMode)) return;
+        }
         const option = document.createElement('option');
         option.value = preset.id;
         option.textContent = preset.name;
@@ -497,7 +529,7 @@ function renderCotPresetSelect() {
         // 检查 activePresetId 是否存在，不存在则默认第一个
         const exists = db.cotPresets.find(p => p.id === activeId);
         if (!exists && db.cotPresets.length > 0) {
-            activeId = db.cotPresets[0].id;
+            activeId = rememberedCotPresetId(db.cotSettings.promptVersion || 'uwu', currentCotMode);
             if (currentCotMode === 'chat') {
                 db.cotSettings.activePresetId = activeId;
             } else {
@@ -975,6 +1007,7 @@ async function createNewCotPreset() {
     } else {
         db.cotSettings.activeCallPresetId = newPreset.id;
     }
+    rememberCotVersionPreset(currentCotMode);
     await saveData();
     
     loadCotSettings(); // 重新加载以更新下拉框和列表
@@ -995,7 +1028,9 @@ async function resetCotPreset() {
     if (!confirm(`确定要将预设“${activePreset.name}”重置为默认思维链吗？\n此操作将覆盖当前所有条目。`)) return;
 
     // 深度复制默认条目
-    if (currentCotMode === 'chat') {
+    if (isHhPromptVersion(db.cotSettings.promptVersion)) {
+        activePreset.items = hhDefaultCotItems(db.cotSettings.promptVersion, currentCotMode);
+    } else if (currentCotMode === 'chat') {
         if (db.cotSettings.promptVersion === 'tt') {
             activePreset.items = JSON.parse(JSON.stringify(DEFAULT_COT_ITEMS_TT));
         } else {
@@ -1112,6 +1147,7 @@ async function importCotPreset(e) {
         } else {
             db.cotSettings.activeCallPresetId = preset.id;
         }
+        rememberCotVersionPreset(currentCotMode);
         await saveData();
         
         document.getElementById('cot-preset-manage-modal').classList.remove('visible');

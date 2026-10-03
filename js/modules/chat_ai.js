@@ -351,6 +351,13 @@ async function getAiReply(chatId, chatType, isBackground = false) {
                 }
             }
 
+            // 新版本的条目在 Gemini 原生请求里也随同当前系统提示词发送。
+            if (chatType === 'private' && db.cotSettings?.enabled && isHhPromptVersion(resolveCotPromptVersion(chat))) {
+                const preset = resolveCotPresetForCharacter(chat, 'chat');
+                const instruction = (preset?.items || []).filter(item => item.enabled).map(item => item.content).join('\n\n');
+                if (instruction) systemPrompt += '\n\n' + instruction;
+            }
+
             requestBody = {
                 contents: contents,
                 system_instruction: {parts: [{text: systemPrompt}]},
@@ -513,14 +520,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             
             if (cotEnabled) {
                 let cotInstruction = '';
-                // 优先使用角色专属 CoT 预设
-                let activePresetId = 'default';
-                if (chat.exclusiveCotPreset) {
-                    activePresetId = chat.exclusiveCotPreset;
-                } else if (db.cotSettings && db.cotSettings.activePresetId) {
-                    activePresetId = db.cotSettings.activePresetId;
-                }
-                const preset = (db.cotPresets || []).find(p => p.id === activePresetId);
+                const preset = resolveCotPresetForCharacter(chat, 'chat');
                 
                 if (preset && preset.items) {
                     cotInstruction = preset.items
@@ -537,10 +537,10 @@ async function getAiReply(chatId, chatType, isBackground = false) {
                     });
 
                     // 2. 插入触发器
-                    pushOrMergeMessage('user', '[incipere]');
+                    if (!isHhPromptVersion(resolveCotPromptVersion(chat))) pushOrMergeMessage('user', '[incipere]');
 
                     // 3. 插入 Prefill (预填/强塞)
-                    const prefillEnabled = db.cotSettings.prefillEnabled !== false;
+                    const prefillEnabled = db.cotSettings.prefillEnabled !== false && !isHhPromptVersion(resolveCotPromptVersion(chat));
                     if (prefillEnabled) {
                         pushOrMergeMessage('assistant', '<thinking>');
                     }

@@ -52,7 +52,9 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
     
     let systemPrompt = '';
 
-    if (promptVersion === 'tt') {
+    if (isHhPromptVersion(promptVersion)) {
+        systemPrompt = generateHhSystemPrompt(chat, promptVersion, callType);
+    } else if (promptVersion === 'tt') {
         if (worldBooksLimitBreak) systemPrompt += `${worldBooksLimitBreak}\n`;
         
         systemPrompt += `[世界定义]\n一个真实的线上聊天软件，当前正在进行${callType === 'video' ? '视频' : '语音'}通话。\n当前时间：现在是 ${currentTime}。你应知晓当前时间，但除非对话内容明确相关，否则不要主动提及或评论时间（例如，不要催促我睡觉）\n当前你主控的名字是：${chat.realName}，正在与你通话的是：${chat.myName}。\n\n`;
@@ -307,14 +309,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
     const cotEnabled = db.cotSettings && db.cotSettings.callEnabled;
     if (cotEnabled) {
         let cotInstruction = '';
-        // 优先使用角色专属 CoT 预设
-        let activePresetId = 'default_call';
-        if (chat.exclusiveCotPreset) {
-            activePresetId = chat.exclusiveCotPreset;
-        } else if (db.cotSettings && db.cotSettings.activeCallPresetId) {
-            activePresetId = db.cotSettings.activeCallPresetId;
-        }
-        const preset = (db.cotPresets || []).find(p => p.id === activePresetId);
+        const preset = resolveCotPresetForCharacter(chat, 'call');
         
         if (preset && preset.items) {
             cotInstruction = preset.items
@@ -331,13 +326,13 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
             });
 
             // 2. 插入触发器
-            messages.push({
+            if (!isHhPromptVersion(promptVersion)) messages.push({
                 role: 'user',
                 content: '[incipere]'
             });
 
             // 3. 插入 Prefill (预填/强塞)
-            const prefillEnabled = db.cotSettings.callPrefillEnabled !== false;
+            const prefillEnabled = db.cotSettings.callPrefillEnabled !== false && !isHhPromptVersion(resolveCotPromptVersion(chat));
             if (prefillEnabled) {
                 messages.push({
                     role: 'assistant',

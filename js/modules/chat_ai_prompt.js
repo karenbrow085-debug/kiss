@@ -14,6 +14,8 @@ function generatePrivateSystemPrompt(character) {
         promptVersion = db.cotSettings.promptVersion;
     }
     
+    if (isHhPromptVersion(promptVersion)) return generateHhSystemPrompt(character, promptVersion);
+
     let prompt = '';
     
     if (promptVersion === 'tt') {
