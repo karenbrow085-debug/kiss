@@ -234,7 +234,7 @@ function renderRoom() {
   root.dataset.hearuTab = tab;
   root.dataset.hearuView = "room";
   root.innerHTML =
-    header(c ? name(c) : "HearU", tab === "chat" ? "ONE SONG. TWO HEARTS." : "OUR FREQUENCY") +
+    header(c ? name(c) : "HearU", tab === "chat" ? "CLOSER WITH EVERY SONG" : "OUR FREQUENCY") +
     (tab === "queue" ? nav() : "") +
     `<main class="hu-body">${tab === "listen" ? listenHtml() : tab === "chat" ? liveListeningHtml()+chatHtml() : queueHtml()}</main>` +
     status() +
@@ -398,7 +398,11 @@ function messageParts(m) {
 function musicCardHtml(card, by = "user") {
   const song = card.song,
     ta = by === "assistant";
-  return `<div class="hu-music-card ${card.lines?.length ? 'with-lyrics' : ''}"><div class="hu-card-kicker"><span>${ta ? esc(name(character(roleId))) + " 分享的音乐" : "分享给 " + esc(name(character(roleId)))}</span><time>${card.lines?.length ? format(card.lines[0].timeMs) : format(song.durationMs)}</time></div><button class="hu-card-play" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}"><div class="hu-card-art"><img src="${esc(song.coverUrl || "assets/hearu.svg")}" alt=""></div><div><strong>${esc(song.title)}</strong><span>${esc(song.artist)}</span></div></button>${song.note ? `<div class="hu-card-note">${esc(song.note)}</div>` : ""}${card.lines?.length ? `<div class="hu-card-lines">${card.lines.map((l) => `<div class="hu-card-verse" data-hu="card-line" data-card-line="${esc(song.songId)}:${Number(l.timeMs)||0}" role="button" tabindex="0"><p>${esc(l.text)}</p>${l.trans ? `<small>${esc(l.trans)}</small>` : ""}</div>`).join("")}</div>` : ""}</div>`;
+  const hasLyrics=Boolean(card.lines?.length),sender=ta?name(character(roleId)):'YOU';
+  const track=`<span class="hu-card-art"><img src="${esc(song.coverUrl || 'assets/hearu.svg')}" alt=""></span><span class="hu-c-copy"><strong>${esc(song.title)}</strong><span class="hu-c-artist">${esc(song.artist)}</span>${!hasLyrics && song.note?`<span class="hu-c-note"><i>“</i>${esc(song.note)}</span>`:''}</span>`;
+  const meta=`<span class="hu-c-sender">${esc(sender)}</span><time class="hu-c-time">${format(hasLyrics?card.lines[0].timeMs:song.durationMs)}</time>`;
+  if(!hasLyrics)return `<button class="hu-music-card hu-c-card" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}">${track}${meta}</button>`;
+  return `<div class="hu-music-card hu-c-card with-lyrics"><button class="hu-card-play" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}">${track}</button><span class="hu-c-sender">${esc(sender)}</span>${song.note?`<div class="hu-c-lyric-note">${esc(song.note)}</div>`:''}<div class="hu-card-lines"><span class="hu-card-quote">“</span>${card.lines.map(l=>`<button class="hu-card-verse" data-hu="card-line" data-card-line="${esc(song.songId)}:${Number(l.timeMs)||0}" aria-label="播放这句歌词"><span>${esc(l.text)}</span>${l.trans?`<small>${esc(l.trans)}</small>`:''}</button>`).join('')}</div><div class="hu-c-words-footer"><span>HEARU / WORDS</span><time>${format(card.lines[0].timeMs)}</time></div></div>`;
 }
 async function shareSong(
   song,
@@ -1708,9 +1712,9 @@ function liveListeningHtml(){return '<section class="hu-live-listening" aria-lab
 function updateLiveListening(el){
   const s=player.getState(),song=s.song || room?.song,lines=s.lyrics?.length?s.lyrics:lyricsFor(),position=player.positionMs(),index=lines.findLastIndex(l=>l.timeMs<=position);
   const signature=JSON.stringify([song?.songId,s.playing,song?.pickedBy,index,Math.floor(position/1000)]);if(el.dataset.signature===signature)return;el.dataset.signature=signature;
-  if(!song){el.innerHTML='<button data-page="listen" class="hu-live-track"><span><strong>留一首歌给彼此</strong><small>ONE SONG. TWO HEARTS.</small></span></button>';return;}
+  if(!song){el.innerHTML='<button data-page="listen" class="hu-live-track"><span><strong>留一首歌给彼此</strong><small>CLOSER WITH EVERY SONG</small></span></button>';return;}
   const duration=player.durationMs() || song.durationMs || 1;
-  el.innerHTML=`<div class="hu-live-main"><button data-page="listen" class="hu-live-track"><img src="${esc(song.coverUrl || 'assets/hearu.svg')}" alt=""><span><strong>${esc(song.title)}<em>${esc(song.artist)}</em></strong><small>${esc(lines[index]?.text || song.note || (s.playing?'正在一起听':'音乐已暂停'))}</small></span></button><div class="hu-live-actions"><button class="hu-live-control" data-hu="mini-toggle" aria-label="${s.playing?'暂停':'播放'}">${s.playing?icons.pause:icons.play}</button><time>${format(position)}</time></div></div><div class="hu-live-caption">${esc(song.pickedBy?song.pickedBy+' 的选曲':'与你同频')}</div><div class="hu-live-progress"><i style="width:${Math.min(100,Math.max(0,position/duration*100))}%"></i></div>`;
+  el.innerHTML=`<div class="hu-live-main"><button data-page="listen" class="hu-live-track"><img src="${esc(song.coverUrl || 'assets/hearu.svg')}" alt=""><span><strong>${esc(song.title)}</strong><em>${esc(song.artist)}</em><span class="hu-live-progress"><i style="width:${Math.min(100,Math.max(0,position/duration*100))}%"></i></span><small>${esc(lines[index]?.text || (s.playing?'正在一起听':'音乐已暂停'))}</small></span></button><div class="hu-live-actions"><button class="hu-live-control" data-hu="mini-toggle" aria-label="${s.playing?'暂停':'播放'}">${s.playing?icons.pause:icons.play}</button><time>${format(position)}</time></div></div>`;
 }
 
 // The bridge has no native write path: clone before calling native readers or filters.
