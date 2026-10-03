@@ -123,6 +123,7 @@ function setupChatRoom() {
 
             if (slidesData.length === 0) {
                 statusContent.innerHTML = '<p style="text-align:center; color:#999;">暂无状态信息</p>';
+                window.attachStatusHistoryControls?.(char, statusContent, slidesData, null, null);
                 statusOverlay.classList.add('visible');
                 return;
             }
@@ -201,6 +202,7 @@ function setupChatRoom() {
                 }
             });
 
+            window.attachStatusHistoryControls?.(char, statusContent, slidesData, swiper, indicator);
             statusOverlay.classList.add('visible');
         });
     }
