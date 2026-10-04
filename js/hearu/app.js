@@ -1571,7 +1571,7 @@ root.addEventListener("click", (e) => {
     }
     switch (b.dataset.hu) {
       case "profile-settings": profileSettings(); break;
-      case "player-menu": modal(`<div class="hu-modal-kicker">OUR FREQUENCY</div><h2>同频时刻。</h2><button class="hu-setting-row" data-hu="listening-journal"><span>一起听的记录</span></button><button class="hu-setting-row" data-hu="song-thought"><span>TA 的选曲留言</span></button><button class="hu-setting-row" data-hu="search"><span>找歌</span></button><button class="hu-setting-row" data-hu="sources"><span>音乐收藏</span></button><button class="hu-setting-row" data-tab="queue"><span>播放列表</span></button>`); break;
+      case "player-menu": modal(`<div class="hu-modal-kicker">OUR FREQUENCY</div><h2>同频时刻。</h2><button class="hu-setting-row" data-hu="listening-journal"><span>一起听的记录</span></button><button class="hu-setting-row" data-hu="song-thought"><span>TA 的选曲留言</span></button>`); break;
       case "listening-journal": listeningJournal(); break;
       case "night-mode": toggleNight(); break;
       case "song-thought":
@@ -2214,7 +2214,7 @@ function nightColor(value,property){
 }
 function buildNightPalette(){
  const walk=rules=>Array.from(rules).map(r=>{
- if(r.selectorText){if(!/hearu|\.hu-/.test(r.selectorText))return '';const declarations=[];for(const prop of Array.from(r.style)){if(!/(?:color|background|border|outline|shadow|fill|stroke)/.test(prop))continue;const value=r.style.getPropertyValue(prop),dark=nightColor(value,prop);if(dark!==value)declarations.push(`${prop}:${dark}${r.style.getPropertyPriority(prop)?' !important':''}`);}
+ if(r.selectorText){if(!/hearu|\.hu-/.test(r.selectorText))return '';const declarations=[];for(const prop of Array.from(r.style)){if(!/(?:color|background|border|outline|shadow|fill|stroke)/.test(prop))continue;const value=r.style.getPropertyValue(prop),dark=nightColor(value,prop);declarations.push(`${prop}:${dark}${r.style.getPropertyPriority(prop)?' !important':''}`);}
  if(!declarations.length)return '';const selectors=r.selectorText.split(',').map(sel=>sel.includes('#hearu-app')?sel.replace(/#hearu-app/g,'#hearu-app[data-theme="night"]'):'#hearu-app[data-theme="night"] '+sel).join(',');return `${selectors}{${declarations.join(';')}}`;}
  if(r.cssRules && r.conditionText)return `${r.type===12?'@supports':'@media'} ${r.conditionText}{${walk(r.cssRules)}}`;return '';
  }).join('\n');
@@ -2259,3 +2259,5 @@ let fitFrame;function schedulePlayerFit(){cancelAnimationFrame(fitFrame);fitFram
 new MutationObserver(schedulePlayerFit).observe(root,{childList:true,subtree:true,characterData:true});
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(schedulePlayerFit).observe(root);
 window.addEventListener('resize',schedulePlayerFit);document.fonts?.ready?.then(schedulePlayerFit);schedulePlayerFit();
+
+repairStyle.textContent+="\n#hearu-app[data-theme=\"night\"] .hu-lyric-note,#hearu-app[data-theme=\"night\"] .hu-shared-editorial,#hearu-app[data-theme=\"night\"] .hu-shared-open,#hearu-app[data-theme=\"night\"] .hu-playlist-eyebrow{background:transparent!important;background-image:none!important;box-shadow:none!important}\n#hearu-app[data-theme=\"night\"] .hu-message .hu-message-translation,#hearu-app[data-theme=\"night\"] .hu-message .hu-message-translation>span{color:#ededed!important;-webkit-text-fill-color:#ededed!important;-webkit-text-stroke:.5px #1e1e1e!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;opacity:1!important}\n#hearu-app .hu-shelf-tabs+.hu-queue-search{margin-top:15px!important;flex-shrink:0}\n#hearu-app .hu-playlist-view-tabs+.hu-playlist-search{margin-top:0!important;flex-shrink:0}\n#hearu-app .hu-shelf-tabs{margin-bottom:0!important;flex-shrink:0}\n#hearu-app .hu-playlist-view-tabs{margin-bottom:17px!important;flex-shrink:0}\n";
