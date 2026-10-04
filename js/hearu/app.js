@@ -215,7 +215,10 @@ async function run(fn) {
 const api = (path, opts) => apiRequest(API_BASE + path, opts);
 function header(title, sub = "") {
   const conversation = room && view === "room" && tab === "chat";
-  const settingsButton = conversation ? `<button data-hu="settings" aria-label="聊天设置">${icons.settings}</button>` : view === "contacts" ? `<button data-hu="contact-settings" aria-label="管理联系人">${icons.settings}</button>` : view === "profile" ? `<button data-hu="edit-profile" aria-label="编辑资料">${icon('<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>')}</button>` : '';
+  const roleHeader = sub === "OUR FREQUENCY" || (room && title === name(character(roleId)) && ['room','thought'].includes(view));
+  const dots=icon('<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>');
+  if(roleHeader)return `<header class="hu-header hu-frequency-header"><button data-hu="back" aria-label="返回">${icon('<path d="m5 9 7 7 7-7"/>')}</button><div><strong>${esc(title)}</strong><small>OUR FREQUENCY</small></div><button data-hu="${conversation?'settings':'player-menu'}" aria-label="${conversation?'聊天设置':'播放菜单'}">${dots}</button></header>`;
+  const settingsButton = conversation ? `<button data-hu="settings" aria-label="聊天设置">${icons.settings}</button>` : view === "contacts" ? `<button data-hu="contact-settings" aria-label="管理联系人">${icons.settings}</button>` : view === "profile" ? `<button data-hu="edit-profile" aria-label="编辑资料">${dots}</button>` : '';
   return `<header class="hu-header ${conversation ? 'hu-conversation-header' : ''}"><button data-hu="back" aria-label="返回">${icons.back}</button>${conversation ? `<img class="hu-chat-avatar" src="${esc(character(roleId)?.avatar || 'assets/hearu.svg')}" alt="">` : ''}<div><strong>${esc(title)}</strong><small>${esc(sub)}</small></div>${settingsButton}</header>`;
 }
 function status() {
@@ -246,6 +249,7 @@ async function openRole(id) {
     await persist();
 
   }
+  sampleListening(player.getState());
   const record = await readRoom(id);
   if (version !== revision) return;
   selectedLyrics.clear();
@@ -255,6 +259,7 @@ async function openRole(id) {
   roleId = String(id);
   localStorage.setItem("hearu.lastRole.v2",roleId);
   room = record;
+  listeningCursor=null;
   const activePlayer=player.getState();
   if(activePlayer.song && !activePlayer.closed){room.song={...activePlayer.song};room.position=player.positionMs();room.lyrics=activePlayer.lyrics || [];}
   if (String(id)!=="__solo__") { room.listed=true; listedIds.add(String(id)); await persist(); }
@@ -294,7 +299,7 @@ function renderRoom() {
   root.dataset.hearuView = "room";
   root.innerHTML =
     header(c ? name(c) : "HearU", tab === "chat" ? "CLOSER WITH EVERY SONG" : "OUR FREQUENCY") +
-    (tab === "queue" ? nav() : "") +
+    nav() +
     `<main class="hu-body">${tab === "listen" ? listenHtml() : tab === "chat" ? chatHtml() : queueHtml()}</main>` +
     status() +
     `<footer class="hu-room-footer"><span class="hu-dot"></span><span>与你共享这一刻</span><button data-hu="queue">${icon('<path d="M4 6h16M4 12h16M4 18h10"/>')} 列表</button><button data-hu="search">${icons.search} 找歌</button></footer>`;
@@ -349,7 +354,7 @@ function controlsHtml() {
 function listenHtml() {
   const song = room.song,
     saved = room.queue.some((x) => String(x.songId) === String(song?.songId));
-  return `<div class="hu-player-top"><button class="hu-pair ${song?.addedBy === "ta" ? "from-ta" : ""}" data-hu="song-thought" aria-label="查看${esc(name(character(roleId)))}的选曲留言和喜欢的歌词"><img src="${esc(character(roleId)?.avatar || "assets/hearu.svg")}" alt=""><span>${roleId!=="__solo__" ? "同频时刻" : "一起听"}</span></button><span class="hu-session-label">${song?.addedBy === "ta" ? "PICKED BY " + esc(song.pickedBy || name(character(roleId))) : "SHARED MOMENT"}</span></div><div class="hu-art-stage"><div class="hu-cover">${sleeveHtml(song)}</div><div class="hu-art-label"><span>HEARU / SIDE A</span><span>ONE SONG, TWO HEARTS</span></div></div><div class="hu-track"><div><h2 id="hu-track-title">${esc(song?.title || "留一半旋律给你")}</h2><p id="hu-track-artist">${esc(song?.artist || "选一首歌，和 TA 一起听。")}</p></div><button data-hu="favorite" class="hu-favorite ${saved ? "saved" : ""}" aria-label="${saved ? "已收藏到列表" : "收藏到列表"}">${heartIcon}</button></div><input class="hu-progress" type="range" id="hu-seek" min="0" max="1000" value="0" aria-label="播放进度"><div class="hu-times"><span id="hu-time">0:00</span><span id="hu-duration">0:00</span></div><div class="hu-controls"><button data-hu="shuffle" class="hu-mode ${room.shuffle ? "active" : ""}" aria-label="随机播放">${shuffleIcon}</button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button class="hu-play" data-hu="toggle" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="repeat" class="hu-mode ${room.repeat ? "active" : ""}" aria-label="单曲循环">${repeatIcon}</button></div><button class="hu-lyric-preview" data-hu="lyrics"><span id="hu-lyrics">${song ? "点击查看完整歌词" : "让一首歌，成为我们的开始。"}</span><small id="hu-line-trans"></small></button>${song?.note ? creditHtml(song,true) : ""}<div class="hu-player-bottom"><button data-hu="lyrics">${textIcon}<span>歌词</span></button><button data-hu="sources">${icons.head}<span>歌单</span></button><button data-tab="queue">${icon('<path d="M4 6h16M4 12h16M4 18h10"/>')}<span>待播</span></button></div>`;
+  return `<div class="hu-player-top"><button class="hu-pair ${song?.addedBy === "ta" ? "from-ta" : ""}" data-hu="listening-journal" aria-label="查看一起听的记录"><img src="${esc(character(roleId)?.avatar || "assets/hearu.svg")}" alt=""><span>${roleId!=="__solo__" ? "同频时刻" : "一起听"}</span></button><span class="hu-session-label">${song?.addedBy === "ta" ? "PICKED BY " + esc(song.pickedBy || name(character(roleId))) : "SHARED MOMENT"}</span></div><div class="hu-art-stage"><div class="hu-cover">${sleeveHtml(song)}</div><div class="hu-art-label"><span>HEARU / SIDE A</span><span>OUR FREQUENCY</span></div></div><div class="hu-track"><div><h2 id="hu-track-title">${esc(song?.title || "留一半旋律给你")}</h2><p id="hu-track-artist">${esc(song?.artist || "选一首歌，和 TA 一起听。")}</p></div><button data-hu="favorite" class="hu-favorite ${saved ? "saved" : ""}" aria-label="${saved ? "已收藏到列表" : "收藏到列表"}">${heartIcon}</button></div><input class="hu-progress" type="range" id="hu-seek" min="0" max="1000" value="0" aria-label="播放进度"><div class="hu-times"><span id="hu-time">0:00</span><span id="hu-duration">0:00</span></div><div class="hu-controls"><button data-hu="shuffle" class="hu-mode ${room.shuffle ? "active" : ""}" aria-label="随机播放">${shuffleIcon}</button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button class="hu-play" data-hu="toggle" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="repeat" class="hu-mode ${room.repeat ? "active" : ""}" aria-label="单曲循环">${repeatIcon}</button></div><button class="hu-lyric-preview" data-hu="lyrics"><span id="hu-lyrics">${song ? "点击查看完整歌词" : "让一首歌，成为我们的开始。"}</span><small id="hu-line-trans"></small></button>${song?.note ? `<button class="hu-player-note" data-hu="song-thought"><small>${esc(selectorLabel(song))}</small><span>${esc(song.note)}</span></button>` : ""}<div class="hu-player-bottom"><button data-hu="lyrics">${textIcon}<span>歌词</span></button><button data-hu="sources">${icons.head}<span>歌单</span></button><button data-tab="queue">${icon('<path d="M4 6h16M4 12h16M4 18h10"/>')}<span>待播</span></button></div>`;
 }
 function pickFavorite(song, index, target = room) {
   if (!Number.isInteger(index)) return null;
@@ -809,6 +814,7 @@ function updatePlayer() {
 }
 player.subscribe((state, kind) => {
   if (!initialized) return;
+  sampleListening(state);
   if (
     room &&
     state.song &&
@@ -1502,6 +1508,7 @@ root.addEventListener("click", (e) => {
       return;
     }
     if (b.dataset.tab) {
+      closeModal();
       tab = b.dataset.tab;
       room.tab = tab;
       await persist();
@@ -1542,7 +1549,11 @@ root.addEventListener("click", (e) => {
       return;
     }
     switch (b.dataset.hu) {
+      case "player-menu": modal(`<div class="hu-modal-kicker">OUR FREQUENCY</div><h2>同频时刻。</h2><button class="hu-setting-row" data-hu="listening-journal"><span>一起听的记录</span></button><button class="hu-setting-row" data-hu="song-thought"><span>TA 的选曲留言</span></button><button class="hu-setting-row" data-hu="search"><span>找歌</span></button><button class="hu-setting-row" data-hu="sources"><span>音乐收藏</span></button><button class="hu-setting-row" data-tab="queue"><span>播放列表</span></button>`); break;
+      case "listening-journal": listeningJournal(); break;
+      case "night-mode": toggleNight(); break;
       case "song-thought":
+        closeModal();
         if(roleId==="__solo__"){renderContacts();break;}
         renderSongThought();
         break;
@@ -1719,9 +1730,11 @@ root.addEventListener("click", (e) => {
         settings();
         break;
       case "search":
+        closeModal();
         search();
         break;
       case "sources":
+        closeModal();
         await sources();
         break;
       case "export":
@@ -1919,7 +1932,7 @@ document.addEventListener("visibilitychange", () => {
 const listedIds=new Set();
 let feedData=null, profileData=null, playlistData=[], homeEpoch=0, qrTask=null;
 let globalPage='feed';
-const navIcons={feed:icon('<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3Z"/>'),listen:icons.head,contacts:icon('<path d="M21 11a8 8 0 0 1-8 8H6l-4 3V11a9 9 0 0 1 19 0Z"/>'),profile:icon('<circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/>')};
+const navIcons={feed:icon('<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3Z"/>'),listen:icon('<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4Z" fill="currentColor" stroke="none"/>'),contacts:icon('<path d="M5 4h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-5l-3 3-3-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>'),profile:icon('<circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/>')};
 function selectedPage(){return view==='profile'?'profile':view==='contacts'||view==='room'&&tab==='chat'?'contacts':view==='feed'||view==='search'||view==='sources'?'feed':'listen';}
 function bottomHtml(){const selected=selectedPage();return `<nav class="hu-bottom" aria-label="HearU 导航">${[['feed','首页'],['listen','播放'],['contacts','聊天'],['profile','我的']].map(([id,label])=>`<button data-page="${id}" class="${selected===id?'selected':''}" aria-label="${label}">${navIcons[id]}<span>${label}</span><i></i></button>`).join('')}</nav>`;}
 function updateMini(el){const s=player.getState();const signature=JSON.stringify([s.song?.songId,s.playing,s.song?.note,s.song?.pickedBy,s.song?.coverUrl]);if(el.dataset.signature===signature)return;el.dataset.signature=signature;el.innerHTML=s.song?`<button data-page="listen"><img src="${esc(s.song.coverUrl || 'assets/hearu.svg')}" alt=""><span><strong>${esc(s.song.title)}</strong><small>${esc(s.song.pickedBy ? s.song.pickedBy+' 为你选的 · '+(s.song.note || s.song.artist) : s.song.artist)}</small></span></button><button data-hu="mini-toggle" aria-label="播放或暂停">${s.playing?icons.pause:icons.play}</button>`:'';el.hidden=!s.song;}
@@ -2022,7 +2035,7 @@ function paintProfile(){
   const a=profileData,p=a?.profile || {},local=localProfile(a?.uid || 'guest');
   const avatar=local.avatar || p.avatarUrl,banner=local.banner || p.backgroundUrl,count=v=>v===undefined?'—':v;
   const created=playlistData.filter(x=>x.kind==='created'),saved=playlistData.filter(x=>x.kind==='saved');
-  root.innerHTML=header('我的','HEARU / PROFILE')+`<main class="hu-body hu-profile"><section class="hu-profile-masthead"><div class="hu-profile-banner" ${banner?`style="background-image:url('${esc(safeImageUrl(banner))}')"`:''}></div><div class="hu-profile-cover-caption">${esc(local.caption || '把喜欢的声音，收进生活。')}</div><div class="hu-profile-identity"><div class="hu-profile-avatar-wrap">${avatar?`<img class="hu-profile-avatar" src="${esc(safeImageUrl(avatar))}" alt="头像">`:`<div class="hu-profile-avatar hu-avatar-empty">${navIcons.profile}</div>`}</div><div class="hu-profile-name"><h1>${esc(local.nickname || p.nickname || '你的音乐空间')}</h1><small class="hu-profile-handle">${a?.connected?'NETEASE / '+esc(a.uid):'HEARU'}</small></div>${a?.connected?'':'<button data-hu="music-login">登录</button>'}</div></section><section class="hu-profile-social"><p class="hu-profile-bio">${esc(local.signature ?? p.signature ?? '一首歌的距离，刚好是你和我。')}</p><div class="hu-profile-tags">${a?.level!==undefined?`<span>Lv.${esc(a.level)}</span>`:''}${p.vipType?'<span>网易云会员</span>':''}${p.gender?`<span>${p.gender===1?'男':'女'}</span>`:''}</div>${a?.connected?`<div class="hu-profile-stats"><div><strong>${count(p.follows)}</strong><span>关注</span></div><div><strong>${count(p.followeds)}</strong><span>粉丝</span></div><div><strong>${count(p.eventCount)}</strong><span>动态</span></div></div><div class="hu-account-facts"><span>听歌 <b>${count(a.listenSongs)}</b> 首</span><span>收藏 <b>${a.playlistsLoading?'—':saved.length}</b> 份歌单</span></div>`:''}</section>${a?.connected?`<div class="hu-profile-switch" role="tablist"><button data-hu="profile-music" role="tab" aria-selected="true">音乐</button><button data-hu="profile-details" role="tab" aria-selected="false">资料</button></div><section class="hu-profile-music-panel"><div class="hu-section-label">创建的歌单 <span>${a.playlistsLoading?'读取中':created.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(created,a.playlistsLoading)}</div><div class="hu-section-label">收藏的歌单 <span>${a.playlistsLoading?'读取中':saved.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(saved,a.playlistsLoading)}</div>${a.playlistError?`<p class="hu-read-error">${esc(a.playlistError)} <button data-hu="refresh-profile">重新读取</button></p>`:''}${a.records?.length?'<div class="hu-section-label">最近常听 <span>THIS WEEK</span></div><div id="hu-recent-songs"></div>':''}</section><section class="hu-account-details" hidden><h2>账号资料</h2><dl><div><dt>网易云 ID</dt><dd>${esc(a.uid)}</dd></div>${a.createTime?`<div><dt>加入时间</dt><dd>${new Date(a.createTime).toLocaleDateString('zh-CN')}</dd></div>`:''}${p.birthday>0?`<div><dt>生日</dt><dd>${new Date(p.birthday).toLocaleDateString('zh-CN')}</dd></div>`:''}${a.identify?.imageDesc?`<div><dt>认证</dt><dd>${esc(a.identify.imageDesc)}</dd></div>`:''}</dl><button data-hu="logout" class="hu-logout">退出网易云登录</button></section>`:'<div class="hu-account-empty"><small>YOUR SOUND, YOUR SPACE</small><h2>让音乐，<br>更靠近你。</h2><p>连接网易云，听见你的收藏与偏爱。</p><button data-hu="music-login" class="hu-primary">扫码连接网易云</button></div>'}</main>`+status();
+  root.innerHTML=header('我的','HEARU / PROFILE')+`<main class="hu-body hu-profile"><section class="hu-profile-masthead"><div class="hu-profile-banner" ${banner?`style="background-image:url('${esc(safeImageUrl(banner))}')"`:''}></div><div class="hu-profile-cover-caption">${esc(local.caption || '把喜欢的声音，收进生活。')}</div><div class="hu-profile-identity"><div class="hu-profile-avatar-wrap">${avatar?`<img class="hu-profile-avatar" src="${esc(safeImageUrl(avatar))}" alt="头像">`:`<div class="hu-profile-avatar hu-avatar-empty">${navIcons.profile}</div>`}</div><div class="hu-profile-name"><h1>${esc(local.nickname || p.nickname || '你的音乐空间')}</h1><small class="hu-profile-handle">${a?.connected?'NETEASE / '+esc(a.uid):'HEARU'}</small></div>${a?.connected?'':'<button data-hu="music-login">登录</button>'}</div></section><button class="hu-night-setting" data-hu="night-mode"><span>夜间模式</span><i class="hu-switch ${root.dataset.theme==='night'?'on':''}" role="switch" aria-checked="${root.dataset.theme==='night'}"></i></button><section class="hu-profile-social"><p class="hu-profile-bio">${esc(local.signature ?? p.signature ?? '一首歌的距离，刚好是你和我。')}</p><div class="hu-profile-tags">${a?.level!==undefined?`<span>Lv.${esc(a.level)}</span>`:''}${p.vipType?'<span>网易云会员</span>':''}${p.gender?`<span>${p.gender===1?'男':'女'}</span>`:''}</div>${a?.connected?`<div class="hu-profile-stats"><div><strong>${count(p.follows)}</strong><span>关注</span></div><div><strong>${count(p.followeds)}</strong><span>粉丝</span></div><div><strong>${count(p.eventCount)}</strong><span>动态</span></div></div><div class="hu-account-facts"><span>听歌 <b>${count(a.listenSongs)}</b> 首</span><span>收藏 <b>${a.playlistsLoading?'—':saved.length}</b> 份歌单</span></div>`:''}</section>${a?.connected?`<div class="hu-profile-switch" role="tablist"><button data-hu="profile-music" role="tab" aria-selected="true">音乐</button><button data-hu="profile-details" role="tab" aria-selected="false">资料</button></div><section class="hu-profile-music-panel"><div class="hu-section-label">创建的歌单 <span>${a.playlistsLoading?'读取中':created.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(created,a.playlistsLoading)}</div><div class="hu-section-label">收藏的歌单 <span>${a.playlistsLoading?'读取中':saved.length}</span></div><div class="hu-profile-playlists">${profilePlaylistRows(saved,a.playlistsLoading)}</div>${a.playlistError?`<p class="hu-read-error">${esc(a.playlistError)} <button data-hu="refresh-profile">重新读取</button></p>`:''}${a.records?.length?'<div class="hu-section-label">最近常听 <span>THIS WEEK</span></div><div id="hu-recent-songs"></div>':''}</section><section class="hu-account-details" hidden><h2>账号资料</h2><dl><div><dt>网易云 ID</dt><dd>${esc(a.uid)}</dd></div>${a.createTime?`<div><dt>加入时间</dt><dd>${new Date(a.createTime).toLocaleDateString('zh-CN')}</dd></div>`:''}${p.birthday>0?`<div><dt>生日</dt><dd>${new Date(p.birthday).toLocaleDateString('zh-CN')}</dd></div>`:''}${a.identify?.imageDesc?`<div><dt>认证</dt><dd>${esc(a.identify.imageDesc)}</dd></div>`:''}</dl><button data-hu="logout" class="hu-logout">退出网易云登录</button></section>`:'<div class="hu-account-empty"><small>YOUR SOUND, YOUR SPACE</small><h2>让音乐，<br>更靠近你。</h2><p>连接网易云，听见你的收藏与偏爱。</p><button data-hu="music-login" class="hu-primary">扫码连接网易云</button></div>'}</main>`+status();
   if(a?.records?.length){results=a.records.slice(0,10).map(x=>({songId:String(x.song.id),title:x.song.name,artist:(x.song.ar||[]).map(a=>a.name).join(' / '),coverUrl:x.song.al?.picUrl,durationMs:x.song.dt}));root.querySelector('#hu-recent-songs').innerHTML=songRows(results);}
 }
 function profilePanel(which){const details=which==='details';root.querySelector('.hu-account-details').hidden=!details;root.querySelector('.hu-profile-music-panel').hidden=details;root.querySelectorAll('.hu-profile-switch button').forEach(b=>b.setAttribute('aria-selected',String((b.dataset.hu==='profile-details')===details)));}
@@ -2113,3 +2126,78 @@ window.KissHearUData={
  replace:async rows=>{await ready;await saving;if(generations.size || busy.size)throw Error('HearU 正在生成');await new Promise((resolve,reject)=>{const tx=database.transaction('rooms','readwrite');for(const row of rows)tx.objectStore('rooms').put(row);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);});roomsCache.clear();room=null;},
  sendSticker:async sticker=>{if(!room)throw Error('请先打开聊天');const current=nativeStickers().find(s=>s.id===sticker.id && s.name===sticker.name);if(!current)throw Error('表情包已被移除');const draft=root.querySelector('#hu-message')?.value||'';room.messages.push({role:'user',deliveryTracked:true,content:'[表情包：'+current.name+']',sticker:{name:current.name,data:current.data},at:Date.now()});await storeRoom(room);renderRoom();const field=root.querySelector('#hu-message');if(field)field.value=draft;}
 };
+
+// Listening totals belong only to this HearU room, including its normal backup.
+let listeningCursor=null;
+function listeningDay(at){const d=new Date(at);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function listeningStats(target){return target.listeningStats ||= {version:1,totalMs:0,songIds:[],firstAt:null,days:{}};}
+function sampleListening(state,now=Date.now(),position=player.positionMs()){
+ const owner=room, audio=document.querySelector('audio[data-hearu="player"]');
+ const active=!!(owner && owner.id!=='__solo__' && state.song && !state.closed && state.playing && !state.loading && !state.buffering && !audio?.seeking);
+ const id=String(state.song?.songId||'');const prev=listeningCursor;
+ if(prev && prev.owner===owner && prev.id===id && prev.active && !audio?.seeking){
+  const wall=now-prev.at,delta=position-prev.position,rate=audio?.playbackRate||1;
+  // A jump in the seek bar is not listening; repeated playback is listening.
+  if(wall>0 && delta>0 && delta<=wall*rate+1200){
+   const ms=Math.min(wall,delta/rate);const stats=listeningStats(owner);
+   stats.totalMs+=ms;if(!stats.songIds.includes(id))stats.songIds.push(id);stats.firstAt ??=prev.at;
+   let from=now-ms;while(from<now){const day=listeningDay(from),d=new Date(from);d.setHours(24,0,0,0);const end=Math.min(now,d.getTime());const bucket=stats.days[day] ||= {ms:0,songIds:[]};bucket.ms+=end-from;if(!bucket.songIds.includes(id))bucket.songIds.push(id);from=end;}
+  }
+ }
+ listeningCursor={owner,id,at:now,position,active};
+}
+// Reset at seek boundaries, so neither forward nor backward seeks add time.
+document.addEventListener('seeking',e=>{if(e.target.matches?.('audio[data-hearu="player"]'))listeningCursor=null;},true);
+setInterval(()=>{if(initialized)sampleListening(player.getState());},1000);
+window.addEventListener('pagehide',()=>{sampleListening(player.getState());if(room)storeRoom(room).catch(()=>{});});
+function listeningJournal(){
+ if(!room || roleId==='__solo__'){renderContacts();return;}
+ sampleListening(player.getState());storeRoom(room).catch(()=>{});
+ const st=listeningStats(room),today=st.days[listeningDay(Date.now())]||{ms:0,songIds:[]},minutes=Math.floor(st.totalMs/60000);
+ modal(`<div class="hu-listening-journal"><small class="hu-journal-kicker">OUR LISTENING JOURNAL</small><h2>和${esc(name(character(roleId)))}，听过的时间。</h2><p class="hu-journal-sub">Some hours belong to us.</p><div class="hu-journal-totals"><div><span>一起听了</span><strong>${Math.floor(minutes/60)}<small>小时</small> ${minutes%60}<small>分钟</small></strong></div><div><span>听过的歌</span><strong>${st.songIds.length}<small>首</small></strong></div></div><dl class="hu-journal-details"><div><dt>今天</dt><dd>${Math.floor(today.ms/60000)} 分钟 · ${today.songIds.length} 首</dd></div><div><dt>第一次一起听</dt><dd>${st.firstAt?new Date(st.firstAt).toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).toUpperCase():'等待第一首歌'}</dd></div></dl><p class="hu-journal-foot">重复听歌照常计时，歌曲数量去重。</p></div>`);
+ root.querySelector('.hu-modal').classList.add('hu-journal-modal');
+}
+const journalStyle=document.createElement('style');journalStyle.textContent=`
+#hearu-app .hu-night-setting{display:flex;justify-content:space-between;align-items:center;width:100%;padding:18px 6px;background:transparent;color:inherit;border:0;border-bottom:1px solid #eee;font:inherit;font-size:12px;text-align:left}
+#hearu-app .hu-journal-modal{align-items:flex-end;padding:0;background:rgba(0,0,0,.38)}
+#hearu-app .hu-journal-modal>section{width:100%;max-width:none;max-height:85%;border-radius:24px 24px 0 0;padding:38px 26px 30px;overflow:auto}
+#hearu-app .hu-listening-journal{text-align:left;color:#171717}
+#hearu-app .hu-journal-kicker{font-size:9px;letter-spacing:.23em;color:#888}
+#hearu-app .hu-listening-journal h2{font-size:22px;font-weight:500;line-height:1.5;margin:16px 0 8px}
+#hearu-app .hu-journal-sub{font-size:11px;letter-spacing:.06em;color:#999;margin:0 0 32px}
+#hearu-app .hu-journal-totals{border-top:1px solid #e4e4e4}
+#hearu-app .hu-journal-totals>div{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;border-bottom:1px solid #e4e4e4}
+#hearu-app .hu-journal-totals>div>span{font-size:12px;color:#777;flex-shrink:0}
+#hearu-app .hu-journal-totals strong{font-size:30px;font-weight:300;font-variant-numeric:tabular-nums;white-space:nowrap}
+#hearu-app .hu-journal-totals strong small{font-size:10px;font-weight:400;color:#888;margin-left:4px}
+#hearu-app .hu-journal-details{margin:26px 0 0;font-size:11px;color:#888}
+#hearu-app .hu-journal-details>div{display:flex;justify-content:space-between;gap:12px;margin:16px 0}
+#hearu-app .hu-journal-details dd{margin:0;letter-spacing:.04em;text-align:right}
+#hearu-app .hu-journal-foot{margin:38px 0 0;font-size:9px;color:#999;line-height:1.7}
+`;document.head.append(journalStyle);
+const frequencyStyle=document.createElement("style");frequencyStyle.id="hearu-frequency-layout";frequencyStyle.textContent="\n/* Approved frequency header and player: identical layout in both themes. */\n#hearu-app .hu-frequency-header{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr) 36px;align-items:center;gap:12px;min-height:72px;padding:14px 20px 12px;border-bottom:0;flex:none}\n#hearu-app .hu-frequency-header>div{text-align:center;min-width:0;margin:0;display:block}\n#hearu-app .hu-frequency-header strong{display:block;font-size:20px;line-height:1.4;font-weight:500;overflow-wrap:anywhere}\n#hearu-app .hu-frequency-header small{display:block;font-size:9px;line-height:1.5;letter-spacing:.19em;color:#888;margin-top:3px}\n#hearu-app .hu-frequency-header>button{width:32px;height:32px;display:grid;place-items:center;margin:0;padding:5px;background:transparent;color:#555;border:0;justify-self:center}\n#hearu-app .hu-frequency-header svg{width:21px;height:21px}\n#hearu-app .hu-frequency-header+.hu-tabs{display:flex;justify-content:space-around;align-items:center;gap:0;padding:0 20px;margin:0;height:42px;min-height:42px;border-bottom:1px solid #ddd;flex:none}\n#hearu-app .hu-frequency-header+.hu-tabs button{position:relative;flex:1;height:100%;padding:7px 0 10px;color:#999;font-size:12px;font-weight:400;background:transparent;border:0}\n#hearu-app .hu-frequency-header+.hu-tabs button.selected{color:#111}\n#hearu-app .hu-frequency-header+.hu-tabs button.selected:after{content:\"\";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:42px;height:2px;background:#111}\n#hearu-app .hu-frequency-header+.hu-tabs button span{display:none}\n#hearu-app[data-hearu-view=\"room\"][data-hearu-tab=\"listen\"] .hu-body{padding:14px 25px 8px;display:flex;flex-direction:column;min-height:0;overflow:auto}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-player-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:30px;margin:0 0 12px;flex:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-pair{display:flex;align-items:center;gap:10px;background:transparent;border:0;padding:0;font-size:11px;color:#777;min-width:0}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-pair img{width:27px;height:27px;border-radius:50%;object-fit:cover}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-session-label{font-size:8px;letter-spacing:.12em;color:#999;text-align:right;overflow-wrap:anywhere}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-art-stage{flex:1 1 0;min-height:165px;max-height:310px;padding:0;margin:0 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-art-stage .hu-cover{width:auto;height:min(calc(100% - 20px),280px);max-width:100%;aspect-ratio:1;border:0;border-radius:10px;background:#f4f4f4;box-shadow:none;flex:0 1 auto;overflow:hidden}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-album-frame{padding:0;width:100%;height:100%;border:0;border-radius:inherit;background:transparent}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-cover .hu-album-art{width:100%;height:100%;border-radius:inherit;object-fit:cover;filter:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-art-label{display:flex;align-self:stretch;justify-content:space-between;margin:9px 0 0;font-size:7px;letter-spacing:.14em;color:#999;line-height:1.5;flex:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-track{margin:8px 0 13px;align-items:center;flex:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-track h2{font-size:23px;font-weight:500;line-height:1.35;letter-spacing:0}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-track p{font-size:11px;margin:6px 0 0;color:#888}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-favorite svg{width:24px;height:24px}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-times{font-size:9px;margin:7px 0 0;flex:none;color:#999}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-controls{display:flex;align-items:center;justify-content:space-between;gap:0;margin:16px 0 9px;flex:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-controls .hu-play{width:54px;height:54px;background:#111;color:#fff;border-radius:50%}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-controls svg{width:24px;height:24px}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-controls .hu-mode{color:#999}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-controls .hu-mode.active{color:#111}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-lyric-preview{height:auto;min-height:25px;margin:2px 0 8px;padding:3px 0;font-size:12px;color:#888;flex:none;text-align:center}\n#hearu-app .hu-player-note{display:block;flex:none;width:100%;margin:12px 0 14px;padding:0 10px;border:0;background:transparent;color:#777;text-align:center;font:inherit}\n#hearu-app .hu-player-note small{display:block;font-size:8px;color:#999;margin:0 0 5px;line-height:1.5}\n#hearu-app .hu-player-note>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;line-height:1.6}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-player-bottom{display:flex;align-items:center;justify-content:space-around;height:36px;min-height:36px;margin:0;padding:8px 0 0;border-top:1px solid #ddd;flex:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-player-bottom button{font-size:11px;font-weight:400;color:#777;background:transparent;flex:1;justify-content:center}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-player-bottom button+button{border-left:1px solid #ddd}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-player-bottom svg{display:none}\n#hearu-app[data-hearu-tab=\"listen\"] .hu-room-footer{display:none}\n#hearu-app .hu-bottom{height:auto;min-height:61px;padding:10px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;justify-content:space-around;border-top:1px solid #ddd;background:#fff;flex:none}\n#hearu-app .hu-bottom button{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:40px;padding:0;font-size:11px;font-weight:400;color:#999;background:transparent;border:0}\n#hearu-app .hu-bottom button.selected{color:#111;font-weight:500}\n#hearu-app .hu-bottom svg{width:23px;height:23px;stroke-width:1.4}\n#hearu-app .hu-bottom button i{display:none}\n@media(max-height:680px){#hearu-app .hu-frequency-header{min-height:60px;padding-top:8px;padding-bottom:8px}#hearu-app[data-hearu-tab=\"listen\"] .hu-art-stage{min-height:130px}#hearu-app[data-hearu-tab=\"listen\"] .hu-controls{margin-top:10px}#hearu-app[data-hearu-tab=\"listen\"] .hu-player-note{margin:6px 0 8px}}\n";document.head.append(frequencyStyle);
+const nightStyle=document.createElement('style');nightStyle.id='hearu-night-palette';document.head.append(nightStyle);
+function nightColor(value,property){
+ if(/shadow/.test(property))return value;
+ const neutral=(r,g,b,a)=>{if(Math.max(r,g,b)-Math.min(r,g,b)>18)return null;let v=(r+g+b)/3;let n;if(a!==undefined && a<1 && v<25 && /background/.test(property))return `rgba(${r},${g},${b},${a})`;
+ if(/border|outline|shadow/.test(property))n=v>180?48:Math.round(255-v*.7);
+ else n=v>220?Math.round(20+(255-v)*.45):v<70?Math.round(240-v*.35):Math.round(255-v*.72);
+ return a===undefined?`rgb(${n},${n},${n})`:`rgba(${n},${n},${n},${a})`;};
+ return value.replace(/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|\b(?:white|black)\b/gi,t=>{
+ if(t==='white')return neutral(255,255,255);if(t==='black')return neutral(0,0,0);
+ if(t[0]==='#'){let h=t.slice(1);if(h.length===3||h.length===4)h=[...h].map(c=>c+c).join('');if(h.length!==6&&h.length!==8)return t;return neutral(parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16),h.length===8?parseInt(h.slice(6),16)/255:undefined)||t;}
+ const a=t.match(/[\d.]+/g)?.map(Number);return a?.length>=3?(neutral(...a)||t):t;
+ });
+}
+function buildNightPalette(){
+ const walk=rules=>Array.from(rules).map(r=>{
+ if(r.selectorText){if(!/hearu|\.hu-/.test(r.selectorText))return '';const declarations=[];for(const prop of Array.from(r.style)){if(!/(?:color|background|border|outline|shadow|fill|stroke)/.test(prop))continue;const value=r.style.getPropertyValue(prop),dark=nightColor(value,prop);if(dark!==value)declarations.push(`${prop}:${dark}${r.style.getPropertyPriority(prop)?' !important':''}`);}
+ if(!declarations.length)return '';const selectors=r.selectorText.split(',').map(sel=>sel.includes('#hearu-app')?sel.replace(/#hearu-app/g,'#hearu-app[data-theme="night"]'):'#hearu-app[data-theme="night"] '+sel).join(',');return `${selectors}{${declarations.join(';')}}`;}
+ if(r.cssRules && r.conditionText)return `${r.type===12?'@supports':'@media'} ${r.conditionText}{${walk(r.cssRules)}}`;return '';
+ }).join('\n');
+ nightStyle.textContent=Array.from(document.styleSheets).filter(sh=>sh.ownerNode!==nightStyle).map(sh=>{try{return walk(sh.cssRules);}catch{return '';}}).join('\n')+'\n#hearu-app[data-theme="night"]{color-scheme:dark;background:#141414;color:#eee}\n#hearu-app[data-theme="night"] .hu-modal{background:rgba(0,0,0,.65)}\n#hearu-app[data-theme="night"] .hu-profile-identity,#hearu-app[data-theme="night"] .hu-profile-name h1,#hearu-app[data-theme="night"] .hu-profile-cover-caption{color:#f4f4f4}\n#hearu-app[data-theme="night"] .hu-profile-handle{color:#ccc}';
+}
+function applyNight(){root.dataset.theme=localStorage.getItem('hearu.night.v1')==='on'?'night':'day';if(root.dataset.theme==='night')buildNightPalette();}
+function toggleNight(){localStorage.setItem('hearu.night.v1',root.dataset.theme==='night'?'off':'on');applyNight();if(view==='profile')paintProfile();}
+applyNight();
+window.addEventListener('load',()=>{if(root.dataset.theme==='night')buildNightPalette();});
