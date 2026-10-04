@@ -351,12 +351,6 @@ async function getAiReply(chatId, chatType, isBackground = false) {
                 }
             }
 
-            // 新版本的条目在 Gemini 原生请求里也随同当前系统提示词发送。
-            if (chatType === 'private' && db.cotSettings?.enabled && isHhPromptVersion(resolveCotPromptVersion(chat))) {
-                const instruction = hhOptionalCotInstruction(chat, 'chat');
-                if (instruction) systemPrompt += '\n\n' + instruction;
-            }
-
             requestBody = {
                 contents: contents,
                 system_instruction: {parts: [{text: systemPrompt}]},
@@ -518,7 +512,22 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             const cotEnabled = db.cotSettings && db.cotSettings.enabled;
             
             if (cotEnabled) {
-                const cotInstruction = hhOptionalCotInstruction(chat, 'chat');
+                let cotInstruction = '';
+                // 优先使用角色专属 CoT 预设
+                let activePresetId = 'default';
+                if (chat.exclusiveCotPreset) {
+                    activePresetId = chat.exclusiveCotPreset;
+                } else if (db.cotSettings && db.cotSettings.activePresetId) {
+                    activePresetId = db.cotSettings.activePresetId;
+                }
+                const preset = (db.cotPresets || []).find(p => p.id === activePresetId);
+                
+                if (preset && preset.items) {
+                    cotInstruction = preset.items
+                        .filter(item => item.enabled)
+                        .map(item => item.content)
+                        .join('\n\n');
+                }
 
                 if (cotInstruction) {
                     // 1. 插入后置指令
@@ -528,10 +537,10 @@ async function getAiReply(chatId, chatType, isBackground = false) {
                     });
 
                     // 2. 插入触发器
-                    if (!isHhPromptVersion(resolveCotPromptVersion(chat))) pushOrMergeMessage('user', '[incipere]');
+                    pushOrMergeMessage('user', '[incipere]');
 
                     // 3. 插入 Prefill (预填/强塞)
-                    const prefillEnabled = db.cotSettings.prefillEnabled !== false && !isHhPromptVersion(resolveCotPromptVersion(chat));
+                    const prefillEnabled = db.cotSettings.prefillEnabled !== false;
                     if (prefillEnabled) {
                         pushOrMergeMessage('assistant', '<thinking>');
                     }

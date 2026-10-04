@@ -104,7 +104,7 @@ function initCotSettings() {
                     db.cotSettings.lastPresetTT = 'default_tt';
                     showMsg = true;
                 } else {
-                    db.cotSettings.activePresetId = rememberedCotPresetId('tt', 'chat');
+                    db.cotSettings.activePresetId = db.cotSettings.lastPresetTT || 'default_tt';
                 }
 
                 if (!db.cotSettings.hasSwitchedToTTCall) {
@@ -114,7 +114,7 @@ function initCotSettings() {
                     db.cotSettings.hasShownTTCallToast = true;
                     showMsg = true;
                 } else {
-                    db.cotSettings.activeCallPresetId = rememberedCotPresetId('tt', 'call');
+                    db.cotSettings.activeCallPresetId = db.cotSettings.lastCallPresetTT || 'default_call_tt';
                 }
 
                 if (showMsg) {
@@ -124,8 +124,8 @@ function initCotSettings() {
                 }
             } else {
                 // 切换回 uwu
-                db.cotSettings.activePresetId = rememberedCotPresetId('uwu', 'chat');
-                db.cotSettings.activeCallPresetId = rememberedCotPresetId('uwu', 'call');
+                db.cotSettings.activePresetId = db.cotSettings.lastPresetUwU || 'default_uwu';
+                db.cotSettings.activeCallPresetId = db.cotSettings.lastCallPresetUwU || 'default_call_uwu';
                 showToast('提示词版本已切换');
             }
             
@@ -281,44 +281,36 @@ function initXmlHelpFeature() {
                 <div class="modal-window" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
                     <h3>XML 标签说明</h3>
                     <div class="cot-xml-help-content" style="flex: 1; overflow-y: auto; padding: 10px; line-height: 1.6; color: #444;">
-                        <p>这些标签用于组织提示词或标记回复内容。各版本使用的标签不同；标签名称本身不保证模型遵守规则。以下先列出 UwU 的常用标签：</p>
+                        <p>默认思维链中使用了以下 XML 标签来构建 System Prompt，了解它们有助于你更好地调整预设或在思维链中快捷引用：</p>
                         
             <div class="xml-tag-item">
-              <code>&lt;char_settings&gt;</code>
+              <code><char_settings></code>
               <p><strong>角色设定</strong>：包含角色设定以及世界书·后（不包含世界书·破限和世界书·前）</p>
             </div>
 
             <div class="xml-tag-item">
-              <code>&lt;user_settings&gt;</code>
+              <code><user_settings></code>
               <p><strong>用户设定</strong>：包含你的名字以及你对自己的人设描述。</p>
             </div>
 
             <div class="xml-tag-item">
-              <code>&lt;logic_rules&gt;</code>
+              <code><logic_rules></code>
               <p><strong>逻辑规则</strong>：包含各种交互逻辑的详细说明，如表情包列表、相册图片、特殊指令（转账、礼物、撤回等）的处理规则。</p>
             </div>
 
             <div class="xml-tag-item">
-              <code>&lt;output_formats&gt;</code>
+              <code><output_formats></code>
               <p><strong>输出格式</strong>：AI 回复消息的格式总规范。</p>
             </div>
 
             <div class="xml-tag-item">
-              <code>&lt;Chatting Guidelines&gt;</code>
+              <code><Chatting Guidelines></code>
               <p><strong>对话指南</strong>：定义对话的节奏、回复条数限制以及风格建议。</p>
             </div>
 
             <div class="xml-tag-item">
-              <code>&lt;thinking&gt;</code>
-              <p><strong>思维链</strong>：这是已有回复隐藏标记。完整的 &lt;thinking&gt;…&lt;/thinking&gt; 内容在普通聊天视图中隐藏，调试模式可能显示。最终角色正文必须放在闭合标签之后；并非所有版本都会输出此标记，也不应以此判断规则是否生效。</p>
-            </div>
-            <div class="xml-tag-item">
-              <code>&lt;hh_online_chain&gt;</code><br><code>&lt;hh_offline_chain&gt;</code>
-              <p><strong>ㅎ.ㅎ / ㅎ-ㅎ 基础规范</strong>：组织当前版本的正文规则，不是要求模型复述规则或输出思考。线下只使用文字容器，禁止线上功能。</p>
-            </div>
-            <div class="xml-tag-item">
-              <code>&lt;negative_examples&gt;</code>
-              <p><strong>反面例子</strong>：只用于识别禁止模仿的话术，不能引用或照搬到角色正文。</p>
+              <code><thinking></code>
+              <p><strong>思维链</strong>：AI 的思考过程将包裹在此标签内。这部分内容不会显示在聊天界面上，仅用于 AI 进行逻辑推演。</p>
             </div>
                     </div>
                     <div style="margin-top: 15px; text-align: right;">
@@ -474,7 +466,7 @@ function loadCotSettings() {
     const humanRunItem = document.getElementById('cot-human-run-switch')?.closest('.kkt-item');
     if (humanRunItem) {
         // 只要是 T.T 版本，无论聊天还是通话，都隐藏“角色活人运转”开关
-        if (db.cotSettings.promptVersion === 'tt' || isHhPromptVersion(db.cotSettings.promptVersion)) {
+        if (db.cotSettings.promptVersion === 'tt') {
             humanRunItem.style.display = 'none';
         } else {
             humanRunItem.style.display = 'flex';
@@ -514,11 +506,6 @@ function renderCotPresetSelect() {
     select.innerHTML = '';
     
     db.cotPresets.forEach(preset => {
-        const version = db.cotSettings.promptVersion || 'uwu';
-        const isNewDefault = /^default_(?:call_)?hh(?:_offline)?$/.test(preset.id);
-        if ((isHhPromptVersion(version) && /^default(?:_|$)/.test(preset.id)) || isNewDefault) {
-            if (preset.id !== cotDefaultPresetId(version, currentCotMode)) return;
-        }
         const option = document.createElement('option');
         option.value = preset.id;
         option.textContent = preset.name;
@@ -537,7 +524,7 @@ function renderCotPresetSelect() {
         // 检查 activePresetId 是否存在，不存在则默认第一个
         const exists = db.cotPresets.find(p => p.id === activeId);
         if (!exists && db.cotPresets.length > 0) {
-            activeId = rememberedCotPresetId(db.cotSettings.promptVersion || 'uwu', currentCotMode);
+            activeId = isHhPromptVersion(db.cotSettings.promptVersion) ? rememberedCotPresetId(db.cotSettings.promptVersion, currentCotMode) : db.cotPresets[0].id;
             if (currentCotMode === 'chat') {
                 db.cotSettings.activePresetId = activeId;
             } else {
@@ -1015,7 +1002,7 @@ async function createNewCotPreset() {
     } else {
         db.cotSettings.activeCallPresetId = newPreset.id;
     }
-    rememberCotVersionPreset(currentCotMode);
+    if (isHhPromptVersion(db.cotSettings.promptVersion)) rememberCotVersionPreset(currentCotMode);
     await saveData();
     
     loadCotSettings(); // 重新加载以更新下拉框和列表
@@ -1155,7 +1142,7 @@ async function importCotPreset(e) {
         } else {
             db.cotSettings.activeCallPresetId = preset.id;
         }
-        rememberCotVersionPreset(currentCotMode);
+        if (isHhPromptVersion(db.cotSettings.promptVersion)) rememberCotVersionPreset(currentCotMode);
         await saveData();
         
         document.getElementById('cot-preset-manage-modal').classList.remove('visible');
