@@ -55,7 +55,7 @@
             assert(templateIds.has(widget.templateId) && object(widget.vars), '小组件模板或内容缺失');
             assert(ids.includes(widget.id), '小组件没有对应的主页位置');
         });
-        const apps = new Set(['app-chat', 'app-api', 'app-wallpaper', 'app-worldbook', 'app-customize', 'app-tutorial', 'app-console', 'app-widget-market', 'app-reader', 'app-placeholder']);
+        const apps = new Set(['app-chat', 'app-api', 'app-wallpaper', 'app-worldbook', 'app-customize', 'app-tutorial', 'app-console', 'app-widget-market', 'app-reader', 'app-placeholder', 'app-mono']);
         assert(ids.every(id => apps.has(id) || widgetIds.has(id)), '文件包含当前版本不支持的主页项目');
         assert(typeof source.wallpaper === 'string' && ['day', 'night'].includes(source.homeScreenMode), '壁纸或日夜模式不正确');
         assert(object(source.customIcons) && Object.values(source.customIcons).every(value => typeof value === 'string'), '图标图片数据不正确');
