@@ -476,6 +476,7 @@ function setupHomeScreen() {
 
     // 定义所有可用的组件和应用
     const allItems = {
+        'app-mono': `<div class="grid-item-1x1" data-id="app-mono"><a href="#" class="app-icon" data-mono="home"><img src="${getIcon('mono-app')}" alt="MONO" class="icon-img"><span class="app-name">MONO</span></a></div>`,
         'app-chat': `<div class="grid-item-1x1" data-id="app-chat"><a href="#" class="app-icon" data-target="chat-list-screen"><img src="${getIcon('chat-list-screen')}" alt="404" class="icon-img"><span class="app-name">${defaultIcons['chat-list-screen'].name}</span></a></div>`,
         'app-api': `<div class="grid-item-1x1" data-id="app-api"><a href="#" class="app-icon" data-target="api-settings-screen"><img src="${getIcon('api-settings-screen')}" alt="API" class="icon-img"><span class="app-name">${defaultIcons['api-settings-screen'].name}</span></a></div>`,
         'app-wallpaper': `<div class="grid-item-1x1" data-id="app-wallpaper"><a href="#" class="app-icon" data-target="wallpaper-screen"><img src="${getIcon('wallpaper-screen')}" alt="Wallpaper" class="icon-img"><span class="app-name">${defaultIcons['wallpaper-screen'].name}</span></a></div>`,
@@ -810,6 +811,14 @@ function setupHomeScreen() {
             }
             else switchScreen(target);
         });
+    });
+
+    // MONO follows the existing home grid and edit mode.
+    homeScreen.querySelector('[data-mono="home"]')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (isHomeEditMode) return;
+        if (!window.ForumApp?.open) return showToast('MONO尚未加载，请刷新后重试');
+        try { await window.ForumApp.open(); } catch (error) { console.error('MONO:', error); }
     });
 
     // 绑定编辑模式按钮
