@@ -17,10 +17,87 @@ function forumReadView(c={}) {
 }
 const characters=new Proxy([], {get(target,key){const list=forumNativeCharacters().map(forumReadView);const value=list[key];return typeof value==='function'?value.bind(list):value;}});
 const chatSettings=new Proxy({}, {get(target,key){return forumReadView(forumCharacter(key)||window.chatSettings?.[key]||{});}});
+function forumApiEndpoint(config) {
+  const base=String(config?.url||'').trim().replace(/\/+$/,'');
+  let parsed;try{parsed=new URL(base);}catch{throw Error('API地址无效，请填写完整的 https:// 地址');}
+  if(!['https:','http:'].includes(parsed.protocol))throw Error('API地址必须使用 http 或 https');
+  if(config.provider==='gemini') {
+    if(/:generateContent$/.test(parsed.pathname))return base;
+    parsed.pathname=parsed.pathname.replace(/\/v1(?:beta)?\/?$/,'').replace(/\/$/,'')+'/v1beta/models/'+encodeURIComponent(config.model)+':generateContent';
+    parsed.searchParams.set('key',config.key);return parsed.href;
+  }
+  if(/\/chat\/completions\/?$/.test(parsed.pathname))return base;
+  parsed.pathname=parsed.pathname.replace(/\/$/,'')+(/\/v\d+(?:beta)?$/.test(parsed.pathname)?'/chat/completions':'/v1/chat/completions');
+  return parsed.href;
+}
+function forumCleanStructured(raw) {
+  const text=String(raw||'');if(text.length>250000)throw Error('生成结果过长，无法安全解析');
+  if(/<(thinking|think|analysis|reasoning)\b[^>]*>(?![\s\S]*?<\/\1\s*>)/i.test(text))throw Error('模型思考内容尚未结束，未收到完整正文，请重试');
+  return text.replace(/<(thinking|think|analysis|reasoning)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'').replace(/```(?:json)?/gi,'').replace(/^\uFEFF/,'').trim();
+}
+function forumRepairJson(text) {
+  let out='',quoted=false,escaped=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quoted){if(escaped){out+=c;escaped=false;}else if(c==='\\'){out+=c;escaped=true;}else if(c==='"'){out+=c;quoted=false;}else if(c==='\n')out+='\\n';else if(c==='\r')out+='\\r';else if(c==='\t')out+='\\t';else out+=c;}
+    else {if(c==='"'){quoted=true;out+=c;}else if(c===','){let j=i+1;while(/\s/.test(text[j]||'')&&j<text.length)j++;if(text[j]!==']'&&text[j]!=='}')out+=c;}else out+=c;}
+  }return out;
+}
+function forumStructuredValue(raw) {
+  const text=forumCleanStructured(raw),parse=t=>JSON.parse(forumRepairJson(t));
+  try{return parse(text);}catch{}
+  const stack=[],complete=[];let quote=false,escape=false,start=-1;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];if(quote){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')quote=false;continue;}
+    if(c==='"'&&stack.length){quote=true;continue;}
+    if(c==='{'||c==='['){if(!stack.length)start=i;stack.push({c,start:i});}
+    else if((c==='}'||c===']')&&stack.length){const top=stack.at(-1);if((c==='}'&&top.c!=='{')||(c===']'&&top.c!=='[')){stack.length=0;start=-1;continue;}stack.pop();const fragment=text.slice(top.start,i+1);if(!stack.length){try{return parse(fragment);}catch{}}if(top.c==='{'&&stack.length===1&&stack[0].c==='['){try{complete.push(parse(fragment));}catch{}}}
+  }
+  // A truncated final item is discarded; completed top-level array objects are preserved.
+  if(complete.length)return complete;
+  throw Error('未能读取完整的生成数据；模型可能返回了说明文字或截断结果，请重试');
+}
+function forumParseArray(raw,keys=['posts','comments','messages','data','results']) {
+  const value=forumStructuredValue(raw);if(Array.isArray(value))return value.filter(v=>v&&typeof v==='object'&&!Array.isArray(v));
+  for(const k of keys)if(Array.isArray(value?.[k]))return value[k].filter(v=>v&&typeof v==='object'&&!Array.isArray(v));
+  if(value&&typeof value==='object'&&('authorName'in value||'senderName'in value||'content'in value))return [value];
+  throw Error('模型返回的数据缺少帖子或评论列表，请重试');
+}
 async function fetch(url,options={}) {
-  if(options.signal)return window.fetch(url,options);
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
-  try {const response=await window.fetch(url,{...options,signal:controller.signal});if(typeof response.json==='function'){const read=response.json.bind(response);response.json=async()=>{let jsonTimer;try{return await Promise.race([read(),new Promise((_,reject)=>{jsonTimer=setTimeout(()=>{controller.abort();reject(new Error('读取生成结果超时，请重试'));},90000);})]);}finally{clearTimeout(jsonTimer);}};}return response;}finally{clearTimeout(timer);}
+  const controller=options.signal?null:new AbortController(),signal=options.signal||controller.signal;
+  const timer=controller?setTimeout(()=>controller.abort(),90000):null;
+  let geminiAdapter=false;
+  try {
+    let body;try{body=typeof options.body==='string'?JSON.parse(options.body):null;}catch{}
+    if(body?.messages&&String(url).includes(':generateContent')) {
+      geminiAdapter=true;const system=body.messages.filter(m=>m.role==='system').map(m=>m.content).join('\n');
+      const adapted={contents:body.messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:String(m.content||'')}]})),generationConfig:{temperature:body.temperature??0.9}};
+      if(system)adapted.systemInstruction={parts:[{text:system}]};if(body.max_tokens)adapted.generationConfig.maxOutputTokens=body.max_tokens;
+      options={...options,headers:{'Content-Type':'application/json'},body:JSON.stringify(adapted)};
+    }
+    const response=await window.fetch(url,{...options,signal});
+    const read=typeof response.text==='function'?()=>response.text():()=>response.json();
+    let cached;
+    const json=()=>cached ||= (async()=>{
+      let readTimer;let raw;
+      try{raw=await Promise.race([read(),new Promise((_,reject)=>{readTimer=setTimeout(()=>{controller?.abort();reject(Error('读取生成结果超时，请重试'));},90000);})]);}finally{clearTimeout(readTimer);}
+      let data=raw;
+      if(typeof raw==='string'){
+        if(/^\s*(?:<!doctype\s+html|<html\b|<head\b|<body\b)/i.test(raw))throw Error('接口返回了网页而非生成数据，请检查API地址或服务状态'+(response.status?'（HTTP '+response.status+'）':''));
+        try{data=JSON.parse(raw);}catch{
+          if(/^\s*data:/m.test(raw)){
+            let content='',finish=null;for(const line of raw.split(/\r?\n/)){if(!line.startsWith('data:'))continue;const chunk=line.slice(5).trim();if(!chunk||chunk==='[DONE]')continue;try{const d=JSON.parse(chunk);content+=d.choices?.[0]?.delta?.content||'';finish=d.choices?.[0]?.finish_reason||finish;}catch{}}
+            if(content)data={choices:[{message:{content},finish_reason:finish}]};else throw Error('接口返回了空的流式结果，请重试');
+          }else throw Error('API返回的内容不是有效数据，请检查接口服务');
+        }
+      }
+      if(data?.error)throw Error('API请求失败：'+String(data.error.message||data.error).slice(0,180));
+      if(geminiAdapter){const candidate=data.candidates?.[0];const content=candidate?.content?.parts?.filter(p=>!p.thought).map(p=>p.text||'').join('');if(!content)throw Error('接口未返回正文'+(data.promptFeedback?.blockReason?'：'+data.promptFeedback.blockReason:''));return {choices:[{message:{content},finish_reason:candidate.finishReason==='MAX_TOKENS'?'length':'stop'}]};}
+      return data;
+    })();
+    if(!response.ok){await json();throw Error('API请求失败（HTTP '+response.status+'）');}
+    return {ok:response.ok,status:response.status,headers:response.headers,json};
+  } catch(e){if(e.name==='AbortError'&&!options.signal)throw Error('生成请求超时，请稍后重试');throw e;}finally{clearTimeout(timer);}
 }
 const localforage=window.localforage || forumOwnStorage();
 function forumOwnStorage() {
@@ -2487,7 +2564,7 @@ ${participants.length > 0
 
     messages.push({ role: "user", content: userContent });
 
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2507,11 +2584,11 @@ ${participants.length > 0
     let content = data.choices[0]?.message?.content || "";
     if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
-    content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    content = forumCleanStructured(content);
     const jsonMatch = content.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
+      const result = forumStructuredValue(content);
       
       post.views = result.views || Math.floor(Math.random() * 500) + 50;
       post.likes = result.likes || Math.floor(Math.random() * 30) + 5;
@@ -2870,7 +2947,7 @@ ${participants.length > 0
 ]`;
     
     // 发送请求
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2913,7 +2990,7 @@ ${participants.length > 0
     if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
     // 1. 基础清洗
-    content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    content = forumCleanStructured(content);
 
     // 2. 尝试标准解析 (保留了你原版的强力容错逻辑)
     let posts = [];
@@ -2921,32 +2998,8 @@ ${participants.length > 0
       let cleanContent = content;
       if (cleanContent.endsWith(',]')) cleanContent = cleanContent.replace(',]', ']');
       if (cleanContent.endsWith(',\n]')) cleanContent = cleanContent.replace(',\n]', '\n]');
-      posts = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.warn("标准JSON解析失败，尝试暴力修复...", parseError);
-      // ★★★ 这里是你原版的正则修复逻辑，完全保留 ★★★
-      const postMatches = content.match(/\{\s*"authorType"[\s\S]*?"comments"\s*:\s*\[[\s\S]*?\]\s*\}/g);
-      if (postMatches && postMatches.length > 0) {
-        posts = [];
-        for (const matchStr of postMatches) {
-          try {
-            const p = JSON.parse(matchStr);
-            posts.push(p);
-          } catch (e) {
-             try {
-               const fixedStr = matchStr.replace(/("content"\s*:\s*")([\s\S]*?)("\s*,\s*"likes")/g, (match, p1, p2, p3) => {
-                   return p1 + p2.replace(/"/g, "'") + p3;
-               });
-               posts.push(JSON.parse(fixedStr));
-            } catch (e2) {}
-          }
-        }
-        if (posts.length > 0) {
-           showToast(`成功抢救回 ${posts.length} 条数据`);
-        }
-      }
-      if (posts.length === 0) throw new Error("生成的数据格式严重错误，无法解析。");
-    }
+      posts = forumParseArray(cleanContent,['posts','data','results']);
+    } catch (parseError) { throw parseError; }
 
     // 获取当前用户昵称用于过滤
     const myName = forumSettings.userNickname || "用户";
@@ -3006,7 +3059,7 @@ ${participants.length > 0
   } catch (e) {
     console.error("[论坛] 生成失败:", e);
     if (e.message.includes("JSON")) {
-       showToast("AI生成格式错误，请重试 (建议调低API温度)");
+       showToast("生成数据不完整，请重试；如反复出现，请检查模型的输出长度限制");
     } else {
        showToast("生成失败: " + e.message);
     }
@@ -3071,7 +3124,7 @@ ${replier ? `请你扮演「${replier.name}」回复这条评论。\n角色人�
 3. 只输出回复内容，不要其他
 4. 禁止使用[表情]格式，用emoji代替`;
 
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3220,7 +3273,7 @@ JSON格式模板：
   {"authorType":"ai","authorName":"角色名","content":"这里的content不要包含'回复xx'","replyToName":"被回复者昵称"}
 ]`;
 
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiConfig.key}` },
       body: JSON.stringify({
@@ -3245,7 +3298,7 @@ JSON格式模板：
 
     let newComments = [];
     try {
-        newComments = JSON.parse(content);
+        newComments = forumParseArray(content,['comments','data','results']);
     } catch(e) {
         const match = content.match(/\[[\s\S]*\]/);
         if (match) {
@@ -4458,7 +4511,7 @@ ${relationships.join("\n")}`;
 5. **回复格式规范（极其重要）：** 评论的 \`content\` 中**绝对不能**包含“回复@xxx”或“回复 xxx”等前缀。被回复者的【中文昵称】必须写在 \`replyToName\` 字段里（千万不要写英文handle）。绝对不要生成任何回复用户（楼主）的评论。`;
 
     // 4. 调用 API
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiConfig.key}` },
       body: JSON.stringify({
@@ -4496,44 +4549,18 @@ ${relationships.join("\n")}`;
     // 即使 AI 输出格式乱了，只要包含 {...} 结构，就能抠出来
     
     // 清洗 Markdown
-    content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    content = forumCleanStructured(content);
 
     let posts = [];
     try {
       // 方案A: 标准解析
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const jsonMatch = /[\[{]/.test(forumCleanStructured(content));
       if (jsonMatch) {
-        posts = JSON.parse(jsonMatch[0]);
+        posts = forumParseArray(content,['posts','data','results']);
       } else {
         throw new Error("无标准数组");
       }
-    } catch (parseError) {
-      console.warn("[论坛] 标准解析失败，使用智能正则提取...", parseError);
-      
-      // 方案B: 智能正则提取
-      // 这个正则能匹配嵌套对象：{...{...}...}
-      const objectRegex = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
-      const matches = content.match(objectRegex);
-      
-      if (matches && matches.length > 0) {
-        posts = [];
-        for (const matchStr of matches) {
-          try {
-            // 尝试修复常见的双引号未转义问题 (content: "他说"你好"")
-            let safeStr = matchStr;
-            // 简单的试探性修复
-            if (safeStr.includes('"content": "') && safeStr.match(/"content": ".*?".*?"/)) {
-                 safeStr = safeStr.replace(/("content"\s*:\s*")([\s\S]*?)("\s*,\s*")/g, (m, p1, p2, p3) => {
-                     return p1 + p2.replace(/"/g, "'") + p3;
-                 });
-            }
-            posts.push(JSON.parse(safeStr));
-          } catch (e) {
-             // 真的坏掉了，跳过这一条
-          }
-        }
-      }
-    }
+    } catch (parseError) { throw parseError; }
 
     if (posts.length === 0) {
         throw new Error("无法解析生成内容，请重试");
@@ -5186,7 +5213,7 @@ JSON 格式模板：
 
 请只返回 JSON，不要包含 Markdown 代码块标记或其他文字。`;
 
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -5207,11 +5234,11 @@ JSON 格式模板：
     if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
     // 清洗 JSON
-    content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    content = forumCleanStructured(content);
+    const jsonMatch = /[\[{]/.test(forumCleanStructured(content));
 
     if (jsonMatch) {
-      const newPosts = JSON.parse(jsonMatch[0]);
+      const newPosts = forumParseArray(content,['posts','data','results']);
       
       newPosts.forEach((postData, idx) => {
         const newPost = {
@@ -5556,7 +5583,7 @@ JSON 模板：
 
     console.log("[私信] 正在请求 API (上下文感知版)...");
 
-    const response = await fetch(`${apiConfig.url}/chat/completions`, {
+    const response = await fetch(forumApiEndpoint(apiConfig), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiConfig.key}` },
         body: JSON.stringify({ 
@@ -5581,7 +5608,7 @@ JSON 模板：
 
     // 级别1: 标准解析
     try {
-        msgs = JSON.parse(content);
+        msgs = forumParseArray(content,['messages','data','results']);
     } catch (e1) {
         // 级别2: 对象提取
         const objectMatches = content.match(/\{[\s\S]*?\}/g);
@@ -6775,9 +6802,9 @@ function forumDMConfig(conv) {
 async function forumModel(conv,system,messages,signal) {
   const config=forumDMConfig(conv);const base=String(config.url).replace(/\/$/,'');
   const native=!!forumNativeDb()?.apiSettings;
-  const url=/\/chat\/completions$/.test(base)?base:base+(/\/v1$/.test(base) || !native?'/chat/completions':'/v1/chat/completions');
+  const url=forumApiEndpoint(config);
   if(config.provider==='gemini') {
-    const endpoint=base.replace(/\/v1(?:beta)?$/,'')+'/v1beta/models/'+encodeURIComponent(config.model)+':generateContent?key='+encodeURIComponent(config.key);
+    const endpoint=forumApiEndpoint(config);
     const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))}),signal});
     if(!response.ok)throw Error(`API请求失败（${response.status}）`);const data=await response.json();const result=data.candidates?.[0]?.content?.parts?.filter(p=>!p.thought).map(p=>p.text || '').join('');if(!result)throw Error('API未返回消息内容');return result;
   }
@@ -7155,7 +7182,7 @@ renderComposeImages=function(){monoV3RenderImages();const empty=document.querySe
 function monoCompactPersonEditor(id){const m=document.getElementById(id);if(!m)return;m.classList.add('mono-person-editor');m.querySelector('.forum-participant-banner-edit')?.remove();const head=m.querySelector('.forum-modal-header'),save=m.querySelector('.forum-identity-submit');if(save){save.textContent='保存';head.append(save);}const identity=m.querySelector('.forum-identity-char');if(identity)identity.insertAdjacentHTML('beforeend','<small class="mono-avatar-tip">点击头像更换</small>');}
 const monoV3Person=showParticipantEditModal;showParticipantEditModal=function(...args){monoV3Person(...args);monoCompactPersonEditor('forumSetIdentityModal');};
 const monoV3Npc=showNpcEditModal;showNpcEditModal=function(...args){monoV3Npc(...args);monoCompactPersonEditor('forumNpcModal');};
-Object.assign(ForumApp,{monoLoadMore,getGlobalWorldbooks,resolveAuthorIdentity,generateForumPosts,renderDirectMessagesList,openForumCompose,renderComposeImages,showParticipantEditModal,showNpcEditModal});
+Object.assign(ForumApp,{forumApiEndpoint,forumStructuredValue,forumParseArray,monoLoadMore,getGlobalWorldbooks,resolveAuthorIdentity,generateForumPosts,renderDirectMessagesList,openForumCompose,renderComposeImages,showParticipantEditModal,showNpcEditModal});
 function forumBoot() {
   if(ForumApp.ready)return ForumApp.ready;
   let page=document.getElementById('forumPage');
