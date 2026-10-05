@@ -9,8 +9,19 @@ function closePage(id) {
   const page=document.getElementById(id);if(page){page.hidden=true;page.style.display='none';}
 }
 // Read-only compatibility views. Returned character objects are copies.
-const characters=new Proxy([], {get(target,key){const list=forumNativeCharacters().map(c=>({...structuredClone(c),name:c.name || c.remarkName || c.realName || '角色',description:c.description || c.persona || ''}));const value=list[key];return typeof value==='function'?value.bind(list):value;}});
-const chatSettings=new Proxy({}, {get(target,key){return structuredClone(forumCharacter(key) || window.chatSettings?.[key] || {});}});
+function forumReadView(c={}) {
+  // Only fields used by MONO's forum UI/persona reader; never clone host chat history here.
+  const keys=['id','name','remarkName','realName','description','persona','systemPrompt','avatar','charName','worldBookIds','status','myName','myPersona'];
+  const view={};for(const k of keys)if(c[k]!==undefined)view[k]=structuredClone(c[k]);
+  view.name=c.name||c.remarkName||c.realName||'角色';view.description=c.description||c.persona||'';return Object.freeze(view);
+}
+const characters=new Proxy([], {get(target,key){const list=forumNativeCharacters().map(forumReadView);const value=list[key];return typeof value==='function'?value.bind(list):value;}});
+const chatSettings=new Proxy({}, {get(target,key){return forumReadView(forumCharacter(key)||window.chatSettings?.[key]||{});}});
+async function fetch(url,options={}) {
+  if(options.signal)return window.fetch(url,options);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+  try {const response=await window.fetch(url,{...options,signal:controller.signal});if(typeof response.json==='function'){const read=response.json.bind(response);response.json=async()=>{let jsonTimer;try{return await Promise.race([read(),new Promise((_,reject)=>{jsonTimer=setTimeout(()=>{controller.abort();reject(new Error('读取生成结果超时，请重试'));},90000);})]);}finally{clearTimeout(jsonTimer);}};}return response;}finally{clearTimeout(timer);}
+}
 const localforage=window.localforage || forumOwnStorage();
 function forumOwnStorage() {
   let database;const ready=new Promise((resolve,reject)=>{const req=indexedDB.open('ForumApp-v1',1);req.onupgradeneeded=()=>req.result.createObjectStore('kv');req.onsuccess=()=>{database=req.result;resolve();};req.onerror=()=>reject(req.error);});
@@ -154,10 +165,10 @@ function mapAndResolveComments(newComments, post) {
     .filter(c => {
       // 严格过滤掉代指用户的生成
       const cName = (c.authorName || "").trim().toLowerCase();
-      return c.authorType !== 'user' && cName !== 'user' && cName !== myName;
+      return c.authorType !== 'user' && cName !== 'user' && !(cName === myName && !['ai','npc'].includes(c.authorType));
     })
     .map((c, idx) => {
-      const auth = resolveAuthorIdentity(c.authorName);
+      const auth = resolveAuthorIdentity(c.authorName,c);
       return {
         auth: auth,
         originalComment: c,
@@ -251,7 +262,11 @@ function mapAndResolveComments(newComments, post) {
 }
 
 // ★★★ 新增：超级头像查找函数 (修复头像不显示 & 修复 characters 报错) ★★★
-function findBestAvatar(name, fallbackAvatar) {
+function findBestAvatar(name, fallbackAvatar, record) {
+  if(record){
+    if(record.authorType==='user')return forumSafeImage((monoOwnPost(record)?forumSettings.userAvatar:record.authorAvatar)||fallbackAvatar||getDefaultAvatarDataUrl());
+    const resolved=resolveAuthorIdentity(name,record);return forumSafeImage(resolved.avatar||fallbackAvatar||getDefaultAvatarDataUrl());
+  }
   if (!name) return getDefaultAvatarDataUrl();
   const cleanName = name.trim().toLowerCase();
   const globalChars = typeof characters !== 'undefined' ? characters : (window.characters || []); 
@@ -486,7 +501,9 @@ function renderForumFeed() {
   }
 
   // 8. 渲染帖子列表
-  let html = filteredPosts.map((post) => renderForumPostItem(post)).join("");
+  const visible=filteredPosts.slice(0,monoFeedLimit);
+  let html = visible.map((post) => renderForumPostItem(post)).join("");
+  if(filteredPosts.length>visible.length)html+='<button class="mono-load-more" onclick="ForumApp.monoLoadMore()">加载更多</button>';
   container.innerHTML = html;
 }
 
@@ -495,10 +512,10 @@ function renderForumPostItem(post) {
   const tagHtml = "";
   
   // 强制使用最新昵称
-  const displayAuthorName = post.authorType === 'user' ? (forumSettings.userNickname || '我') : post.authorName;
+  const displayAuthorName = post.authorType === 'user' && monoOwnPost(post) ? (forumSettings.userNickname || '我') : post.authorName;
 
   // ★★★ 修复：使用超级查找器获取头像 ★★★
-  const realAvatarUrl = findBestAvatar(displayAuthorName, post.authorAvatar);
+  const realAvatarUrl = findBestAvatar(displayAuthorName, post.authorAvatar, post);
   const avatarContent = `<img src="${realAvatarUrl}" alt="${displayAuthorName}">`;
 
   // 格式化时间
@@ -529,7 +546,7 @@ function renderForumPostItem(post) {
   if (post.isRetweet && post.originalPost) {
     const orig = post.originalPost;
     // 原帖头像也修复一下
-    const origRealAvatar = findBestAvatar(orig.authorName, orig.authorAvatar);
+    const origRealAvatar = findBestAvatar(orig.authorName, orig.authorAvatar, orig);
     const origAvatarContent = `<img src="${origRealAvatar}" alt="">`;
     const origHandle = orig.handle || generateEnglishHandle(orig.authorName);
     const origContentHtml = formatForumContent(orig.content);
@@ -667,8 +684,8 @@ function renderForumPostDetail() {
   const container = document.getElementById("forumDetailContent");
   if (!container) return;
 
-  const displayAuthorName = post.authorType === 'user' ? (forumSettings.userNickname || '我') : post.authorName;
-  const realAvatarUrl = findBestAvatar(displayAuthorName, post.authorAvatar);
+  const displayAuthorName = post.authorType === 'user' && monoOwnPost(post) ? (forumSettings.userNickname || '我') : post.authorName;
+  const realAvatarUrl = findBestAvatar(displayAuthorName, post.authorAvatar, post);
   const avatarContent = `<img src="${realAvatarUrl}" alt="">`;
   const handle = post.handle || generateEnglishHandle(post.authorName);
   const retweets = post.retweets || 0;
@@ -676,8 +693,8 @@ function renderForumPostDetail() {
 
   const commentsHtml = (post.comments || [])
     .map((comment) => {
-      const commentDisplayName = comment.authorType === 'user' ? (forumSettings.userNickname || '我') : comment.authorName;
-      const commentAvatarUrl = findBestAvatar(commentDisplayName, comment.authorAvatar);
+      const commentDisplayName = comment.authorType === 'user' && monoOwnPost(comment) ? (forumSettings.userNickname || '我') : comment.authorName;
+      const commentAvatarUrl = findBestAvatar(commentDisplayName, comment.authorAvatar, comment);
       const commentAvatar = `<img src="${commentAvatarUrl}" alt="">`;
 
       // ★★★ 最终修正：回复是细灰，名字是粗蓝，冒号是细灰 ★★★
@@ -2488,6 +2505,7 @@ ${participants.length > 0
 
     const data = await response.json();
     let content = data.choices[0]?.message?.content || "";
+    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -2786,12 +2804,12 @@ ${forumSettings.forumName}
     systemPrompt += `
 【AI角色】
 ${participants.length > 0 
-    ? participants.map((p, i) => `${i + 1}. ${p.name}（@${p.handle}）\n${p.fullPersona || p.identity || '未设置人设'}`).join("\n\n")
+    ? participants.map((p, i) => `${i + 1}. ${p.name}（@${p.handle}，authorType=ai，authorId=${p.id}）\n${p.fullPersona || p.identity || '未设置人设'}`).join("\n\n")
     : "无"
 }`;
 
     if (npcs.length > 0) {
-      systemPrompt += `\n\n【固定NPC】\n${npcs.map((n, i) => `${i + 1}. ${n.name}（@${n.handle}）`).join("\n")}`;
+      systemPrompt += `\n\n【固定NPC】\n${npcs.map((n, i) => `${i + 1}. ${n.name}（@${n.handle}，authorType=npc，authorId=${n.id}）`).join("\n")}`;
     }
 
     // ★★★ 推荐页注入随机发帖网民描述，大模型可由此作为素材发帖 ★★★
@@ -2824,6 +2842,7 @@ ${participants.length > 0
   {
     "authorType": "ai", // 或 "npc"（固定NPC或随机路人均使用 "npc"），绝对不要生成 "user"
     "authorName": "角色名或路人昵称",
+    "authorId": "已配置作者的ID；随机路人为null",
     "handle": "Handle名",
     "content": "内容中尽量用单引号。",
     "likes": 12,
@@ -2891,6 +2910,7 @@ ${participants.length > 0
     }
 
     let content = data.choices[0]?.message?.content || "";
+    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
     // 1. 基础清洗
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -2935,11 +2955,11 @@ ${participants.length > 0
     const newPosts = posts
             .filter(p => {
                 if (p.authorType === 'user') return false;
-                if (p.authorName === myName) return false;
+                if (p.authorName === myName && !['ai','npc'].includes(p.authorType)) return false;
                 return true;
             })
             .map((p, idx) => {
-                const auth = resolveAuthorIdentity(p.authorName);
+                const auth = resolveAuthorIdentity(p.authorName,p);
                 
                 const tempPost = {
                   id: Math.floor(Date.now() + idx * 1000 + Math.random() * 100),
@@ -3220,6 +3240,7 @@ JSON格式模板：
     }
 
     let content = data.choices[0]?.message?.content || "";
+    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
     content = content.replace(/```json|```/g, "").trim();
 
     let newComments = [];
@@ -4469,6 +4490,7 @@ ${relationships.join("\n")}`;
     }
 
     let content = data.choices[0]?.message?.content || "";
+    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
     // 5. ★★★ 核心修复：解析逻辑换成智能提取 ★★★
     // 即使 AI 输出格式乱了，只要包含 {...} 结构，就能抠出来
@@ -4519,7 +4541,7 @@ ${relationships.join("\n")}`;
 
     // 6. 后续逻辑保持不变...
     const searchPosts = posts.map((p, idx) => {
-        const auth = resolveAuthorIdentity(p.authorName);
+        const auth = resolveAuthorIdentity(p.authorName,p);
         
         const tempPost = {
           id: Math.floor(Date.now() + idx * 1000 + Math.random() * 100),
@@ -5182,6 +5204,7 @@ JSON 格式模板：
 
     const data = await response.json();
     let content = data.choices[0]?.message?.content || "";
+    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
 
     // 清洗 JSON
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -5547,6 +5570,7 @@ JSON 模板：
     if (!response.ok) throw new Error("API请求失败 " + response.status);
     const data = await response.json();
     let content = data.choices[0]?.message?.content || "";
+    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
     
     // 预处理
     content = content.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -7103,6 +7127,35 @@ for(const name of Object.keys(ForumApp)) {
  if(typeof ForumApp[name]==='function' && !(name in window) && !['showToast','getActiveApiConfig','compressAvatar','saveGlobalAvatar','closePage','sendDirectMessage','openProfileEditor','saveProfileChanges','getDefaultAvatar'].includes(name))window[name]=ForumApp[name];
 }
 ForumApp.ready=null;
+
+// MONO v3: scoped presentation, identity protocol and responsive rendering.
+let monoFeedLimit=30,monoPostsFlight=null;
+function monoLoadMore(){monoFeedLimit+=30;renderForumFeed();}
+const monoV3Books=getGlobalWorldbooks;
+getGlobalWorldbooks=function(){return monoV3Books().filter(w=>w.type!=='folder'&&w.isCategory!==true&&w.isFolder!==true);};
+resolveAuthorIdentity=function(rawName,record={}){
+ const normalize=v=>String(v||'').trim().replace(/^@/,'').toLowerCase(),name=normalize(rawName),handle=normalize(record.handle||record.authorHandle),type=record.authorType;
+ const rows=[...(forumSettings.aiParticipants||[]).map(p=>{const c=characters.find(c=>String(c.id)===String(p.charId));return {type:'ai',id:p.charId,name:p.nickname||c?.name||'',handle:p.handle,avatar:p.avatar||c?.avatar||''};}),...(forumSettings.npcs||[]).map(n=>({type:'npc',id:n.id,name:n.name,handle:n.handle,avatar:n.avatar||''}))];
+ const eligible=type==='ai'||type==='npc'?rows.filter(r=>r.type===type):rows;
+ const exact=record.authorId!=null?eligible.find(r=>String(r.id)===String(record.authorId)):null;
+ const byHandle=handle?eligible.filter(r=>normalize(r.handle)===handle):[];
+ const byName=eligible.filter(r=>normalize(r.name)===name);
+ const match=exact||(byHandle.length===1?byHandle[0]:null)||(byName.length===1?byName[0]:null);
+ if(match)return match;
+ return {type:'npc',id:null,name:String(rawName||'路人'),avatar:''};
+};
+const monoV3Generate=generateForumPosts;
+generateForumPosts=function(...args){if(monoPostsFlight){showToast('正在生成，请稍候');return monoPostsFlight;}monoPostsFlight=(async()=>{try{return await monoV3Generate(...args);}finally{monoPostsFlight=null;}})();return monoPostsFlight;};
+const monoV3Contacts=renderDirectMessagesList;
+renderDirectMessagesList=function(){monoV3Contacts();const b=document.querySelector('.mono-account-switch');if(b){b.setAttribute('aria-label','切换我的账号');const span=b.querySelector('span');if(span)span.innerHTML='<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m4 6 4 4 4-4"/></svg>';}};
+const monoV3Compose=openForumCompose;
+openForumCompose=function(){monoV3Compose();const o=document.getElementById('forumComposeOverlay');o.classList.add('mono-ins-compose');const h=o.querySelector('.forum-compose-header'),body=o.querySelector('.forum-compose-body'),images=document.getElementById('forumComposeImages');h.querySelector('.forum-compose-title').textContent='新帖子';h.querySelector('.forum-compose-cancel').innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m15 4-8 8 8 8"/></svg>';const submit=h.querySelector('.forum-compose-submit')||o.querySelector('.mono-share-footer .forum-compose-submit');let footer=o.querySelector('.mono-share-footer');if(!footer){footer=document.createElement('div');footer.className='mono-share-footer';o.append(footer);}submit.textContent='分享';footer.append(submit);body.prepend(images);const textarea=document.getElementById('forumComposeTextarea');textarea.placeholder='添加配文…';textarea.blur();const tools=body.querySelector('.forum-compose-toolbar');tools.querySelector('.forum-compose-tool-btn').innerHTML=forumIcon('image')+'<span>本地图片</span>';let empty=body.querySelector('.mono-compose-empty');if(!empty){empty=document.createElement('button');empty.className='mono-compose-empty';empty.setAttribute('onclick',"document.getElementById('forumComposeImageInput').click()");empty.innerHTML='<span>＋</span><small>添加图片</small>';images.after(empty);}renderComposeImages();};
+const monoV3RenderImages=renderComposeImages;
+renderComposeImages=function(){monoV3RenderImages();const empty=document.querySelector('.mono-compose-empty');if(empty)empty.hidden=forumComposeImages.length>0;};
+function monoCompactPersonEditor(id){const m=document.getElementById(id);if(!m)return;m.classList.add('mono-person-editor');m.querySelector('.forum-participant-banner-edit')?.remove();const head=m.querySelector('.forum-modal-header'),save=m.querySelector('.forum-identity-submit');if(save){save.textContent='保存';head.append(save);}const identity=m.querySelector('.forum-identity-char');if(identity)identity.insertAdjacentHTML('beforeend','<small class="mono-avatar-tip">点击头像更换</small>');}
+const monoV3Person=showParticipantEditModal;showParticipantEditModal=function(...args){monoV3Person(...args);monoCompactPersonEditor('forumSetIdentityModal');};
+const monoV3Npc=showNpcEditModal;showNpcEditModal=function(...args){monoV3Npc(...args);monoCompactPersonEditor('forumNpcModal');};
+Object.assign(ForumApp,{monoLoadMore,getGlobalWorldbooks,resolveAuthorIdentity,generateForumPosts,renderDirectMessagesList,openForumCompose,renderComposeImages,showParticipantEditModal,showNpcEditModal});
 function forumBoot() {
   if(ForumApp.ready)return ForumApp.ready;
   let page=document.getElementById('forumPage');
