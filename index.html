@@ -61,6 +61,7 @@
 <link rel="stylesheet" href="css/modules/hearu-cards-v7.css?v=translation-overlay-2">
 <link rel="stylesheet" href="css/modules/kiss-tools.css?v=20261003-2">
 <link rel="stylesheet" href="css/modules/status_history.css?v=20261003-1">
+<link rel="stylesheet" href="forum_app.css?v=mono-20261005">
 </head>
 
 <body>
@@ -2730,11 +2731,11 @@
 
 <!-- [1. 基础层] -->
 <script src="js/utils.js"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
-<script src="js/db.js?v=kiss-tools-1"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
+<script src="js/db.js?v=mono-20261005"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
 <!-- [2. 核心交互层] -->
 <script src="js/modules/kiss-tools-core.js?v=20261003-1"></script>
-<script src="js/ui.js"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
+<script src="js/ui.js?v=mono-20261005"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
 <script src="js/modules/chat_list.js"></script>
 <script src="js/modules/character_import.js"></script>
@@ -2760,7 +2761,7 @@
 <script src="js/modules/keep_alive.js"></script> <!-- 跨平台持续运行增强 -->
 <script src="js/modules/settings_api.js"></script> <!-- API 设置与预设 -->
 <script src="js/modules/settings_presets.js"></script> <!-- 预设管理 (气泡、人设等) -->
-<script src="js/modules/settings_customize.js"></script> <!-- 个性化与外观设置 -->
+<script src="js/modules/settings_customize.js?v=mono-20261005"></script> <!-- 个性化与外观设置 -->
 
 <!-- [3. 独立功能模块 (Plugins)] -->
 <script src="js/modules/sticker.js"></script>   <!-- 表情包管理系统 -->
@@ -2796,9 +2797,10 @@
 <script src="js/modules/reader_view.js"></script> <!-- 阅读器视图逻辑 -->
 
 <!-- [4. 程序入口] -->
-<script src="js/modules/home_presets.js?v=20260930"></script>
+<script src="js/modules/home_presets.js?v=mono-20261005"></script>
 <script src="js/main.js"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
 <script src="js/modules/kiss-tools.js?v=20261003-2"></script>
 <script type="module" src="js/hearu/app.js?v=night-polish-3"></script>
+<script src="forum_app.js?v=mono-20261005"></script>
 </body>
 </html>
