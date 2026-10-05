@@ -22,7 +22,7 @@ function forumOwnStorage() {
 // 论坛数据
 let forumSettings = {
   worldview: "", // 世界观设定
-  forumName: "广场", // 论坛名称
+  forumName: "", // 论坛名称
   followedUsers: [], 
   userAvatar: "",
   userIdentity: "", // 用户在论坛的身份
@@ -84,6 +84,7 @@ async function initForumApp() {
     forumPosts = savedPosts;
   }
 
+  await monoLoadAccounts();
   // 渲染论坛主页
   renderForumPage();
 
@@ -278,7 +279,7 @@ function findBestAvatar(name, fallbackAvatar) {
   // 3. 匹配“我”
   const myName = (forumSettings.userNickname || '').trim().toLowerCase();
   if (cleanName === myName || cleanName === '我' || cleanName === '用户') {
-      return localStorage.getItem("avatarImg") || getDefaultAvatarDataUrl();
+      return monoAvatarFallback() || getDefaultAvatarDataUrl();
   }
 
   // 4. 自带 Base64 回退
@@ -314,9 +315,6 @@ function renderForumPage() {
         
         <div class="forum-hot-title" style="display:none;">热点</div>
         
-        <button class="forum-nav-back forum-refresh-btn" onclick="ForumApp.handleForumRefresh()" style="margin-left:auto;" title="刷新内容">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        </button>
         <button class="forum-nav-back forum-settings-btn" onclick="ForumApp.openForumSettings()" style="margin-right:0;" title="设置">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
         </button>
@@ -329,7 +327,7 @@ function renderForumPage() {
         <button class="forum-nav-item" data-section="hot" aria-label="搜索与热点" onclick="ForumApp.switchForumSection('hot')">${forumIcon('search')}</button>
         <button class="forum-nav-item" data-section="compose" aria-label="发帖" onclick="ForumApp.openForumCompose()">${forumIcon('plusSquare')}</button>
         <button class="forum-nav-item" data-section="dm" aria-label="私信" onclick="ForumApp.switchForumSection('dm')">${forumIcon('mail')}</button>
-        <button class="forum-nav-item" data-section="profile" aria-label="我的主页" onclick="ForumApp.switchForumSection('profile')"><img class="forum-nav-avatar" src="${forumSafeImage(forumSettings.userAvatar || localStorage.getItem('avatarImg')) || getDefaultAvatarDataUrl()}" alt="我的主页"></button>
+        <button class="forum-nav-item" data-section="profile" aria-label="我的主页" onclick="ForumApp.switchForumSection('profile')"><img class="forum-nav-avatar" src="${forumSafeImage(forumSettings.userAvatar || monoAvatarFallback()) || getDefaultAvatarDataUrl()}" alt="我的主页"></button>
       </nav>
 
       <!-- ============================================== -->
@@ -637,7 +635,7 @@ function showForumFullImage(imgSrc) {
   if (forumPage) {
     forumPage.appendChild(modal);
   } else {
-    document.body.appendChild(modal); 
+    forumMount(modal); 
   }
 }
 // ==================== 帖子详情 ====================
@@ -1217,7 +1215,7 @@ function openForumWorldbookSelector() {
     </div>
   `;
   modal.onclick = (e) => { if (e.target === modal) closeForumWorldbookSelector(); };
-  document.body.appendChild(modal);
+  forumMount(modal);
   setTimeout(() => modal.classList.add('active'), 10);
 }
 
@@ -1413,7 +1411,7 @@ function openAddForumParticipant() {
   modal.onclick = (e) => {
     if (e.target === modal) closeForumParticipantModal();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
 }
 
 function closeForumParticipantModal() {
@@ -1549,7 +1547,7 @@ function showParticipantEditModal(charId, char, editIndex) {
   modal.onclick = (e) => {
     if (e.target === modal) modal.remove();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
 }
 
 // 预览背景图
@@ -1754,7 +1752,7 @@ function showNpcEditModal(editIndex) {
   modal.onclick = (e) => {
     if (e.target === modal) modal.remove();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
 }
 
 function previewForumNpcAvatar(input) {
@@ -1932,7 +1930,7 @@ function showRelationshipEditModal(editIndex) {
   modal.onclick = (e) => {
     if (e.target === modal) modal.remove();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
   
   // 设置默认值
   if (isEdit) {
@@ -2070,8 +2068,8 @@ function renderForumComposeAuthor() {
   const container = document.getElementById("forumComposeAuthor");
   if (!container) return;
 
-  const globalAvatar = localStorage.getItem("avatarImg");
-  const avatarHtml = globalAvatar ? `<img src="${globalAvatar}" alt="">` : getDefaultAvatar();
+  const globalAvatar = monoAvatarFallback();
+  const avatarHtml = (forumSettings.userAvatar || globalAvatar) ? `<img src="${forumSafeImage(forumSettings.userAvatar || globalAvatar)}" alt="">` : getDefaultAvatar();
   const userName = forumSettings.userNickname || "我";
 
   container.innerHTML = `
@@ -2088,8 +2086,8 @@ function renderForumComposeUserInfo() {
   const container = document.getElementById("forumComposeUserInfo");
   if (!container) return;
 
-  const globalAvatar = localStorage.getItem("avatarImg");
-  const avatarHtml = globalAvatar ? `<img src="${globalAvatar}" alt="">` : getDefaultAvatar();
+  const globalAvatar = monoAvatarFallback();
+  const avatarHtml = (forumSettings.userAvatar || globalAvatar) ? `<img src="${forumSafeImage(forumSettings.userAvatar || globalAvatar)}" alt="">` : getDefaultAvatar();
   const userName = forumSettings.userNickname || "我";
   const userHandle = forumSettings.userHandle || generateEnglishHandle(userName);
 
@@ -2200,7 +2198,7 @@ function removeComposeImage(index) {
 }
 
 function showForumAuthorPicker() {
-  const globalAvatar = localStorage.getItem("avatarImg");
+  const globalAvatar = monoAvatarFallback();
   const options = [{ 
     type: "user", 
     name: forumSettings.userNickname || "我",
@@ -2262,7 +2260,7 @@ function showForumAuthorPicker() {
   modal.onclick = (e) => {
     if (e.target === modal) closeForumAuthorPicker();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
 
   window.forumAuthorOptions = options;
 }
@@ -2291,7 +2289,7 @@ async function submitForumPost() {
   // 用户发帖
   const authorType = "user";
   const authorName = forumSettings.userNickname || "我";
-  const authorAvatar = localStorage.getItem("avatarImg") || "";
+  const authorAvatar = forumSettings.userAvatar || monoAvatarFallback() || "";
   const authorIdentity = forumSettings.userIdentity || "";
   const userHandle = forumSettings.userHandle || generateEnglishHandle(authorName);
 
@@ -2304,6 +2302,7 @@ async function submitForumPost() {
   const newPost = {
     id: Date.now(),
     authorType,
+    accountId: monoActiveAccount,
     authorId: null,
     authorName,
     authorAvatar,
@@ -2563,8 +2562,9 @@ async function submitForumComment() {
   const newComment = {
     id: maxId + 1,
     authorType: "user",
+    accountId: monoActiveAccount,
     authorName: forumSettings.userNickname || "我",
-    authorAvatar: localStorage.getItem("avatarImg") || "",
+    authorAvatar: monoAvatarFallback() || "",
     content,
     replyTo: forumReplyTarget?.commentId || null,
     replyToName: forumReplyTarget?.authorName || null,
@@ -2595,6 +2595,8 @@ async function toggleForumPostLike(postId) {
   if (!post) return;
 
   post.liked = !post.liked;
+  post.monoLikedBy ||= [];
+  post.monoLikedBy=post.monoLikedBy.filter(id=>id!==monoActiveAccount);if(post.liked)post.monoLikedBy.push(monoActiveAccount);
   post.likes = (post.likes || 0) + (post.liked ? 1 : -1);
 
   // 2. 异步保存到数据库（不阻塞UI）
@@ -2645,6 +2647,7 @@ async function toggleForumCommentLike(postId, commentId) {
   if (!comment) return;
 
   comment.liked = !comment.liked;
+  comment.monoLikedBy ||= [];comment.monoLikedBy=comment.monoLikedBy.filter(id=>id!==monoActiveAccount);if(comment.liked)comment.monoLikedBy.push(monoActiveAccount);
   comment.likes = (comment.likes || 0) + (comment.liked ? 1 : -1);
 
   await localforage.setItem("forumPosts", forumPosts);
@@ -3557,7 +3560,7 @@ function showForumImageDesc(desc) {
   if (forumPage) {
     forumPage.appendChild(modal);
   } else {
-    document.body.appendChild(modal);
+    forumMount(modal);
   }
 }
 
@@ -3604,7 +3607,7 @@ function openQuoteRetweet(postId) {
   if (!post) return;
   
   // 获取用户信息
-  const globalAvatar = localStorage.getItem("avatarImg");
+  const globalAvatar = monoAvatarFallback();
   const userAvatar = forumSettings.userAvatar || globalAvatar || getDefaultAvatarDataUrl();
   const userName = forumSettings.userNickname || "我";
   const userHandle = forumSettings.userHandle || generateEnglishHandle(userName);
@@ -3662,7 +3665,7 @@ function openQuoteRetweet(postId) {
     </div>
   `;
   
-  document.body.appendChild(modal);
+  forumMount(modal);
   
   // 自动聚焦输入框
   setTimeout(() => {
@@ -3687,13 +3690,14 @@ async function submitQuoteRetweet(postId) {
   
   // 获取用户信息
   const userName = forumSettings.userNickname || "我";
-  const userAvatar = localStorage.getItem("avatarImg") || "";
+  const userAvatar = monoAvatarFallback() || "";
   const userHandle = forumSettings.userHandle || generateEnglishHandle(userName);
   
   // 创建引用转发帖子
   const retweetPost = {
     id: Date.now(),
     authorType: "user",
+    accountId: monoActiveAccount,
     authorId: null,
     authorName: userName,
     authorAvatar: userAvatar,
@@ -3786,7 +3790,7 @@ function retweetToChat(postId) {
   modal.onclick = (e) => {
     if (e.target === modal) modal.remove();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
 }
 
 // ==================== 2. 执行转发 (AI认知增强版) ====================
@@ -4698,7 +4702,7 @@ function renderForumProfile(tab = 'posts') {
   
   // 【修复点1】优先读取 forumSettings 里的头像，如果没有，再读全局 localStorage，最后用默认
   // 这样即使主程序切换了角色，论坛里的“我”头像也不会变
-  const userAvatar = forumSettings.userAvatar || localStorage.getItem("avatarImg") || getDefaultAvatarDataUrl();
+  const userAvatar = forumSettings.userAvatar || monoAvatarFallback() || getDefaultAvatarDataUrl();
   
   const userName = forumSettings.userNickname || "用户";
   const userHandle = forumSettings.userHandle || generateEnglishHandle(userName);
@@ -4710,9 +4714,9 @@ function renderForumProfile(tab = 'posts') {
   
   // ... (中间获取帖子的逻辑保持不变，省略以节省空间) ...
   // 获取用户发布的帖子
-  const userPosts = forumPosts.filter(p => p.authorType === 'user');
+  const userPosts = forumPosts.filter(p => p.authorType === 'user' && monoOwnPost(p));
   const likedPosts = forumPosts.filter(p => p.liked);
-  const repliedPosts = forumPosts.filter(p => p.comments && p.comments.some(c => c.authorType === 'user'));
+  const repliedPosts = forumPosts.filter(p => p.comments && p.comments.some(c => c.authorType === 'user' && monoOwnPost(c)));
 
   let contentHtml = '';
   // ... (Tab切换逻辑保持不变) ...
@@ -4737,7 +4741,7 @@ function renderForumProfile(tab = 'posts') {
   
   feed.innerHTML = `
     <div class="forum-profile forum-profile-immersive">
-      <header class="forum-ins-profile-title"><button onclick="ForumApp.switchForumSection('home')" aria-label="返回">${forumIcon('back')}</button><strong>${escapeForumHtml(userHandle.replace(/^@/, ''))}</strong><button onclick="ForumApp.openForumSettings()" aria-label="论坛设置">${forumIcon('more')}</button></header>
+      <header class="forum-ins-profile-title"><button onclick="ForumApp.switchForumSection('home')" aria-label="返回">${forumIcon('back')}</button><strong>${escapeForumHtml(userHandle.replace(/^@/, ''))}</strong><button onclick="ForumApp.monoProfileMenu()" aria-label="主页设置">${forumIcon('more')}</button></header>
       <div class="forum-ins-identity own">
         <button class="forum-profile-avatar" onclick="ForumApp.changeProfileAvatar()" aria-label="更换头像"><img src="${forumSafeImage(userAvatar) || getDefaultAvatarDataUrl()}" alt=""></button>
         <div class="forum-ins-counts"><strong class="forum-ins-name">${escapeForumHtml(userName)}</strong><div class="forum-ins-stats"><span><b>${userPosts.length}</b>帖子</span><span><b>${escapeForumHtml(followersStr)}</b>粉丝</span><span><b>${escapeForumHtml(followingStr)}</b>关注</span></div></div>
@@ -4763,13 +4767,13 @@ function renderForumProfile(tab = 'posts') {
 // 渲染回复过的帖子（显示用户的回复）
 function renderProfileReplyItem(post) {
   // 找到用户的评论
-  const userComments = post.comments.filter(c => c.authorType === 'user');
+  const userComments = post.comments.filter(c => c.authorType === 'user' && monoOwnPost(c));
   if (userComments.length === 0) return '';
   
   const lastComment = userComments[userComments.length - 1];
   
   // 获取用户头像
-  const globalAvatar = localStorage.getItem("avatarImg");
+  const globalAvatar = monoAvatarFallback();
   const userAvatar = forumSettings.userAvatar || globalAvatar || getDefaultAvatarDataUrl();
   const userName = forumSettings.userNickname || "我";
   const userHandle = forumSettings.userHandle || generateEnglishHandle(userName);
@@ -5240,7 +5244,7 @@ async function togglePinPost(postId) {
   // 如果要置顶，先取消其他置顶
   if (!post.isPinned) {
     forumPosts.forEach(p => {
-      if (p.authorType === 'user' && p.isPinned) {
+      if (p.authorType === 'user' && monoOwnPost(p) && p.isPinned) {
         p.isPinned = false;
       }
     });
@@ -5302,7 +5306,7 @@ let forumDirectMessages = [];
 // 初始化私信数据
 async function initDirectMessages() {
   if(forumDMLoaded)return;
-  forumDirectMessages = await localforage.getItem("forumDirectMessages") || [];
+  forumDirectMessages = await localforage.getItem(monoDMKey()) || [];
   forumDMLoaded=true;
 }
 
@@ -5378,7 +5382,7 @@ function renderDirectMessagesList() {
   `;
 
   // 4. 添加到 body，实现全屏覆盖
-  document.body.appendChild(dmPage);
+  forumMount(dmPage);
 }
 
 // [重写] 关闭私信页面
@@ -5451,7 +5455,7 @@ async function fetchNewRandomDMsInternal(apiConfig) {
     
     // 1.2 获取用户最近发布的帖子 (最多3条，作为私信的话题来源)
     const myRecentPosts = forumPosts
-      .filter(p => p.authorType === 'user')
+      .filter(p => p.authorType === 'user' && monoOwnPost(p))
       .slice(0, 3)
       .map((p, index) => {
           const timeStr = formatForumTime(p.timestamp);
@@ -5825,7 +5829,7 @@ function changeProfileBanner() {
 
 // 打开编辑个人资料弹窗
 function openProfileEditor() {
-  const globalAvatar = localStorage.getItem("avatarImg");
+  const globalAvatar = monoAvatarFallback();
   const userAvatar = forumSettings.userAvatar || globalAvatar || getDefaultAvatarDataUrl();
   const userName = forumSettings.userNickname || "";
   const userHandle = forumSettings.userHandle || "";
@@ -5851,15 +5855,6 @@ function openProfileEditor() {
       </div>
       
       <div class="forum-profile-editor-content">
-        <!-- 背景图 -->
-        <div class="forum-profile-editor-banner" onclick="ForumApp.forumChooseEditorImage('profileBannerInput')">
-          ${userBanner 
-            ? `<img src="${userBanner}" alt="">` 
-            : '<div class="forum-profile-banner-placeholder"></div>'}
-          
-          <input type="file" id="profileBannerInput" accept="image/*" style="display:none" onchange="ForumApp.previewProfileBanner(this)">
-        </div>
-        
         <!-- 头像 -->
         <div class="forum-profile-editor-avatar" onclick="ForumApp.forumChooseEditorImage('profileAvatarInput')">
           <img src="${userAvatar}" alt="" id="profileAvatarPreview">
@@ -5910,7 +5905,7 @@ function openProfileEditor() {
   modal.onclick = (e) => {
     if (e.target === modal) closeProfileEditor();
   };
-  document.body.appendChild(modal);
+  forumMount(modal);
 }
 
 function closeProfileEditor() {
@@ -5971,7 +5966,7 @@ async function saveProfileChanges() {
   
  if (avatarPreview) {
         // 核心修复：压缩并安全写入全局头像 (防 QuotaExceededError)
-        const savedAvatar = await saveGlobalAvatar(avatarPreview);
+        const savedAvatar = await compressAvatar(avatarPreview,150,150);
         
         // 1. 保存到论坛专用设置
         forumSettings.userAvatar = savedAvatar; 
@@ -6642,7 +6637,7 @@ function forumChooseEditorImage(inputId) {
   });
 }
 function changeProfileAvatar() {
-  forumChoosePicture(async value=>{const saved=await saveGlobalAvatar(value);forumSettings.userAvatar=saved;await localforage.setItem('forumSettings',forumSettings);renderForumProfile(currentProfileTab);});
+  forumChoosePicture(async value=>{const saved=await compressAvatar(value,150,150);forumSettings.userAvatar=saved;await localforage.setItem('forumSettings',forumSettings);renderForumProfile(currentProfileTab);});
 }
 function changeProfileBanner() {
   forumChoosePicture(async value=>{forumSettings.userBanner=value;await localforage.setItem('forumSettings',forumSettings);renderForumProfile(currentProfileTab);});
@@ -6668,8 +6663,8 @@ function forumFilterContacts(value) {
   const text=String(value).trim().toLowerCase();document.querySelectorAll('.forum-dm-page .forum-dm-item').forEach(row=>{row.hidden=!row.textContent.toLowerCase().includes(text);});
 }
 function forumSaveDMs() {
-  const snapshot=structuredClone(forumDirectMessages);
-  forumSaveQueue=forumSaveQueue.catch(()=>{}).then(()=>localforage.setItem('forumDirectMessages',snapshot));return forumSaveQueue;
+  const snapshot=structuredClone(forumDirectMessages),key=monoDMKey();
+  forumSaveQueue=forumSaveQueue.catch(()=>{}).then(()=>localforage.setItem(key,snapshot));return forumSaveQueue;
 }
 function forumGetConv(id=currentDMConversationId) { return forumDirectMessages.find(c=>c.id===id); }
 function forumDMOptions(conv) { conv.chatOptions ||= {stickerMatch:true,contextLimit:40}; return conv.chatOptions; }
@@ -6738,6 +6733,9 @@ function forumParseReply(raw,conv) {
 function forumHostContext(conv) {
   const char=conv.id.startsWith('ai_')?forumCharacter(conv.id.slice(3)):null;if(!char)return '';
   const copy=structuredClone(char),native=forumNativeDb();let prompt='';
+  copy.myName=forumSettings.userNickname || forumSettings.userHandle || '用户';copy.myPersona=forumSettings.userIdentity || '';
+  if(monoActiveAccount!=='main'){copy.memoryJournals=[];copy.history=[];}
+  // Account records and switching metadata are never included in model requests.
   if(typeof generatePrivateSystemPrompt==='function')prompt=generatePrivateSystemPrompt(copy);
   else {prompt=[copy.persona,copy.systemPrompt,...(native?.worldBooks || []).filter(w=>(copy.worldBookIds || []).some(id=>String(id)===String(w.id))).map(w=>w.content)].filter(Boolean).join('\n');}
   const cot=native?.cotSettings || {};let chain='';
@@ -7009,6 +7007,97 @@ ForumApp.updateCurrentForumPreset=updateCurrentForumPreset;
 ForumApp.updateForumCommentInput=updateForumCommentInput;
 ForumApp.updateUserFollowers=updateUserFollowers;
 
+// MONO v2: requested page corrections and local account isolation.
+let monoAccounts=[],monoActiveAccount='main',monoIdentityPresets=[],monoContactOpen=false,monoBusy=0;
+const monoIdentityKeys=['userAvatar','userIdentity','userNickname','userHandle','userBio','userBanner','userFollowing','userFollowers','userFollowingStr','userFollowersStr','userJoinDate','followedUsers','relationships'];
+function monoAvatarFallback(){return monoActiveAccount==='main'?localStorage.getItem('avatarImg'):'';}
+function monoOwnPost(p){return (p.accountId || 'main')===monoActiveAccount;}
+function monoApplyLikes(){for(const p of forumPosts){for(const item of [p,...(p.comments||[])]){item.monoLikedBy ||= item.liked?['main']:[];item.liked=item.monoLikedBy.includes(monoActiveAccount);}}}
+function monoDMKey(){return monoActiveAccount==='main'?'forumDirectMessages':'monoDirectMessages:'+monoActiveAccount;}
+function monoSnapshot(){return Object.fromEntries(monoIdentityKeys.map(k=>[k,structuredClone(forumSettings[k] ?? (['followedUsers','relationships'].includes(k)?[]:''))]));}
+async function monoLoadAccounts(){
+ const state=await localforage.getItem('monoAccounts');monoAccounts=state?.accounts || [{id:'main',identity:monoSnapshot()}];monoActiveAccount=state?.activeId || 'main';
+ if(!monoAccounts.some(a=>a.id===monoActiveAccount))monoActiveAccount='main';
+ if(forumSettings.monoAccountId && forumSettings.monoAccountId!==monoActiveAccount)Object.assign(forumSettings,monoAccounts.find(a=>a.id===monoActiveAccount)?.identity || {});
+ forumSettings.monoAccountId=monoActiveAccount;if(!forumSettings.monoNameInitialized){if(forumSettings.forumName==='广场')forumSettings.forumName='';forumSettings.monoNameInitialized=true;await localforage.setItem('forumSettings',forumSettings);}
+ monoApplyLikes();monoIdentityPresets=await localforage.getItem('monoIdentityPresets:'+monoActiveAccount) || [];
+}
+async function monoStoreAccount(){const a=monoAccounts.find(a=>a.id===monoActiveAccount);if(a)a.identity=monoSnapshot();await localforage.setItem('monoAccounts',{activeId:monoActiveAccount,accounts:monoAccounts});await localforage.setItem('forumSettings',forumSettings);}
+async function monoSwitchAccount(id){
+ if(id===monoActiveAccount){document.getElementById('forumAuxSheet')?.remove();return;}if(monoBusy || forumDMTasks.size)return showToast('请先完成或暂停当前生成，再切换账号');
+ const a=monoAccounts.find(a=>a.id===id);if(!a)return;await monoStoreAccount();await forumSaveQueue;monoActiveAccount=id;Object.assign(forumSettings,a.identity);forumSettings.monoAccountId=id;monoApplyLikes();
+ await monoStoreAccount();forumDMLoaded=false;currentDMConversationId=null;forumDrafts.clear();await initDirectMessages();monoIdentityPresets=await localforage.getItem('monoIdentityPresets:'+id)||[];
+ document.getElementById('forumAuxSheet')?.remove();closeDirectMessages();renderForumPage();await openDirectMessages();showToast('已切换账号');
+}
+function monoAccountsMenu(){
+ const sheet=forumSheet('切换账号',`<p class="mono-note">账号独立保存身份和私信，仅你可见。</p><div class="mono-account-list">${monoAccounts.map(a=>`<button class="forum-sheet-row" data-account="${escapeForumHtml(a.id)}"><img src="${forumSafeImage(a.id===monoActiveAccount?forumSettings.userAvatar:a.identity.userAvatar)||getDefaultAvatarDataUrl()}" alt=""><span>${escapeForumHtml(a.id===monoActiveAccount?forumSettings.userNickname:a.identity.userNickname || '未命名账号')}<small>@${escapeForumHtml(a.id===monoActiveAccount?forumSettings.userHandle:a.identity.userHandle || '未设置用户名')}</small></span><small>${a.id===monoActiveAccount?'当前账号':''}</small></button>`).join('')}</div><button class="forum-sheet-primary" data-new-account>添加账号</button>`);
+ sheet.querySelectorAll('[data-account]').forEach(b=>b.onclick=()=>monoSwitchAccount(b.dataset.account));sheet.querySelector('[data-new-account]').onclick=monoNewAccount;
+}
+function monoNewAccount(){const sheet=forumSheet('添加账号',`<label class="mono-field">昵称<input id="monoNewName" maxlength="30" placeholder="你的新昵称"></label><label class="mono-field">用户名<input id="monoNewHandle" maxlength="40" placeholder="不带 @"></label><label class="mono-field">身份<textarea id="monoNewIdentity" placeholder="这个账号的身份"></textarea></label><button class="forum-sheet-primary" data-create>创建并切换</button>`);sheet.querySelector('[data-create]').onclick=async()=>{
+ if(monoBusy || forumDMTasks.size)return showToast('请先完成或暂停当前生成');const name=sheet.querySelector('#monoNewName').value.trim(),handle=sheet.querySelector('#monoNewHandle').value.trim().replace(/^@/,'');if(!name || !handle)return showToast('请填写昵称和用户名');if(monoAccounts.some(a=>(a.id===monoActiveAccount?forumSettings.userHandle:a.identity.userHandle)===handle))return showToast('用户名已存在');
+ const id=crypto.randomUUID(),identity=Object.fromEntries(monoIdentityKeys.map(k=>[k,['followedUsers','relationships'].includes(k)?[]:'']));Object.assign(identity,{userNickname:name,userHandle:handle,userIdentity:sheet.querySelector('#monoNewIdentity').value,userFollowing:0,userFollowers:0,userJoinDate:formatJoinDate(Date.now()),relationships:structuredClone((forumSettings.relationships||[]).filter(r=>r.person1Type!=='user'&&r.person2Type!=='user'))});monoAccounts.push({id,identity});await monoSwitchAccount(id);
+ };}
+function monoSyncSafeArea(){
+ const phone=document.querySelector('.phone-screen'),bar=document.querySelector('.status-bar');let top=24;
+ if(phone && bar){const pr=phone.getBoundingClientRect(),r=bar.getBoundingClientRect();if(r.height && r.bottom>pr.top && r.top<pr.top+120)top=Math.max(24,Math.min(90,r.bottom-pr.top+8));}
+ document.documentElement.style.setProperty('--mono-safe-top',top+'px');
+}
+window.addEventListener('resize',monoSyncSafeArea);
+const monoOldSettings=renderForumSettings;
+renderForumSettings=function(){
+ monoOldSettings();const content=document.getElementById('forumSettingsContent');if(!content)return;
+ const roleSections=[...content.querySelectorAll('.forum-section')].filter(n=>/^(AI角色|NPC角色|人物关系)/.test(n.querySelector('.forum-section-title')?.textContent.trim() || ''));
+ if(monoContactOpen){const dst=document.getElementById('monoContactBody');if(dst){dst.innerHTML='<p class="mono-note">管理 MONO 联系人和论坛关系，404 原角色不受影响。</p>';roleSections.forEach(n=>dst.append(n));dst.insertAdjacentHTML('beforeend','<button class="forum-sheet-row" data-refresh-npc>发现新的 NPC 私信 <span>刷新</span></button>');dst.querySelector('[data-refresh-npc]').onclick=async()=>{if(monoBusy)return;try{await monoRun(async()=>{const config=getActiveApiConfig();if(!config?.url||!config?.key)return showToast('请先配置API');const count=await fetchNewRandomDMsInternal(config);await forumSaveDMs();showToast(count?'收到新的私信':'暂时没有新的私信');});}finally{monoContactSettings();}};}}
+ roleSections.forEach(n=>{if(!n.closest('#monoContactBody'))n.remove();});
+ const accordion=content.querySelector('#forumPresetAccordion');if(accordion){accordion.className='mono-preset-panel';accordion.innerHTML=`<div class="mono-section-heading"><span>论坛方案</span><button onclick="ForumApp.monoPresetManager()">管理</button></div><select id="forumPresetSelect" class="forum-input forum-select" onchange="ForumApp.loadSelectedForumPreset()"><option value="">选择已保存方案</option>${forumPresets.map((p,i)=>`<option value="${i}">${escapeForumHtml(p.name)}</option>`).join('')}</select><button class="mono-text-button" onclick="ForumApp.monoSaveForumPreset()">保存当前为新方案</button>`;}
+ const identitySection=[...content.querySelectorAll('.forum-section')].find(n=>n.querySelector('.forum-section-title')?.textContent.trim()==='我的身份');if(identitySection){identitySection.classList.add('mono-identity-section');identitySection.querySelector('.forum-section-title').insertAdjacentHTML('beforeend','<button class="mono-text-button" onclick="ForumApp.monoIdentityManager()">身份方案</button>');identitySection.insertAdjacentHTML('beforeend','<button class="mono-save-identity" onclick="ForumApp.monoSaveIdentity()">保存身份</button>');}
+ const name=content.querySelector('#forumNameInput');if(name)name.placeholder='论坛名称（可留空）';
+ content.insertAdjacentHTML('afterbegin','<div class="mono-settings-intro"><small>MONO / SETTINGS</small><p>论坛与身份</p></div><button class="forum-sheet-row mono-refresh-choice" onclick="ForumApp.monoRefreshMenu()"><span>刷新内容</span><span>选择</span></button>');
+};
+function monoContactSettings(){monoContactOpen=true;document.getElementById('monoContactSettings')?.remove();const page=document.createElement('section');page.id='monoContactSettings';page.className='mono-full-page';page.innerHTML=`<header class="mono-page-header"><button data-back>${forumIcon('back')}</button><strong>联系人设置</strong><span></span></header><main id="monoContactBody"></main>`;page.querySelector('[data-back]').onclick=()=>{page.remove();monoContactOpen=false;renderDirectMessagesList();};forumMount(page);renderForumSettings();}
+async function monoSaveIdentity(){await monoStoreAccount();showToast('当前身份已保存');}
+function monoForm(title,value,onSave){const sheet=forumSheet(title,`<label class="mono-field">方案名称<input id="monoPresetName" value="${escapeForumHtml(value||'')}" maxlength="50" placeholder="为这个方案命名"></label><button class="forum-sheet-primary" data-save>保存</button>`);sheet.querySelector('[data-save]').onclick=async()=>{const name=sheet.querySelector('input').value.trim();if(!name)return showToast('请填写名称');await onSave(name);sheet.remove();};}
+function monoSaveForumPreset(){monoForm('保存论坛方案','',async name=>{const existing=forumPresets.find(p=>p.name===name);if(existing&&!confirm('同名方案已存在，是否覆盖？'))return;const data={name,settings:structuredClone(forumSettings)};if(existing)Object.assign(existing,data);else forumPresets.push(data);await localforage.setItem('forumPresets',forumPresets);renderForumSettings();showToast('论坛方案已保存');});}
+function monoPresetManager(){const sheet=forumSheet('论坛方案',`<div class="mono-presets">${forumPresets.map((p,i)=>`<article class="mono-preset-row"><strong>${escapeForumHtml(p.name)}</strong><small>${escapeForumHtml(p.settings.forumName || '未命名论坛')}</small><div><button data-load="${i}">使用</button><button data-update="${i}">覆盖</button><button data-delete="${i}">删除</button></div></article>`).join('')||'<p class="mono-note">还没有保存的方案。</p>'}</div><button class="forum-sheet-primary" data-new>保存当前方案</button>`);
+ sheet.querySelector('[data-new]').onclick=monoSaveForumPreset;for(const action of ['load','update','delete'])sheet.querySelectorAll('[data-'+action+']').forEach(b=>b.onclick=async()=>{const i=Number(b.dataset[action]),p=forumPresets[i];if(!p)return;if(action==='load'){if(!confirm('使用这个论坛方案？当前身份与私信保持独立。'))return;const identity=monoSnapshot();forumSettings={...forumSettings,...structuredClone(p.settings),...identity,monoAccountId:monoActiveAccount};await localforage.setItem('forumSettings',forumSettings);sheet.remove();renderForumSettings();renderForumFeed();}else {if(!confirm(action==='delete'?'删除这个方案？':'用当前设置覆盖这个方案？'))return;if(action==='delete')forumPresets.splice(i,1);else p.settings=structuredClone(forumSettings);await localforage.setItem('forumPresets',forumPresets);renderForumSettings();monoPresetManager();}});
+}
+function monoIdentityManager(){const sheet=forumSheet('我的身份方案',`<p class="mono-note">仅保存当前账号的昵称、身份和个人资料。</p>${monoIdentityPresets.map((p,i)=>`<article class="mono-preset-row"><strong>${escapeForumHtml(p.name)}</strong><small>${escapeForumHtml(p.identity.userNickname || '')}</small><div><button data-use="${i}">使用</button><button data-overwrite="${i}">覆盖</button><button data-remove="${i}">删除</button></div></article>`).join('')}<button class="forum-sheet-primary" data-new>保存当前身份</button>`);const store=()=>localforage.setItem('monoIdentityPresets:'+monoActiveAccount,monoIdentityPresets);
+ sheet.querySelector('[data-new]').onclick=()=>monoForm('保存身份方案','',async name=>{const p=monoIdentityPresets.find(p=>p.name===name);if(p&&!confirm('同名方案已存在，是否覆盖？'))return;if(p)p.identity=monoSnapshot();else monoIdentityPresets.push({name,identity:monoSnapshot()});await store();showToast('身份方案已保存');});
+ for(const action of ['use','overwrite','remove'])sheet.querySelectorAll('[data-'+action+']').forEach(b=>b.onclick=async()=>{const i=Number(b.dataset[action]),p=monoIdentityPresets[i];if(action==='use'){Object.assign(forumSettings,structuredClone(p.identity));await monoStoreAccount();sheet.remove();renderForumSettings();renderForumProfile();}else{if(!confirm(action==='remove'?'删除这个身份方案？':'覆盖这个身份方案？'))return;if(action==='remove')monoIdentityPresets.splice(i,1);else p.identity=monoSnapshot();await store();monoIdentityManager();}});
+}
+function monoRefreshMenu(){const sheet=forumSheet('刷新内容','<button class="forum-sheet-row" data-refresh="home">刷新首页推荐与关注</button><button class="forum-sheet-row" data-refresh="hot">刷新趋势内容</button>');sheet.querySelectorAll('[data-refresh]').forEach(b=>b.onclick=async()=>{if(monoBusy)return;sheet.remove();await monoRun(async()=>{await generateForumPosts();if(b.dataset.refresh==='hot')switchForumSection('hot');else renderForumFeed();});});}
+async function monoRun(fn){monoBusy++;try{return await fn();}finally{monoBusy--;}}
+function monoProfileMenu(){const sheet=forumSheet('主页设置','<button class="forum-sheet-row" data-action="edit">编辑个人资料</button><button class="forum-sheet-row" data-action="identity">我的身份方案</button><button class="forum-sheet-row" data-action="accounts">切换账号</button><button class="forum-sheet-row" data-action="share">分享主页给联系人</button>');forumBindSheet(sheet,async a=>{sheet.remove();if(a==='edit')openProfileEditor();if(a==='identity')monoIdentityManager();if(a==='accounts')monoAccountsMenu();if(a==='share')forumShareProfile();});}
+renderForumWorldbookBindings=function(){const books=getGlobalWorldbooks(),ids=forumSettings.worldbookIds || [];return ids.map(id=>{const wb=books.find(w=>String(w.id)===String(id));return `<div class="mono-bound-book"><span>${escapeForumHtml(wb?.name || '未找到的世界书')}</span><button data-wb="${escapeForumHtml(String(id))}" onclick="ForumApp.removeForumWorldbook(this.dataset.wb)">移除</button></div>`;}).join('')||'<p class="mono-note">尚未绑定。角色自己的世界书会自动读取。</p>';};
+openForumWorldbookSelector=function(){const available=getGlobalWorldbooks().filter(w=>w.isCharBook!==true && !(forumSettings.worldbookIds||[]).some(id=>String(id)===String(w.id)));const sheet=forumSheet('绑定世界书',`<div class="mono-wb-list">${available.map(w=>`<button class="forum-sheet-row" data-wb="${escapeForumHtml(String(w.id))}"><span>${escapeForumHtml(w.name)}</span><span>＋</span></button>`).join('')||'<p class="mono-note">没有可添加的世界书。</p>'}</div>`);sheet.querySelectorAll('[data-wb]').forEach(b=>b.onclick=async()=>{await addForumWorldbook(b.dataset.wb);sheet.remove();});};
+addForumWorldbook=async function(id){const wb=getGlobalWorldbooks().find(w=>String(w.id)===String(id));if(!wb)return showToast('未找到世界书');forumSettings.worldbookIds ||= [];if(!forumSettings.worldbookIds.some(x=>String(x)===String(id)))forumSettings.worldbookIds.push(wb.id);await localforage.setItem('forumSettings',forumSettings);const list=document.getElementById('forumWorldbookList');if(list)list.innerHTML=renderForumWorldbookBindings();showToast('已绑定 '+wb.name);};
+removeForumWorldbook=async function(id){forumSettings.worldbookIds=(forumSettings.worldbookIds||[]).filter(x=>String(x)!==String(id));await localforage.setItem('forumSettings',forumSettings);const list=document.getElementById('forumWorldbookList');if(list)list.innerHTML=renderForumWorldbookBindings();};
+getCharacterBoundWorldbooks=function(){return [...new Set(forumSettings.aiParticipants.flatMap(p=>forumCharacter(p.charId)?.worldBookIds || []))];};
+getForumWorldbookContent=function(contextText=''){const ids=[...(forumSettings.worldbookIds||[]),...getCharacterBoundWorldbooks()],books=getGlobalWorldbooks(),parts=[];for(const id of new Set(ids.map(String))){const wb=books.find(w=>String(w.id)===id);if(!wb||wb.enabled===false)continue;if(typeof wb.content==='string'&&wb.content)parts.push('【'+wb.name+'】\n'+wb.content);else for(const e of wb.entries||[]){if(e.enabled===false)continue;if(wb.triggerType==='keyword'&&!String(e.keywords||'').split(/[,，]/).some(k=>k.trim()&&contextText.toLowerCase().includes(k.trim().toLowerCase())))continue;if(e.content)parts.push('【'+(e.title||wb.name)+'】\n'+e.content);}}return parts.length?'\n[世界书/背景设定参考]:\n'+parts.join('\n\n')+'\n':'';};
+const monoOldContacts=renderDirectMessagesList;
+renderDirectMessagesList=function(){const all=forumDirectMessages;forumDirectMessages=all.filter(c=>!(forumSettings.monoHiddenContacts||[]).includes(c.id));monoOldContacts();forumDirectMessages=all;const page=document.querySelector('.forum-dm-page');if(!page)return;const title=page.querySelector('.forum-dm-title');title.outerHTML=`<button class="forum-dm-title mono-account-switch" onclick="ForumApp.monoAccountsMenu()">${escapeForumHtml(forumSettings.userHandle || forumSettings.userNickname || '我的账号')}<span>⌄</span></button>`;const button=page.querySelector('.forum-dm-generate');button.innerHTML=forumIcon('more');button.setAttribute('aria-label','联系人设置');button.setAttribute('onclick','ForumApp.monoContactSettings()');
+ const list=page.querySelector('.forum-dm-list');const descriptors=[...forumSettings.aiParticipants.map(p=>{const c=forumCharacter(p.charId);return {id:'ai_'+p.charId,name:p.nickname || c?.name || c?.realName || '角色',avatar:p.avatar || c?.avatar || '',forumPersona:getCharacterFullPersona(p)};}),...forumSettings.npcs.map(p=>({id:'npc_'+p.id,name:p.name,avatar:p.avatar||'',forumPersona:p.persona || p.identity||''}))];for(const person of descriptors)if(!forumDirectMessages.some(c=>c.id===person.id)|| (forumSettings.monoHiddenContacts||[]).includes(person.id)){const row=document.createElement('button');row.className='forum-dm-item mono-new-contact';row.innerHTML=`<div class="forum-dm-avatar"><img src="${forumSafeImage(person.avatar)||getDefaultAvatarDataUrl()}" alt=""></div><div class="forum-dm-content"><strong class="forum-dm-name">${escapeForumHtml(person.name)}</strong><small class="forum-dm-preview">开始聊天</small></div>`;row.onclick=async()=>{const c=forumDirectMessages.find(c=>c.id===person.id) || {...person,messages:[],unread:0,lastMessage:'',lastMessageTime:0};if(!forumDirectMessages.includes(c))forumDirectMessages.push(c);forumSettings.monoHiddenContacts=(forumSettings.monoHiddenContacts||[]).filter(id=>id!==person.id);await localforage.setItem('forumSettings',forumSettings);await forumSaveDMs();currentDMConversationId=c.id;forumRenderChat(c);};list.append(row);}if(descriptors.length)list.querySelector('.forum-dm-empty')?.remove();};
+forumShareProfile=async function(){await initDirectMessages();const recipients=[...forumDirectMessages];for(const p of forumSettings.aiParticipants){if(!recipients.some(c=>c.id==='ai_'+p.charId)){const c=forumCharacter(p.charId);recipients.push({id:'ai_'+p.charId,name:p.nickname||c?.name||c?.realName||'角色',avatar:p.avatar||c?.avatar||'',messages:[]});}}for(const n of forumSettings.npcs)if(!recipients.some(c=>c.id==='npc_'+n.id))recipients.push({id:'npc_'+n.id,name:n.name,avatar:n.avatar||'',messages:[],forumPersona:n.persona||n.identity||''});const sheet=forumSheet('分享主页',`<p class="mono-note">选择联系人，发送当前账号的主页。</p>${recipients.map((c,i)=>`<button class="forum-sheet-row mono-share-recipient" data-recipient="${i}"><img src="${forumSafeImage(c.avatar)||getDefaultAvatarDataUrl()}" alt=""><span>${escapeForumHtml(c.name)}</span><span>发送</span></button>`).join('')||'<p class="mono-note">先在联系人设置中添加角色。</p>'}`);
+ sheet.querySelectorAll('[data-recipient]').forEach(b=>b.onclick=async()=>{b.disabled=true;let c=forumGetConv(recipients[Number(b.dataset.recipient)].id);if(!c){c=structuredClone(recipients[Number(b.dataset.recipient)]);forumDirectMessages.push(c);}const profile={name:forumSettings.userNickname||'用户',handle:forumSettings.userHandle||'',bio:forumSettings.userBio||'',avatar:forumSettings.userAvatar||monoAvatarFallback()||''};c.messages ||= [];c.messages.push({id:Date.now(),sender:'user',timestamp:Date.now(),profile,content:`[分享主页] ${profile.name} @${profile.handle}\n${profile.bio}`});c.lastMessage='[分享主页] '+profile.name;c.lastMessageTime=Date.now();await forumSaveDMs();sheet.remove();currentDMConversationId=c.id;forumRenderChat(c);showToast('主页已发送');});};
+const monoOldChat=forumRenderChat;
+forumRenderChat=function(c){monoOldChat(c);const bubbles=[...document.querySelectorAll('.forum-dm-chat .forum-dm-msg-bubble')];let idx=0;for(const m of c.messages||[]){if(m.sticker||m.image)continue;const b=bubbles[idx++];if(m.profile&&b){b.classList.add('mono-profile-card');b.innerHTML=`<img src="${forumSafeImage(m.profile.avatar)||getDefaultAvatarDataUrl()}" alt=""><strong>${escapeForumHtml(m.profile.name)}</strong><small>@${escapeForumHtml(m.profile.handle)}</small><p>${escapeForumHtml(m.profile.bio)}</p><span>分享的主页</span>`;}}};
+const monoOldCompose=openForumCompose;
+openForumCompose=function(){monoOldCompose();const overlay=document.getElementById('forumComposeOverlay');if(!overlay)return;const toolbar=overlay.querySelector('.forum-compose-toolbar');if(toolbar&&!toolbar.querySelector('[data-link]'))toolbar.insertAdjacentHTML('beforeend','<button class="mono-compose-link" data-link onclick="ForumApp.monoComposeLink()">图片链接</button>');};
+function monoComposeLink(){if(forumComposeImages.length>=4)return showToast('最多添加4张图片');const sheet=forumSheet('添加图片链接','<label class="mono-field">图片地址<input type="url" id="monoPostImageUrl" placeholder="https://…"></label><button class="forum-sheet-primary" data-add>添加图片</button>');sheet.querySelector('[data-add]').onclick=()=>{try{const data=forumImageValue(sheet.querySelector('input').value);forumComposeImages.push({data});renderComposeImages();sheet.remove();}catch(e){showToast(e.message);}};}
+let monoTrendTab='trending';
+renderForumHot=function(){currentHotView='main';const feed=document.getElementById('forumFeed'),tabs=document.querySelector('.forum-tabs');if(!feed)return;if(tabs){tabs.style.display='flex';tabs.dataset.view='hot';tabs.querySelectorAll('.forum-home-tab,.forum-back-btn').forEach(e=>e.style.display='none');tabs.querySelector('.forum-hot-title').style.display='block';const more=tabs.querySelector('.forum-settings-btn');more.style.display='flex';more.setAttribute('onclick','ForumApp.monoHotMenu()');}
+ const topics=generateHotTopics(),keywords=extractWorldviewKeywords(),posts=getTrendingPosts();const list=monoTrendTab==='for-you'?keywords.map(tag=>({tag,category:'为你推荐',count:''})):topics;
+ feed.innerHTML=`<div class="mono-trends"><div class="forum-hot-search"><div class="forum-hot-search-box">${forumIcon('search')}<input id="forumHotSearchInput" placeholder="搜索 MONO" onkeydown="ForumApp.handleHotSearchKeydown(event)"></div></div><nav class="mono-trend-tabs">${[['for-you','为你推荐'],['trending','当前趋势'],['posts','热门帖子']].map(([id,label])=>`<button class="${monoTrendTab===id?'active':''}" data-trend="${id}">${label}</button>`).join('')}</nav>${monoTrendTab==='posts'?posts.map(renderForumPostItem).join('')||'<p class="mono-note">暂无热门帖子</p>':list.map((t,i)=>`<button class="mono-trend-item" data-topic="${escapeForumHtml(t.tag)}"><small>${i+1} · ${escapeForumHtml(t.category || '当前趋势')}</small><strong>${escapeForumHtml(t.tag.startsWith('#')?t.tag:'#'+t.tag)}</strong>${t.count?`<span>${escapeForumHtml(String(t.count))} 条帖子</span>`:''}</button>`).join('')||'<p class="mono-note">设置世界观后，在右上角刷新趋势。</p>'}</div>`;
+ feed.querySelectorAll('[data-trend]').forEach(b=>b.onclick=()=>{monoTrendTab=b.dataset.trend;renderForumHot();});feed.querySelectorAll('[data-topic]').forEach(b=>b.onclick=()=>monoRun(()=>searchForumTopic(b.dataset.topic)));
+};
+function monoHotMenu(){const sheet=forumSheet('趋势设置','<button class="forum-sheet-row" data-refresh>刷新趋势</button><button class="forum-sheet-row" data-world>世界观与论坛设置</button>');sheet.querySelector('[data-refresh]').onclick=async()=>{sheet.remove();await monoRun(async()=>{await generateForumPosts();renderForumHot();});};sheet.querySelector('[data-world]').onclick=()=>{sheet.remove();openForumSettings();};}
+const monoOldFeed=renderForumFeed;renderForumFeed=function(){monoOldFeed();const tabs=document.querySelector('.forum-tabs');if(tabs){tabs.dataset.view='home';const settings=tabs.querySelector('.forum-settings-btn');settings?.setAttribute('onclick','ForumApp.openForumSettings()');}};
+const monoOldProfile=renderForumProfile;renderForumProfile=function(tab){monoOldProfile(tab);};
+for(const name of ['generateNewDirectMessages','submitForumPost','submitForumComment','generateForumPosts']){const fn={generateNewDirectMessages,submitForumPost,submitForumComment,generateForumPosts}[name];const wrapped=async(...args)=>monoRun(()=>fn(...args));if(name==='generateNewDirectMessages')generateNewDirectMessages=wrapped;if(name==='submitForumPost')submitForumPost=wrapped;if(name==='submitForumComment')submitForumComment=wrapped;if(name==='generateForumPosts')generateForumPosts=wrapped;}
+loadSelectedForumPreset=async function(){const select=document.getElementById('forumPresetSelect'),i=select?.value;if(i===''||i==null||!forumPresets[i])return;if(!confirm('使用这个论坛方案？当前身份保持独立。'))return;const identity=monoSnapshot();forumSettings={...forumSettings,...structuredClone(forumPresets[i].settings),...identity,monoAccountId:monoActiveAccount};await localforage.setItem('forumSettings',forumSettings);renderForumSettings();};
+for(const kind of ['ai','npc']){const fn=kind==='ai'?removeForumParticipant:removeForumNpc;const wrapped=async i=>{const p=kind==='ai'?forumSettings.aiParticipants[i]:forumSettings.npcs[i];if(!p)return;const id=(kind==='ai'?'ai_':'npc_')+(kind==='ai'?p.charId:p.id);await fn(i);if(!(kind==='ai'?forumSettings.aiParticipants:forumSettings.npcs).includes(p)){forumSettings.monoHiddenContacts ||= [];if(!forumSettings.monoHiddenContacts.includes(id))forumSettings.monoHiddenContacts.push(id);await localforage.setItem('forumSettings',forumSettings);renderForumSettings();}};if(kind==='ai')removeForumParticipant=wrapped;else removeForumNpc=wrapped;}
+Object.assign(ForumApp,{monoAccountsMenu,monoSwitchAccount,monoNewAccount,monoContactSettings,monoIdentityManager,monoSaveIdentity,monoSaveForumPreset,monoPresetManager,monoRefreshMenu,monoProfileMenu,monoHotMenu,monoComposeLink,loadSelectedForumPreset,removeForumParticipant,removeForumNpc,renderForumSettings,renderForumWorldbookBindings,openForumWorldbookSelector,addForumWorldbook,removeForumWorldbook,getForumWorldbookContent,getCharacterBoundWorldbooks,renderDirectMessagesList,forumShareProfile,forumRenderChat,openForumCompose,renderForumHot,renderForumFeed,renderForumProfile,generateNewDirectMessages,submitForumPost,submitForumComment,generateForumPosts});
+
 // Preserve original entry names for existing forum installations when unoccupied.
 for(const name of Object.keys(ForumApp)) {
  if(typeof ForumApp[name]==='function' && !(name in window) && !['showToast','getActiveApiConfig','compressAvatar','saveGlobalAvatar','closePage','sendDirectMessage','openProfileEditor','saveProfileChanges','getDefaultAvatar'].includes(name))window[name]=ForumApp[name];
@@ -7017,6 +7106,7 @@ ForumApp.ready=null;
 function forumBoot() {
   if(ForumApp.ready)return ForumApp.ready;
   let page=document.getElementById('forumPage');
+  monoSyncSafeArea();
   if(!page){page=document.createElement('section');page.id='forumPage';page.className='page';page.hidden=true;page.style.cssText='position:absolute;inset:0;z-index:1000;display:none;height:100%;';page.innerHTML='<div id="forumPageContent" class="page-content"></div>';forumMount(page);}
   else if(!document.getElementById('forumPageContent'))page.innerHTML='<div id="forumPageContent" class="page-content"></div>';
   ForumApp.ready=initForumApp().catch(e=>{ForumApp.ready=null;showToast('论坛加载失败：'+e.message);throw e;});return ForumApp.ready;
