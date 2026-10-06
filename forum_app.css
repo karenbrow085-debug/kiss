@@ -4370,3 +4370,36 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 .phone-screen .mono-translated-message .mono-message-translation{display:flex;justify-content:flex-start;position:relative;z-index:1;width:0;min-width:100%;box-sizing:border-box;margin:-.725em 0 7px;padding:0 11px;font-family:inherit;font-size:11px;font-style:italic;font-weight:700;line-height:1.45;color:#fff;-webkit-text-fill-color:#fff;-webkit-text-stroke:.7px #111;paint-order:stroke fill;text-shadow:none;letter-spacing:0;overflow-wrap:anywhere}
 .mono-message-translation>span{display:block;flex:0 0 auto;width:100%;min-width:3em}.forum-dm-message.mine .mono-message-translation{justify-content:flex-end!important;text-align:right}.forum-dm-message.other .mono-message-translation{text-align:left}
 .mono-interaction-retry{display:block;margin:12px auto;border:1px solid #eee;border-radius:20px;background:#fff;color:#555;padding:10px 17px;font-family:inherit;font-size:12px}
+/* MONO v7: independent feed and reply layouts, floating chat composer. */
+.phone-screen .forum-dm-chat .forum-dm-composer{position:absolute!important;bottom:0;left:0;right:0;z-index:3;background:transparent!important;border:0!important;padding:8px 10px max(12px,env(safe-area-inset-bottom))!important;pointer-events:none}
+.phone-screen .forum-dm-chat .forum-dm-input-area{pointer-events:auto;background:rgba(245,245,245,.88)!important;backdrop-filter:blur(10px);border:1px solid rgba(210,210,210,.45)!important;box-shadow:none!important}
+.phone-screen .forum-dm-chat .forum-dm-messages{padding-bottom:100px!important;scroll-padding-bottom:100px}
+.phone-screen .forum-dm-chat .forum-dm-status{position:absolute;left:0;right:0;bottom:72px;background:transparent!important;pointer-events:none;z-index:2}
+.phone-screen .forum-dm-chat .forum-dm-msg-avatar{align-self:flex-end!important;margin:0!important;transform:none!important}
+.phone-screen .forum-dm-chat .forum-dm-message:has(.mono-translated-message){align-items:flex-start!important}
+.phone-screen .forum-dm-chat .forum-dm-message:has(.mono-translated-message) .forum-dm-msg-avatar{align-self:flex-start!important;margin-top:var(--mono-avatar-top,0px)!important}
+#forumPage .mono-x-avatar-button{display:block!important;align-self:flex-start;flex:0 0 42px!important;width:42px!important;height:42px!important;padding:0!important;margin:0!important;line-height:0!important}
+#forumPage .mono-x-post .mono-x-avatar,#forumPage .mono-x-comment .mono-x-avatar{width:42px!important;height:42px!important;display:block!important}
+#forumPage .mono-x-post{position:relative;flex-wrap:wrap;padding:15px 12px!important;gap:0 10px!important}
+#forumPage .mono-x-post>.mono-x-post-body{flex:1;min-width:0}
+#forumPage .mono-x-post .mono-x-header b{font-size:15px!important;max-width:49%;font-weight:650!important}
+#forumPage .mono-x-post .mono-x-header small{font-size:13px!important;color:#536471!important}
+#forumPage .mono-x-post .mono-x-text{font-size:15px!important;line-height:1.5!important;margin-top:2px!important}
+#forumPage .mono-x-post .mono-x-actions{grid-template-columns:repeat(4,minmax(0,1fr)) 20px 20px!important;gap:7px!important;margin-top:17px!important}
+#forumPage .mono-x-post .mono-x-actions svg{width:20px!important;height:20px!important;flex-basis:20px!important;stroke-width:1.8}
+#forumPage .mono-x-post .mono-x-actions>button,#forumPage .mono-x-post .mono-x-actions>span{font-size:11px!important}
+.mono-reposted-label{width:100%;display:flex;align-items:center;gap:8px;padding:0 0 9px 52px;box-sizing:border-box;color:#536471;font-size:12px}.mono-reposted-label svg{width:16px;height:16px}
+#forumPage .mono-x-comment{gap:10px!important;padding:14px 12px!important;min-height:102px!important}
+#forumPage .mono-x-comment .mono-x-header b{font-size:14px!important;max-width:53%}
+#forumPage .mono-x-comment .mono-x-header small{font-size:12px!important;color:#536471!important}
+#forumPage .mono-x-comment .mono-x-text{font-size:14px!important;line-height:1.45!important;margin-top:2px!important}
+#forumPage .mono-x-comment .mono-x-actions{margin-top:20px!important;gap:7px!important;grid-template-columns:repeat(4,minmax(0,1fr)) 18px 18px!important}
+#forumPage .mono-x-comment .mono-x-actions svg{width:17px!important;height:17px!important;flex-basis:17px!important;stroke-width:1.65}
+#forumPage .mono-x-comment .mono-x-actions>button,#forumPage .mono-x-comment .mono-x-actions>span{font-size:11px!important}
+#forumPage .mono-x-comment.connected:after{left:33px!important;top:56px!important;bottom:-14px!important}
+#forumPage .mono-x-thread .mono-x-comment+.mono-x-comment:before{left:33px!important}
+#forumPage .mono-show-replies{padding-left:64px!important;color:#536471!important}
+#forumPage .mono-x-detail-author .mono-x-avatar-button{align-self:center}
+.mono-post-translate{display:flex;align-items:center;gap:5px;padding:0;margin:8px 0;border:0;background:transparent;color:#536471;font-size:12px;font-family:inherit;cursor:pointer}.mono-post-translate svg{width:17px;height:17px}.mono-post-translate:disabled{opacity:.5}
+.mono-x-detail-post>.mono-post-translate{margin:20px 0 0}.mono-x-detail-post>.mono-post-translate+.mono-x-detail-text{margin-top:0!important}
+.mono-reply-frequency .forum-setting-row{gap:10px}.mono-reply-frequency input{width:55px;max-width:55px;box-sizing:border-box;font-family:inherit}.mono-reply-frequency small{display:block;font-size:11px;color:#999;margin-top:5px;font-weight:400}
