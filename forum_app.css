@@ -4351,7 +4351,7 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-v5-reply .forum-comment-input{font-weight:400!important;font-size:14px!important;line-height:1.45!important;font-family:inherit!important;color:#0f1419!important}
 #forumPage .mono-v5-reply .forum-comment-input::placeholder{font-weight:400!important;color:#536471!important;opacity:1!important}
 #forumPage .mono-v5-reply.expanded{padding:12px!important;border-radius:24px!important}
-#forumPage .mono-v5-reply.expanded textarea{height:42px!important;min-height:42px!important;max-height:42px!important;overflow-y:auto!important;padding:2px 0!important}
+#forumPage .mono-v5-reply.expanded textarea{height:48px!important;min-height:48px!important;max-height:48px!important;overflow-y:auto!important;padding:4px 3px!important}
 #forumPage .mono-v5-reply.expanded .mono-reply-main{gap:10px;align-items:flex-start}
 #forumPage .mono-v5-reply .mono-reply-avatar{width:30px!important;height:30px!important;flex:0 0 30px!important}
 #forumPage .mono-v5-reply.expanded .mono-reply-tools{margin-top:9px!important;gap:20px!important;height:31px!important}
@@ -4359,6 +4359,7 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-v5-reply.expanded .forum-comment-send:disabled{opacity:1!important;background:#b3b3b3!important;color:#fff!important}
 #forumPage .mono-v5-reply button{color:#536471!important}.mono-v5-reply.expanded .mono-reply-expand svg{transform:rotate(180deg)}
 #forumPage .mono-v5-reply .mono-reply-tools svg{width:23px!important;height:23px!important}.mono-v5-reply .mono-reply-expand svg{width:21px!important;height:21px!important}
+#forumPage .mono-v5-reply textarea.forum-comment-input{border-radius:0!important;box-sizing:border-box!important;min-width:0;appearance:none;-webkit-appearance:none}
 .phone-screen .forum-dm-message .mono-profile-shell{width:228px;max-width:78%;padding:0!important;border:0!important;background:none!important;color:#111!important}
 .phone-screen .forum-dm-message .mono-shared-profile{display:block;width:100%;border:1px solid #e4e4e4!important;border-radius:16px!important;background:#fff!important;color:#111!important;padding:14px 14px 0!important;text-align:left;box-shadow:none!important;font-family:inherit;overflow:hidden;cursor:pointer}
 .mono-shared-profile-person{display:flex;align-items:center;gap:10px}.mono-shared-profile-person img{height:43px;width:43px;flex:0 0 43px;border-radius:50%;object-fit:cover}.mono-shared-profile-person div{min-width:0}.mono-shared-profile-person strong{display:block;font-size:13px!important;font-weight:600!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111!important}.mono-shared-profile-person small{display:block;font-size:11px!important;font-weight:400!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8b8b8b!important;margin-top:3px}
