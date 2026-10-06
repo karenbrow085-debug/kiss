@@ -3060,7 +3060,7 @@ ${participants.length > 0
 
     await localforage.setItem("forumPosts", forumPosts);
     showToast(`刷新成功`);
-    renderForumFeed();
+    if (!monoAutoUpdating) renderForumFeed();
 
   } catch (e) {
     console.error("[论坛] 生成失败:", e);
@@ -5246,7 +5246,7 @@ JSON 格式模板：
       const userPosts = forumPosts.filter(p => 
         p.authorName === userInfo.name && p.authorType !== 'user'
       );
-      renderOtherUserProfile(userInfo, userPosts, false);
+      if (!userInfo.monoBackground) renderOtherUserProfile(userInfo, userPosts, false);
       
       showToast(`已生成 ${newPosts.length} 条动态`);
     }
@@ -7462,5 +7462,34 @@ renderForumHot=function(...args){monoV85Hot(...args);const feed=document.getElem
 const monoV85Posts=generateForumPosts;
 generateForumPosts=async function(...args){const before=new Map(forumPosts.map(p=>[String(p.id),p.content]));await monoV85Posts(...args);const fresh=forumPosts.filter(p=>p.authorType!=='user'&&!p.isSearchResult&&!p.isRetweet&&(!before.has(String(p.id))||before.get(String(p.id))!==p.content));if(fresh.length){const batch=crypto.randomUUID(),at=Date.now();fresh.forEach(p=>{p.monoSearchBatch=batch;p.monoSearchBatchAt=at;});await localforage.setItem('forumPosts',forumPosts);if(window.currentForumSection==='hot')renderForumHot();}};
 Object.assign(ForumApp,{renderForumHot,generateForumPosts,monoTrendPartition,monoGuessSuggestions,monoGuessSearch});
+
+// MONO v8.6: related topic discovery and opt-in in-page posting schedules.
+let monoAutoUpdating=false,monoAutoFlight=false;
+function monoInterval(value){return Math.max(1,Math.min(10080,Math.round(Number(value)||30)));}
+function monoScheduleRow(prefix,label,opts){return `<label class="forum-setting-row"><span>${label}</span><input type="checkbox" data-${prefix}-enabled ${opts.enabled?'checked':''}></label><label class="forum-setting-row"><span>间隔时间</span><span class="mono-setting-value"><input type="number" min="1" max="10080" data-${prefix}-minutes value="${monoInterval(opts.minutes)}"> 分钟</span></label>`;}
+function monoBindSchedule(root,prefix,opts,save){const enabled=root.querySelector('[data-'+prefix+'-enabled]'),minutes=root.querySelector('[data-'+prefix+'-minutes]');const change=async()=>{opts.enabled=enabled.checked;opts.minutes=monoInterval(minutes.value);minutes.value=opts.minutes;minutes.disabled=!opts.enabled;opts.nextAt=Date.now()+opts.minutes*60000;await save();};enabled.onchange=change;minutes.onchange=change;minutes.disabled=!opts.enabled;}
+function monoAutoFeedOptions(){return forumSettings.monoAutoFeed ||= {enabled:false,minutes:30,nextAt:0};}
+function monoAutoFeedSettings(){const opts=monoAutoFeedOptions(),sh=forumSheet('首页自动更新',monoScheduleRow('auto-feed','自动更新首页帖子',opts)+'<p class="mono-note">网页保持运行时按间隔更新。锁屏或系统暂停后，恢复时最多补一次。</p>');monoBindSchedule(sh,'auto-feed',opts,()=>localforage.setItem('forumSettings',forumSettings));}
+const monoV86Settings=renderForumSettings;
+renderForumSettings=function(...args){monoV86Settings(...args);if(monoContactOpen)return;const root=document.getElementById('forumSettingsContent');if(!root)return;root.insertAdjacentHTML('beforeend','<section class="forum-section mono-auto-feed-section"><div class="forum-section-title">首页自动更新</div>'+monoScheduleRow('auto-feed','自动更新帖子',monoAutoFeedOptions())+'<p class="mono-note">网页保持运行时执行；恢复后最多补一次更新。</p></section>');monoBindSchedule(root.querySelector('.mono-auto-feed-section'),'auto-feed',monoAutoFeedOptions(),()=>localforage.setItem('forumSettings',forumSettings));};
+const monoV86RefreshMenu=monoRefreshMenu;
+monoRefreshMenu=function(...args){monoV86RefreshMenu(...args);const sh=document.getElementById('forumAuxSheet');sh?.querySelector('main').insertAdjacentHTML('beforeend','<button class="forum-sheet-row" data-auto-settings>首页自动更新设置</button>');if(sh)sh.querySelector('[data-auto-settings]').onclick=monoAutoFeedSettings;};
+const monoV86Contacts=renderDirectMessagesList;
+renderDirectMessagesList=function(...args){monoV86Contacts(...args);const label=document.querySelector('.forum-dm-page .forum-dm-section-label');if(label)label.textContent='消息';};
+const monoV86ContactSettings=monoContactSettings;
+monoContactSettings=function(...args){monoV86ContactSettings(...args);const body=document.getElementById('monoContactBody'),pair=body?.querySelector('.forum-sheet-pair');if(pair){pair.className='mono-contact-actions';pair.querySelectorAll('button').forEach(b=>{b.className='forum-sheet-row';b.insertAdjacentHTML('beforeend','<span aria-hidden="true">›</span>');});}};
+const monoV86ChatSettings=forumOpenChatSettings;
+forumOpenChatSettings=function(...args){monoV86ChatSettings(...args);const conv=forumGetConv(),sh=document.getElementById('forumAuxSheet');if(!conv||!sh||!conv.id.startsWith('ai_'))return;const opts=forumDMOptions(conv).monoAutoPost ||= {enabled:false,minutes:60,nextAt:0};sh.querySelector('main').insertAdjacentHTML('beforeend','<section class="mono-auto-role-section"><h3>主动发帖</h3>'+monoScheduleRow('auto-post','主动发布帖子',opts)+'<p class="mono-note">按当前角色人设发布新帖子到首页，不自动发送私信。</p></section>');monoBindSchedule(sh.querySelector('.mono-auto-role-section'),'auto-post',opts,forumSaveDMs);};
+const monoV86Partition=monoTrendPartition;
+monoTrendPartition=function(){const old=monoV86Partition(),source=monoGuessSource(),topics=source.find(p=>Array.isArray(p.monoRelatedTopics))?.monoRelatedTopics;const blocked=new Set(old.trending.map(t=>monoGuessKey(t.tag)));return {trending:old.trending,recommended:(topics||old.recommended.map(t=>t.tag)).filter((s,i,a)=>!blocked.has(monoGuessKey(s))&&a.findIndex(x=>monoGuessKey(x)===monoGuessKey(s))===i).map(tag=>({tag,category:'本轮相关话题',count:''}))};};
+monoGuessSearch=function(topic){return monoRun(()=>searchForumTopic(topic));};
+const monoV86Hot=renderForumHot;
+renderForumHot=function(...args){monoV86Hot(...args);const tab=document.querySelector('[data-trend="for-you"]');if(tab)tab.textContent='为你推荐';};
+const monoV86Posts=generateForumPosts;
+generateForumPosts=async function(...args){const before=new Set(forumPosts.map(p=>String(p.id)));await monoV86Posts(...args);const fresh=forumPosts.filter(p=>!before.has(String(p.id))&&p.authorType!=='user'&&!p.isSearchResult&&!p.isRetweet);if(!fresh.length)return;const done=monoGenerationStart('正在整理相关话题');try{const rows=await monoFeatureRequest('新增相关话题功能：根据下面这一轮已生成的帖子，延伸4至6个值得点进去继续讨论的话题。应是具体人物、事件、争议或生活问题的自然话题名，不是分类标签、零碎分词，不复制每篇帖子的标题。话题必须与提供的帖子有关，不凭空加入新的事实。返回JSON数组 [{"topic":"话题名"}]，每个名称2至24字。帖子：\n'+JSON.stringify(fresh.map(p=>({author:p.authorName,content:p.monoOriginalContent||p.content}))));const topics=rows.map(r=>String(r.topic||'').trim().replace(/^#/,'' )).filter(t=>t.length>=2&&t.length<=24);if(topics.length){for(const p of fresh)if(forumPosts.includes(p))p.monoRelatedTopics=topics.slice(0,6);await localforage.setItem('forumPosts',forumPosts);}}catch(e){console.warn('[MONO] 相关话题暂未更新');}finally{done();if(window.currentForumSection==='hot'&&!monoAutoUpdating)renderForumHot();}};
+async function monoAutoTick(now=Date.now()){if(monoAutoFlight||monoBusy||forumDMTasks.size||monoFeatureFlights.size||monoGenerationCount)return;const config=getActiveApiConfig();if(!config?.url||!config?.key||!forumSettings.worldview)return;const feed=monoAutoFeedOptions(),dueFeed=feed.enabled&&Number(feed.nextAt)<=now;const conv=forumDirectMessages.find(c=>c.id.startsWith('ai_')&&c.chatOptions?.monoAutoPost?.enabled&&Number(c.chatOptions.monoAutoPost.nextAt)<=now);if(!dueFeed&&!conv)return;monoAutoFlight=true;monoAutoUpdating=true;try{await monoRun(async()=>{if(dueFeed){feed.nextAt=now+monoInterval(feed.minutes)*60000;await localforage.setItem('forumSettings',forumSettings);await generateForumPosts();}else{const opts=conv.chatOptions.monoAutoPost;opts.nextAt=now+monoInterval(opts.minutes)*60000;await forumSaveDMs();const id=conv.id.slice(3),p=forumSettings.aiParticipants.find(p=>String(p.charId)===id),c=forumCharacter(id);if(!c&&!p)return;const before=new Set(forumPosts.map(p=>p.id));await generateUserProfilePosts({type:'ai',id,name:p?.nickname||c?.remarkName||c?.realName||conv.name,handle:p?.handle||conv.handle,avatar:monoRoleAvatar(p,c,conv),fullPersona:getCharacterFullPersona(p||{charId:id}),monoBackground:true});for(const post of forumPosts)if(!before.has(post.id)){post.timestamp=Date.now();post.monoProactivePost=true;}await localforage.setItem('forumPosts',forumPosts);}});}catch(e){showToast('自动更新失败：'+e.message);}finally{monoAutoUpdating=false;monoAutoFlight=false;if(window.currentForumSection==='home'&&!document.querySelector('.forum-dm-chat')&&!document.getElementById('forumDetailOverlay')?.classList.contains('active'))renderForumFeed();}}
+setInterval(()=>{monoAutoTick().catch(()=>{});},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)monoAutoTick().catch(()=>{});});
+Object.assign(ForumApp,{renderForumSettings,monoRefreshMenu,renderDirectMessagesList,monoContactSettings,forumOpenChatSettings,monoTrendPartition,monoGuessSearch,renderForumHot,generateForumPosts,monoAutoFeedSettings,monoAutoTick});
 
 })();
