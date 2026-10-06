@@ -24,3 +24,9 @@
 #char-status-content .sh-empty{margin:auto!important;font-size:12px!important;color:#888!important;font-weight:400;text-align:center}
 #char-status-content .sh-toolbar button:focus-visible,#char-status-content .sh-confirm button:focus-visible,#char-status-content .sh-row:focus-within{outline:2px solid #999;outline-offset:2px}
 @media(max-width:340px){#char-status-content .sh-toolbar{gap:8px;padding:12px}#char-status-content .sh-actions{gap:5px}#char-status-content .sh-toolbar button{padding:7px 8px}}
+
+/* Keep status history actions below the iOS status bar and Dynamic Island. */
+#char-status-overlay{box-sizing:border-box;padding-top:max(64px,calc(env(safe-area-inset-top,0px) + 16px))!important;padding-bottom:env(safe-area-inset-bottom,0px)}
+#char-status-content .sh-toolbar{margin-top:8px;min-height:64px;gap:10px;padding:10px 13px}
+#char-status-content .sh-toolbar button{min-height:44px;min-width:44px;touch-action:manipulation}
+@media(max-width:340px){#char-status-content .sh-toolbar{margin-left:10px;margin-right:10px;padding-left:10px;padding-right:10px;gap:6px}#char-status-content .sh-actions{gap:5px}#char-status-content .sh-toolbar button{padding-left:8px;padding-right:8px}}
