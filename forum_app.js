@@ -5565,7 +5565,7 @@ JSON 模板：
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiConfig.key}` },
         body: JSON.stringify({ 
           model: apiConfig.model || "gpt-3.5-turbo", 
-          messages: [{ role: "user", content: prompt }], 
+          messages: [{ role: "user", content: prompt + monoPrivateChatStyle(true) }], 
           temperature: 0.9, // 保持高创造性
           max_tokens: parseInt(document.getElementById('apiMaxTokens')?.value) || 2048
         })
@@ -5608,6 +5608,8 @@ JSON 模板：
 
     // ================= 4. 智能匹配头像与入库 =================
     if (!Array.isArray(msgs)) msgs = [];
+    // New short-message protocol, retaining legacy content and per-message translations.
+    msgs = msgs.flatMap(m => !m || !Array.isArray(m.messages) ? [m] : m.messages.map(r => ({...m, messages: undefined, content: typeof r === 'string' ? r : r?.text || r?.content || '', translation: typeof r === 'object' ? r?.translation || '' : ''})));
     let count = 0;
     
     msgs.forEach(msg => {
@@ -5655,6 +5657,7 @@ JSON 模板：
                 id: Date.now(),
                 sender: 'other',
                 content: sContent,
+                ...(typeof msg.translation === 'string' && msg.translation.trim() ? {translation: msg.translation.trim()} : {}),
                 timestamp: Date.now()
             });
             existingConv.unread = (existingConv.unread || 0) + 1;
@@ -5669,7 +5672,8 @@ JSON 模板：
                 name: sName,
                 avatar: finalAvatar, 
                 type: finalId.startsWith('ai_') ? 'ai' : 'npc', 
-                messages: [{ id: Date.now(), sender: 'other', content: sContent, timestamp: Date.now() }],
+                messages: [{ id: Date.now(), sender: 'other', content: sContent,
+                ...(typeof msg.translation === 'string' && msg.translation.trim() ? {translation: msg.translation.trim()} : {}), timestamp: Date.now() }],
                 unread: 1,
                 lastMessage: sContent,
                 lastMessageTime: Date.now(),
@@ -7370,4 +7374,93 @@ function forumBoot() {
 ForumApp.open=async()=>{await forumBoot();const page=document.getElementById('forumPage');page.hidden=false;page.style.display='flex';page.style.height='100%';monoInstallBranding();};
 if(!window.openForumApp)window.openForumApp=ForumApp.open;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>forumBoot().catch(()=>{}),{once:true});else forumBoot().catch(()=>{});
+// MONO v8.1: recover legacy role associations and native avatar fallbacks.
+function monoAvatarIdentityKey(value){return String(value??'').normalize('NFKC').trim().replace(/^@/,'').replace(/\s+/g,'').toLowerCase();}
+function monoIsPlaceholderAvatar(value){return !value||String(value)===getDefaultAvatarDataUrl();}
+function monoRoleAvatar(participant,character,conversation){const custom=forumImageValue(participant?.avatar);if(custom&&!monoIsPlaceholderAvatar(custom))return custom;return forumImageValue(character?.avatar)||forumImageValue(conversation?.avatar)||custom||'';}
+function monoAvatarRoleCandidates(){const rows=new Map();for(const c of forumNativeCharacters()){rows.set(String(c.id),{id:c.id,c,p:null,conv:null,names:new Set([c.name,c.realName,c.remarkName,c.charName].filter(Boolean).map(monoAvatarIdentityKey)),handles:new Set()});}for(const p of forumSettings.aiParticipants||[]){const id=String(p.charId);let r=rows.get(id);if(!r){r={id:p.charId,c:null,p:null,conv:null,names:new Set(),handles:new Set()};rows.set(id,r);}r.p=p;if(p.nickname)r.names.add(monoAvatarIdentityKey(p.nickname));if(p.handle)r.handles.add(monoAvatarIdentityKey(p.handle));}for(const conv of forumDirectMessages||[]){if(!conv.id?.startsWith('ai_'))continue;const r=rows.get(conv.id.slice(3));if(!r)continue;r.conv=conv;if(conv.name)r.names.add(monoAvatarIdentityKey(conv.name));if(conv.handle)r.handles.add(monoAvatarIdentityKey(conv.handle));}return [...rows.values()];}
+const monoV81Resolve=resolveAuthorIdentity;
+resolveAuthorIdentity=function(name,record={}){if(record.authorType==='user')return monoV81Resolve(name,record);const key=monoAvatarIdentityKey(name),handle=monoAvatarIdentityKey(record.handle||record.authorHandle),rows=monoAvatarRoleCandidates(),rawId=record.charId??record.characterId??record.authorId,id=String(rawId??'').replace(/^ai_/,'');const exact=id?rows.find(r=>String(r.id)===id):null;const npcId=id?(forumSettings.npcs||[]).find(n=>String(n.id)===id):null;const handles=handle?rows.filter(r=>r.handles.has(handle)):[],names=key?rows.filter(r=>r.names.has(key)):[];const explicitNpc=record.authorType==='npc'&&npcId&&!exact;let found=explicitNpc?null:exact||(handles.length===1?handles[0]:null)||(names.length===1?names[0]:null);if(found){return {type:'ai',id:found.id,name:found.p?.nickname||found.c?.remarkName||found.c?.realName||found.c?.name||found.conv?.name||name,avatar:monoRoleAvatar(found.p,found.c,found.conv)};}return monoV81Resolve(name,record);};
+const monoV81Avatar=monoRecordAvatar;
+monoRecordAvatar=function(record){if(record.authorType==='user')return monoV81Avatar(record);const a=resolveAuthorIdentity(record.authorName,record);if(a.type==='ai')return forumImageValue(a.avatar)||getDefaultAvatarDataUrl();return monoV81Avatar(record);};
+let monoRoleRecoveryDirty=false;
+function monoRecoverRoleRecords(){let changed=false;function fix(r){if(!r||r.authorType==='user')return;const a=resolveAuthorIdentity(r.authorName,r);if(a.type!=='ai')return;if(r.authorType!=='ai'||String(r.authorId)!==String(a.id)){r.authorType='ai';r.authorId=a.id;changed=true;}const avatar=forumImageValue(a.avatar);if(avatar&&r.authorAvatar!==avatar){r.authorAvatar=avatar;changed=true;}}for(const p of forumPosts){fix(p);for(const c of p.comments||[])fix(c);if(p.originalPost)fix(p.originalPost);}if(changed)monoRoleRecoveryDirty=true;return changed;}
+const monoV81RenderFeed=renderForumFeed;
+renderForumFeed=function(...args){monoRecoverRoleRecords();return monoV81RenderFeed(...args);};
+const monoV81Open=ForumApp.open;
+ForumApp.open=async function(){await monoV81Open();await initDirectMessages();monoRecoverRoleRecords();if(monoRoleRecoveryDirty){await localforage.setItem('forumPosts',forumPosts);monoRoleRecoveryDirty=false;monoRefreshPostViews();}};
+Object.assign(ForumApp,{resolveAuthorIdentity,monoRecordAvatar,monoRecoverRoleRecords,renderForumFeed});
+
+// MONO v8.2: shared posts retain their destination in chat.
+function monoSharedPostRecord(message){
+ if(message?.forumPost&&typeof message.forumPost==='object')return message.forumPost;
+ const text=String(message?.content||'');if(!text.startsWith('[分享帖子] '))return null;
+ const newline=text.indexOf('\n');if(newline<0)return null;
+ const name=text.slice(7,newline).trim(),content=text.slice(newline+1);
+ const matches=forumPosts.filter(p=>p.authorName===name&&p.content===content);
+ return matches.length===1?matches[0]:null;
+}
+function monoSharedPostMarkup(p,index){
+ const src=forumSafeImage(p.images?.[0]);
+ return `<button class="mono-shared-post" onclick="ForumApp.monoSharedPostOpen(${index})" aria-label="查看分享的帖子"><div class="mono-shared-profile-person"><img src="${escapeForumHtml(monoRecordAvatar(p))}" onerror="ForumApp.monoAvatarError(this)" alt=""><div><strong>${escapeForumHtml(monoPostName(p)||'用户')}</strong><small>@${escapeForumHtml(String(p.handle||generateEnglishHandle(p.authorName)).replace(/^@/,''))}</small></div></div><p class="mono-shared-post-excerpt">${escapeForumHtml(p.monoOriginalContent||p.content||'图片帖子')}</p>${src?`<img class="mono-shared-post-cover" src="${escapeForumHtml(src)}" alt="帖子图片" onerror="this.hidden=true">`:''}<div class="mono-shared-profile-footer"><span>查看帖子</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 5 7 7-7 7"/></svg></div></button>`;
+}
+function monoSharedPostOpen(index){
+ const conv=forumGetConv(),snapshot=monoSharedPostRecord(conv?.messages?.[index]);if(!snapshot)return;
+ const post=forumPosts.find(p=>String(p.id)===String(snapshot.id));
+ if(!post){forumSheet('分享的帖子',`<p class="mono-note">原帖已不在当前列表，以下是分享时的内容。</p><div class="mono-shared-post-archive"><strong>${escapeForumHtml(snapshot.authorName||'用户')}</strong><p>${escapeForumHtml(snapshot.content||'图片帖子')}</p></div>`);return;}
+ forumDraftSave(document.getElementById('dmInput')?.value||'');
+ monoSharedPostReturnChat=conv.id;closeDirectMessages();switchForumSection('home');openForumPostDetail(post.id);
+}
+let monoSharedPostReturnChat=null;
+const monoV82ClosePost=closeForumPostDetail;
+closeForumPostDetail=function(...args){const chat=monoSharedPostReturnChat;monoSharedPostReturnChat=null;monoV82ClosePost(...args);if(chat&&forumGetConv(chat))openDirectMessageChat(chat);};
+const monoV82Chat=forumRenderChat;
+forumRenderChat=function(c){monoV82Chat(c);const rows=[...document.querySelectorAll('.forum-dm-chat .forum-dm-message')];(c.messages||[]).forEach((m,i)=>{const p=monoSharedPostRecord(m),row=rows[i];if(!p||!row)return;const bubble=row.querySelector('.forum-dm-msg-bubble');if(!bubble)return;bubble.className='mono-post-shell';bubble.innerHTML=monoSharedPostMarkup(p,i);row.classList.add('has-shared-post');});};
+Object.assign(ForumApp,{forumRenderChat,monoSharedPostOpen,closeForumPostDetail});
+
+// MONO v8.3: requested private-message style only; original forum templates retained.
+function monoPrivateChatStyle(discovery=false){return '\n[MONO私信聊天方式·仅用于私信]\n按发送者既有人设、关系和语言说话，不把不同角色写成同一种温柔客服。'+(discovery?'这是主动开场，每个人通常发一句短话，围绕一个具体细节开口；也可以继续已有话题。':'先接住对话中用户最新一句的具体意思，再决定说什么；用户分享帖子是分享他人的内容，不代表帖中文字是用户自己的经历。最近动态只作背景，不要跳过最新消息去统一点评旧帖。')+'\n默认一轮1至3条短消息，一句能讲清就只发一句。中文每条通常5至30字、外语一句短话；这是日常节奏，详细提问或必要解释可以更长。不要为了凑条数拆成单字，不要把长篇安慰换行伪装成短聊。每条放进messages数组，按原有协议依次发送。\n用户没有求建议时，不要自动安排休息、洗澡、饮食、直播或明天的日程；避免“辛苦了、身体第一、别勉强自己、好好休息”的固定结尾。人设确实会关心时，以他的语气问具体的事或简短回应，不连续叠加关心。不要总总结、升华、讲道理或连问几个问题，不编造用户的活动，不套万能亲昵称呼；语气、熟悉程度和表达习惯来自人设，不强行加网络梗。\n外语角色的text/content保持其原语言，不混入中文解释。中文译文仅放translation字段；中文角色无需翻译。保持已有表情包和主页分享协议。'+(discovery?'\n主动私信仍返回原JSON数组，每个元素保留senderName/type，可用content和translation表示一句；也可用messages:[{"text":"原话","translation":"中文译文"}]表示同一人连续的短消息，不要额外生成新的联系人。':'');}
+const monoV83DMProtocol=monoDMFeatureProtocol;
+monoDMFeatureProtocol=function(){return monoV83DMProtocol()+monoPrivateChatStyle();};
+Object.assign(ForumApp,{monoDMFeatureProtocol});
+
+// MONO v8.4: select conversations/messages and delete any locally stored post.
+const monoV84Discover=fetchNewRandomDMsInternal;
+fetchNewRandomDMsInternal=async function(...args){const key=monoDMKey(),before=new Set(forumDirectMessages.map(c=>c.id));const result=await monoV84Discover(...args);const batch=crypto.randomUUID(),ids=forumDirectMessages.filter(c=>!before.has(c.id)).map(c=>{c.monoDiscoveryBatch=batch;return c.id;});await forumSaveDMs();await localforage.setItem(key+':latestDiscovery',{batch,ids});return result;};
+async function monoDeleteConversations(ids){const selected=new Set(ids);for(const id of selected){forumStopGeneration(id);forumDrafts.delete(id);}forumDirectMessages=forumDirectMessages.filter(c=>!selected.has(c.id));if(selected.has(currentDMConversationId)){closeDirectMessages();currentDMConversationId=null;}await forumSaveDMs();document.getElementById('forumAuxSheet')?.remove();renderDirectMessagesList();showToast('已删除 '+selected.size+' 个对话');}
+async function monoClearNewConversations(){const round=await localforage.getItem(monoDMKey()+':latestDiscovery');const ids=(round?.ids||[]).filter(id=>forumGetConv(id)?.monoDiscoveryBatch===round.batch);if(!ids.length)return showToast('本轮没有新生成的对话');await monoDeleteConversations(ids);await localforage.setItem(monoDMKey()+':latestDiscovery',null);}
+function monoConversationDeletion(){const items=[...forumDirectMessages].sort((a,b)=>(b.lastMessageTime||0)-(a.lastMessageTime||0));const sh=forumSheet('删除对话',`<p class="mono-note">删除所选 MONO 对话及其记录，角色和联系人设定保留。</p><div class="mono-delete-list">${items.map((c,i)=>`<label class="mono-delete-choice"><input type="checkbox" data-conv-index="${i}"><span><strong>${escapeForumHtml(c.name)}</strong><small>${escapeForumHtml(c.lastMessage||'暂无消息')}</small></span></label>`).join('')||'<p class="mono-note">暂无对话</p>'}</div><button class="forum-sheet-primary" data-delete-conversations disabled>删除所选</button>`);const submit=sh.querySelector('[data-delete-conversations]');sh.querySelectorAll('input').forEach(el=>el.onchange=()=>{const n=sh.querySelectorAll('input:checked').length;submit.disabled=!n;submit.textContent=n?'删除所选（'+n+'）':'删除所选';});submit.onclick=async()=>{submit.disabled=true;await monoDeleteConversations([...sh.querySelectorAll('input:checked')].map(el=>items[Number(el.dataset.convIndex)].id));};}
+const monoV84Contacts=renderDirectMessagesList;
+renderDirectMessagesList=function(...args){monoV84Contacts(...args);const label=document.querySelector('.forum-dm-page .forum-dm-section-label');if(label){label.innerHTML='<span>消息</span><div class="mono-delete-tools"><button data-delete-dialogs>选择删除</button><button data-clear-new-dialogs>清除本轮新对话</button></div>';label.querySelector('[data-delete-dialogs]').onclick=monoConversationDeletion;label.querySelector('[data-clear-new-dialogs]').onclick=monoClearNewConversations;}};
+const monoV84ContactSettings=monoContactSettings;
+monoContactSettings=function(...args){monoV84ContactSettings(...args);const body=document.getElementById('monoContactBody');if(!body)return;body.insertAdjacentHTML('afterbegin','<div class="forum-sheet-pair"><button data-delete-dialogs>选择删除对话</button><button data-clear-new-dialogs>清除本轮新对话</button></div>');body.querySelector('[data-delete-dialogs]').onclick=monoConversationDeletion;body.querySelector('[data-clear-new-dialogs]').onclick=async()=>{await monoClearNewConversations();monoContactSettings();};};
+function monoMessageDeletion(){const conv=forumGetConv();if(!conv)return;const items=[...(conv.messages||[])];const sh=forumSheet('选择聊天记录',`<p class="mono-note">可单选或多选；图片、表情包和分享卡片也可以删除。</p><label class="mono-delete-all"><input type="checkbox" data-select-all> 全选</label><div class="mono-delete-list">${items.map((m,i)=>`<label class="mono-delete-choice"><input type="checkbox" data-message-index="${i}"><span><strong>${escapeForumHtml(m.sender==='user'?(forumSettings.userNickname||'我'):conv.name)}</strong><small>${escapeForumHtml(m.profile?'[分享主页] '+m.profile.name:m.forumPost?'[分享帖子] '+m.forumPost.authorName:m.sticker?'[表情包] '+m.sticker.name:m.image?'[图片]':m.content||'[消息]')}</small></span></label>`).join('')||'<p class="mono-note">暂无聊天记录</p>'}</div><button class="forum-sheet-primary" data-delete-messages disabled>删除所选</button>`);const checks=[...sh.querySelectorAll('[data-message-index]')],all=sh.querySelector('[data-select-all]'),submit=sh.querySelector('[data-delete-messages]');const update=()=>{const n=checks.filter(el=>el.checked).length;submit.disabled=!n;submit.textContent=n?'删除所选（'+n+'）':'删除所选';all.checked=n>0&&n===checks.length;all.indeterminate=n>0&&n<checks.length;};checks.forEach(el=>el.onchange=update);all.onchange=()=>{checks.forEach(el=>el.checked=all.checked);update();};submit.onclick=async()=>{submit.disabled=true;const selected=new Set(checks.filter(el=>el.checked).map(el=>items[Number(el.dataset.messageIndex)]));forumStopGeneration(conv.id);const first=(conv.messages||[]).findIndex(m=>selected.has(m));conv.messages=(conv.messages||[]).filter(m=>!selected.has(m));if(first>=0)conv.summaries=(conv.summaries||[]).filter(s=>Number.isFinite(s.through)&&s.through<=first);const last=conv.messages.at(-1);conv.lastMessage=last?.content||'';conv.lastMessageTime=last?.timestamp||0;conv.unread=Math.min(conv.unread||0,conv.messages.filter(m=>m.sender==='other').length);await forumSaveDMs();sh.remove();if(currentDMConversationId===conv.id)forumRenderChat(conv);showToast('已删除所选聊天记录');};}
+const monoV84ChatSettings=forumOpenChatSettings;
+forumOpenChatSettings=function(...args){monoV84ChatSettings(...args);const sh=document.getElementById('forumAuxSheet');if(!sh)return;sh.querySelector('[data-action="clear"]')?.insertAdjacentHTML('beforebegin','<button class="forum-sheet-row" data-select-messages>单选／多选删除聊天记录</button>');const button=sh.querySelector('[data-select-messages]');if(button)button.onclick=monoMessageDeletion;};
+const monoV84PostMenu=monoPostMenu;
+monoPostMenu=function(id,button){monoV84PostMenu(id,button);const sh=document.getElementById('forumAuxSheet');if(!sh||sh.querySelector('[data-delete-post]')||!forumPosts.some(p=>Number(p.id)===Number(id)))return;sh.querySelector('main').insertAdjacentHTML('beforeend','<button class="forum-sheet-row forum-clear" data-delete-post>删除帖子</button>');sh.querySelector('[data-delete-post]').onclick=async()=>{sh.remove();await deleteForumPost(id);};};
+const monoV84DeletePost=deleteForumPost;
+deleteForumPost=async function(id){monoOtherSeed=(monoOtherSeed||[]).filter(p=>Number(p.id)!==Number(id));await monoV84DeletePost(id);const quotes=document.getElementById('monoQuoteList');if(quotes){quotes.remove();}monoRefreshPostViews();};
+Object.assign(ForumApp,{fetchNewRandomDMsInternal,renderDirectMessagesList,monoContactSettings,forumOpenChatSettings,monoPostMenu,deleteForumPost,monoConversationDeletion,monoClearNewConversations,monoMessageDeletion});
+
+// MONO v8.5: search suggestions from actual generated posts, no new model prompt/call.
+const monoGuessStop=new Set('今天 昨天 明天 刚刚 最近 现在 这个 那个 这些 那些 一个 一些 一点 一下 一直 真的 觉得 感觉 大家 自己 我们 你们 他们 她们 什么 怎么 为什么 还是 但是 而且 因为 所以 然后 如果 已经 没有 可以 可能 应该 就是 不是 不要 不能 知道 看到 看看 时候 事情 东西 这样 那样 这种 那种 这里 那里 有点 太多 好像 好的 谢谢 哈哈 哈哈哈 嗯嗯 其实 终于 确实 还有 只要 都是 不过 也是 只是 比较 继续 到底 起来 之前 之后 一起 一般 这么 那么 很多 多少 每次 不会 不用 需要 一定 直接 完全 所有 出来 回来 过去 用户 帖子 评论 回复 分享 图片 视频 内容 配图 原文 翻译 附图 附件 with this that have from they your about just really'.split(' '));
+function monoGuessKey(s){return String(s||'').normalize('NFKC').replace(/^#/,'').trim().toLowerCase();}
+function monoGuessSource(){const all=forumPosts.filter(p=>p.authorType!=='user'&&!p.isSearchResult&&!p.isRetweet);const marked=all.filter(p=>p.monoSearchBatch);if(marked.length){const batch=marked.reduce((a,p)=>Number(p.monoSearchBatchAt)>Number(a.monoSearchBatchAt)?p:a).monoSearchBatch;return marked.filter(p=>p.monoSearchBatch===batch);}return all.slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,12);}
+function monoGuessSuggestions(excluded=[]){const blocked=new Set(excluded.map(t=>monoGuessKey(t.tag))),terms=new Map(),source=monoGuessSource();const segmenter=typeof Intl.Segmenter==='function'?new Intl.Segmenter('zh',{granularity:'word'}):null;
+ for(const p of source){const text=String(p.monoOriginalContent||p.content||'').replace(/https?:\/\/\S+/g,'');const add=(tag,weight)=>{tag=tag.trim().replace(/^#/,'');const key=monoGuessKey(tag);if(key.length<2||key.length>24||blocked.has(key)||monoGuessStop.has(key)||/^\d+$/.test(key)||/^附[图录视照]/.test(tag))return;let t=terms.get(key);if(!t){t={tag,category:'猜你想搜',ids:new Set(),score:0};terms.set(key,t);}if(!t.ids.has(String(p.id))){t.ids.add(String(p.id));t.score+=weight;}};
+ for(const m of text.matchAll(/#([\p{L}\p{N}_]{2,24})/gu))add(m[1],8);
+ for(const m of text.matchAll(/[【「]([^】」\n]{2,18})[】」]/g))add(m[1],5);
+ if(segmenter){for(const word of segmenter.segment(text))if(word.isWordLike)add(word.segment,1);}else{for(const m of text.matchAll(/[A-Za-z][A-Za-z0-9_-]{2,23}/g))add(m[0],1);}
+ }
+ return [...terms.values()].sort((a,b)=>b.score-a.score||b.ids.size-a.ids.size).slice(0,10).map(t=>({tag:t.tag,category:t.category,count:t.ids.size,postIds:[...t.ids]}));}
+const monoV85Partition=monoTrendPartition;
+monoTrendPartition=function(){const old=monoV85Partition();return {trending:old.trending,recommended:monoGuessSuggestions(old.trending)};};
+function monoGuessSearch(topic){const key=monoGuessKey(topic),items=forumPosts.filter(p=>monoGuessKey(p.monoOriginalContent||p.content).includes(key));const feed=document.getElementById('forumFeed');if(!feed)return;currentHotView='search';document.querySelector('.forum-tabs').style.display='none';feed.innerHTML=`<div class="mono-guess-results"><header class="mono-page-header"><button data-guess-back aria-label="返回热点">${forumIcon('back')}</button><strong>${escapeForumHtml(topic)}</strong><span></span></header><p class="mono-note">${items.length} 条相关帖子</p>${items.map(renderForumPostItem).join('')||'<p class="mono-note">相关帖子已删除，请刷新首页后再试。</p>'}</div>`;feed.querySelector('[data-guess-back]').onclick=renderForumHot;}
+const monoV85Hot=renderForumHot;
+renderForumHot=function(...args){monoV85Hot(...args);const feed=document.getElementById('forumFeed');const tab=feed?.querySelector('[data-trend="for-you"]');if(tab)tab.textContent='猜你想搜';if(monoTrendTab!=='for-you')return;feed.querySelectorAll('[data-topic]').forEach(b=>b.onclick=()=>monoGuessSearch(b.dataset.topic));if(!feed.querySelector('[data-topic]')){const note=feed.querySelector('.mono-trends>.mono-note');if(note)note.textContent='生成首页帖子后，这里会出现相关搜索词。';}};
+const monoV85Posts=generateForumPosts;
+generateForumPosts=async function(...args){const before=new Map(forumPosts.map(p=>[String(p.id),p.content]));await monoV85Posts(...args);const fresh=forumPosts.filter(p=>p.authorType!=='user'&&!p.isSearchResult&&!p.isRetweet&&(!before.has(String(p.id))||before.get(String(p.id))!==p.content));if(fresh.length){const batch=crypto.randomUUID(),at=Date.now();fresh.forEach(p=>{p.monoSearchBatch=batch;p.monoSearchBatchAt=at;});await localforage.setItem('forumPosts',forumPosts);if(window.currentForumSection==='hot')renderForumHot();}};
+Object.assign(ForumApp,{renderForumHot,generateForumPosts,monoTrendPartition,monoGuessSuggestions,monoGuessSearch});
+
 })();
