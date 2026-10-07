@@ -7686,7 +7686,37 @@ function monoPeopleRows(people){return people.map((p,i)=>`<button class="mono-pe
 function monoPeoplePage(title,people,search=false){document.getElementById('monoPeoplePage')?.remove();const page=document.createElement('section');page.id='monoPeoplePage';page.className='mono-full-page mono-social-page';page.innerHTML=`<header class="mono-page-header"><button data-back aria-label="返回">${forumIcon('back')}</button><strong>${escapeForumHtml(title)}</strong><span></span></header>${search?`<label class="mono-person-search">${forumIcon('search')}<input placeholder="搜索 @柄名" aria-label="搜索柄名" autocomplete="off"></label>`:''}<main></main>`;const render=()=>{const text=monoHandleNorm(page.querySelector('input')?.value||''),rows=people.filter(p=>!text||monoHandleNorm(p.handle).includes(text));page.querySelector('main').innerHTML=monoPeopleRows(rows)||'<p class="mono-x-empty">没有找到对应账号</p>';page.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>{page.remove();monoOpenPublicPerson(rows[Number(b.dataset.person)]);});};page.querySelector('[data-back]').onclick=()=>page.remove();page.querySelector('input')?.addEventListener('input',render);forumMount(page);render();page.querySelector('input')?.focus();}
 function monoSearchPeople(){monoPeoplePage('搜索账号',monoPublicPeople(),true);}
 function monoOpenFollowing(){monoPeoplePage('关注',monoFollowingPeople());}
-function monoOpenPublicPerson(p){document.getElementById('forumDetailOverlay')?.classList.remove('active');closeDirectMessages();if(p.type==='user'){if(p.id===monoActiveAccount)return switchForumSection('profile');currentViewingUser=p;monoOtherInfo=null;const posts=forumPosts.filter(r=>r.authorType==='user'&&(r.accountId||'main')===p.id),identity=monoAccounts.find(a=>a.id===p.id)?.identity||{};document.getElementById('forumFeed').innerHTML=`<div class="forum-other-profile mono-public-user"><header class="forum-ins-profile-title"><button data-back aria-label="返回">${forumIcon('back')}</button><strong>${escapeForumHtml(p.handle)}</strong><span></span></header><div class="forum-ins-identity own"><div class="forum-profile-avatar"><img src="${escapeForumHtml(forumSafeImage(p.avatar)||getDefaultAvatarDataUrl())}" alt=""></div><div class="forum-ins-counts"><strong class="forum-ins-name">${escapeForumHtml(p.name)}</strong><div class="forum-ins-stats"><span><b>${posts.length}</b>帖子</span><span><b>${monoCount(identity.userFollowers)||0}</b>粉丝</span><span><b>${(identity.followedUsers||[]).length}</b>关注</span></div></div></div><div class="forum-ins-bio"><small>@${escapeForumHtml(p.handle)}</small><p>${escapeForumHtml(p.bio||'')}</p></div><div class="forum-ins-actions"><button class="primary" data-follow>${monoIsFollowed({...p,authorType:'user',accountId:p.id,authorName:p.name})?'已关注':'关注'}</button></div><div class="forum-profile-tabs"><span class="forum-profile-tab active">帖子</span></div><div class="forum-profile-posts">${posts.map(renderForumPostItem).join('')||'<p class="mono-x-empty">暂无帖子</p>'}</div></div>`;const feed=document.getElementById('forumFeed');feed.querySelector('[data-back]').onclick=()=>switchForumSection('profile');feed.querySelector('[data-follow]').onclick=async()=>{await monoToggleFollowPerson(p);monoOpenPublicPerson(p);};return;}openOtherUserProfile(p.type,p.name,p.id);}
+// Public account profiles share the ordinary profile renderer and tab structure.
+function monoRenderPublicAccount(p,tab='posts'){
+ const identity=monoAccounts.find(a=>String(a.id)===String(p.id))?.identity||{};
+ const own=forumPosts.filter(r=>r.authorType==='user'&&String(r.accountId||'main')===String(p.id));
+ const liked=new Set((identity.likedPosts||[]).map(x=>String(typeof x==='object'?x.id:x)));
+ const items=tab==='likes'?forumPosts.filter(r=>liked.has(String(r.id))||(r.monoLikedBy|| (r.liked?['main']:[])).map(String).includes(String(p.id))):tab==='retweets'?own.filter(r=>r.isRetweet):own.filter(r=>!r.isRetweet);
+ // Use the common markup without its generation wrappers: these are user accounts.
+ monoV4Other({...p,followers:monoCount(identity.userFollowers)||'0',following:(identity.followedUsers||[]).length||'0',joinDate:identity.userJoinDate||'',avatar:forumSafeImage(p.avatar)||getDefaultAvatarDataUrl()},own,false);
+ const feed=document.getElementById('forumFeed'),root=feed.querySelector('.forum-other-profile');
+ root.classList.add('mono-public-user');
+ root.querySelector('.forum-generate-more-posts')?.remove();
+ const header=root.querySelector('.forum-ins-profile-title');
+ header.querySelector('button:first-child').onclick=()=>switchForumSection('profile');
+ header.querySelector('button:last-child').onclick=monoSearchPeople;
+ const follow=root.querySelector('.forum-ins-actions .primary');
+ follow.textContent=monoIsFollowed({...p,authorType:'user',accountId:p.id,authorName:p.name})?'已关注':'关注';
+ follow.removeAttribute('onclick');follow.onclick=async()=>{await monoToggleFollowPerson(p);monoRenderPublicAccount(p,tab);};
+ const tabs=root.querySelector('.forum-profile-tabs');
+ tabs.innerHTML=[['posts','帖子'],['likes','喜欢'],['retweets','转发']].map(([key,label])=>`<button class="forum-profile-tab ${tab===key?'active':''}" data-public-tab="${key}">${label}</button>`).join('');
+ tabs.querySelectorAll('button').forEach(btn=>btn.onclick=()=>monoRenderPublicAccount(p,btn.dataset.publicTab));
+ root.querySelector('.forum-profile-posts').innerHTML=items.map(renderForumPostItem).join('')||'<p class="mono-x-empty">暂无'+({posts:'帖子',likes:'喜欢记录',retweets:'转发'}[tab])+'</p>';
+ monoRefineProfileLayout(root);
+}
+function monoOpenPublicPerson(p){
+ document.getElementById('forumDetailOverlay')?.classList.remove('active');closeDirectMessages();
+ if(p.type==='user'){
+  if(String(p.id)===String(monoActiveAccount))return switchForumSection('profile');
+  currentViewingUser=p;monoOtherInfo=null;monoRenderPublicAccount(p);return;
+ }
+ openOtherUserProfile(p.type,p.name,p.id);
+}
 monoOpenAuthor=function(id,cid){const post=forumPosts.find(p=>Number(p.id)===Number(id)),r=cid==null?post:post?.comments?.find(c=>Number(c.id)===Number(cid));if(r)monoOpenPublicPerson(monoRecordPerson(r));};
 function monoMentionEntries(){const handle=monoHandleNorm(forumSettings.userHandle),name=String(forumSettings.userNickname||'').trim();if(!handle&&!name)return [];const escaped=handle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),mention=handle?new RegExp('@'+escaped+'(?![a-z0-9_])','i'):null;const isMention=r=>{if(r.authorType==='user'&&monoOwnPost(r))return false;const text=String(r.monoOriginalContent||r.content||'').normalize('NFKC');return !!(mention?.test(text)||name&&text.includes(name));};const entries=[];for(const p of forumPosts){if(isMention(p))entries.push({post:p,record:p,key:'p:'+p.id});for(const c of p.comments||[])if(isMention(c))entries.push({post:p,record:c,key:'c:'+p.id+':'+c.id});}return entries.sort((a,b)=>(b.record.timestamp||0)-(a.record.timestamp||0));}
 function monoOpenMentions(){const entries=monoMentionEntries();const page=document.createElement('section');document.getElementById('monoMentionsPage')?.remove();page.id='monoMentionsPage';page.className='mono-full-page mono-social-page';page.innerHTML=`<header class="mono-page-header"><button data-back>${forumIcon('back')}</button><strong>提到我</strong><span></span></header><main>${entries.map((e,i)=>`<button class="mono-mention-row" data-mention="${i}"><div><img src="${escapeForumHtml(monoRecordAvatar(e.record))}" alt=""><strong>${escapeForumHtml(monoPostName(e.record))}</strong><small>@${escapeForumHtml(monoAccountHandle(e.record))}</small></div><p>${escapeForumHtml(e.record.monoOriginalContent||e.record.content||'')}</p><small>${e.record===e.post?'帖子':'评论'} · ${escapeForumHtml(formatForumTime(e.record.timestamp))}</small></button>`).join('')||'<p class="mono-x-empty">暂时没有人提到你</p>'}</main>`;page.querySelector('[data-back]').onclick=()=>page.remove();page.querySelectorAll('[data-mention]').forEach(b=>b.onclick=()=>{const e=entries[Number(b.dataset.mention)];page.remove();openForumPostDetail(e.post.id);if(e.record!==e.post){for(const c of e.post.comments||[])monoThreadExpanded.add(e.post.id+':'+c.id);renderForumPostDetail();document.querySelector('[data-comment-id="'+Number(e.record.id)+'"]')?.scrollIntoView?.({block:'center'});}});forumMount(page);forumSettings.monoMentionSeen ||= {};forumSettings.monoMentionSeen[monoActiveAccount]=entries.map(e=>e.key);localforage.setItem('forumSettings',forumSettings);}
@@ -7740,3 +7770,21 @@ async function monoAutoInvestigationDM(postId,comments){const account=monoActive
 const mono144Map=mapAndResolveComments;mapAndResolveComments=function(rows,post){const out=mono144Map(rows,post);if(post?.authorType==='user'&&monoOwnPost(post)&&out.some(c=>monoInvestigationComment(c,post))){const account=monoActiveAccount;setTimeout(()=>{monoInvestigationDMQueue=monoInvestigationDMQueue.then(()=>account===monoActiveAccount?monoAutoInvestigationDM(post.id,out):null).catch(e=>console.warn('[MONO] 私信接续失败',e.message));},0);}return out;};
 Object.assign(ForumApp,{monoInvestigationComment,monoAutoInvestigationDM,mapAndResolveComments});
 })();
+
+// v8.14.5: common avatar/name/stat layout for every profile entry point.
+function monoRefineProfileLayout(root){
+ if(!root)return;root.classList.add('mono-profile-balanced');
+ const row=root.querySelector('.forum-ins-identity'),bio=root.querySelector('.forum-ins-bio');
+ if(row&&!row.querySelector('.forum-ins-counts')){
+  const stats=row.querySelector('.forum-ins-stats'),name=bio?.querySelector('strong');
+  if(stats){const counts=document.createElement('div');counts.className='forum-ins-counts';
+   if(name){name.className='forum-ins-name';counts.append(name);}row.append(counts);counts.append(stats);}
+ }
+ const stats=row?.querySelector('.forum-ins-stats');
+ if(stats)for(const el of stats.children){const n=el.querySelector('b');if(!n||el.querySelector('small'))continue;const label=document.createElement('small');label.textContent=el.textContent.replace(n.textContent,'').trim();el.replaceChildren(n,label);}
+}
+const mono145OwnProfile=renderForumProfile;
+renderForumProfile=function(...args){mono145OwnProfile(...args);monoRefineProfileLayout(document.querySelector('#forumFeed .forum-profile'));};
+const mono145OtherProfile=renderOtherUserProfile;
+renderOtherUserProfile=function(...args){mono145OtherProfile(...args);monoRefineProfileLayout(document.querySelector('#forumFeed .forum-other-profile'));};
+Object.assign(ForumApp,{renderForumProfile,renderOtherUserProfile,monoOpenPublicPerson});
