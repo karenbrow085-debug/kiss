@@ -2962,7 +2962,7 @@ ${participants.length > 0
       body: JSON.stringify({
         model: apiConfig.model || "gpt-3.5-turbo",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPrompt + monoForumVoiceContext() },
           { role: "user", content: userPrompt },
         ],
         temperature: 0.9,
@@ -3028,6 +3028,7 @@ ${participants.length > 0
                   authorAvatar: auth.avatar,
                   handle: p.handle || generateEnglishHandle(auth.name),
                   content: p.content || "",
+                  ...monoGeneratedImage(p.imageDescription, auth.type),
                   timestamp: Date.now() - Math.random() * 7200000,
                   likes: p.likes || Math.floor(Math.random() * 50),
                   liked: false,
@@ -4525,7 +4526,7 @@ ${relationships.join("\n")}`;
       body: JSON.stringify({
         model: apiConfig.model || "gpt-3.5-turbo",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPrompt + monoForumVoiceContext() },
           { role: "user", content: userPrompt }
         ],
         temperature: 0.9,
@@ -4586,6 +4587,7 @@ ${relationships.join("\n")}`;
           authorAvatar: auth.avatar,
           handle: p.handle || generateEnglishHandle(auth.name),
           content: p.content || "",
+                  ...monoGeneratedImage(p.imageDescription, auth.type),
           timestamp: Date.now() - Math.random() * 7200000,
           likes: p.likes || Math.floor(Math.random() * 50),
           liked: false,
@@ -5198,7 +5200,7 @@ JSON 格式模板：
       },
       body: JSON.stringify({
         model: apiConfig.model || "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: prompt + monoForumVoiceContext(userInfo) }],
         temperature: 0.9, // 稍微降低温度，防止太发散
         max_tokens: parseInt(document.getElementById('apiMaxTokens')?.value) || 2048,
       }),
@@ -5226,6 +5228,7 @@ JSON 格式模板：
           authorAvatar: userInfo.avatar || '',
           handle: userInfo.handle,
           content: postData.content,
+          ...monoGeneratedImage(postData.imageDescription, userInfo.type),
           // 生成最近7天内的时间，稍微错开
           timestamp: Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000) - (idx * 3600000), 
           likes: postData.likes || Math.floor(Math.random() * 50),
@@ -7500,5 +7503,41 @@ const monoV87Chat=forumRenderChat;
 forumRenderChat=function(conv){monoV87Chat(conv);const page=document.querySelector('.forum-dm-chat');if(!page)return;page.querySelectorAll('.forum-dm-sticker,.forum-dm-photo').forEach(img=>{img.draggable=false;let timer=null,start=null,shown=false;const cancel=()=>{clearTimeout(timer);timer=null;};const open=()=>{cancel();if(!img.isConnected||(shown&&document.querySelector('[data-media-view]')))return;shown=true;const sh=forumSheet('图片与表情包','<button class="forum-sheet-row" data-media-view>查看原图</button><button class="forum-sheet-row" data-media-delete>选择删除聊天记录</button>');sh.querySelector('[data-media-view]').onclick=()=>{sh.remove();showForumFullImage(img.src);};sh.querySelector('[data-media-delete]').onclick=()=>{sh.remove();monoMessageDeletion();};};img.addEventListener('pointerdown',e=>{if(e.button!==0)return;shown=false;start={x:e.clientX,y:e.clientY};cancel();timer=setTimeout(open,450);});img.addEventListener('pointermove',e=>{if(start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>10)cancel();});['pointerup','pointercancel','lostpointercapture'].forEach(type=>img.addEventListener(type,cancel));page.querySelector('.forum-dm-messages')?.addEventListener('scroll',cancel,{passive:true});img.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();open();});img.addEventListener('dragstart',e=>e.preventDefault());img.addEventListener('click',e=>{if(shown){e.preventDefault();e.stopPropagation();}});});};
 monoTextImageEditor=function(index=null){if(index==null&&forumComposeImages.length>=4)return showToast('最多添加4张图片');const item=index==null?null:forumComposeImages[index];let cover=item?.data||monoTextCover;const sh=forumSheet(index==null?'添加文字图':'编辑文字图',`<button class="mono-text-cover" data-cover><img src="${escapeForumHtml(cover)}" alt="封面"><span>更换图片封面</span></button><div class="mono-cover-options" data-cover-options hidden><button class="forum-sheet-row" data-local-cover>从相册选择</button><input type="file" accept="image/*" data-cover-file hidden><label class="mono-field">图片链接<input data-cover-url type="url" placeholder="https://…"></label><button class="forum-sheet-row" data-apply-cover>使用图片链接</button></div><label class="mono-field">图片里的内容<textarea data-image-content rows="5" placeholder="写下这张图的文字或描述…">${escapeForumHtml(item?.card?.content||'')}</textarea></label><button class="forum-sheet-primary" data-save-card>保存文字图</button>`);const options=sh.querySelector('[data-cover-options]'),file=sh.querySelector('[data-cover-file]');const update=src=>{const value=forumImageValue(src);if(!value)return showToast('请选择图片或填写有效图片链接');cover=value;sh.querySelector('[data-cover] img').src=value;options.hidden=true;};sh.querySelector('[data-cover]').onclick=()=>{options.hidden=!options.hidden;};sh.querySelector('[data-local-cover]').onclick=()=>file.click();file.onchange=async()=>{try{if(file.files[0])update(await forumReadFile(file.files[0]));}catch(e){showToast(e.message);}finally{file.value='';}};sh.querySelector('[data-apply-cover]').onclick=()=>update(sh.querySelector('[data-cover-url]').value.trim());sh.querySelector('[data-save-card]').onclick=()=>{const content=sh.querySelector('[data-image-content]').value.trim();if(!content)return showToast('请填写图片内容');const card={data:cover,card:{content}};if(index==null)forumComposeImages.push(card);else forumComposeImages[index]=card;renderComposeImages();sh.remove();};};
 Object.assign(ForumApp,{forumStickers,sendDirectMessage,forumRenderChat,monoTextImageEditor});
+
+// MONO v8.8: live sticker suggestions and additive forum voice context.
+function monoStickerSuggestions(query,pool=forumStickers()){const norm=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'');const q=norm(query);if(!q||q.length>30)return [];return pool.map((s,i)=>({s,i,key:norm(s.name)})).filter(x=>x.key&&(x.key.includes(q)||q===x.key)).sort((a,b)=>(b.key===q)-(a.key===q)||Number(b.key.startsWith(q))-Number(a.key.startsWith(q))||a.i-b.i).slice(0,12).map(x=>x.s);}
+// Typing shows selectable suggestions; the send button continues to send text.
+sendDirectMessage=monoV87Send;
+const monoV88Chat=forumRenderChat;
+forumRenderChat=function(conv){monoV88Chat(conv);const page=document.querySelector('.forum-dm-chat'),field=page?.querySelector('#dmInput'),footer=page?.querySelector('.forum-dm-composer');if(!field||!footer)return;const panel=document.createElement('section');panel.className='mono-sticker-suggestions';panel.setAttribute('aria-label','匹配表情包');panel.hidden=true;footer.prepend(panel);let composing=false;const update=()=>{const pool=!composing&&monoStickerSuggestEnabled(conv)?monoStickerSuggestions(field.value):[];panel.hidden=!pool.length;panel.replaceChildren();for(const s of pool){const b=document.createElement('button');b.type='button';b.title=s.name;b.setAttribute('aria-label','发送表情包：'+s.name);const img=document.createElement('img');img.src=forumImageValue(s.data);img.alt=s.name;img.draggable=false;const label=document.createElement('small');label.textContent=s.name;b.append(img,label);b.onclick=async()=>{if(currentDMConversationId!==conv.id)return;field.value='';forumDrafts.set(conv.id,'');panel.hidden=true;try{await forumSendAttachment({sticker:{name:s.name,data:s.data},content:`[表情包：${s.name}]`});}catch(e){showToast(e.message);}};panel.append(b);}};field.addEventListener('input',update);field.addEventListener('compositionstart',()=>{composing=true;update();});field.addEventListener('compositionend',()=>{composing=false;update();});update();};
+function monoForumVoiceContext(userInfo=null){const npcs=userInfo?[]:(forumSettings.npcs||[]).slice(0,12).map(n=>({name:n.name,identity:n.identity||'',persona:n.persona||''}));const recent=forumPosts.filter(p=>!p.isRetweet&&(!userInfo||monoMatchesAuthor(p,userInfo))).slice(0,16).map(p=>({author:p.authorName,text:String(p.monoOriginalContent||p.content||'').slice(0,240)}));return '\n\n【补充：保持原有活人感与角色一致性】\n原有的人设、关系、语言、世界观和互动边界继续生效；下面只补充表达方式，不把角色改成统一的热情网友。每个人先有自己此刻想发的东西，再写帖子，不为了凑题材套公式。长短和语气顺着性格与具体情境变化，允许一句话、碎念、半句话、普通记录、真问题和有细节的长帖，不要求每种都出现。不要每帖固定以标签/观点起头、反问收尾，不要每个人都总结道理、求共鸣、劝休息或替用户决定感受；幽默、网梗、emoji仅在此人会使用时出现。评论回应原帖某个细节，可以只接一句、不同意或聊自己的经历，不要所有人轮流赞同和复述，回复链要有上下文，保留原有数量和JSON字段约定。\n世界观较少时，写符合已有设定的小事与个人兴趣即可，不必杜撰重大事件、职业背景或人人参与同一争议；不要照抄这里的举例形成新模板。\n固定NPC的完整补充设定：'+JSON.stringify(npcs)+'\n近期内容仅供避免重复话题、句式和桥段，不要续写或照搬：'+JSON.stringify(recent)+'\n可选配图：只有内容适合配图时才增加 imageDescription（图片画面的具体描述，纯文本），允许所有帖子都不配图；不要编造图片URL、不要在正文用[附图]代替该字段。此字段会显示为可点击的文字图，并非真实照片。';}
+function monoGeneratedImage(description){if(typeof description!=='string'||!description.trim())return {};const content=description.trim().slice(0,3000),chars=Array.from(content),lines=[];for(let i=0;i<Math.min(chars.length,100);i+=14)lines.push(chars.slice(i,i+14).join(''));const xml=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640"><rect width="640" height="640" fill="#f1f1ef"/><text x="48" y="64" font-family="sans-serif" font-size="22" fill="#888">图片描述</text><text x="48" y="145" font-family="sans-serif" font-size="32" fill="#222">${lines.map((line,i)=>`<tspan x="48" dy="${i?48:0}">${xml(line)}</tspan>`).join('')}</text><text x="48" y="594" font-family="sans-serif" font-size="20" fill="#888">点击查看内容</text></svg>`;const cover='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);return {images:[cover],imageCards:[{cover,content}]};}
+Object.assign(ForumApp,{monoStickerSuggestions,forumRenderChat,sendDirectMessage,monoForumVoiceContext,monoGeneratedImage});
+
+// MONO v8.9: read-only 404 workshop integration and independent input suggestions.
+const monoNpcImageCover='https://i.ibb.co/j9gZChNr/mmexport1790787021579.jpg';
+const monoV89GeneratedImage=monoGeneratedImage;
+monoGeneratedImage=function(description,type='npc'){const result=monoV89GeneratedImage(description);if(result.images&&type==='npc'){result.images=[monoNpcImageCover];result.imageCards[0].cover=monoNpcImageCover;}return result;};
+function monoStickerSuggestEnabled(conv){const opts=forumDMOptions(conv);return opts.stickerSuggest??opts.stickerMatch??true;}
+const monoV89ChatSettings=forumOpenChatSettings;
+forumOpenChatSettings=function(...args){monoV89ChatSettings(...args);const conv=forumGetConv(),input=document.getElementById('forumStickerMatch');if(!conv||!input)return;input.id='monoStickerSuggest';input.checked=monoStickerSuggestEnabled(conv);input.closest('label').querySelector('span').innerHTML='输入框表情包联想<small>输入名称或部分字样，显示可选表情包</small>';input.onchange=async()=>{forumDMOptions(conv).stickerSuggest=input.checked;document.getElementById('dmInput')?.dispatchEvent(new Event('input'));await forumSaveDMs();};};
+function monoImageOptions(){return forumSettings.monoImages ||= {read404:false,enabled:false,percent:20};}
+function monoWorkshopConfig(){const settings=forumNativeDb()?.workshopSettings;if(!settings)return null;return structuredClone(settings);}
+function monoWorkshopInfo(settings=monoWorkshopConfig()){if(!settings)return null;const provider=settings.provider||'novelai',active=(settings.apiPresets?.[provider]||[]).find(p=>p.id===settings.activeApiPresetId?.[provider]);return {provider,name:active?.name||'当前接口',model:settings[provider+'Model']||'',ready:!!((active?.url||settings[provider+'ApiUrl'])&&(active?.key||settings[provider+'ApiKey'])&&settings[provider+'Model'])};}
+function monoImageSettingsMarkup(){const opts=monoImageOptions(),info=monoWorkshopInfo();return '<section class="forum-section mono-image-settings"><div class="forum-section-title">帖子配图</div><label class="forum-setting-row"><span>读取404绘图工坊配置<small>沿用当前API、模型及绘图提示词</small></span><input type="checkbox" data-image-read '+(opts.read404?'checked':'')+'></label><button class="forum-sheet-row" data-image-config><span>查看当前配置</span><small>'+escapeForumHtml(info?info.provider.toUpperCase()+' · '+(info.model||'未选模型'):'尚未配置')+'</small></button><label class="forum-setting-row"><span>真实生图<small>关闭时显示文字图封面与描述</small></span><input type="checkbox" data-image-enabled '+(opts.enabled?'checked':'')+'></label><label class="forum-setting-row"><span>真实生图发帖概率<small>有配图描述的新帖子，按此概率生成一张真实图片</small></span><span class="mono-setting-value"><input type="number" data-image-percent min="0" max="100" step="1" value="'+Math.max(0,Math.min(100,Number(opts.percent)||0))+'"> %</span></label><p class="mono-note">仅处理开启后新生成的角色/NPC帖子。失败保留文字图；已有帖子不补生图。</p></section>';}
+function monoViewWorkshopConfig(){const s=monoWorkshopConfig(),info=monoWorkshopInfo(s);if(!s)return showToast('请先在404绘图工坊配置生图');const prompt=info.provider==='gpt'?s.gptTestPrompt:s.positivePrompt,character=info.provider==='gpt'?'':s.characterPrompt,negative=info.provider==='gpt'?'':s.negativePrompt;forumSheet('绘图工坊当前配置','<p class="mono-note">此处只读。修改请前往404绘图工坊；MONO每次生图读取最新配置。</p><div class="forum-setting-row"><span>接口预设</span><strong>'+escapeForumHtml(info.name)+'</strong></div><div class="forum-setting-row"><span>模型</span><strong>'+escapeForumHtml(info.model||'未选择')+'</strong></div><div class="forum-setting-row"><span>API配置</span><strong>'+(info.ready?'已配置':'未完整配置')+'</strong></div>'+[['绘图提示词',prompt],['角色提示词',character],['负面提示词',negative]].filter(x=>x[1]).map(x=>'<label class="mono-field">'+x[0]+'<textarea readonly rows="4">'+escapeForumHtml(x[1])+'</textarea></label>').join(''));}
+const monoV89Settings=renderForumSettings;
+renderForumSettings=function(...args){monoV89Settings(...args);if(monoContactOpen)return;const root=document.getElementById('forumSettingsContent');if(!root)return;root.insertAdjacentHTML('beforeend',monoImageSettingsMarkup());const section=root.querySelector('.mono-image-settings'),opts=monoImageOptions(),read=section.querySelector('[data-image-read]'),enabled=section.querySelector('[data-image-enabled]'),percent=section.querySelector('[data-image-percent]');const sync=()=>{enabled.disabled=!opts.read404;percent.disabled=!opts.read404||!opts.enabled;};const save=async()=>{opts.read404=read.checked;opts.enabled=enabled.checked;opts.percent=Math.max(0,Math.min(100,Math.round(Number(percent.value)||0)));percent.value=opts.percent;sync();await localforage.setItem('forumSettings',forumSettings);};read.onchange=save;enabled.onchange=save;percent.onchange=save;section.querySelector('[data-image-config]').onclick=monoViewWorkshopConfig;sync();};
+let monoImageQueue=Promise.resolve();const monoImageFlights=new Map();
+async function monoGenerateRealPostImage(post){if(monoImageFlights.has(post))return monoImageFlights.get(post);const task=monoImageQueue.catch(()=>{}).then(async()=>{const opts=monoImageOptions();if(!opts.read404||!opts.enabled||!forumPosts.includes(post)||post.monoRealImage)return;const settings=monoWorkshopConfig(),info=monoWorkshopInfo(settings);if(!info?.ready)throw Error('绘图工坊API或模型未完整配置');if(typeof window.executeImageGeneration!=='function')throw Error('绘图工坊生图模块未加载');const description=post.imageCards?.[0]?.content;if(!description)return;const provider=info.provider,base=provider==='gpt'?settings.gptTestPrompt:settings.characterPrompt;const custom=base?(String(base).includes('{{prompt}}')?String(base).replaceAll('{{prompt}}',description):String(base)+'\n'+description):description;const done=monoGenerationStart('正在为 '+post.authorName+' 生成图片');try{const result=await window.executeImageGeneration(settings,custom);const raw=String(result?.imageData||'').trim();const src=forumImageValue(raw)||(raw&&/^[A-Za-z0-9+/=\r\n]+$/.test(raw)?'data:image/'+(raw.startsWith('/9j/')?'jpeg':raw.startsWith('UklGR')?'webp':'png')+';base64,'+raw.replace(/\s/g,''):'');if(!src)throw Error('生图服务未返回可用图片');if(!forumPosts.includes(post))return;post.images=[src];post.imageCards[0].cover=src;post.monoRealImage=true;await localforage.setItem('forumPosts',forumPosts);}finally{done();}});monoImageQueue=task;monoImageFlights.set(post,task);try{return await task;}finally{monoImageFlights.delete(post);}}
+async function monoProcessNewImages(before){const opts=monoImageOptions();if(!opts.read404||!opts.enabled||!Number(opts.percent))return;const fresh=forumPosts.filter(p=>!before.has(p)&&p.authorType!=='user'&&!p.isRetweet&&p.imageCards?.[0]?.content&&!p.monoRealImage);let failed=0;for(const post of fresh){if(Math.random()*100>=opts.percent)continue;try{await monoGenerateRealPostImage(post);}catch(e){failed++;}}if(failed)showToast(failed+' 张配图生成失败，文字图已保留。请检查绘图工坊配置。');if(!document.querySelector('.forum-dm-chat'))monoRefreshPostViews();}
+const monoV89Posts=generateForumPosts;generateForumPosts=async function(...args){const before=new Set(forumPosts);await monoV89Posts(...args);await monoProcessNewImages(before);};
+const monoV89Topic=generateTopicPosts;generateTopicPosts=async function(...args){const before=new Set(forumPosts);await monoV89Topic(...args);await monoProcessNewImages(before);};
+const monoV89Profile=generateUserProfilePosts;generateUserProfilePosts=async function(...args){const before=new Set(forumPosts);await monoV89Profile(...args);await monoProcessNewImages(before);};
+Object.assign(ForumApp,{monoGeneratedImage,monoStickerSuggestEnabled,forumOpenChatSettings,renderForumSettings,monoImageOptions,monoWorkshopConfig,monoWorkshopInfo,monoViewWorkshopConfig,monoGenerateRealPostImage,monoProcessNewImages,generateForumPosts,generateTopicPosts,generateUserProfilePosts});
+
+async function monoRefreshNpcImageCovers(){let changed=false;for(const p of forumPosts){if(p.authorType!=='npc'||p.monoRealImage)continue;(p.imageCards||[]).forEach((card,i)=>{const src=p.images?.[i];if(!card||!src?.startsWith('data:image/svg+xml;charset=utf-8,'))return;try{if(!decodeURIComponent(src.slice(src.indexOf(',')+1)).includes('>图片描述</text>'))return;}catch{return;}p.images[i]=monoNpcImageCover;card.cover=monoNpcImageCover;changed=true;});}if(changed){await localforage.setItem('forumPosts',forumPosts);monoRefreshPostViews();}}
+const monoV89Open=ForumApp.open;ForumApp.open=async function(...args){await monoV89Open(...args);await monoRefreshNpcImageCovers();};
+ForumApp.monoRefreshNpcImageCovers=monoRefreshNpcImageCovers;
 
 })();
