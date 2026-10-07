@@ -4502,3 +4502,16 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-profile-clean .forum-ins-profile-title .mono-profile-account{width:100%;height:40px;padding:5px 0;justify-self:stretch;font-size:17px}
 
 .mono-privacy-row{gap:16px;padding:18px 0!important;border-bottom:1px solid #eee}.mono-privacy-row>span{flex:1;min-width:0;font-size:12px}.mono-privacy-row small{display:block;margin-top:5px;color:#999;font-size:10px;line-height:1.6}.mono-privacy-row input{flex-shrink:0}
+
+/* v8.14.2: profile ID centered independently of right-side actions. */
+#forumPage .mono-profile-refined .forum-ins-profile-title{display:flex;justify-content:flex-end;gap:7px;height:54px;padding:0 16px}
+#forumPage .mono-profile-refined .forum-ins-profile-title>button:first-child{margin-right:auto;z-index:1}
+#forumPage .mono-profile-refined .mono-profile-id{position:absolute;left:50%;transform:translateX(-50%);max-width:calc(100% - 176px);font-family:inherit;font-size:17px;font-weight:650;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;pointer-events:none}
+#forumPage .mono-profile-refined .forum-ins-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:start;text-align:left}
+#forumPage .mono-profile-refined .forum-ins-stats>span,#forumPage .mono-profile-refined .forum-ins-stats>button{display:grid;grid-template-rows:24px 18px;gap:4px;align-items:start;justify-items:start;min-height:46px;margin:0;padding:0;line-height:1.3}
+#forumPage .mono-profile-refined .forum-ins-stats b{display:block;margin:0;font-size:18px;font-weight:650;line-height:24px}
+#forumPage .mono-profile-refined .forum-ins-stats small{display:block;margin:0;font-size:11px;line-height:18px;color:#888;font-weight:400}
+#forumPage .mono-profile-refined .forum-ins-stats button{height:auto!important;min-width:0;border:0;background:none;cursor:pointer}
+.mono-dialog-entry{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-bottom:1px solid #eee;background:none;padding:20px 0;text-align:left;color:#111;font:inherit;font-size:13px;font-weight:550}.mono-dialog-entry i,.mono-dialog-actions i{font-style:normal;color:#aaa;font-size:21px}
+.mono-dialog-actions{display:grid;gap:10px;padding:8px 0 12px}.mono-dialog-actions>button{display:flex;align-items:center;gap:12px;width:100%;padding:17px 14px;background:#f6f6f7;border:1px solid #ededee;border-radius:15px;color:#111;text-align:left;font:inherit}.mono-dialog-action-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#fff;flex:0 0 34px}.mono-dialog-action-icon svg{width:19px;height:19px}.mono-dialog-actions>button>span:nth-child(2){flex:1;min-width:0;display:grid;gap:5px}.mono-dialog-actions strong{font-size:12px;font-weight:600}.mono-dialog-actions small{font-size:10px;color:#999}.mono-dialog-actions button:disabled{opacity:.5}
+.mono-contacts-refined .forum-section-hint{display:none}.mono-contacts-refined .mono-contact-section{padding:20px 0}.mono-contacts-refined .forum-add-participant-btn,.mono-contacts-refined .forum-add-npc-btn,.mono-contacts-refined .forum-add-relationship-btn{border-radius:12px}
