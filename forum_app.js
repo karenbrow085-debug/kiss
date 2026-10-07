@@ -1984,6 +1984,7 @@ function showRelationshipEditModal(editIndex) {
         </button>
       </div>
       <div class="forum-modal-body" style="padding:16px;">
+        <p class="mono-relationship-hint">两边都可以选择用户、角色或NPC，自由设置任意两人的关系。</p>
         <div class="forum-relationship-form">
           <div class="forum-item" style="padding:0;border:none;margin-bottom:16px;">
             <div class="forum-label">人物1</div>
@@ -2032,44 +2033,29 @@ function showRelationshipEditModal(editIndex) {
   };
   forumMount(modal);
   
-  // 设置默认值
-  if (isEdit) {
-    setTimeout(() => {
-      const select1 = document.getElementById('forumRelPerson1');
-      const select2 = document.getElementById('forumRelPerson2');
-      if (select1) select1.value = person1Value;
-      if (select2) select2.value = person2Value;
-    }, 0);
-  }
+  const select1 = modal.querySelector('#forumRelPerson1');
+  const select2 = modal.querySelector('#forumRelPerson2');
+  if (isEdit) { select1.value = person1Value; select2.value = person2Value; }
+  const syncChoices = () => {
+    for (const [select, other] of [[select1, select2], [select2, select1]]) {
+      for (const option of select.options) option.disabled = !!option.value && option.value === other.value;
+    }
+  };
+  select1.addEventListener('change', syncChoices);
+  select2.addEventListener('change', syncChoices);
+  syncChoices();
 }
 
 function getForumPersonOptions() {
-  let options = '';
-  
-  // 用户
-  const userName = forumSettings.userNickname || '用户(我)';
-  options += `<option value="user:user">👤 ${escapeForumHtml(userName)}</option>`;
-  
-  // AI角色
-  if (forumSettings.aiParticipants.length > 0) {
-    options += '<optgroup label="AI角色">';
-    forumSettings.aiParticipants.forEach(p => {
-      const char = characters.find(c => String(c.id) === String(p.charId));
-      const name = p.nickname || char?.name || '未知';
-      options += `<option value="ai:${p.charId}">🤖 ${escapeForumHtml(name)}</option>`;
-    });
-    options += '</optgroup>';
-  }
-  
-  // NPC
-  if (forumSettings.npcs && forumSettings.npcs.length > 0) {
-    options += '<optgroup label="NPC">';
-    forumSettings.npcs.forEach(npc => {
-      options += `<option value="npc:${npc.id}">👥 ${escapeForumHtml(npc.name)}</option>`;
-    });
-    options += '</optgroup>';
-  }
-  
+  const option = (type, id, name) => `<option value="${escapeForumHtml(type + ':' + String(id))}">${escapeForumHtml(name)}</option>`;
+  let options = '<optgroup label="用户">' + option('user', 'user', forumSettings.userNickname || '用户（我）') + '</optgroup>';
+  const roles = forumSettings.aiParticipants || [];
+  if (roles.length) options += '<optgroup label="角色">' + roles.map(p => {
+    const char = characters.find(c => String(c.id) === String(p.charId));
+    return option('ai', p.charId, p.nickname || char?.remarkName || char?.realName || char?.name || '未知角色');
+  }).join('') + '</optgroup>';
+  const npcs = forumSettings.npcs || [];
+  if (npcs.length) options += '<optgroup label="NPC">' + npcs.map(n => option('npc', n.id, n.name || '未命名NPC')).join('') + '</optgroup>';
   return options;
 }
 
@@ -2096,8 +2082,9 @@ async function confirmSaveRelationship(editIndex) {
   
   document.getElementById('forumRelationshipModal')?.remove();
   
-  const [type1, id1] = person1.split(':');
-  const [type2, id2] = person2.split(':');
+  const splitPerson = value => { const colon = value.indexOf(':'); return [value.slice(0, colon), value.slice(colon + 1)]; };
+  const [type1, id1] = splitPerson(person1);
+  const [type2, id2] = splitPerson(person2);
   
   if (!forumSettings.relationships) forumSettings.relationships = [];
   

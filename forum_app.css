@@ -4532,3 +4532,5 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .forum-profile-immersive:not(.forum-other-profile) .forum-ins-actions>.forum-ins-add{width:34px!important;min-width:34px;aspect-ratio:1;padding:0;flex:none}
 #forumPage .forum-profile-immersive:not(.forum-other-profile) .forum-ins-add svg{width:19px;height:19px}
 @media(max-width:350px){#forumPage .forum-profile-immersive:not(.forum-other-profile) .forum-ins-identity{gap:19px}#forumPage .forum-profile-immersive:not(.forum-other-profile) .forum-ins-identity .forum-profile-avatar{width:84px!important;height:84px!important;flex-basis:84px!important}#forumPage .forum-profile-immersive:not(.forum-other-profile) .forum-ins-name{font-size:14px}#forumPage .forum-profile-immersive:not(.forum-other-profile) .forum-ins-actions>button{font-size:12px}}
+
+.mono-relationship-hint{margin:0 0 18px;color:#888;font-family:inherit;font-size:11px;line-height:1.6}
