@@ -1091,25 +1091,35 @@ function renderForumSettings() {
   `;
 }
 
-// ★★★ 修改：一键清除生成的帖子 + 私信 ★★★
+// Clear generated posts and NPC conversation content; preserve role conversations.
 async function clearGeneratedPosts() {
-  // 1. 修改确认弹窗的文案
-  if (!confirm("确定要清空所有 AI/NPC 生成的帖子以及所有私信记录吗？\n你的帖子和置顶帖会被保留。")) return;
-
-  // 2. 清理帖子（原有逻辑：保留用户的和置顶的）
+  if (!confirm('确定清除生成的帖子和当前账号的NPC私信内容？\n你的帖子和置顶帖保留；角色私信、记忆总结及聊天设置全部保留。')) return;
+  await initDirectMessages();
+  const isNpc = conv => {
+    const id = String(conv.id || '');
+    if (id.startsWith('ai_')) return false;
+    if (id.startsWith('npc_')) return true;
+    return id.startsWith('random_') && !monoAccounts.some(a => id === 'random_' + a.id);
+  };
+  const npcConversations = forumDirectMessages.filter(isNpc);
+  for (const conv of npcConversations) forumStopGeneration(conv.id);
+  await forumSaveQueue.catch(() => {});
   forumPosts = forumPosts.filter(p => p.authorType === 'user' || p.isPinned);
-  await localforage.setItem("forumPosts", forumPosts);
-
-  // 3. 【新增】清理私信（全部清空）
-  for(const id of forumDMTasks.keys()) forumStopGeneration(id);
-  forumDirectMessages = []; // 清空内存中的私信列表
-  await forumSaveDMs(); // 清空数据库中的私信
-
-  // 4. 提示并刷新
-  showToast("帖子和私信已清理");
-  
-  // 刷新设置页
-  renderForumSettings(); 
+  await localforage.setItem('forumPosts', forumPosts);
+  for (const conv of npcConversations) {
+    conv.messages = [];
+    conv.summaries = [];
+    conv.lastMessage = '';
+    conv.lastMessageTime = 0;
+    conv.unread = 0;
+    forumDrafts.delete(conv.id);
+  }
+  await forumSaveDMs();
+  monoTrendCache = null; monoTrendCacheKey = '';
+  monoOtherInfo = null; monoOtherSeed = [];
+  if (npcConversations.some(c => c.id === currentDMConversationId) && document.querySelector('.forum-dm-chat')) forumRenderChat(forumGetConv());
+  showToast('生成的帖子和NPC私信已清理，角色私信已保留');
+  renderForumSettings();
 }
 
 // 获取人物名称
@@ -7538,7 +7548,7 @@ ForumApp.monoRefreshNpcImageCovers=monoRefreshNpcImageCovers;
 function monoSettingsGroup(title,nodes){const section=document.createElement('section');section.className='mono-settings-group';const h=document.createElement('h3');h.textContent=title;section.append(h);nodes.filter(Boolean).forEach(n=>section.append(n));return section;}
 const monoV810Settings=renderForumSettings;
 renderForumSettings=function(...args){monoV810Settings(...args);if(monoContactOpen)return;const root=document.getElementById('forumSettingsContent');if(!root)return;root.classList.add('mono-settings-organized');root.querySelector('.mono-settings-intro')?.remove();const preset=root.querySelector('#forumPresetAccordion')?.closest('.forum-section'),world=root.querySelector('#forumWorldviewInput')?.closest('.forum-section'),identity=root.querySelector('.mono-identity-section'),auto=root.querySelector('.mono-auto-feed-section'),images=root.querySelector('.mono-image-settings'),refresh=root.querySelector('.mono-refresh-choice'),clear=root.querySelector('.forum-clear-generated');if(world){world.querySelector('.forum-section-title').textContent='世界观';const tools=document.createElement('div');tools.className='mono-world-import';tools.innerHTML='<button type="button" class="forum-sheet-row" data-import-world><span>从文件导入世界观</span><small>TXT / DOCX ›</small></button><input type="file" data-world-file accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><p class="mono-note">文件名作为MONO名称，正文作为世界观，自动保存为新方案并启用。</p>';world.querySelector('.forum-card').before(tools);const file=tools.querySelector('input'),button=tools.querySelector('button');button.onclick=()=>file.click();file.onchange=async()=>{if(!file.files[0])return;button.disabled=true;button.querySelector('span').textContent='正在导入…';try{await monoImportWorldFile(file.files[0]);showToast('世界观已导入并保存为新方案');}catch(e){showToast(e.message);}finally{file.value='';button.disabled=false;button.querySelector('span').textContent='从文件导入世界观';}};}
-if(preset){const heading=preset.querySelector('.mono-section-heading>span');if(heading)heading.textContent='已保存方案';}if(identity){const title=identity.querySelector('.forum-section-title');if(title&&title.firstChild?.nodeType===3)title.firstChild.textContent='身份资料 ';}const existing=[...root.children];root.replaceChildren();root.append(monoSettingsGroup('世界观与方案',[preset,world]),monoSettingsGroup('我的身份',[identity]),monoSettingsGroup('内容更新',[refresh,auto]),monoSettingsGroup('帖子配图',[images]));if(clear){clear.textContent='清除生成内容与私信';clear.classList.add('mono-danger-row');root.append(monoSettingsGroup('数据管理',[clear]));}existing.filter(n=>![preset,world,identity,auto,images,refresh].includes(n)&&!n.contains(clear)&&n.children.length).forEach(n=>root.append(n));};
+if(preset){const heading=preset.querySelector('.mono-section-heading>span');if(heading)heading.textContent='已保存方案';}if(identity){const title=identity.querySelector('.forum-section-title');if(title&&title.firstChild?.nodeType===3)title.firstChild.textContent='身份资料 ';}const existing=[...root.children];root.replaceChildren();root.append(monoSettingsGroup('世界观与方案',[preset,world]),monoSettingsGroup('我的身份',[identity]),monoSettingsGroup('内容更新',[refresh,auto]),monoSettingsGroup('帖子配图',[images]));if(clear){clear.textContent='清除生成的帖子与NPC私信';clear.classList.add('mono-danger-row');root.append(monoSettingsGroup('数据管理',[clear]));}existing.filter(n=>![preset,world,identity,auto,images,refresh].includes(n)&&!n.contains(clear)&&n.children.length).forEach(n=>root.append(n));};
 const monoV810ChatSettings=forumOpenChatSettings;
 forumOpenChatSettings=function(...args){monoV810ChatSettings(...args);const sh=document.getElementById('forumAuxSheet'),main=sh?.querySelector('main');if(!main)return;main.classList.add('mono-chat-settings-organized');const take=s=>main.querySelector(s),row=s=>take(s)?.closest('label');const person=take('.forum-settings-person'),reply=take('.mono-reply-frequency'),auto=take('.mono-auto-role-section');const groups=[monoSettingsGroup('对话与输入',[take('.forum-sheet-pair'),row('#monoStickerSuggest'),take('[data-action="errors"]')]),monoSettingsGroup('记忆与上下文',[row('#monoRead404'),row('#forumContextLimit'),take('[data-action="summary"]'),take('[data-action="summaries"]')]),monoSettingsGroup('帖子互动',[reply,auto]),monoSettingsGroup('外观',[take('[data-action="background"]'),take('[data-remove-background]')]),monoSettingsGroup('记录管理',[take('[data-select-messages]'),take('[data-action="export"]')?.closest('.forum-sheet-pair'),take('[data-action="clear"]')])];main.replaceChildren();if(person)main.append(person);groups.filter(g=>g.children.length>1).forEach(g=>main.append(g));main.querySelector('[data-action="clear"]')?.classList.add('mono-danger-row');};
 function monoReadDocumentBytes(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('文件读取失败'));r.readAsArrayBuffer(file);});}
@@ -7560,7 +7570,7 @@ if(world){world.querySelector('.forum-section-title')?.remove();const name=world
 if(identity){identity.querySelectorAll('.forum-label').forEach((n,i)=>n.textContent=i?'身份描述':'昵称');const title=identity.querySelector('.forum-section-title'),scheme=title?.querySelector('button');title?.remove();if(scheme){scheme.textContent='管理身份方案';scheme.className='forum-sheet-row';identity.append(scheme);}identity.querySelector('.mono-save-identity')?.remove();const save=document.createElement('button');save.className='forum-sheet-row';save.textContent='保存当前身份';save.onclick=monoSaveIdentity;identity.append(save);}
 if(auto){auto.querySelector('.forum-section-title')?.remove();const enable=auto.querySelector('[data-auto-feed-enabled]')?.closest('label')?.querySelector('span');if(enable)enable.textContent='启用自动更新';auto.querySelectorAll('.mono-note').forEach((n,i)=>{if(i)n.remove();else n.textContent='网页运行时执行，恢复后最多补一次。';});}
 if(images){images.querySelector('.forum-section-title')?.remove();images.querySelectorAll('.mono-note').forEach((n,i)=>{if(i)n.remove();else n.textContent='仅处理新帖；失败保留文字图。';});const read=images.querySelector('[data-image-read]')?.closest('label')?.querySelector('span');if(read)read.innerHTML='使用404绘图工坊<small>沿用当前API、模型与提示词</small>';const probability=images.querySelector('[data-image-percent]')?.closest('label')?.querySelector('span');if(probability)probability.innerHTML='真实配图概率<small>针对有图片描述的新帖子</small>';}
-root.replaceChildren(monoRefreshButtons(),worldBlock);root.append(monoCleanPanel('我的身份',forumSettings.userNickname||'未设置',[identity],'identity'));const feed=monoAutoFeedOptions();root.append(monoCleanPanel('自动更新',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭',[auto],'auto'));const opts=monoImageOptions();root.append(monoCleanPanel('帖子配图',opts.read404&&opts.enabled?'真实生图 '+opts.percent+'%':'文字图',[images],'images'));if(clear){clear.textContent='清除生成的帖子与私信';root.append(monoCleanPanel('数据管理','',[clear],'data'));}root.onchange=()=>{const feed=monoAutoFeedOptions(),img=monoImageOptions();const update=(key,value)=>{const span=root.querySelector('[data-panel="'+key+'"]>summary>span');if(span)span.textContent=value;};update('auto',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭');update('images',img.read404&&img.enabled?'真实生图 '+img.percent+'%':'文字图');update('identity',forumSettings.userNickname||'未设置');};};
+root.replaceChildren(monoRefreshButtons(),worldBlock);root.append(monoCleanPanel('我的身份',forumSettings.userNickname||'未设置',[identity],'identity'));const feed=monoAutoFeedOptions();root.append(monoCleanPanel('自动更新',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭',[auto],'auto'));const opts=monoImageOptions();root.append(monoCleanPanel('帖子配图',opts.read404&&opts.enabled?'真实生图 '+opts.percent+'%':'文字图',[images],'images'));if(clear){clear.textContent='清除生成的帖子与NPC私信';root.append(monoCleanPanel('数据管理','',[clear],'data'));}root.onchange=()=>{const feed=monoAutoFeedOptions(),img=monoImageOptions();const update=(key,value)=>{const span=root.querySelector('[data-panel="'+key+'"]>summary>span');if(span)span.textContent=value;};update('auto',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭');update('images',img.read404&&img.enabled?'真实生图 '+img.percent+'%':'文字图');update('identity',forumSettings.userNickname||'未设置');};};
 Object.assign(ForumApp,{renderForumSettings,monoRefreshMenu,monoRefreshHomeTab});
 
 
