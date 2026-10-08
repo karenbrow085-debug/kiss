@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
   class MCPClient {
-    constructor(url, token = '', fetcher = fetch) {
+    constructor(url, token = '', fetcher = (...args) => globalThis.fetch(...args)) {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname))) throw Error('请使用 HTTPS MCP 地址');
       if (parsed.username || parsed.password || parsed.hash) throw Error('地址不能包含用户名、密码或 # 片段');
