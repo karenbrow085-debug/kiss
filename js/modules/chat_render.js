@@ -135,6 +135,7 @@ function loadMoreMessages() {
 }
 
 function createMessageBubbleElement(message, isContinuous = false) {
+    if (message.type === 'mcp-activity') return window.KissMCPRuntime?.renderCard(message) || null;
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
     // 这里需要把 isThinking 从 message 里解构出来
     let {role, content, timestamp, id, transferStatus, giftStatus, stickerData, senderId, quote, isWithdrawn, originalContent, isStatusUpdate, isThinking} = message;

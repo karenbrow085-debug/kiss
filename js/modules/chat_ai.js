@@ -197,7 +197,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
         // 使用工具函数进行过滤（包含深度克隆、屏蔽过滤、双语修正、状态栏剔除）
         historySlice = filterHistoryForAI(chat, historySlice);
         // 【新增】过滤掉不应进入上下文的消息（如思考过程、被撤回的消息标记等）
-        historySlice = historySlice.filter(m => !m.isContextDisabled);
+        historySlice = historySlice.filter(m => !m.isContextDisabled && m.type !== 'mcp-activity');
         
         // 【双重保险】再次过滤掉内容匹配 <thinking> 的消息，防止 isContextDisabled 属性丢失
         historySlice = historySlice.filter(m => {
@@ -606,6 +606,10 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             Authorization: `Bearer ${key}`
         };
         generation.check();
+        if (window.KissMCPRuntime) {
+            await window.KissMCPRuntime.prepare({chat,chatType,body:requestBody,provider,endpoint,headers,generation});
+            generation.check();
+        }
         const response = await generation.waitFor(fetch(endpoint, {
             method: 'POST',
             headers: headers,
