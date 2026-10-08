@@ -96,10 +96,12 @@
 .mc-modal-sheet header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid #e5e5e9;font-size:15px}.mc-modal-sheet header button{border:0;background:none;color:inherit;font:inherit;font-size:24px;padding:0 8px}
 .mc-modal-sheet h4{font-size:12px;font-weight:500;color:#82828c;margin:22px 0 9px}.mc-modal-sheet p{font-size:12px;line-height:1.9;color:#82828c}.mc-modal-sheet pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.8;background:#eaeaee;border-radius:12px;padding:14px}.mc-detail-heading{font-size:19px;font-weight:500;overflow-wrap:anywhere;margin-top:23px}
 .mcp-message-wrapper{display:flex!important;justify-content:flex-start!important;padding:7px 0!important}
-.mcp-music-card{display:flex;align-items:stretch;width:18em;max-width:86%;height:5.5em;padding:0;border:0;border-radius:5px;overflow:hidden;background:#999b96;color:#fff;text-align:left;font:inherit;font-size:calc(16px * var(--app-font-scale,1));cursor:pointer;box-shadow:none}
-.mcp-music-card>img{width:5.5em;height:5.5em;object-fit:cover;flex:none}
-.mcp-music-card>span{display:flex;flex-direction:column;justify-content:center;gap:.35em;padding:.6em .85em;min-width:0}
-.mcp-music-card strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:1em;font-weight:600;line-height:1.3;white-space:normal}
-.mcp-music-card small{display:block;font-size:.875em;font-weight:400;color:rgba(255,255,255,.82);line-height:1.4}
+.mcp-music-card{display:flex;align-items:stretch;width:244px;max-width:80%;height:78px;padding:0;border:0;border-radius:5px;overflow:hidden;background:#999b96;color:#fff;text-align:left;font:inherit;font-size:clamp(12px,calc(15px * var(--app-font-scale,1)),17px);cursor:pointer;box-shadow:none}
+.mcp-music-card>img{width:78px;height:78px;object-fit:cover;flex:none}
+.mcp-music-card>span{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6px 12px;min-width:0}
+.mcp-music-card strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:1em;font-weight:600;line-height:1.25;white-space:normal}
+.mcp-music-card small{display:block;font-size:.875em;font-weight:400;color:rgba(255,255,255,.82);line-height:1.25}
 .mcp-music-card:focus-visible{outline:2px solid #777;outline-offset:3px}
-@media(max-width:350px){#mcp-screen .mc-body{padding:23px 16px}#mcp-screen .mc-head{padding-left:12px;padding-right:12px}#mcp-screen .mc-page-heading>span{font-size:10px}#mcp-screen .mc-tutorial-steps{padding:0 14px}#mcp-screen .mc-tutorial-steps article{gap:10px}.mcp-music-card{max-width:90%}}
+@media(max-width:350px){#mcp-screen .mc-body{padding:23px 16px}#mcp-screen .mc-head{padding-left:12px;padding-right:12px}#mcp-screen .mc-page-heading>span{font-size:10px}#mcp-screen .mc-tutorial-steps{padding:0 14px}#mcp-screen .mc-tutorial-steps article{gap:10px}.mcp-music-card{width:220px;max-width:80%}}
+
+#mcp-screen .mc-service-actions{display:flex;gap:8px;align-items:center}#mcp-screen .mc-disconnect{font-size:12px;color:#8a7474;padding:7px 9px;border-radius:9px}#mcp-screen .mc-service-error{font-size:11px;color:#947575;line-height:1.7;padding:0 17px 14px;margin:0;overflow-wrap:anywhere}#mcp-screen .mc-code-block{margin:12px 0 16px}#mcp-screen .mc-code-block pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.8;background:#f0f0f3;border-radius:10px;padding:12px;margin:0 0 7px}#mcp-screen .mc-code-block button{font-size:11px;color:#7b7b85;padding:6px 0}#mcp-screen .mc-tutorial-steps a{color:#5c5c68;text-decoration:underline}#mcp-screen .mc-guide-note{font-size:12px;line-height:1.85;color:#84848d}
