@@ -8,13 +8,15 @@
       this.url = parsed.href; this.token = token; this.fetcher = fetcher; this.id = 0;
       this.version = '2025-06-18'; this.session = ''; this.ready = false;
     }
-    async rpc(method, params, notify = false) {
+    async rpc(method, params, notify = false, externalSignal) {
       const id = ++this.id;
       const headers = {'Content-Type':'application/json', Accept:'application/json, text/event-stream'};
       if (this.token) headers.Authorization = 'Bearer ' + this.token;
       if (this.session) headers['Mcp-Session-Id'] = this.session;
       if (method !== 'initialize') headers['MCP-Protocol-Version'] = this.version;
       const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
+      const onAbort = () => controller.abort();
+      if(externalSignal?.aborted)controller.abort();else externalSignal?.addEventListener('abort',onAbort,{once:true});
       try {
         const response = await this.fetcher(this.url, {method:'POST', headers, body:JSON.stringify({jsonrpc:'2.0', ...(!notify && {id}), method, ...(params !== undefined && {params})}), signal:controller.signal, redirect:'error', credentials:'omit'});
         if (!response.ok) {
@@ -51,34 +53,35 @@
         if (!Object.hasOwn(message, 'result')) throw Error('MCP 响应缺少 result');
         return message.result;
       } catch (e) {
+        if (externalSignal?.aborted) throw new DOMException('已停止 MCP 调用', 'AbortError');
         if (e.name === 'AbortError') throw Error('请求超过 60 秒，执行结果可能尚未返回，请勿直接重复操作');
         if (e instanceof TypeError) throw Error('网络或跨域连接失败。服务需允许此网页 Origin，并开放 MCP 请求头和会话响应头');
         throw e;
-      } finally {clearTimeout(timer);}
+      } finally {clearTimeout(timer);externalSignal?.removeEventListener('abort',onAbort);}
     }
-    async connect() {
+    async connect({signal} = {}) {
       this.ready = false; this.session = '';
-      const result = await this.rpc('initialize', {protocolVersion:'2025-06-18', capabilities:{}, clientInfo:{name:'kiss-mcp', version:'1.0.0'}});
+      const result = await this.rpc('initialize', {protocolVersion:'2025-06-18', capabilities:{}, clientInfo:{name:'kiss-mcp', version:'1.0.0'}},false,signal);
       if (!['2025-06-18','2025-03-26','2025-11-25'].includes(result.protocolVersion)) throw Error('服务返回了暂不支持的协议版本');
       if (!result.capabilities?.tools) throw Error('这个 MCP 服务没有提供 tools 能力');
       this.version = result.protocolVersion; this.info = result.serverInfo;
-      await this.rpc('notifications/initialized', undefined, true); this.ready = true;
-      return this.listTools();
+      await this.rpc('notifications/initialized', undefined, true,signal); this.ready = true;
+      return this.listTools(signal);
     }
-    async listTools() {
+    async listTools(signal) {
       const tools = [], seen = new Set(); let cursor;
       for (let page = 0; page < 100; page++) {
-        const result = await this.rpc('tools/list', cursor ? {cursor} : {});
+        const result = await this.rpc('tools/list', cursor ? {cursor} : {},false,signal);
         if (!Array.isArray(result.tools)) throw Error('服务返回的工具列表格式不正确');
         tools.push(...result.tools); if (!result.nextCursor) return tools;
         cursor = result.nextCursor; if (seen.has(cursor)) throw Error('工具列表分页游标重复'); seen.add(cursor);
       }
       throw Error('工具列表超过分页上限');
     }
-    async callTool(name, args) {
+    async callTool(name, args, {signal} = {}) {
       if (!this.ready) throw Error('请先连接 MCP 服务');
       if (!args || Array.isArray(args) || typeof args !== 'object') throw Error('参数必须是 JSON 对象');
-      return this.rpc('tools/call', {name, arguments:args});
+      return this.rpc('tools/call', {name, arguments:args},false,signal);
     }
     async close() {
       this.ready = false;
