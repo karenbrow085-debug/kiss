@@ -476,7 +476,7 @@ function setupHomeScreen() {
 
     // 定义所有可用的组件和应用
     const allItems = {
-        'app-mcp': `<div class="grid-item-1x1" data-id="app-mcp"><a href="#" class="app-icon" data-mcp="home"><img src="${db.customIcons?.['mcp-screen'] || 'mcp-icon.svg'}" alt="MCP" class="icon-img"><span class="app-name">MCP</span></a></div>`,
+        'app-mcp': `<div class="grid-item-1x1" data-id="app-mcp"><a href="#" class="app-icon" data-mcp="home"><img src="${db.customIcons?.['mcp-screen'] || 'https://i.ibb.co/HDS0FCPZ/6a5519bffcf2d251b2a7b369e7f953b9.jpg'}" alt="MCP" class="icon-img"><span class="app-name">MCP</span></a></div>`,
         'app-mono': `<div class="grid-item-1x1" data-id="app-mono"><a href="#" class="app-icon" data-mono="home"><img src="${getIcon('mono-app')}" alt="MONO" class="icon-img"><span class="app-name">MONO</span></a></div>`,
         'app-chat': `<div class="grid-item-1x1" data-id="app-chat"><a href="#" class="app-icon" data-target="chat-list-screen"><img src="${getIcon('chat-list-screen')}" alt="404" class="icon-img"><span class="app-name">${defaultIcons['chat-list-screen'].name}</span></a></div>`,
         'app-api': `<div class="grid-item-1x1" data-id="app-api"><a href="#" class="app-icon" data-target="api-settings-screen"><img src="${getIcon('api-settings-screen')}" alt="API" class="icon-img"><span class="app-name">${defaultIcons['api-settings-screen'].name}</span></a></div>`,
