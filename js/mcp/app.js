@@ -2,26 +2,42 @@
   'use strict';
   if (window.KissMCP) return;
   if (typeof defaultIcons !== 'undefined') defaultIcons['mcp-screen'] = {name:'MCP',url:'https://i.ibb.co/HDS0FCPZ/6a5519bffcf2d251b2a7b369e7f953b9.jpg'};
-  const KEY = 'kiss.mcp.v1', sessions = new Map(), tokens = new Map();
+  const KEY = 'kiss.mcp.v1', TOKEN_KEY='kiss.mcp.credentials.v1', SESSION_KEY='kiss.mcp.sessions.v1', sessions = new Map(), tokens = new Map(), connecting=new Map(), operations=new Map();
+  let editing=false,sessionRecords={};
+  try{const value=JSON.parse(localStorage.getItem(SESSION_KEY)||'{}');if(value&&typeof value==='object'&&!Array.isArray(value))sessionRecords=value;}catch{}
+  function saveSessionRecords(){localStorage.setItem(SESSION_KEY,JSON.stringify(sessionRecords));}
   let services = [], tab = 'services', selected = '', tool = null, busy = false, logs = [], transcript = [], history = [], aiAbort, notice = '';
   let aiConfig = {url:'', model:'', key:''};
-  try {const stored = JSON.parse(localStorage.getItem(KEY) || '[]'); if (Array.isArray(stored)) services = stored.filter(s => s && typeof s.id === 'string' && typeof s.url === 'string' && typeof s.name === 'string').map(s => ({id:s.id, url:s.url, name:s.name, platform:['remote','ios','android','termux'].includes(s.platform)?s.platform:'remote'}));} catch {}
+  try {const stored = JSON.parse(localStorage.getItem(KEY) || '[]'); if (Array.isArray(stored)) services = stored.filter(s => s && typeof s.id === 'string' && typeof s.url === 'string' && typeof s.name === 'string').map(s => ({id:s.id, url:s.url, name:s.name, platform:['remote','ios','android','termux'].includes(s.platform)?s.platform:'remote',autoConnect:s.autoConnect!==false}));} catch {}
+  try{for(const [id,token] of Object.entries(JSON.parse(localStorage.getItem(TOKEN_KEY)||'{}')))if(typeof token==='string'&&services.some(s=>s.id===id))tokens.set(id,token);}catch{}
   const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const screen = document.createElement('section'); screen.id = 'mcp-screen'; screen.className = 'screen';
   (document.querySelector('.phone-screen') || document.body).append(screen);
   screen.innerHTML = KissMCPView.shell();
   const body = screen.querySelector('main');
   const runtime = window.KissMCPRuntime;
-  async function connectService(s, signal) {
-    const existing = status(s);
-    if (existing?.client.ready) return existing;
-    const client = new MCPClient(s.url,tokens.get(s.id)||'');
-    const tools = await client.connect({signal});
-    const state = {client,tools}; sessions.set(s.id,state);
-    return state;
+  function refreshConnections(){if(!editing&&(tab==='services'||tab==='tools'))render();}
+  async function copyText(text){const input=document.createElement('textarea');input.value=text;input.style.cssText='position:fixed;opacity:0;left:-9999px';document.body.append(input);input.select();let copied=false;try{copied=document.execCommand('copy');}finally{input.remove();}if(!copied){let timer;try{await Promise.race([navigator.clipboard.writeText(text),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('复制失败，请长按命令手动复制')),3000);})]);}finally{clearTimeout(timer);}}}
+  function saveTokens(){localStorage.setItem(TOKEN_KEY,JSON.stringify(Object.fromEntries(tokens)));}
+  async function runRPC(s,callback,externalSignal){const controller=new AbortController();const onAbort=()=>controller.abort();if(externalSignal?.aborted)controller.abort();else externalSignal?.addEventListener('abort',onAbort,{once:true});let set=operations.get(s.id);if(!set){set=new Set();operations.set(s.id,set);}set.add(controller);try{if(s.autoConnect===false)throw Error('连接已被手动断开，请先点连接');return await callback(controller.signal);}finally{externalSignal?.removeEventListener('abort',onAbort);set.delete(controller);if(!set.size)operations.delete(s.id);}}
+  async function connectService(s,signal){
+    if(s.autoConnect===false)throw Error('连接已被手动断开，请先点连接');
+    const existing=status(s);if(existing?.client?.ready&&!existing.connecting)return existing;
+    if(connecting.has(s.id))return connecting.get(s.id).promise;
+    const controller=new AbortController(),onAbort=()=>controller.abort();if(signal?.aborted)controller.abort();else signal?.addEventListener('abort',onAbort,{once:true});
+    const client=new MCPClient(s.url,tokens.get(s.id)||'');const state={client,tools:[],connecting:true,failures:existing?.failures||0};sessions.set(s.id,state);
+    const promise=(async()=>{try{let tools;const record=sessionRecords[s.id];if(record?.url===s.url&&typeof record.session==='string'&&record.session&&['2025-06-18','2025-03-26','2025-11-25'].includes(record.version)){client.session=record.session;client.version=record.version;client.ready=true;try{tools=await client.listTools(controller.signal);}catch(e){if(controller.signal.aborted||client.session)throw e;}}if(!tools)tools=await client.connect({signal:controller.signal});if(controller.signal.aborted||s.autoConnect===false||!services.includes(s)){await client.close();throw new DOMException('连接已中断','AbortError');}if(client.session)sessionRecords[s.id]={url:s.url,session:client.session,version:client.version};else delete sessionRecords[s.id];saveSessionRecords();Object.assign(state,{tools,connecting:false,failures:0,error:'',nextRetry:0});return state;}catch(e){client.ready=false;if(!controller.signal.aborted&&client.session&&client.info){sessionRecords[s.id]={url:s.url,session:client.session,version:client.version};saveSessionRecords();}state.connecting=false;state.error=e.name==='AbortError'?'连接已中断':e.message;state.failures++;state.nextRetry=Date.now()+Math.min(180000,5000*2**Math.min(state.failures-1,6));throw e;}finally{signal?.removeEventListener('abort',onAbort);if(connecting.get(s.id)?.controller===controller)connecting.delete(s.id);refreshConnections();}})();
+    connecting.set(s.id,{controller,promise});refreshConnections();return promise;
   }
-  runtime.setAdapter({services:()=>services,state:id=>sessions.get(id),connect:connectService});
-  window.addEventListener('kiss-mcp-activity',()=>{if(tab==='logs'&&screen.classList.contains('active')) render();});
+  async function disconnectService(s,pause=true){delete sessionRecords[s.id];saveSessionRecords();if(pause){s.autoConnect=false;save();}const pending=connecting.get(s.id);pending?.controller.abort();for(const c of operations.get(s.id)||[])c.abort();const state=status(s);sessions.delete(s.id);if(pending)await pending.promise.catch(()=>{});await state?.client?.close();refreshConnections();}
+  function reconnectAll(force=false){for(const s of services){if(s.autoConnect===false||status(s)?.client?.ready||connecting.has(s.id))continue;if(!force&&Date.now()<(status(s)?.nextRetry||0))continue;connectService(s).catch(()=>{});}}
+  runtime.setAdapter({services:()=>services.filter(s=>s.autoConnect!==false),state:id=>sessions.get(id),connect:connectService,callTool:(s,name,args,signal)=>runRPC(s,abort=>status(s).client.callTool(name,args,{signal:abort}),signal)});
+  window.addEventListener('online',()=>reconnectAll(true));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkConnections();reconnectAll(true);}});
+  setInterval(()=>{if(!document.hidden)reconnectAll();},15000);
+  function checkConnections(){if(document.hidden)return;for(const s of services){const state=status(s);if(s.autoConnect===false||!state?.client?.ready||state.connecting||operations.has(s.id))continue;runRPC(s,signal=>state.client.listTools(signal)).then(tools=>{if(status(s)===state){state.tools=tools;refreshConnections();}}).catch(e=>{if(status(s)!==state||s.autoConnect===false)return;state.client.ready=false;if(!state.client.session){delete sessionRecords[s.id];saveSessionRecords();}state.tools=[];state.error=e.message;state.nextRetry=Date.now()+5000;refreshConnections();});}}
+  setInterval(checkConnections,60000);
+  window.addEventListener('kiss-mcp-activity',()=>{if(!editing&&tab==='logs'&&screen.classList.contains('active')) render();});
   screen.addEventListener('change',async event=>{
     const input=event.target;
     if(input.id==='mc-retention'){runtime.setRetention(input.value);return;}
@@ -41,8 +57,9 @@
   function toolsList() {return services.flatMap(s => (status(s)?.tools || []).map(t => ({s, t})));}
   function paint() {window.KissMCPIcons?.(screen);}
   function render() {
+    editing=false;
     try {screen.dataset.theme = typeof db !== 'undefined' ? db.homeScreenMode || 'day' : 'day';} catch {}
-    const states = Object.fromEntries(services.map(s => [s.id,{ready:!!status(s)?.client.ready,tools:status(s)?.tools||[]}]));
+    const states = Object.fromEntries(services.map(s => [s.id,{ready:!!status(s)?.client?.ready,tools:status(s)?.tools||[],connecting:!!status(s)?.connecting,error:status(s)?.error||'',paused:s.autoConnect===false}]));
     body.innerHTML = KissMCPView.page({tab,services,states,busy,transcript,logs:runtime.logs(),aiConfig,selected,characters:runtime.chars(),preferences:runtime.preferences,notice});
     screen.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-current',String(b.dataset.tab===tab)));
     if(tab==='tools')body.querySelector('#mc-search').oninput=e=>body.querySelectorAll('[data-tool-card]').forEach(el=>el.hidden=!el.dataset.search.includes(e.target.value.toLowerCase()));
@@ -55,6 +72,7 @@
   function error(e) {const p = document.createElement('p'); p.className = 'mc-error'; p.setAttribute('role','alert'); p.textContent = e.message || String(e); body.prepend(p);}
   let formPlatform = 'remote';
   function form(id) {
+    editing=true;
     const s = services.find(s => s.id === id) || {};
     body.innerHTML = KissMCPView.form(s,tokens.get(id)||'',formPlatform); paint();
     body.querySelectorAll('[name=platform]').forEach(input=>input.onchange=()=>{body.querySelector('#mc-platform-hint').textContent=KissMCPView.platformText(input.value);});
@@ -62,9 +80,9 @@
       e.preventDefault(); const data = new FormData(e.target);
       try {
         const url = String(data.get('url')).trim(); new MCPClient(url);
-        const next = {id:id || crypto.randomUUID(), name:String(data.get('name')).trim(), url, platform:String(data.get('platform')||'remote')}; if (!next.name) throw Error('请填写名称');
-        if (id) {await status(s)?.client.close(); sessions.delete(id); services = services.map(s => s.id === id ? next : s);} else services.push(next);
-        tokens.set(next.id, String(data.get('token')).trim().replace(/^Bearer\s+/i,'')); save(); tab = 'services'; render();
+        const next = {id:id || crypto.randomUUID(), name:String(data.get('name')).trim(), url, platform:String(data.get('platform')||'remote'),autoConnect:true}; if (!next.name) throw Error('请填写名称');
+        if (id) {await disconnectService(s,false); services = services.map(s => s.id === id ? next : s);} else services.push(next);
+        tokens.set(next.id, String(data.get('token')).trim().replace(/^Bearer\s+/i,'')); saveTokens();save(); tab = 'services'; render();reconnectAll(true);
       } catch(e) {error(e);}
     };
   }
@@ -134,10 +152,10 @@
       else if (action === 'home') {if (typeof switchScreen === 'function') switchScreen('home-screen'); else screen.classList.remove('active');}
       else if (action === 'new' || action === 'edit') form(id);
       else if (action === 'cancel') render();
-      else if (action === 'connect') {
-        busy = true; render(); await status(s)?.client.close(); sessions.delete(id);
-        const {tools} = await connectService(s); selected = id; notice = s.name+' 已连接成功 · '+tools.length+' 个工具'; if(typeof showToast==='function')showToast('MCP 连接成功');
-      } else if (action === 'remove' && confirm('删除连接「'+s.name+'」？')) {await status(s)?.client.close(); sessions.delete(id); tokens.delete(id); services = services.filter(s => s.id !== id); save(); render();}
+      else if(action==='copy-code'){await copyText(document.getElementById(button.dataset.code).textContent);if(typeof showToast==='function')showToast('已复制命令');}
+      else if(action==='disconnect'){await disconnectService(s);}
+      else if(action==='connect'){s.autoConnect=true;save();await disconnectService(s,false);const {tools}=await connectService(s);selected=id;notice=s.name+' 已连接成功 · '+tools.length+' 个工具';if(typeof showToast==='function')showToast('MCP 连接成功');render();}
+      else if(action==='remove'&&confirm('删除连接「'+s.name+'」？')){await disconnectService(s);tokens.delete(id);saveTokens();services=services.filter(s=>s.id!==id);save();render();}
       else if(action==='log-detail') runtime.detail(id);
       else if(action==='select-logs'){body.querySelectorAll('.mc-log-select').forEach(x=>x.hidden=!x.hidden);body.querySelector('.mc-selected-actions').hidden=!body.querySelector('.mc-selected-actions').hidden;}
       else if(action==='select-all-logs'){body.querySelectorAll('[data-log-row]:not([hidden]) .mc-log-select:not(:disabled)').forEach(x=>x.checked=true);}
@@ -146,7 +164,7 @@
       else if (action === 'export') download();
       else if (action === 'import') {
         const picker = document.createElement('input'); picker.type = 'file'; picker.accept = '.json';
-        picker.onchange = async () => {try {const file = picker.files[0]; if (!file) return; if (file.size > 100000) throw Error('配置文件过大'); const obj = JSON.parse(await file.text()); if (obj.format !== 'kiss-mcp-connections-v1' || !Array.isArray(obj.services) || obj.services.length > 50) throw Error('配置格式不正确'); const additions = obj.services.map(s => {new MCPClient(s.url); if (typeof s.name !== 'string' || !s.name.trim()) throw Error('服务名称不正确'); return {id:crypto.randomUUID(),name:s.name.slice(0,60),url:s.url,platform:['remote','ios','android','termux'].includes(s.platform)?s.platform:'remote'};}); services.push(...additions); save(); render();} catch(e) {error(e);}}; picker.click();
+        picker.onchange = async () => {try {const file = picker.files[0]; if (!file) return; if (file.size > 100000) throw Error('配置文件过大'); const obj = JSON.parse(await file.text()); if (obj.format !== 'kiss-mcp-connections-v1' || !Array.isArray(obj.services) || obj.services.length > 50) throw Error('配置格式不正确'); const additions = obj.services.map(s => {new MCPClient(s.url); if (typeof s.name !== 'string' || !s.name.trim()) throw Error('服务名称不正确'); return {id:crypto.randomUUID(),name:s.name.slice(0,60),url:s.url,platform:['remote','ios','android','termux'].includes(s.platform)?s.platform:'remote'};}); services.push(...additions); save(); render();reconnectAll(true);} catch(e) {error(e);}}; picker.click();
       } else if (action === 'tool') toolView(toolsList()[Number(button.dataset.index)]);
       else if (action === 'run') {
         const args = JSON.parse(body.querySelector('#mc-args').value); busy = true; button.disabled = true;
@@ -160,6 +178,6 @@
     } catch(e) {busy = false; if (action === 'connect' || action === 'send') render(); error(e);}
     finally {if (busy) {busy = false; if (action === 'connect' || action === 'send') render();} if (action === 'run') button.disabled = false;}
   });
-  window.KissMCP = {runtime,open() {render(); if (typeof switchScreen === 'function') switchScreen('mcp-screen'); else screen.classList.add('active');}};
-  render();
+  window.KissMCP = {runtime,open() {checkConnections();reconnectAll(true);render(); if (typeof switchScreen === 'function') switchScreen('mcp-screen'); else screen.classList.add('active');}};
+  render();reconnectAll(true);
 })();

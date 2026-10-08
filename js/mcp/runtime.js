@@ -29,12 +29,12 @@
     const entry=begin(item,args,context);let message;
     if(context.chat&&policy(context.chat).showCard){message=addCard(context.chat,entry);refreshCard(context.chat,message,entry);}
     let result;
-    try{const state=await connect(item.s,context.signal);result=await state.client.callTool(item.t.name,args,{signal:context.signal});if(!result)throw Error('服务没有返回工具结果');finish(entry,result);}
-    catch(error){finish(entry,null,error);if(error.name==='AbortError')throw error;result={isError:true,content:[{type:'text',text:'工具执行失败：'+error.message}]};}
+    try{const state=await connect(item.s,context.signal);result=adapter.callTool?await adapter.callTool(item.s,item.t.name,args,context.signal):await state.client.callTool(item.t.name,args,{signal:context.signal});if(!result)throw Error('服务没有返回工具结果');finish(entry,result);}
+    catch(error){finish(entry,null,error);if(error.name==='AbortError'&&context.signal?.aborted)throw error;result={isError:true,content:[{type:'text',text:'工具执行失败：'+error.message}]};}
     finally{refreshCard(context.chat,message,entry);if(message&&typeof saveData==='function'){try{await saveData();}catch(error){if(typeof showToast==='function')showToast('工具结果已返回，但聊天卡片保存失败：'+error.message);}}}
     return result;
   }
-  async function connect(service,signal){let state=adapter.state(service.id);if(state?.client.ready)return state;
+  async function connect(service,signal){let state=adapter.state(service.id);if(state?.client?.ready&&!state.connecting)return state;
     let pending=activeConnections.get(service.id);if(!pending){pending=adapter.connect(service,signal);activeConnections.set(service.id,pending);}
     try{return await pending;}finally{if(activeConnections.get(service.id)===pending)activeConnections.delete(service.id);}
   }
@@ -60,7 +60,7 @@
       if(!calls.length)return;
       if(provider==='gemini')work.contents.push({...message,role:'model'});else work.messages.push({role:'assistant',content:message.content||null,tool_calls:calls});
       const geminiResponses=[];
-      for(const call of calls){if(++count>6){results.push({isError:true,content:[{type:'text',text:'本轮最多调用六次，未执行更多工具'}]});return;}generation.check();const target=mapping.find(m=>m.alias===call.function?.name);let result;try{if(!target)throw Error('模型请求了未授权工具');const args=JSON.parse(call.function.arguments||'{}');result=await invoke(target.item,args,{chat,source:'404 聊天',signal:generation.signal});}catch(error){if(error.name==='AbortError')throw error;result={isError:true,content:[{type:'text',text:error.message}]};}results.push({tool:target?.item.t.name||call.function.name,...result});if(provider==='gemini')geminiResponses.push({functionResponse:{name:call.function.name,response:result}});else work.messages.push({role:'tool',tool_call_id:call.id,content:JSON.stringify(result)});}
+      for(const call of calls){if(++count>6){results.push({isError:true,content:[{type:'text',text:'本轮最多调用六次，未执行更多工具'}]});return;}generation.check();const target=mapping.find(m=>m.alias===call.function?.name);let result;try{if(!target)throw Error('模型请求了未授权工具');const args=JSON.parse(call.function.arguments||'{}');result=await invoke(target.item,args,{chat,source:'404 聊天',signal:generation.signal});}catch(error){if(error.name==='AbortError'&&context.signal?.aborted)throw error;result={isError:true,content:[{type:'text',text:error.message}]};}results.push({tool:target?.item.t.name||call.function.name,...result});if(provider==='gemini')geminiResponses.push({functionResponse:{name:call.function.name,response:result}});else work.messages.push({role:'tool',tool_call_id:call.id,content:JSON.stringify(result)});}
       if(provider==='gemini')work.contents.push({role:'user',parts:geminiResponses});else work.tool_choice='auto';
     }
   }
