@@ -83,7 +83,7 @@ const aiGenerationControl = (() => {
         task.cancel();
         return true;
     }
-    return {begin,finish,stop,isActive:()=>active.size>0};
+    return {begin,finish,stop,isActive:()=>active.size>0,isChatActive:(id,type)=>active.has(keyFor(id,type))};
 })();
 
 function scheduleAiGeneration(generation,callback,delay) {
@@ -197,7 +197,15 @@ async function getAiReply(chatId, chatType, isBackground = false) {
         // 使用工具函数进行过滤（包含深度克隆、屏蔽过滤、双语修正、状态栏剔除）
         historySlice = filterHistoryForAI(chat, historySlice);
         // 【新增】过滤掉不应进入上下文的消息（如思考过程、被撤回的消息标记等）
-        historySlice = historySlice.filter(m => !m.isContextDisabled && m.type !== 'mcp-activity');
+        historySlice = historySlice.filter(m => !m.isContextDisabled && m.type !== 'mcp-activity' && m.type !== 'mcp-request');
+        // A selected MCP card is a new user task, not an invitation to continue old chat.
+        if (chatType === 'private' && window.KissMCPRequests) {
+            for (const message of window.KissMCPRequests.currentRequests(chat)) {
+                const request = message.mcpRequest;
+                if (!request) continue;
+                historySlice.push({role:'user',timestamp:message.timestamp,content:'[MCP 调用卡片：'+request.title+']\n'+(request.instruction||('请执行 '+request.toolName+'，参数：'+window.KissMCPRuntime.redact(request.arguments)))});
+            }
+        }
         
         // 【双重保险】再次过滤掉内容匹配 <thinking> 的消息，防止 isContextDisabled 属性丢失
         historySlice = historySlice.filter(m => {
