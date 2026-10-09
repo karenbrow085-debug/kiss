@@ -1,4 +1,4 @@
-/* Voice service v1 — MiniMax CN/Global, Fish Audio and configurable relays. */
+/* Official MiniMax CN/Global and Fish Audio; per-user saved settings. */
 (() => {
 'use strict';
 const CATALOG = {
@@ -8,9 +8,7 @@ const CATALOG = {
 const PRESETS = [
  ['minimax-cn','MiniMax · 中国版','minimax','https://api.minimax.cn',true],
  ['minimax-global','MiniMax · 国际版','minimax','https://api.minimax.io',true],
- ['minimax-relay','MiniMax · 自定义中转','minimax','',false],
- ['fish','Fish Audio · 官方','fish','https://api.fish.audio',true],
- ['fish-relay','Fish Audio · 自定义中转','fish','',false]
+ ['fish','Fish Audio · 官方','fish','https://api.fish.audio',true]
 ];
 const clone = x => JSON.parse(JSON.stringify(x));
 function profile(id) {
@@ -23,10 +21,20 @@ function profile(id) {
  responseType:'auto',audioPath:'',modelsArrayPath:'',voicesArrayPath:'',modelIdPath:'',voiceIdPath:'',voiceNamePath:'',
  timeout:90,models:[],voices:[]};
 }
+function familyPresets(family) {return PRESETS.filter(p=>p[2]===family);}
+function officialId(id) {return PRESETS.some(p=>p[0]===id)?id:id==='fish-relay'?'fish':'minimax-cn';}
 function settings() {
  const saved=(typeof db!=='undefined'&&db.apiSettings&&db.apiSettings.voice)||{};
- const profiles={}; PRESETS.forEach(p=>profiles[p[0]]={...profile(p[0]),...(saved.profiles||{})[p[0]]});
- return {...saved,version:1,enabled:!!saved.enabled,defaultProfile:saved.defaultProfile||'minimax-cn',cacheEnabled:saved.cacheEnabled!==false,callEnabled:!!saved.callEnabled,profiles,bindings:saved.bindings||{}};
+ const profiles={};
+ PRESETS.forEach(row=>{
+  const defaults=profile(row[0]),existing=(saved.profiles||{})[row[0]]||{};
+  const p={...defaults,...existing};
+  // 官方连接身份与请求路径固定，保留 Key、模型、音色和声线参数。
+  for(const k of ['id','name','family','official','protocol','baseUrl','ttsPath','modelsPath','voicesPath','voicesMethod','voicesBody','modelsMethod','modelsBody','authMode','authHeader','headers','template','responseType','audioPath','modelsArrayPath','voicesArrayPath','modelIdPath','voiceIdPath','voiceNamePath'])p[k]=defaults[k];
+  profiles[row[0]]=p;
+ });
+ const bindings={};for(const [id,b] of Object.entries(saved.bindings||{}))bindings[id]={...b,profileId:b.profileId?officialId(b.profileId):''};
+ return {...saved,version:2,enabled:!!saved.enabled,defaultProfile:officialId(saved.defaultProfile),cacheEnabled:saved.cacheEnabled!==false,callEnabled:!!saved.callEnabled,profiles,bindings};
 }
 function getPath(obj,path) {
  if(!path)return obj;
@@ -105,6 +113,11 @@ function buildRequest(p,text,kind='tts',options={}) {
  if(kind==='voices'&&p.official&&p.family==='fish') {
   url.searchParams.set('page_size','50');url.searchParams.set('page_number',String(options.page||1));url.searchParams.set('self',String(options.scope!=='public'));if(options.search)url.searchParams.set('title',options.search);
  }
+ // Fish 官方接口经站点共用网关转发，每个请求仍使用当前使用者的 Key。
+ if(p.protocol==='fish'&&url.hostname==='api.fish.audio') {
+  const gateway=new URL('https://fish-voice.petrusoclarnon.workers.dev');
+  gateway.pathname=url.pathname;gateway.search=url.search;url.href=gateway.href;
+ }
  return {url:url.href,init:{method,headers,body:body===undefined?undefined:JSON.stringify(body),credentials:'omit',redirect:'error'}};
 }
 function safeError(message,p) {
@@ -131,7 +144,7 @@ async function request(p,text,kind,options={}) {
   const blob=await response.blob();return {blob,type:(response.headers.get('Content-Type')||'').toLowerCase()};
  }catch(e){
   if(e.name==='AbortError')throw new Error(timedOut?'语音请求超时，请稍后重试':'已停止');
-  if(e.name==='TypeError')throw new Error(p.official&&p.family==='fish'?'Fish 连接失败：官方 API 为 api.fish.audio；浏览器无法区分网络与跨域阻止。若地址正确仍失败，请在接口地址填写已部署的 Fish 网关地址，或切换 Fish 自定义中转。':'连接失败：检查地址、网络与跨域许可；可改用支持 CORS 的中转地址');
+  if(e.name==='TypeError')throw new Error(p.family==='fish'?'Fish 连接失败：请检查网络或联系管理员检查共用网关':'MiniMax 连接失败：请检查网络及官方服务可用性');
   throw new Error(safeError(e.message,p));
  }finally{clearTimeout(timer);if(options.signal)options.signal.removeEventListener('abort',cancel);}
 }
@@ -207,5 +220,5 @@ function resolveProfile(charId) {
  const p=s.profiles[id];if(!p)return null;
  return {...p,voiceId:binding.voiceId||p.voiceId,speed:binding.speed==null?p.speed:Number(binding.speed)};
 }
-window.KissVoiceService={CATALOG,PRESETS,profile,settings,clone,getPath,parseObject,relayBase,officialFishBase,endpoint,buildRequest,validate,list,normalizeList,decodeAudio,audioFromResponse,synthesize,resolveProfile,cacheStats,clearCache};
+window.KissVoiceService={CATALOG,PRESETS,familyPresets,profile,settings,clone,getPath,parseObject,relayBase,officialFishBase,endpoint,buildRequest,validate,list,normalizeList,decodeAudio,audioFromResponse,synthesize,resolveProfile,cacheStats,clearCache};
 })();
