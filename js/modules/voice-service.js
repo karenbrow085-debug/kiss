@@ -66,6 +66,11 @@ function endpoint(base,path) {
  } catch {throw new Error('请填写有效的 HTTP / HTTPS 接口地址');}
  return url;
 }
+function officialFishBase(p) {
+ const base=String(p.baseUrl||'').trim();if(!p.official||p.family!=='fish')return base;
+ try{const u=new URL(base);if(['fish.audio','www.fish.audio','api.fish.audio'].includes(u.hostname.toLowerCase()))return 'https://api.fish.audio';}catch{}
+ return base;
+}
 function validate(p,kind='tts') {
  if(!p.baseUrl)throw new Error('请填写接口地址');
  if(p.authMode!=='none'&&!p.key.trim())throw new Error('请填写 API Key');
@@ -95,7 +100,7 @@ function buildRequest(p,text,kind='tts',options={}) {
  } else if(method!=='GET')body=substitute(parseObject(p[kind+'Body'],'列表请求体'),vars);
  if(body!==undefined)headers.set('Content-Type','application/json');
  for(const [k,v] of Object.entries(substitute(parseObject(p.headers,'自定义请求头'),vars)))headers.set(k,String(v));
- const url=endpoint(p.official?p.baseUrl:relayBase(p.baseUrl),p[kind==='tts'?'ttsPath':kind+'Path']);
+ const url=endpoint(p.official?officialFishBase(p):relayBase(p.baseUrl),p[kind==='tts'?'ttsPath':kind+'Path']);
  if(p.groupId)url.searchParams.set('GroupId',p.groupId);
  if(kind==='voices'&&p.official&&p.family==='fish') {
   url.searchParams.set('page_size','50');url.searchParams.set('page_number',String(options.page||1));url.searchParams.set('self',String(options.scope!=='public'));if(options.search)url.searchParams.set('title',options.search);
@@ -126,7 +131,7 @@ async function request(p,text,kind,options={}) {
   const blob=await response.blob();return {blob,type:(response.headers.get('Content-Type')||'').toLowerCase()};
  }catch(e){
   if(e.name==='AbortError')throw new Error(timedOut?'语音请求超时，请稍后重试':'已停止');
-  if(e.name==='TypeError')throw new Error('连接失败：检查地址、网络与跨域许可；可改用支持 CORS 的中转地址');
+  if(e.name==='TypeError')throw new Error(p.official&&p.family==='fish'?'Fish 连接失败：官方 API 为 api.fish.audio；浏览器无法区分网络与跨域阻止。若地址正确仍失败，请在接口地址填写已部署的 Fish 网关地址，或切换 Fish 自定义中转。':'连接失败：检查地址、网络与跨域许可；可改用支持 CORS 的中转地址');
   throw new Error(safeError(e.message,p));
  }finally{clearTimeout(timer);if(options.signal)options.signal.removeEventListener('abort',cancel);}
 }
@@ -202,5 +207,5 @@ function resolveProfile(charId) {
  const p=s.profiles[id];if(!p)return null;
  return {...p,voiceId:binding.voiceId||p.voiceId,speed:binding.speed==null?p.speed:Number(binding.speed)};
 }
-window.KissVoiceService={CATALOG,PRESETS,profile,settings,clone,getPath,parseObject,relayBase,endpoint,buildRequest,validate,list,normalizeList,decodeAudio,audioFromResponse,synthesize,resolveProfile,cacheStats,clearCache};
+window.KissVoiceService={CATALOG,PRESETS,profile,settings,clone,getPath,parseObject,relayBase,officialFishBase,endpoint,buildRequest,validate,list,normalizeList,decodeAudio,audioFromResponse,synthesize,resolveProfile,cacheStats,clearCache};
 })();
