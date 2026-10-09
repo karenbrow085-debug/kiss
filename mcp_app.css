@@ -107,3 +107,25 @@
 #mcp-screen .mc-service-actions{display:flex;gap:8px;align-items:center}#mcp-screen .mc-disconnect{font-size:12px;color:#8a7474;padding:7px 9px;border-radius:9px}#mcp-screen .mc-service-error{font-size:11px;color:#947575;line-height:1.7;padding:0 17px 14px;margin:0;overflow-wrap:anywhere}#mcp-screen .mc-code-block{margin:12px 0 16px}#mcp-screen .mc-code-block pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.8;background:#f0f0f3;border-radius:10px;padding:12px;margin:0 0 7px}#mcp-screen .mc-code-block button{font-size:11px;color:#7b7b85;padding:6px 0}#mcp-screen .mc-tutorial-steps a{color:#5c5c68;text-decoration:underline}#mcp-screen .mc-guide-note{font-size:12px;line-height:1.85;color:#84848d}
 
 #mcp-screen .mc-code-block pre{max-height:320px;overflow:auto}#mcp-screen .mc-install-script{margin:15px 0;background:#f2f2f5;border-radius:11px;padding:13px}#mcp-screen .mc-install-script>summary{font-size:12px}
+
+/* User requests reuse the existing 244 × 78 call card; align it with sent messages. */
+.mcp-message-wrapper.mcp-request-wrapper{justify-content:flex-end!important;align-items:flex-end!important}
+.mc-picker-sheet{background:#f5f5f7;color:#33333a;overscroll-behavior:contain}
+.mc-picker-sheet *{box-sizing:border-box}.mc-picker-sheet [hidden]{display:none!important}
+.mc-picker-sheet :is(button,input,textarea,select){font:inherit;color:inherit}
+.mc-picker-sheet :is(button,input,textarea,select):focus-visible{outline:2px solid #808088;outline-offset:3px}
+.mc-picker-sheet button{cursor:pointer}.mc-picker-sheet button:disabled{opacity:.4;cursor:default}
+.mc-picker-sheet h3{font-size:18px;font-weight:550;margin:20px 0 9px;overflow-wrap:anywhere}
+.mc-picker-search,.mc-picker-field textarea,.mc-picker-field input,.mc-picker-field select{width:100%;min-width:0;border:1px solid #e4e4e8;background:#fff;border-radius:12px;padding:12px;font-size:13px;line-height:1.7}
+.mc-picker-search{margin:8px 0 17px;appearance:none}
+.mc-picker-list{display:grid;gap:12px}.mc-picker-service{border:1px solid #e7e7eb;background:#fff;padding:18px;border-radius:15px;overflow-wrap:anywhere}
+.mc-picker-service b,.mc-picker-tool b{display:block;font-size:14px;font-weight:550;line-height:1.7}
+.mc-picker-service small,.mc-picker-tool small,.mc-picker-field small{display:block;font-size:11px;line-height:1.8;color:#85858d;margin:5px 0 0;overflow-wrap:anywhere}
+.mc-picker-actions{display:flex;gap:9px;margin-top:15px}.mc-picker-actions button{flex:1;padding:11px 4px;border:0;border-radius:10px;background:#eeeef1;font-size:12px}
+.mc-picker-tool{display:block;width:100%;border:1px solid #e7e7eb;border-radius:14px;background:#fff;padding:16px;text-align:left}
+.mc-picker-tool small{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.mc-picker-back{border:0;background:none;padding:17px 0 0;color:#85858d!important;font-size:12px!important}
+.mc-picker-field{display:block;margin:19px 0}.mc-picker-field>span{display:block;font-size:12px;color:#74747d;margin-bottom:9px}.mc-picker-field textarea{resize:vertical}
+.mc-picker-send{display:block;width:100%;border:0;background:#57575f;color:#fff!important;font-size:13px!important;padding:14px;border-radius:12px;margin:19px 0 0}
+.mc-picker-sheet p.mc-picker-error{padding:12px 14px;background:#f4eaea;border-radius:11px;color:#8a5d5d;overflow-wrap:anywhere}
+.mc-picker-sheet p.mc-picker-write{color:#8a6d5e}.mc-picker-empty{text-align:center;padding:38px 8px;color:#74747e;font-size:14px}
