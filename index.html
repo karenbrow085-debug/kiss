@@ -63,7 +63,15 @@
 <link rel="stylesheet" href="css/modules/status_history.css?v=ios-safe-20261006">
 <link rel="stylesheet" href="forum_app.css?v=mono-v81413-20261009">
 <link rel="stylesheet" href="mcp_app.css?v=10-archive-ui">
-<link rel="stylesheet" href="css/modules/voice-settings.css?v=20261009-voice5-ios-only">
+<link rel="stylesheet" href="css/modules/voice-settings.css?v=20261010-voice7-fish">
+<style id="kv-ios-header-fix">
+/* iPhone / iPad only: Android keeps the original header geometry. */
+#api-settings-screen.kv-api-screen.kv-ios .app-header{--kv-safe-top:env(safe-area-inset-top,0px);--kv-top-space:max(59px,var(--kv-safe-top));padding:calc(9px + var(--kv-top-space)) 9px 9px;min-height:calc(64px + var(--kv-top-space));display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center}
+#api-settings-screen.kv-api-screen.kv-ios .app-header .title-container{position:static;left:auto;transform:none;min-width:0}
+#api-settings-screen.kv-api-screen.kv-ios .app-header .back-btn{width:44px;min-width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+#api-settings-screen.kv-api-screen.kv-ios .kv-window-close{width:44px;height:44px}
+@media(orientation:landscape){#api-settings-screen.kv-api-screen.kv-ios .app-header{--kv-top-space:max(20px,var(--kv-safe-top))}}
+</style>
 </head>
 
 <body>
@@ -2800,8 +2808,8 @@
 
 <!-- [4. 程序入口] -->
 <script src="js/modules/home_presets.js?v=mcp-20261009"></script>
-<script src="js/modules/voice-service.js?v=20261009-voice3-retro"></script>
-<script src="js/modules/voice-settings.js?v=20261009-voice5-ios-only"></script>
+<script src="js/modules/voice-service.js?v=20261010-voice7-fish"></script>
+<script src="js/modules/voice-settings.js?v=20261010-voice7-fish"></script>
 <script src="js/main.js"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
 <script src="js/modules/kiss-tools.js?v=20261003-2"></script>
 <script type="module" src="js/hearu/app.js?v=font-size-20261006"></script>
