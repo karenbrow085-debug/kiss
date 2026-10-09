@@ -4,6 +4,11 @@
 #api-settings-screen.kv-api-screen .app-header .title{font:inherit;font-size:15px;font-weight:700;letter-spacing:2px;color:white;line-height:1.5}
 #api-settings-screen.kv-api-screen .app-header .back-btn{color:white;font-size:27px;line-height:1;width:27px;min-width:27px}
 #api-settings-screen .kv-window-close{background:none;border:1px solid #fff;border-radius:3px;color:white;padding:3px;width:27px;height:27px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px #a6a6af;cursor:pointer}
+/* iPhone / iPad only: Android keeps the original header geometry. */
+#api-settings-screen.kv-api-screen.kv-ios .app-header{--kv-safe-top:env(safe-area-inset-top,0px);padding:calc(9px + var(--kv-safe-top)) 9px 9px;min-height:calc(64px + var(--kv-safe-top));display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center}
+#api-settings-screen.kv-api-screen.kv-ios .app-header .title-container{position:static;left:auto;transform:none;min-width:0}
+#api-settings-screen.kv-api-screen.kv-ios .app-header .back-btn{width:44px;min-width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+#api-settings-screen.kv-api-screen.kv-ios .kv-window-close{width:44px;height:44px}
 #api-settings-screen.kv-api-screen .content{display:block;padding:0 17px calc(24px + env(safe-area-inset-bottom));margin:0 7px 7px;border:1px solid var(--kv-ink);border-radius:0 0 9px 9px;overflow-y:auto;min-height:0;background:white}
 #api-settings-screen [hidden]{display:none!important}
 #api-settings-screen .kv-hero{margin:19px auto 23px;max-width:650px}
@@ -104,6 +109,7 @@
 .sent .kv-transcript-toggle{align-self:flex-end}
 .voice-bubble.kv-loading .play-icon{animation:kv-pulse 1s ease-in-out infinite}
 @keyframes kv-pulse{50%{opacity:.25}}
-@media(max-width:350px){#api-settings-screen.kv-api-screen .content{padding-left:12px;padding-right:12px}#api-settings-screen.kv-api-screen .app-header .title{font-size:13px;letter-spacing:1.5px}#api-settings-screen #kv-form .kv-family button{padding:11px 9px;min-height:93px}#api-settings-screen .kv-family span{font-size:14px}#api-settings-screen .kv-family small{font-size:7px}#api-settings-screen .kv-switch b{display:none}#api-settings-screen .kv-card{padding-left:12px;padding-right:12px}#api-settings-screen .kv-window-label{margin-left:-12px;margin-right:-12px}#api-settings-screen .kv-grid{gap:0 10px}}
+@media(max-width:350px){#api-settings-screen.kv-api-screen .content{padding-left:12px;padding-right:12px}#api-settings-screen.kv-api-screen .app-header .title-container{position:static;left:auto;transform:none;min-width:0}
+#api-settings-screen.kv-api-screen .app-header .title{font-size:13px;letter-spacing:1.5px}#api-settings-screen #kv-form .kv-family button{padding:11px 9px;min-height:93px}#api-settings-screen .kv-family span{font-size:14px}#api-settings-screen .kv-family small{font-size:7px}#api-settings-screen .kv-switch b{display:none}#api-settings-screen .kv-card{padding-left:12px;padding-right:12px}#api-settings-screen .kv-window-label{margin-left:-12px;margin-right:-12px}#api-settings-screen .kv-grid{gap:0 10px}}
 @media(prefers-reduced-motion:reduce){.voice-bubble.kv-loading .play-icon{animation:none}}
 #api-settings-screen #kv-chat-panel input[type=checkbox]{accent-color:var(--kv-ink)}
