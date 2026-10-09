@@ -1,3 +1,13 @@
+// Remember the one-time desktop relocation; later manual arrangements stay editable.
+if (typeof globalSettingKeys !== 'undefined' && !globalSettingKeys.includes('homeAppTailVersion')) globalSettingKeys.push('homeAppTailVersion');
+function moveHomeUtilityAppsToEnd(pages) {
+    const tail = ['app-mono', 'app-mcp'];
+    const next = pages.map(page => page.filter(id => !tail.includes(id)));
+    while (next.length > 1 && next[next.length - 1].length === 0) next.pop();
+    if (!next.length) next.push([]);
+    next[next.length - 1].push(...tail);
+    return next;
+}
 // --- 界面交互逻辑 (js/ui.js) ---
 
 // DOM 元素缓存 (将在脚本加载时初始化)
@@ -531,7 +541,7 @@ function setupHomeScreen() {
     }
 
     // 确保所有项目都在 allItems 中，并处理新添加的项目
-    const allItemIds = Object.keys(allItems);
+    const allItemIds = [...Object.keys(allItems).filter(id => !['app-mono', 'app-mcp'].includes(id)), 'app-mono', 'app-mcp'];
     
     // 数据结构迁移与初始化
     if (!db.homeLayoutPages) {
@@ -545,14 +555,20 @@ function setupHomeScreen() {
     let hasNewItems = false;
     allItemIds.forEach(id => {
         if (!existingIds.has(id)) {
-            // 将新项目添加到第一页，溢出逻辑会自动处理
-            if (!db.homeLayoutPages[0]) db.homeLayoutPages[0] = [];
-            db.homeLayoutPages[0].push(id);
+            // Utility apps belong at the end, rather than beside HearU on page one.
+            const destination = ['app-mono', 'app-mcp'].includes(id) ? db.homeLayoutPages.length - 1 : 0;
+            if (!db.homeLayoutPages[destination]) db.homeLayoutPages[destination] = [];
+            db.homeLayoutPages[destination].push(id);
             hasNewItems = true;
         }
     });
 
     let pagesChanged = false;
+    if (db.homeAppTailVersion !== 1) {
+        db.homeLayoutPages = moveHomeUtilityAppsToEnd(db.homeLayoutPages);
+        db.homeAppTailVersion = 1;
+        pagesChanged = true;
+    }
     // 先清理空页面
     const originalLength = db.homeLayoutPages.length;
     db.homeLayoutPages = db.homeLayoutPages.filter(page => page.length > 0);
@@ -632,7 +648,7 @@ function setupHomeScreen() {
         pagesChanged = true;
     }
     
-    if (pagesChanged || hasNewItems) saveData();
+    if (pagesChanged || hasNewItems) { db.homeLayoutOrder = db.homeLayoutPages.flat(); saveData(); }
 
     // 生成 HTML
     let swiperHtml = '';
