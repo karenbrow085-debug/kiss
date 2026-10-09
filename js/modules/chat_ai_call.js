@@ -316,7 +316,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
         } else if (db.cotSettings && db.cotSettings.activeCallPresetId) {
             activePresetId = db.cotSettings.activeCallPresetId;
         }
-        const preset = (db.cotPresets || []).find(p => p.id === activePresetId);
+        const preset = resolveCotPresetForCharacter(chat, 'call');
         
         if (preset && preset.items) {
             cotInstruction = preset.items

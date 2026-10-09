@@ -528,7 +528,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
                 } else if (db.cotSettings && db.cotSettings.activePresetId) {
                     activePresetId = db.cotSettings.activePresetId;
                 }
-                const preset = (db.cotPresets || []).find(p => p.id === activePresetId);
+                const preset = resolveCotPresetForCharacter(chat, 'chat');
                 
                 if (preset && preset.items) {
                     cotInstruction = preset.items

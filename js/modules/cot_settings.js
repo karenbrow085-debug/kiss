@@ -421,7 +421,7 @@ function loadCotSettings() {
         for (const mode of ['chat', 'call']) {
             const key = mode === 'call' ? 'activeCallPresetId' : 'activePresetId';
             const id = db.cotSettings[key];
-            if (!db.cotPresets.some(p => p.id === id) || (/^default_/.test(id) && id !== cotDefaultPresetId(db.cotSettings.promptVersion, mode))) {
+            if (!db.cotPresets.some(p => p.id === id) || (!isSharedHhCotPreset(id) && /^default_/.test(id) && id !== cotDefaultPresetId(db.cotSettings.promptVersion, mode))) {
                 db.cotSettings[key] = rememberedCotPresetId(db.cotSettings.promptVersion, mode);
                 repaired = true;
             }
@@ -508,7 +508,7 @@ function renderCotPresetSelect() {
     db.cotPresets.forEach(preset => {
         const option = document.createElement('option');
         option.value = preset.id;
-        option.textContent = preset.name;
+        option.textContent = cotPresetDisplayName(preset);
         select.appendChild(option);
     });
 
@@ -1023,7 +1023,9 @@ async function resetCotPreset() {
     if (!confirm(`确定要将预设“${activePreset.name}”重置为默认思维链吗？\n此操作将覆盖当前所有条目。`)) return;
 
     // 深度复制默认条目
-    if (isHhPromptVersion(db.cotSettings.promptVersion)) {
+    if (isSharedHhCotPreset(activePreset.id)) {
+        activePreset.items = JSON.parse(JSON.stringify(HH_LOKI_PRESETS[activePreset.id].items));
+    } else if (isHhPromptVersion(db.cotSettings.promptVersion)) {
         activePreset.items = hhDefaultCotItems(db.cotSettings.promptVersion, currentCotMode);
     } else if (currentCotMode === 'chat') {
         if (db.cotSettings.promptVersion === 'tt') {

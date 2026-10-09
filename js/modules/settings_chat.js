@@ -436,7 +436,7 @@ function loadSettingsToSidebar() {
             presets.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.name;
-                opt.textContent = p.name;
+                opt.textContent = cotPresetDisplayName(p);
                 exclusiveApiPresetSelect.appendChild(opt);
             });
             
@@ -457,11 +457,11 @@ function loadSettingsToSidebar() {
                 db.cotPresets.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.textContent = p.name;
+                    opt.textContent = cotPresetDisplayName(p);
                     exclusiveCotPresetSelect.appendChild(opt);
                 });
             }
-            exclusiveCotPresetSelect.value = e.exclusiveCotPreset || '';
+            exclusiveCotPresetSelect.value = e.exclusiveCotPreset === 'default_call_hh_offline' ? 'default_hh_offline' : (e.exclusiveCotPreset || '');
         }
 
         // 专属绘图提示词预设
@@ -472,7 +472,7 @@ function loadSettingsToSidebar() {
                 db.workshopPromptPresets.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.textContent = p.name;
+                    opt.textContent = cotPresetDisplayName(p);
                     exclusiveWorkshopPresetSelect.appendChild(opt);
                 });
             }
