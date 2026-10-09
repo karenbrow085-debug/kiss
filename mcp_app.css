@@ -129,3 +129,45 @@
 .mc-picker-send{display:block;width:100%;border:0;background:#57575f;color:#fff!important;font-size:13px!important;padding:14px;border-radius:12px;margin:19px 0 0}
 .mc-picker-sheet p.mc-picker-error{padding:12px 14px;background:#f4eaea;border-radius:11px;color:#8a5d5d;overflow-wrap:anywhere}
 .mc-picker-sheet p.mc-picker-write{color:#8a6d5e}.mc-picker-empty{text-align:center;padding:38px 8px;color:#74747e;font-size:14px}
+
+/* Desktop MCP: quiet monochrome profile and feed. Chat call cards retain their CSS above. */
+#mcp-screen{--mc-bg:#fafafa;--mc-ink:#202024;--mc-muted:#96969c;--mc-line:#ebebee;color-scheme:light;background:#fafafa}
+#mcp-screen .mc-head{background:#fff;border-bottom:1px solid #ededf0;padding:calc(13px + env(safe-area-inset-top,0px)) 17px 13px;gap:15px}
+#mcp-screen .mc-brand{font-size:26px;letter-spacing:-1px;font-weight:650;line-height:1}
+#mcp-screen .mc-brand span{display:block;font-size:8px;color:#a0a0a6;letter-spacing:1.5px;font-weight:400;margin-top:7px}
+#mcp-screen .mc-head>.mc-icon{border-radius:11px;width:35px;height:35px;padding:8px;color:#39393f}
+#mcp-screen .mc-body{padding:0 22px 30px;background:#fafafa}
+#mcp-screen .mc-profile{padding:29px 0 22px;border-bottom:1px solid #e8e8ec;margin-bottom:26px}
+#mcp-screen .mc-profile-top{display:flex;gap:18px;align-items:center}
+#mcp-screen .mc-profile-mark{display:grid;place-items:center;width:67px;height:67px;flex:none;border-radius:50%;background:#242429;color:white;font-size:41px;font-weight:450;letter-spacing:-4px;padding-right:4px}
+#mcp-screen .mc-profile h2{font-size:23px;font-weight:550;letter-spacing:-.9px}
+#mcp-screen .mc-profile p{font-size:11px;color:#98989f;margin:9px 0 0;line-height:1.6}
+#mcp-screen .mc-profile-stats{display:flex;justify-content:space-between;margin:26px 4px 24px;text-align:center}
+#mcp-screen .mc-profile-stats>span{flex:1}#mcp-screen .mc-profile-stats>span+span{border-left:1px solid #e8e8ec}
+#mcp-screen .mc-profile-stats b{display:block;font-size:21px;font-weight:550;line-height:1.25}
+#mcp-screen .mc-profile-stats small{font-size:10px;color:#96969d;margin-top:6px}
+#mcp-screen .mc-profile-actions{display:flex;gap:10px}#mcp-screen .mc-profile-actions button{display:flex;align-items:center;justify-content:center;gap:8px;flex:1;padding:12px 5px;background:#242429;color:#fff;border-radius:9px;font-size:12px}
+#mcp-screen .mc-profile-actions button+button{background:#efeff2;color:#5d5d65}#mcp-screen .mc-profile-actions svg{width:15px;height:15px}
+#mcp-screen .mc-feed-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}#mcp-screen .mc-feed-head h3{font-size:16px;font-weight:550;margin:0}#mcp-screen .mc-feed-head button{font-size:10px;color:#9a9aa1;padding:5px 0}
+#mcp-screen .mc-feed-filters{display:flex;gap:7px;margin:0 0 20px;overflow-x:auto}#mcp-screen .mc-feed-filters button{border:1px solid #e7e7ec;color:#96969d;padding:7px 12px;font-size:10px;white-space:nowrap;border-radius:7px;background:#fff}
+#mcp-screen .mc-feed-filters button[aria-selected=true]{color:#fff;background:#414147;border-color:#414147}
+#mcp-screen .mc-service-list{gap:14px}#mcp-screen .mc-service{border-radius:12px;border:1px solid #e6e6eb;background:#fff}
+#mcp-screen .mc-service-main{padding:19px 17px;gap:13px}#mcp-screen .mc-avatar{border-radius:50%;width:39px;height:39px;background:#f2f2f4;color:#777781}#mcp-screen .mc-avatar svg{width:18px;height:18px}
+#mcp-screen .mc-service-copy b{font-size:14px;font-weight:550}#mcp-screen .mc-service-copy small{font-size:10px;margin-top:4px;color:#a0a0a8}#mcp-screen .mc-service-main>.mc-icon{width:28px;height:28px;color:#898991}
+#mcp-screen .mc-service-bottom{padding:12px 17px;border-top:1px solid #f0f0f3}#mcp-screen .mc-status{font-size:10px;color:#9999a1}#mcp-screen .mc-status.is-connected{color:#686870}#mcp-screen .mc-status.is-connected>span{background:#6d6d75}
+#mcp-screen .mc-connect{font-size:10px;padding:7px 12px;background:#eeeef1;border-radius:6px;color:#52525a}#mcp-screen .mc-disconnect{font-size:10px;color:#9d9da4;padding:7px 3px}
+#mcp-screen .mc-service-error{font-size:10px;line-height:1.75;padding:0 17px 13px}#mcp-screen .mc-notice{font-size:11px;line-height:1.7;color:#65656f;background:#eeeef2;padding:12px;border-radius:9px}
+#mcp-screen .mc-page-heading{margin:27px 0 24px}#mcp-screen .mc-page-heading h2{font-size:23px;font-weight:550}#mcp-screen .mc-page-heading>span{font-size:10px}
+#mcp-screen .mc-tool-card{border-radius:12px;padding:20px;border-color:#e7e7ec}#mcp-screen .mc-tool-card h3{font-size:15px;margin:9px 0}#mcp-screen .mc-tool-card p{font-size:11px;color:#92929b}
+#mcp-screen .mc-eyebrow{font-size:9px;letter-spacing:.5px}#mcp-screen .mc-btn{font-size:11px;border-radius:8px;padding:10px 14px}#mcp-screen .mc-primary{background:#2d2d33;border-color:#2d2d33}
+#mcp-screen .mc-role-card{border-radius:12px;border-color:#e7e7ec}#mcp-screen .mc-role-card summary{padding:19px 16px}#mcp-screen .mc-role-card summary b{font-size:14px}#mcp-screen .mc-role-card summary small{font-size:10px}
+#mcp-screen .mc-role-avatar{width:39px;height:39px}#mcp-screen .mc-role-body{border-color:#f0f0f3}#mcp-screen .mc-setting-row b{font-size:12px}#mcp-screen .mc-setting-row small{font-size:10px}#mcp-screen .mc-switch{background:#d9d9df}#mcp-screen .mc-setting-row input:checked+.mc-switch{background:#45454d}
+#mcp-screen .mc-log-controls,#mcp-screen .mc-timeline,#mcp-screen .mc-settings-list,#mcp-screen .mc-details,#mcp-screen .mc-tutorial-steps,#mcp-screen .mc-faq{border-radius:12px}
+#mcp-screen .mc-log-controls label{font-size:11px}#mcp-screen .mc-log-open{padding:19px 0}#mcp-screen .mc-log-open b{font-size:12px}#mcp-screen .mc-log-open small{font-size:10px}#mcp-screen .mc-log-state{font-size:10px}
+#mcp-screen .mc-log-state.success{color:#6f6f78}#mcp-screen .mc-log-state.failure{color:#986c6c}
+#mcp-screen :is(input:not([type=checkbox]):not([type=radio]),select,textarea){border-radius:9px;border-color:#e7e7ec;font-size:12px;padding:12px;background:#fff}#mcp-screen label{font-size:11px;color:#8e8e98}
+#mcp-screen .mc-description,#mcp-screen .mc-footnote{font-size:11px;color:#9999a2;line-height:1.85}#mcp-screen .mc-empty{padding:42px 10px}#mcp-screen .mc-empty b{font-size:14px;font-weight:500}#mcp-screen .mc-empty p{font-size:11px}
+#mcp-screen .mc-nav{border-top:1px solid #e8e8ed;background:#fff;padding:10px 13px calc(10px + env(safe-area-inset-bottom,0px));gap:0}
+#mcp-screen .mc-nav button{border-radius:0;font-size:10px;color:#b1b1b8;gap:7px;padding:8px 0}#mcp-screen .mc-nav button[aria-current=true]{background:none;color:#28282e}#mcp-screen .mc-nav svg{width:20px;height:20px}
+#mcp-screen .mc-composer{background:#fff;border-color:#e5e5eb;border-radius:20px}#mcp-screen .mc-send{background:#303037;color:#fff;border-radius:14px}#mcp-screen .mc-bubble{border:1px solid #ededf1;background:#fff;font-size:12px}#mcp-screen .mc-user{background:#ebebef;border-color:#ebebef}
+@media(max-width:350px){#mcp-screen .mc-body{padding:0 16px 26px}#mcp-screen .mc-profile h2{font-size:20px}#mcp-screen .mc-profile-mark{width:56px;height:56px;font-size:34px}#mcp-screen .mc-feed-filters{gap:5px}#mcp-screen .mc-feed-filters button{padding:7px 10px}}
