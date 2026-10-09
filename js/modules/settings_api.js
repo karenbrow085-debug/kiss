@@ -61,6 +61,9 @@ function setupApiSettingsApp() {
 
     populateApiSelect();
     setupSecondaryApiSettings();
+    setupChatModelSearch('api-model', 'api-model-search');
+    setupChatModelSearch('secondary-api-model', 'secondary-api-model-search');
+    if (window.KissVoice) window.KissVoice.init();
     n.addEventListener('change', () => {
         r.value = c[n.value] || ''
     });
@@ -166,6 +169,7 @@ function setupApiSettingsApp() {
             return showToast('副 API 站点已被屏蔽，无法保存！');
         }
         db.apiSettings = {
+            ...(db.apiSettings || {}),
             provider: n.value,
             url: r.value,
             key: s.value,
@@ -492,4 +496,53 @@ function importApiPresets() {
         r.readAsText(f);
     };
     inp.click();
+}
+
+
+// Model filtering is local and never triggers another API request.
+function chatModelMatches(value, query) {
+    const normalize = text => String(text).normalize('NFKC').toLowerCase().replace(/[\s._/\-]+/g, '');
+    const text = normalize(value);
+    const tokens = String(query).trim().split(/\s+/).map(normalize).filter(Boolean);
+    return tokens.every(token => {
+        if (text.includes(token)) return true;
+        let at = 0;
+        for (const ch of text) if (ch === token[at]) at++;
+        return at === token.length;
+    });
+}
+function setupChatModelSearch(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    if (!select || document.getElementById(inputId)) return;
+    const item = select.closest('.kkt-item');
+    if (!item) return;
+    const row = document.createElement('div'); row.className = 'kkt-item kv-model-search-row';
+    row.innerHTML = `<label class="kv-chat-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg><input id="${inputId}" type="search" autocomplete="off" placeholder="搜索模型名称…" aria-label="模糊搜索聊天模型"><span class="kv-chat-model-count" aria-live="polite"></span></label>`;
+    item.before(row);
+    const input = row.querySelector('input'), count = row.querySelector('.kv-chat-model-count');
+    let all = [], selected = select.value, observer;
+    const read = () => {
+        all = Array.from(select.options).filter(option => option.value).map(option => ({value:option.value, text:option.textContent}));
+        selected = select.value;
+        filter();
+    };
+    const filter = () => {
+        const matches = all.filter(option => chatModelMatches(option.value + ' ' + option.text, input.value));
+        const active = all.find(option => option.value === selected);
+        observer?.disconnect();
+        select.replaceChildren(...matches.map(option => new Option(option.text, option.value)));
+        if (active && !matches.some(option => option.value === selected)) {
+            const option = new Option(active.text + '（当前）', active.value); option.hidden = true; select.prepend(option);
+        }
+        if (active) select.value = selected;
+        else if (!matches.length) select.append(new Option('没有匹配的模型', ''));
+        count.textContent = all.length ? matches.length + ' / ' + all.length : '—';
+        count.setAttribute('aria-label', `匹配 ${matches.length} 个，共 ${all.length} 个模型`);
+        observer?.observe(select, {childList:true});
+    };
+    observer = new MutationObserver(read);
+    input.addEventListener('input', filter);
+    input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); select.focus(); } });
+    select.addEventListener('change', () => { selected = select.value; });
+    read();
 }
