@@ -64,13 +64,15 @@ function forumParseArray(raw,keys=['posts','comments','messages','data','results
   throw Error('模型返回的数据缺少帖子或评论列表，请重试');
 }
 async function fetch(url,options={}) {
+  const feedScope=options.monoFeedScope;
+  if(feedScope){options={...options};delete options.monoFeedScope;}
   const endBusy=monoGenerationStart('正在生成');
   const controller=options.signal?null:new AbortController(),signal=options.signal||controller.signal;
   const timer=controller?setTimeout(()=>controller.abort(),90000):null;
   let geminiAdapter=false;
   try {
     let body;try{body=typeof options.body==='string'?JSON.parse(options.body):null;}catch{}
-    if(body?.messages||body?.contents){if(!forumSettings.monoPrimaryAccountId){monoAccountsMenu();throw Error('请先在账号管理中选择主号码');}const supplement=monoRuntimeContext();if(monoIsSecondary()&&forumSettings.userIdentity){const secret=forumSettings.userIdentity,redact=text=>{if(typeof text!=='string')return text;for(const label of ['- 身份：','接收者身份：','【用户身份】'])text=text.replace(label+secret,label+'未公开');return text;};if(body.messages)body.messages=body.messages.map(m=>({...m,content:redact(m.content)}));if(body.systemInstruction?.parts)body.systemInstruction.parts=body.systemInstruction.parts.map(p=>({...p,text:redact(p.text)}));}if(body.messages){const firstSystem=body.messages.findIndex(m=>m.role==='system');body.messages=firstSystem>=0?body.messages.map((m,i)=>i===firstSystem?{...m,content:String(m.content||'')+supplement}:m):[{role:'system',content:supplement},...body.messages];}else {body.systemInstruction ||= {parts:[]};body.systemInstruction.parts.push({text:supplement});}options={...options,body:JSON.stringify(body)};}
+    if(body?.messages||body?.contents){if(!forumSettings.monoPrimaryAccountId){monoAccountsMenu();throw Error('请先在账号管理中选择主号码');}const supplement=feedScope?monoFeedRuntimeContext():monoRuntimeContext();if(monoIsSecondary()&&forumSettings.userIdentity){const secret=forumSettings.userIdentity,redact=text=>{if(typeof text!=='string')return text;for(const label of ['- 身份：','接收者身份：','【用户身份】'])text=text.replace(label+secret,label+'未公开');return text;};if(body.messages)body.messages=body.messages.map(m=>({...m,content:redact(m.content)}));if(body.systemInstruction?.parts)body.systemInstruction.parts=body.systemInstruction.parts.map(p=>({...p,text:redact(p.text)}));}if(body.messages){const firstSystem=body.messages.findIndex(m=>m.role==='system');body.messages=firstSystem>=0?body.messages.map((m,i)=>i===firstSystem?{...m,content:String(m.content||'')+supplement}:m):[{role:'system',content:supplement},...body.messages];}else {body.systemInstruction ||= {parts:[]};body.systemInstruction.parts.push({text:supplement});}options={...options,body:JSON.stringify(body)};}
     if(body?.messages&&String(url).includes(':generateContent')) {
       geminiAdapter=true;const system=body.messages.filter(m=>m.role==='system').map(m=>m.content).join('\n');
       const adapted={contents:body.messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:String(m.content||'')}]})),generationConfig:{temperature:body.temperature??0.9}};
@@ -1091,9 +1093,25 @@ function renderForumSettings() {
   `;
 }
 
-// Clear generated posts and NPC conversation content; preserve role conversations.
+// Preserve authored user content, removing generated public material nested in it.
+function monoClearPublicRecord(record) {
+ const out={...record};
+ out.comments=(record.comments||[]).filter(c=>c.authorType==='user').map(monoClearPublicRecord);
+ if(record.originalPost){
+  if(record.originalPost.authorType==='user')out.originalPost=monoClearPublicRecord(record.originalPost);
+  else {out.originalPost=null;out.originalPostId=null;out.originalCommentId=null;out.isRetweet=false;}
+ }
+ for(const key of ['monoRelatedTopics','likedByAuthors','likedBy'])out[key]=[];
+ for(const key of ['monoInvestigationDMSeen','monoSearchBatch','monoSearchBatchAt','monoCommentHeat','monoHeat','monoViewsPlaceholder'])delete out[key];
+ out.likes=0;out.retweets=0;out.views=0;
+ out.monoLikedBy=[];out.liked=false;
+ return out;
+}
+// Clear generated posts, nested public interactions and current-account NPC memory, preserving role chats.
+
 async function clearGeneratedPosts() {
-  if (!confirm('确定清除生成的帖子和当前账号的NPC私信内容？\n你的帖子和置顶帖保留；角色私信、记忆总结及聊天设置全部保留。')) return;
+  if(monoBusy||monoGenerationCount||monoPostsFlight||monoFeatureFlights.size||monoAutoFlight)return showToast('请先等待或暂停当前生成，再清除');
+  if (!confirm('确定清除生成的帖子、评论、转发引用、互动数据，以及当前账号的NPC私信和总结？\n你的原创帖子保留；生成的置顶帖也会清除。角色私信、记忆总结及聊天设置全部保留。')) return;
   await initDirectMessages();
   const isNpc = conv => {
     const id = String(conv.id || '');
@@ -1104,7 +1122,7 @@ async function clearGeneratedPosts() {
   const npcConversations = forumDirectMessages.filter(isNpc);
   for (const conv of npcConversations) forumStopGeneration(conv.id);
   await forumSaveQueue.catch(() => {});
-  forumPosts = forumPosts.filter(p => p.authorType === 'user' || p.isPinned);
+  forumPosts = forumPosts.filter(p => p.authorType === 'user').map(monoClearPublicRecord);
   await localforage.setItem('forumPosts', forumPosts);
   for (const conv of npcConversations) {
     conv.messages = [];
@@ -1116,9 +1134,13 @@ async function clearGeneratedPosts() {
   }
   await forumSaveDMs();
   monoTrendCache = null; monoTrendCacheKey = '';
-  monoOtherInfo = null; monoOtherSeed = [];
+  monoOtherInfo = null; monoOtherSeed = []; currentViewingUser = null;
   if (npcConversations.some(c => c.id === currentDMConversationId) && document.querySelector('.forum-dm-chat')) forumRenderChat(forumGetConv());
-  showToast('生成的帖子和NPC私信已清理，角色私信已保留');
+  monoThreadExpanded.clear(); forumReplyTarget=null; currentForumPostId=null;
+  document.getElementById('forumDetailOverlay')?.classList.remove('active');
+  document.getElementById('monoQuoteList')?.remove();
+  currentHotView='main';
+  showToast('生成的帖子、评论、引用和NPC记忆已清理，角色私信已保留');
   renderForumSettings();
 }
 
@@ -2778,246 +2800,96 @@ async function toggleForumCommentLike(postId, commentId) {
 }
 
 // 生成论坛帖子 (完整版：包含关注页过滤 + 原版强力解析逻辑)
+// Feed generation does not read private conversations, shared-post snapshots or other actors' personas.
+function monoFeedWorldbooks(actors=[]) {
+ const ids=new Set([...(forumSettings.worldbookIds||[]),...actors.filter(a=>a.type==='ai').flatMap(a=>forumCharacter(a.id)?.worldBookIds||[])].map(String));
+ const context=String(forumSettings.worldview||'').toLowerCase(),parts=[];
+ for(const wb of getGlobalWorldbooks()){
+  if(!ids.has(String(wb.id))||wb.enabled===false)continue;
+  if(typeof wb.content==='string'&&wb.content)parts.push('【'+wb.name+'】\n'+wb.content);
+  else for(const e of wb.entries||[]){if(e.enabled===false)continue;if(wb.triggerType==='keyword'&&!String(e.keywords||'').split(/[,，]/).some(k=>k.trim()&&context.includes(k.trim().toLowerCase())))continue;if(e.content)parts.push('【'+(e.title||wb.name)+'】\n'+e.content);}
+ }
+ return parts.join('\n\n');
+}
+function monoFeedRuntimeContext(){
+ const current=monoPublicIdentity(monoSnapshot(),monoActiveAccount);
+ return monoDateContext(new Date(),monoFeedWorldbooks())+'\n【公开账号边界】当前查看账号：'+JSON.stringify({name:current.name,handle:current.handle})+'。不同柄名各自是独立公开账号，不因切换、同昵称或同头像认定同一人。未公开身份、私信和记忆不是发帖素材。只生成指定作者的独立新帖，不替用户发帖。';
+}
+function monoFeedActors(tab){
+ const roles=(forumSettings.aiParticipants||[]).map(p=>{const c=forumCharacter(p.charId);return {key:'ai:'+p.charId,type:'ai',id:String(p.charId),name:p.nickname||c?.remarkName||c?.name||'角色',handle:p.handle||'',avatar:p.avatar||c?.avatar||'',persona:getCharacterFullPersona(p)};});
+ const npcs=(forumSettings.npcs||[]).map(n=>({key:'npc:'+n.id,type:'npc',id:String(n.id),name:n.name,handle:n.handle||'',avatar:n.avatar||'',persona:[n.identity,n.persona].filter(Boolean).join('\n')}));
+ const fixed=roles.concat(npcs),selected=fixed.filter(a=>monoIsFollowed(a)===(tab==='following'));
+ if(tab==='following')for(const a of monoFollowingPeople())if(a.type==='npc'&&!fixed.some(x=>x.key===a.key))selected.push({...a,persona:a.bio||''});
+ return selected;
+}
+function monoPostFingerprint(text){return String(text||'').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'');}
+function monoRepeatedPost(post,existing){
+ const text=monoPostFingerprint(post.monoOriginalContent||post.content);if(!text)return true;
+ return existing.some(p=>{if(p.isRetweet)return false;const old=monoPostFingerprint(p.monoOriginalContent||p.content);if(!old)return false;if(old===text)return true;if(Math.min(text.length,old.length)<20)return false;
+ const grams=t=>new Set(Array.from({length:Math.max(0,t.length-2)},(_,i)=>t.slice(i,i+3))),a=grams(text),b=grams(old);let n=0;for(const g of a)if(b.has(g))n++;
+ return n/Math.min(a.size,b.size)>=0.88&&Math.min(text.length,old.length)/Math.max(text.length,old.length)>=0.75;
+ });
+}
+function monoFeedPrompt(job,tab){
+ const roster=job.actors.map(a=>({authorType:a.type,authorId:a.id,authorName:a.name,handle:a.handle,persona:a.persona||''}));
+ const ownRecent=forumPosts.filter(p=>!p.isRetweet&&job.actors.some(a=>monoMatchesAuthor(p,{...a,type:a.type}))).slice(0,12).map(p=>({authorName:p.authorName,content:String(p.monoOriginalContent||p.content||'').slice(0,100)}));
+ return `你是MONO论坛发帖生成器。生成${job.count}条独立新帖及每帖4至8条自然评论，直接返回标准JSON数组，保留content、authorType、authorId、authorName、handle、likes、retweets、views、comments字段。评论可含replyTo/replyToName，content不加回复前缀。禁止生成user作者或替用户发言。可选imageDescription，只写画面描述，不编图片URL。
+【世界观及论坛格式，优先遵守】
+${forumSettings.worldview||''}
+${monoFeedWorldbooks(job.actors)}
+论坛名称：${forumSettings.forumName||''}
+【本次范围】${tab==='following'?'仅刷新关注账号，不生成推荐路人':tab==='recommend'?'仅刷新推荐内容，不生成已关注账号':'只为指定账号补充主页帖子'}
+【作者本人资料，仅属于本人】${JSON.stringify(roster)}
+${job.random?'可以生成不同的陌生路人NPC，禁止冒用固定角色、用户或已关注账号。路人的帖子按世界观中规定的社区/校园墙格式组织，不能默认全员碎碎念。':'所有帖子作者必须来自上述列表，沿用authorType/authorId/authorName/handle，不增添其他发帖人。'}
+角色的私号口吻和身份只适用于该角色，不能把某一个人的账号定位变成论坛整体风格。固定NPC按自己的身份与世界观发帖；世界观明确规定校园墙、投稿、寻物或其他格式时遵守，不强制改成个人日常。评论也不得凭空知道其他人的私聊或私密设定。
+【避免重复，仅作禁止重写清单，不是要续写的剧情】${JSON.stringify(ownRecent)}
+不要改写这些帖子的同一件事、同一观点或同一开场。先从本人在世界观中可能经历的不同场景选择新事件，再写内容；允许普通独立小事，不要求所有帖子回应用户、互相接龙或延续近期话题。不照抄提示词中的例子，不让所有网友用同一口吻。
+本批次随机标识：${crypto.randomUUID()}（只用于区分请求，不得写进正文）。`;
+}
 async function generateForumPosts(requestedTab) {
-  if (!forumSettings.worldview) {
-    showToast("请先设置世界观");
-    openForumSettings();
-    return;
+ if(!forumSettings.worldview){showToast('请先设置世界观');openForumSettings();return;}
+ const apiConfig=getActiveApiConfig();if(!apiConfig?.url||!apiConfig?.key)return showToast('请先配置API');
+ const tab=['recommend','following'].includes(requestedTab)?requestedTab:currentForumTab,account=monoActiveAccount;
+ const refreshBtn=document.querySelector('.forum-refresh-btn');refreshBtn?.classList.add('spinning');
+ try{
+  const actors=monoFeedActors(tab),roles=actors.filter(a=>a.type==='ai'),npcs=actors.filter(a=>a.type==='npc');
+  const jobs=roles.map(a=>({actors:[a],count:1,random:false}));
+  if(tab==='recommend')jobs.splice(2); // At most two un-followed roles; NPCs keep their separate request.
+  if(npcs.length||tab==='recommend')jobs.unshift({actors:npcs,count:tab==='recommend'?8:Math.min(10,Math.max(1,npcs.length)),random:tab==='recommend'});
+  if(!jobs.length)return showToast('没有可生成动态的关注账号；用户账号的帖子由本人发布');
+  const posts=[];let failures=0;
+  for(const job of jobs){
+   try{
+    const response=await fetch(forumApiEndpoint(apiConfig),{monoFeedScope:true,method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiConfig.key}`},body:JSON.stringify({model:apiConfig.model||'gpt-3.5-turbo',messages:[{role:'system',content:monoFeedPrompt(job,tab)}],temperature:1})});
+    if(!response.ok)throw Error('API请求失败: '+response.status);
+    const data=await response.json();if(data.error)throw Error(data.error.message||'API错误');
+    const rows=forumParseArray(data.choices?.[0]?.message?.content||'',['posts','data','results']);
+    for(const row of rows){
+     if(row.authorType==='user')continue;
+     const auth=resolveAuthorIdentity(row.authorName,row);
+     const actor=job.actors.find(a=>a.type===auth.type&&(String(a.id)===String(auth.id)||a.handle&&monoHandleNorm(a.handle)===monoHandleNorm(row.handle)));
+     if(!actor&&(!job.random||auth.type!=='npc'))continue;
+     if(!actor&&monoPublicPeople().some(a=>a.type!=='npc'&&monoHandleNorm(a.handle)===monoHandleNorm(row.handle)))continue;
+     const resolved=actor?{type:actor.type,id:actor.id,name:actor.name,avatar:actor.avatar}:auth;
+     const record={...row,authorType:resolved.type,authorId:resolved.id,authorName:resolved.name,handle:actor?.handle||row.handle};
+     if(monoIsFollowed(record)!==(tab==='following'))continue;
+     if(monoRepeatedPost(record,[...forumPosts,...posts]))continue;
+     if(actor?.type==='ai'&&posts.some(p=>p.authorType==='ai'&&String(p.authorId)===String(actor.id)))continue;
+     posts.push({...record,monoResolvedAuthor:resolved,monoJob:job});
+     if(posts.filter(p=>p.monoJob===job).length>=job.count)break;
+    }
+   }catch(e){failures++;console.error('[MONO] 独立发帖失败',e);}
   }
-
-  const apiConfig = getActiveApiConfig();
-  if (!apiConfig || !apiConfig.url || !apiConfig.key) {
-    showToast("请先配置API");
-    return;
-  }
-
-  // 刷新按钮开始旋转
-  const refreshBtn = document.querySelector(".forum-refresh-btn");
-  if (refreshBtn) refreshBtn.classList.add("spinning");
-
-  try {
-    const worldbookContent = getForumWorldbookContent(forumSettings.worldview);
-
-    // ============================================================
-    // ★★★ 新增：判断是否在关注页刷新 ★★★
-    // ============================================================
-    const isFollowingTab = ((['recommend','following'].includes(requestedTab)?requestedTab:currentForumTab) === 'following');
-    const followed = forumSettings.followedUsers || [];
-    
-    // 1. 准备 AI 角色列表 (带ID以便过滤)
-    let participants = forumSettings.aiParticipants.map((p) => {
-      const char = characters.find((c) => String(c.id) === String(p.charId));
-      const settings = chatSettings[p.charId] || {};
-      return {
-        id: String(p.charId), // ★ 记下ID用于比对
-        name: p.nickname || settings.charName || char?.name || "角色",
-        handle: p.handle || generateEnglishHandle(p.nickname || char?.name || ''),
-        identity: p.identity || "",
-        fullPersona: getCharacterFullPersona(p),
-      };
-    });
-
-    // 2. 准备 NPC 列表 (带ID以便过滤)
-    let npcs = (forumSettings.npcs || []).map(npc => ({
-      id: String(npc.id), // ★ 记下ID用于比对
-      name: npc.name,
-      handle: npc.handle || generateEnglishHandle(npc.name),
-      identity: npc.identity || "",
-      persona: npc.persona || "",
-    }));
-
-    // 3. ★★★ 如果在关注页，执行过滤逻辑 ★★★
-    if (isFollowingTab) {
-        if (followed.length === 0) {
-            showToast("你还没有关注任何人，无法刷新");
-            if (refreshBtn) refreshBtn.classList.remove("spinning");
-            return;
-        }
-
-        // 只保留已关注的 ID 或 名字
-        participants = participants.filter(p => followed.includes(p.id));
-        npcs = npcs.filter(n => followed.includes(n.id) || followed.includes(n.name));
-        
-        // 如果过滤后没人了
-        if (participants.length === 0 && npcs.length === 0) {
-             showToast("关注的角色列表为空或未找到");
-             if (refreshBtn) refreshBtn.classList.remove("spinning");
-             return;
-        }
-        
-        showToast(`正在获取 ${participants.length + npcs.length} 位关注者的动态...`);
-    }
-
-    // 4. 准备人物关系
-    const relationships = (forumSettings.relationships || []).map(rel => {
-      const person1 = getForumPersonName(rel.person1Type, rel.person1Id);
-      const person2 = getForumPersonName(rel.person2Type, rel.person2Id);
-      return `${person1} 和 ${person2} 的关系：${rel.relationship}${rel.description ? '（' + rel.description + '）' : ''}`;
-    });
-
-    // 5. 构建 System Prompt
-    let systemPrompt = `你是一个论坛内容生成器。请根据以下设定生成论坛帖子。
-
-【世界观】
-${forumSettings.worldview}
-${worldbookContent ? '\n【世界书/详细设定】\n' + worldbookContent : ''}
-
-【论坛名称】
-${forumSettings.forumName}
-
-【用户信息（参考）】
-- 昵称：${forumSettings.userNickname || "用户"}
-- 身份：${forumSettings.userIdentity || "普通成员"}
-`;
-
-    // ★★★ 动态注入指令：区分 关注页 和 推荐页(广场) 的发帖人比例 ★★★
-    if (isFollowingTab) {
-        systemPrompt += `\n【重要指令】当前用户正在查看“关注列表”。
-请**仅生成**以下列出的【AI角色】或【固定NPC】发布的帖子。
-**绝对不要**生成任何陌生路人或未列出角色的帖子。
-`;
-    } else {
-        systemPrompt += `\n【重要指令】当前用户正在查看“广场推荐页”。
-为了模拟一个真实、热闹的公共社区：
-1. **发帖比例约束**：本次生成的 8-10 条帖子中，**必须有 70% 以上的帖子来自【随机路人网友】或【固定NPC】**（即模拟生动、逼真的论坛生态，不要让同一个角色霸屏）。
-2. **AI角色发帖限额**：在单次生成的帖子中，**每个特定的 AI 角色（如“时屿”）最多只能发布 1 条独立帖子**。绝对禁止同一个 AI 角色发布多条帖子，他们属于论坛中的“稀缺嘉宾”。
-`;
-    }
-
-    systemPrompt += `
-【AI角色】
-${participants.length > 0 
-    ? participants.map((p, i) => `${i + 1}. ${p.name}（@${p.handle}）\n${p.fullPersona || p.identity || '未设置人设'}`).join("\n\n")
-    : "无"
-}`;
-
-    if (npcs.length > 0) {
-      systemPrompt += `\n\n【固定NPC】\n${npcs.map((n, i) => `${i + 1}. ${n.name}（@${n.handle}）`).join("\n")}`;
-    }
-
-    // ★★★ 推荐页注入随机发帖网民描述，大模型可由此作为素材发帖 ★★★
-    if (!isFollowingTab) {
-      systemPrompt += `\n\n【随机路人网友（无需固定，供发帖自由发挥）】
-请扮演 10 个以上不同的、具有各种网络生活气息昵称的普通网友（例如：“酸汤肥牛”、“夜航船”、“别整天做梦了”、“椰椰椰椰子”、“咸鱼突刺”等，禁止直接提取昵称），让他们用不同的口吻发布吐槽、分享、求助等日常帖子。`;
-    }
-
-    if (relationships.length > 0) {
-      systemPrompt += `\n\n【人物关系】\n${relationships.join("\n")}`;
-    }
-
-    const userPrompt = `请生成8-10条论坛帖子数据，直接返回JSON数组。
-    
-【重要格式要求】：
-1. 必须是标准的JSON格式，不要有Markdown标记。
-2. 帖子内容(content)中如果包含双引号 "，必须转义为 \\" 。建议在内容中尽量使用单引号 ' 代替双引号。
-3. 确保JSON结构完整，不要被截断。
-4. **关键要求：每条帖子必须包含 4 到 8 条精彩评论！让评论区看起来热闹一点！**
-5. **回复格式规范（极其重要）：**
-   - 评论内容（content字段）必须纯净！**绝对不要**在 content 中包含“回复@xxx：”或“回复 xxx”等前缀。
-   - 如果有回复关系，请使用 \`replyToName\` 字段记录被回复者的**【中文昵称】**（绝对不要写英文handle，例如写“小明”而不是“tiny_time381”）。
-   - 绝对不要生成任何回复用户（楼主/我）的评论，因为用户还没有在该贴发表过任何评论。
-6. **发帖作者分配（推荐页核心）：**
-   - 如果是在推荐页（广场），生成的帖子中，AI角色发帖的数量**不得超过2个**（且不能是同一个AI角色）。
-   - 剩下的 6-8 个帖子必须全部分配给【固定NPC】或【随机路人网友】（分配给随机路人时，"authorType" 设为 "npc"，"authorName" 设为随机路人昵称，"handle" 设为英文用户名）。
-
-格式模板：
-[
-  {
-    "authorType": "ai", // 或 "npc"（固定NPC或随机路人均使用 "npc"），绝对不要生成 "user"
-    "authorName": "角色名或路人昵称",
-    "handle": "Handle名",
-    "content": "内容中尽量用单引号。",
-    "likes": 12,
-    "retweets": 5,
-    "views": 1024,
-    "comments": [
-      {
-        "authorType": "npc",
-        "authorName": "路人A",
-        "content": "评论内容",
-        "likes": 2,
-        "replyTo": null,
-        "replyToName": null
-      },
-      {
-        "authorType": "ai",
-        "authorName": "角色名",
-        "content": "回复另一条评论的内容（不含任何回复前缀）",
-        "likes": 1,
-        "replyTo": 1, // 指向被回复的评论在当前comments数组中的序号(从1开始)
-        "replyToName": "路人A" // 被回复者的【中文昵称】
-      }
-    ]
-  }
-]`;
-    
-    // 发送请求
-    const response = await fetch(forumApiEndpoint(apiConfig), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiConfig.key}`,
-      },
-      body: JSON.stringify({
-        model: apiConfig.model || "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: systemPrompt + monoForumVoiceContext() },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.9,
-      }),
-    });
-
-    // 1. 基础 HTTP 状态检查
-    if (!response.ok) {
-       throw new Error(`API请求失败: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (
-        (data.usage && data.usage.completion_tokens === 0) || 
-        (data.choices && data.choices.length > 0 && data.choices[0].finish_reason === "content_filter")
-    ) {
-        throw new Error("生成失败：内容被AI模型拦截或为空，请修改提示词后重试。");
-    }
-
-    // 3. 拦截 API 结构性错误 (如欠费导致没有 choices)
-    if (!data.choices || data.choices.length === 0) {
-        if (data.error && data.error.message) {
-            // 截取过长的错误信息
-            const cleanError = data.error.message.length > 50 ? data.error.message.slice(0, 50) + "..." : data.error.message;
-            throw new Error(`API报错: ${cleanError}`);
-        }
-        throw new Error("生成失败：API返回数据异常，请检查Key或模型设置。");
-    }
-
-    let content = data.choices[0]?.message?.content || "";
-    if(content.length>250000)throw new Error("返回内容过长，请减少生成数量后重试");
-
-    // 1. 基础清洗
-    content = forumCleanStructured(content);
-
-    // 2. 尝试标准解析 (保留了你原版的强力容错逻辑)
-    let posts = [];
-    try {
-      let cleanContent = content;
-      if (cleanContent.endsWith(',]')) cleanContent = cleanContent.replace(',]', ']');
-      if (cleanContent.endsWith(',\n]')) cleanContent = cleanContent.replace(',\n]', '\n]');
-      posts = forumParseArray(cleanContent,['posts','data','results']);
-    } catch (parseError) { throw parseError; }
-
-    // 获取当前用户昵称用于过滤
-    const myName = forumSettings.userNickname || "用户";
-
-    // 3. 数据处理与合并 (保留用户帖子逻辑)
-    const newPosts = posts
+  if(account!==monoActiveAccount)return;
+    const myName=forumSettings.userNickname||"用户";
+    const candidates = posts
             .filter(p => {
                 if (p.authorType === 'user') return false;
                 if (p.authorName === myName && !['ai','npc'].includes(p.authorType)) return false;
                 return true;
             })
             .map((p, idx) => {
-                const auth = resolveAuthorIdentity(p.authorName,p);
+                const auth = p.monoResolvedAuthor || resolveAuthorIdentity(p.authorName,p);
                 
                 const tempPost = {
                   id: Math.floor(Date.now() + idx * 1000 + Math.random() * 100),
@@ -3043,35 +2915,13 @@ ${participants.length > 0
                 return tempPost;
             });
 
-    // 保留用户自己的帖子
-    const keepPosts = forumPosts.filter(p => p.authorType === 'user' || p.isPinned);
-    
-    // 合并逻辑 (使用 Map 去重)
-    const postMap = new Map();
-    // 新帖子优先
-    newPosts.forEach(p => postMap.set(p.id, p));
-    // 旧帖子追加 (如果ID不冲突)
-    forumPosts.forEach(p => {
-        if (!postMap.has(p.id)) postMap.set(p.id, p);
-    });
-    
-    forumPosts = Array.from(postMap.values());
-    forumPosts.sort((a, b) => b.timestamp - a.timestamp);
+    const newPosts = candidates;
 
-    await localforage.setItem("forumPosts", forumPosts);
-    showToast(`刷新成功`);
-    if (!monoAutoUpdating) renderForumFeed();
-
-  } catch (e) {
-    console.error("[论坛] 生成失败:", e);
-    if (e.message.includes("JSON")) {
-       showToast("生成数据不完整，请重试；如反复出现，请检查模型的输出长度限制");
-    } else {
-       showToast("生成失败: " + e.message);
-    }
-  } finally {
-    if (refreshBtn) refreshBtn.classList.remove("spinning");
-  }
+    forumPosts=[...newPosts,...forumPosts].sort((a,b)=>b.timestamp-a.timestamp);
+    await localforage.setItem('forumPosts',forumPosts);
+    showToast(newPosts.length?`已刷新${tab==='following'?'关注':'推荐'}：${newPosts.length}条新帖${failures?'，部分作者生成失败':''}`:failures?'生成失败，请检查API设置':'本次未生成新的合格帖子，重复内容已过滤');
+    if(!monoAutoUpdating)renderForumFeed();
+ }catch(e){showToast('生成失败: '+e.message);}finally{refreshBtn?.classList.remove('spinning');}
 }
 // 生成评论回复
 async function generateForumCommentReply(postId, userComment) {
@@ -5150,12 +5000,13 @@ async function generateUserProfilePosts(userInfo) {
   showToast(`正在生成 ${userInfo.name} 的论坛...`);
   
   // 1. 获取完整人设（这是之前缺失的关键）
-  const persona = userInfo.fullPersona || userInfo.identity || '普通用户';
+  const fixedNpc=(forumSettings.npcs||[]).find(n=>String(n.id)===String(userInfo.id));
+  const persona = userInfo.type==='ai'?(userInfo.fullPersona||userInfo.identity||'普通用户'):[fixedNpc?.identity,fixedNpc?.persona,userInfo.identity,userInfo.bio].filter(Boolean).join('\n')||'普通网友';
   const bioInfo = userInfo.bio || '';
   
   // 2. 获取世界书内容，增加上下文
   const contextText = `${forumSettings.worldview}\n${userInfo.name}\n${persona}`;
-  const worldbookContent = getForumWorldbookContent(contextText);
+  const worldbookContent = monoFeedWorldbooks([{type:userInfo.type,id:userInfo.id}]);
   
   try {
     // ★★★ 核心修复：完全重写提示词，强调角色扮演 ★★★
@@ -5179,7 +5030,7 @@ ${worldbookContent ? '\n【相关设定/世界书】\n' + worldbookContent : ''}
    - 如果角色是反派，内容应该体现其野心或阴暗面。
 2. 内容要围绕角色的生活、兴趣、烦恼或对世界观中事件的看法。
 3. 也就是“这个角色在这个世界里会发什么朋友圈/推特”。
-4. 第一条帖子建议是置顶帖（如自我介绍、重要声明或置顶的日常）。
+4. 不重复生成自我介绍或同一置顶声明。论坛规定校园墙等发布格式时，优先按世界观与此账号自己的身份组织内容。
 5. 禁止使用 [表情] 这种格式，请直接使用 emoji (如 😊, 💢, ❤️)。
 6. 返回纯 JSON 数组格式。
 
@@ -5187,7 +5038,7 @@ JSON 格式模板：
 [
   {
     "content": "帖子具体内容...",
-    "isPinned": true/false (第一条设为true，其他false),
+    "isPinned": true/false (仅确有必要时true，不要每次置顶),
     "likes": 随机整数(根据角色人气),
     "retweets": 随机整数,
     "views": 随机整数
@@ -5197,6 +5048,7 @@ JSON 格式模板：
 请只返回 JSON，不要包含 Markdown 代码块标记或其他文字。`;
 
     const response = await fetch(forumApiEndpoint(apiConfig), {
+      monoFeedScope:true,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -5204,7 +5056,7 @@ JSON 格式模板：
       },
       body: JSON.stringify({
         model: apiConfig.model || "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt + monoForumVoiceContext(userInfo) }],
+        messages: [{ role: "user", content: prompt + monoFeedPrompt({actors:[{...userInfo,persona}],count:5,random:false},'profile') }],
         temperature: 0.9, // 稍微降低温度，防止太发散
         max_tokens: parseInt(document.getElementById('apiMaxTokens')?.value) || 2048,
       }),
@@ -5223,6 +5075,7 @@ JSON 格式模板：
     if (jsonMatch) {
       const newPosts = forumParseArray(content,['posts','data','results']);
       
+      let addedCount=0;
       newPosts.forEach((postData, idx) => {
         const newPost = {
           id: Date.now() + idx,
@@ -5244,7 +5097,7 @@ JSON 格式模板：
           isProfileGenerated: true, // 标记为主页生成的帖子
         };
         
-        forumPosts.unshift(newPost);
+        if(!monoRepeatedPost(newPost,forumPosts)){forumPosts.unshift(newPost);addedCount++;}
       });
 
       await localforage.setItem("forumPosts", forumPosts);
@@ -5255,7 +5108,7 @@ JSON 格式模板：
       );
       if (!userInfo.monoBackground) renderOtherUserProfile(userInfo, userPosts, false);
       
-      showToast(`已生成 ${newPosts.length} 条动态`);
+      showToast(addedCount?`已生成 ${addedCount} 条新动态`:'本次内容重复，未添加新动态');
     }
   } catch (e) {
     console.error("[论坛] 生成用户帖子失败:", e);
@@ -7143,7 +6996,7 @@ function monoIdentityManager(){const sheet=forumSheet('我的身份方案',`<p c
  sheet.querySelector('[data-new]').onclick=()=>monoForm('保存身份方案','',async name=>{const p=monoIdentityPresets.find(p=>p.name===name);if(p&&!confirm('同名方案已存在，是否覆盖？'))return;if(p)p.identity=monoSnapshot();else monoIdentityPresets.push({name,identity:monoSnapshot()});await store();showToast('身份方案已保存');});
  for(const action of ['use','overwrite','remove'])sheet.querySelectorAll('[data-'+action+']').forEach(b=>b.onclick=async()=>{const i=Number(b.dataset[action]),p=monoIdentityPresets[i];if(action==='use'){Object.assign(forumSettings,structuredClone(p.identity));await monoStoreAccount();sheet.remove();renderForumSettings();renderForumProfile();}else{if(!confirm(action==='remove'?'删除这个身份方案？':'覆盖这个身份方案？'))return;if(action==='remove')monoIdentityPresets.splice(i,1);else p.identity=monoSnapshot();await store();monoIdentityManager();}});
 }
-function monoRefreshMenu(){const sheet=forumSheet('刷新内容','<button class="forum-sheet-row" data-refresh="home">刷新首页推荐与关注</button><button class="forum-sheet-row" data-refresh="hot">刷新趋势内容</button>');sheet.querySelectorAll('[data-refresh]').forEach(b=>b.onclick=async()=>{if(monoBusy)return;sheet.remove();await monoRun(async()=>{await generateForumPosts();if(b.dataset.refresh==='hot')switchForumSection('hot');else renderForumFeed();});});}
+function monoRefreshMenu(){const sheet=forumSheet('刷新内容','<button class="forum-sheet-row" data-refresh="home">刷新当前首页栏目</button><button class="forum-sheet-row" data-refresh="hot">刷新趋势内容</button>');sheet.querySelectorAll('[data-refresh]').forEach(b=>b.onclick=async()=>{if(monoBusy)return;sheet.remove();await monoRun(async()=>{await generateForumPosts(b.dataset.refresh==='hot'?'recommend':currentForumTab);if(b.dataset.refresh==='hot')switchForumSection('hot');else renderForumFeed();});});}
 async function monoRun(fn){monoBusy++;try{return await fn();}finally{monoBusy--;}}
 function monoProfileMenu(){const sheet=forumSheet('主页设置','<button class="forum-sheet-row" data-action="edit">编辑个人资料</button><button class="forum-sheet-row" data-action="identity">我的身份方案</button><button class="forum-sheet-row" data-action="accounts">切换账号</button><button class="forum-sheet-row" data-action="share">分享主页给联系人</button>');forumBindSheet(sheet,async a=>{sheet.remove();if(a==='edit')openProfileEditor();if(a==='identity')monoIdentityManager();if(a==='accounts')monoAccountsMenu();if(a==='share')forumShareProfile();});}
 renderForumWorldbookBindings=function(){const books=getGlobalWorldbooks(),ids=forumSettings.worldbookIds || [];return ids.map(id=>{const wb=books.find(w=>String(w.id)===String(id));return `<div class="mono-bound-book"><span>${escapeForumHtml(wb?.name || '未找到的世界书')}</span><button data-wb="${escapeForumHtml(String(id))}" onclick="ForumApp.removeForumWorldbook(this.dataset.wb)">移除</button></div>`;}).join('')||'<p class="mono-note">尚未绑定。角色自己的世界书会自动读取。</p>';};
@@ -7168,7 +7021,7 @@ renderForumHot=function(){currentHotView='main';const feed=document.getElementBy
  feed.innerHTML=`<div class="mono-trends"><div class="forum-hot-search"><div class="forum-hot-search-box">${forumIcon('search')}<input id="forumHotSearchInput" placeholder="搜索 MONO" onkeydown="ForumApp.handleHotSearchKeydown(event)"></div></div><nav class="mono-trend-tabs">${[['for-you','为你推荐'],['trending','当前趋势'],['posts','热门帖子']].map(([id,label])=>`<button class="${monoTrendTab===id?'active':''}" data-trend="${id}">${label}</button>`).join('')}</nav>${monoTrendTab==='posts'?posts.map(renderForumPostItem).join('')||'<p class="mono-note">暂无热门帖子</p>':list.map((t,i)=>`<button class="mono-trend-item" data-topic="${escapeForumHtml(t.tag)}"><small>${i+1} · ${escapeForumHtml(t.category || '当前趋势')}</small><strong>${escapeForumHtml(t.tag.startsWith('#')?t.tag:'#'+t.tag)}</strong>${t.count?`<span>${escapeForumHtml(String(t.count))} 条帖子</span>`:''}</button>`).join('')||'<p class="mono-note">设置世界观后，在右上角刷新趋势。</p>'}</div>`;
  feed.querySelectorAll('[data-trend]').forEach(b=>b.onclick=()=>{monoTrendTab=b.dataset.trend;renderForumHot();});feed.querySelectorAll('[data-topic]').forEach(b=>b.onclick=()=>monoRun(()=>searchForumTopic(b.dataset.topic)));
 };
-function monoHotMenu(){const sheet=forumSheet('趋势设置','<button class="forum-sheet-row" data-refresh>刷新趋势</button><button class="forum-sheet-row" data-world>世界观与论坛设置</button>');sheet.querySelector('[data-refresh]').onclick=async()=>{sheet.remove();await monoRun(async()=>{await generateForumPosts();renderForumHot();});};sheet.querySelector('[data-world]').onclick=()=>{sheet.remove();openForumSettings();};}
+function monoHotMenu(){const sheet=forumSheet('趋势设置','<button class="forum-sheet-row" data-refresh>刷新趋势</button><button class="forum-sheet-row" data-world>世界观与论坛设置</button>');sheet.querySelector('[data-refresh]').onclick=async()=>{sheet.remove();await monoRun(async()=>{await generateForumPosts('recommend');renderForumHot();});};sheet.querySelector('[data-world]').onclick=()=>{sheet.remove();openForumSettings();};}
 const monoOldFeed=renderForumFeed;renderForumFeed=function(){monoOldFeed();const tabs=document.querySelector('.forum-tabs');if(tabs){tabs.dataset.view='home';const settings=tabs.querySelector('.forum-settings-btn');settings?.setAttribute('onclick','ForumApp.openForumSettings()');}};
 const monoOldProfile=renderForumProfile;renderForumProfile=function(tab){monoOldProfile(tab);};
 for(const name of ['generateNewDirectMessages','submitForumPost','submitForumComment','generateForumPosts']){const fn={generateNewDirectMessages,submitForumPost,submitForumComment,generateForumPosts}[name];const wrapped=async(...args)=>monoRun(()=>fn(...args));if(name==='generateNewDirectMessages')generateNewDirectMessages=wrapped;if(name==='submitForumPost')submitForumPost=wrapped;if(name==='submitForumComment')submitForumComment=wrapped;if(name==='generateForumPosts')generateForumPosts=wrapped;}
@@ -7585,7 +7438,7 @@ ForumApp.monoRefreshNpcImageCovers=monoRefreshNpcImageCovers;
 function monoSettingsGroup(title,nodes){const section=document.createElement('section');section.className='mono-settings-group';const h=document.createElement('h3');h.textContent=title;section.append(h);nodes.filter(Boolean).forEach(n=>section.append(n));return section;}
 const monoV810Settings=renderForumSettings;
 renderForumSettings=function(...args){monoV810Settings(...args);if(monoContactOpen)return;const root=document.getElementById('forumSettingsContent');if(!root)return;root.classList.add('mono-settings-organized');root.querySelector('.mono-settings-intro')?.remove();const preset=root.querySelector('#forumPresetAccordion')?.closest('.forum-section'),world=root.querySelector('#forumWorldviewInput')?.closest('.forum-section'),identity=root.querySelector('.mono-identity-section'),auto=root.querySelector('.mono-auto-feed-section'),images=root.querySelector('.mono-image-settings'),refresh=root.querySelector('.mono-refresh-choice'),clear=root.querySelector('.forum-clear-generated');if(world){world.querySelector('.forum-section-title').textContent='世界观';const tools=document.createElement('div');tools.className='mono-world-import';tools.innerHTML='<button type="button" class="forum-sheet-row" data-import-world><span>从文件导入世界观</span><small>TXT / DOCX ›</small></button><input type="file" data-world-file accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><p class="mono-note">文件名作为MONO名称，正文作为世界观，自动保存为新方案并启用。</p>';world.querySelector('.forum-card').before(tools);const file=tools.querySelector('input'),button=tools.querySelector('button');button.onclick=()=>file.click();file.onchange=async()=>{if(!file.files[0])return;button.disabled=true;button.querySelector('span').textContent='正在导入…';try{await monoImportWorldFile(file.files[0]);showToast('世界观已导入并保存为新方案');}catch(e){showToast(e.message);}finally{file.value='';button.disabled=false;button.querySelector('span').textContent='从文件导入世界观';}};}
-if(preset){const heading=preset.querySelector('.mono-section-heading>span');if(heading)heading.textContent='已保存方案';}if(identity){const title=identity.querySelector('.forum-section-title');if(title&&title.firstChild?.nodeType===3)title.firstChild.textContent='身份资料 ';}const existing=[...root.children];root.replaceChildren();root.append(monoSettingsGroup('世界观与方案',[preset,world]),monoSettingsGroup('我的身份',[identity]),monoSettingsGroup('内容更新',[refresh,auto]),monoSettingsGroup('帖子配图',[images]));if(clear){clear.textContent='清除生成的帖子与NPC私信';clear.classList.add('mono-danger-row');root.append(monoSettingsGroup('数据管理',[clear]));}existing.filter(n=>![preset,world,identity,auto,images,refresh].includes(n)&&!n.contains(clear)&&n.children.length).forEach(n=>root.append(n));};
+if(preset){const heading=preset.querySelector('.mono-section-heading>span');if(heading)heading.textContent='已保存方案';}if(identity){const title=identity.querySelector('.forum-section-title');if(title&&title.firstChild?.nodeType===3)title.firstChild.textContent='身份资料 ';}const existing=[...root.children];root.replaceChildren();root.append(monoSettingsGroup('世界观与方案',[preset,world]),monoSettingsGroup('我的身份',[identity]),monoSettingsGroup('内容更新',[refresh,auto]),monoSettingsGroup('帖子配图',[images]));if(clear){clear.textContent='清除生成内容与NPC记忆';clear.classList.add('mono-danger-row');root.append(monoSettingsGroup('数据管理',[clear]));}existing.filter(n=>![preset,world,identity,auto,images,refresh].includes(n)&&!n.contains(clear)&&n.children.length).forEach(n=>root.append(n));};
 const monoV810ChatSettings=forumOpenChatSettings;
 forumOpenChatSettings=function(...args){monoV810ChatSettings(...args);const sh=document.getElementById('forumAuxSheet'),main=sh?.querySelector('main');if(!main)return;main.classList.add('mono-chat-settings-organized');const take=s=>main.querySelector(s),row=s=>take(s)?.closest('label');const person=take('.forum-settings-person'),reply=take('.mono-reply-frequency'),auto=take('.mono-auto-role-section');const groups=[monoSettingsGroup('对话与输入',[take('.forum-sheet-pair'),row('#monoStickerSuggest'),take('[data-action="errors"]')]),monoSettingsGroup('记忆与上下文',[row('#monoRead404'),row('#forumContextLimit'),take('[data-action="summary"]'),take('[data-action="summaries"]')]),monoSettingsGroup('帖子互动',[reply,auto]),monoSettingsGroup('外观',[take('[data-action="background"]'),take('[data-remove-background]')]),monoSettingsGroup('记录管理',[take('[data-select-messages]'),take('[data-action="export"]')?.closest('.forum-sheet-pair'),take('[data-action="clear"]')])];main.replaceChildren();if(person)main.append(person);groups.filter(g=>g.children.length>1).forEach(g=>main.append(g));main.querySelector('[data-action="clear"]')?.classList.add('mono-danger-row');};
 function monoReadDocumentBytes(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('文件读取失败'));r.readAsArrayBuffer(file);});}
@@ -7607,7 +7460,7 @@ if(world){world.querySelector('.forum-section-title')?.remove();const name=world
 if(identity){identity.querySelectorAll('.forum-label').forEach((n,i)=>n.textContent=i?'身份描述':'昵称');const title=identity.querySelector('.forum-section-title'),scheme=title?.querySelector('button');title?.remove();if(scheme){scheme.textContent='管理身份方案';scheme.className='forum-sheet-row';identity.append(scheme);}identity.querySelector('.mono-save-identity')?.remove();const save=document.createElement('button');save.className='forum-sheet-row';save.textContent='保存当前身份';save.onclick=monoSaveIdentity;identity.append(save);}
 if(auto){auto.querySelector('.forum-section-title')?.remove();const enable=auto.querySelector('[data-auto-feed-enabled]')?.closest('label')?.querySelector('span');if(enable)enable.textContent='启用自动更新';auto.querySelectorAll('.mono-note').forEach((n,i)=>{if(i)n.remove();else n.textContent='网页运行时执行，恢复后最多补一次。';});}
 if(images){images.querySelector('.forum-section-title')?.remove();images.querySelectorAll('.mono-note').forEach((n,i)=>{if(i)n.remove();else n.textContent='仅处理新帖；失败保留文字图。';});const read=images.querySelector('[data-image-read]')?.closest('label')?.querySelector('span');if(read)read.innerHTML='使用404绘图工坊<small>沿用当前API、模型与提示词</small>';const probability=images.querySelector('[data-image-percent]')?.closest('label')?.querySelector('span');if(probability)probability.innerHTML='真实配图概率<small>针对有图片描述的新帖子</small>';}
-root.replaceChildren(monoRefreshButtons(),worldBlock);root.append(monoCleanPanel('我的身份',forumSettings.userNickname||'未设置',[identity],'identity'));const feed=monoAutoFeedOptions();root.append(monoCleanPanel('自动更新',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭',[auto],'auto'));const opts=monoImageOptions();root.append(monoCleanPanel('帖子配图',opts.read404&&opts.enabled?'真实生图 '+opts.percent+'%':'文字图',[images],'images'));if(clear){clear.textContent='清除生成的帖子与NPC私信';root.append(monoCleanPanel('数据管理','',[clear],'data'));}root.onchange=()=>{const feed=monoAutoFeedOptions(),img=monoImageOptions();const update=(key,value)=>{const span=root.querySelector('[data-panel="'+key+'"]>summary>span');if(span)span.textContent=value;};update('auto',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭');update('images',img.read404&&img.enabled?'真实生图 '+img.percent+'%':'文字图');update('identity',forumSettings.userNickname||'未设置');};};
+root.replaceChildren(monoRefreshButtons(),worldBlock);root.append(monoCleanPanel('我的身份',forumSettings.userNickname||'未设置',[identity],'identity'));const feed=monoAutoFeedOptions();root.append(monoCleanPanel('自动更新',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭',[auto],'auto'));const opts=monoImageOptions();root.append(monoCleanPanel('帖子配图',opts.read404&&opts.enabled?'真实生图 '+opts.percent+'%':'文字图',[images],'images'));if(clear){clear.textContent='清除生成内容与NPC记忆';root.append(monoCleanPanel('数据管理','',[clear],'data'));}root.onchange=()=>{const feed=monoAutoFeedOptions(),img=monoImageOptions();const update=(key,value)=>{const span=root.querySelector('[data-panel="'+key+'"]>summary>span');if(span)span.textContent=value;};update('auto',feed.enabled?'每 '+monoInterval(feed.minutes)+' 分钟':'关闭');update('images',img.read404&&img.enabled?'真实生图 '+img.percent+'%':'文字图');update('identity',forumSettings.userNickname||'未设置');};};
 Object.assign(ForumApp,{renderForumSettings,monoRefreshMenu,monoRefreshHomeTab});
 
 
@@ -7759,8 +7612,8 @@ monoProfileMenu=function(){const sh=forumSheet('主页设置','<button class="fo
 async function monoSetPrimaryAccount(id){if(!monoAccounts.some(a=>a.id===id))return;const old=forumSettings.monoPrimaryAccountId;if(old===id)return;if(monoBusy||monoGenerationCount||forumDMTasks.size||monoFeatureFlights.size||monoAutoFlight)return showToast('请先等待或暂停当前生成');if(old&&!confirm('更换主号码会清空生成帖子、评论、话题和NPC私信；你的原创帖子及所有角色私信保留。'))return;await monoStoreAccount();await forumSaveQueue;if(monoHandleRegistrySave)await monoHandleRegistrySave;const changes=[];if(old){for(const a of monoAccounts){const key=a.id==='main'?'forumDirectMessages':'monoDirectMessages:'+a.id;const value=a.id===monoActiveAccount?structuredClone(forumDirectMessages):await localforage.getItem(key)||[];changes.push({key,old:value,value:value.filter(c=>c.id?.startsWith('ai_'))});}const kept=forumPosts.filter(p=>p.authorType==='user'&&!p.isRetweet).map(p=>({...p,comments:(p.comments||[]).filter(c=>c.authorType==='user').map(c=>({...c,likes:0,views:0,retweets:0})),monoRelatedTopics:[],likes:0,views:0,retweets:0}));changes.push({key:'forumPosts',old:structuredClone(forumPosts),value:kept});}try{for(const c of changes)await localforage.setItem(c.key,c.value);forumSettings.monoPrimaryAccountId=id;await localforage.setItem('forumSettings',forumSettings);}catch(e){forumSettings.monoPrimaryAccountId=old;for(const c of changes)await localforage.setItem(c.key,c.old);return showToast('主号码未更换：'+e.message);}if(old){forumPosts=changes.find(c=>c.key==='forumPosts').value;forumDirectMessages=changes.find(c=>c.key===monoDMKey()).value;monoTrendCache=null;monoTrendCacheKey='';monoOtherInfo=null;monoOtherSeed=[];currentViewingUser=null;monoThreadExpanded.clear();forumDrafts.clear();currentDMConversationId=null;document.getElementById('forumDetailOverlay')?.classList.remove('active');document.querySelector('.forum-dm-chat')?.remove();}monoAccountsMenu();monoRefreshPostViews();showToast(old?'主号码已更换，生成内容已清空':'主号码已设置');}
 monoAccountsMenu=function(){const selected=forumSettings.monoPrimaryAccountId,sh=forumSheet('账号管理',`<p class="mono-account-caption">当前账号与主号码独立选择</p><div class="mono-account-list">${monoAccounts.map(a=>{const p=monoPublicIdentity(a.id===monoActiveAccount?monoSnapshot():a.identity,a.id);return `<div class="mono-account-row"><button data-account="${escapeForumHtml(a.id)}"><img src="${escapeForumHtml(forumSafeImage(p.avatar)||getDefaultAvatarDataUrl())}" alt=""><span><strong>${escapeForumHtml(p.name)}</strong><small>@${escapeForumHtml(p.handle)}</small></span>${a.id===monoActiveAccount?'<em>当前</em>':''}</button><button data-primary="${escapeForumHtml(a.id)}" class="${selected===a.id?'selected':''}">${selected===a.id?'主号码':'设为主号'}</button></div>`;}).join('')}</div>${!selected?'<p class="mono-note">生成前，请先选择一个主号码。</p>':''}<button class="forum-sheet-primary" data-add-account>添加账号</button>`);sh.querySelectorAll('[data-account]').forEach(b=>b.onclick=()=>monoSwitchAccount(b.dataset.account));sh.querySelectorAll('[data-primary]').forEach(b=>b.onclick=()=>monoSetPrimaryAccount(b.dataset.primary));sh.querySelector('[data-add-account]').onclick=monoNewAccount;};
 const mono14Switch=monoSwitchAccount;monoSwitchAccount=async function(id){const contacts=!!document.querySelector('.forum-dm-page');await mono14Switch(id);if(!contacts){closeDirectMessages();renderForumProfile();}};
-function monoDateContext(now=new Date()){const zone=forumSettings.monoTimeZone||Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Shanghai';const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',weekday:'long',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));const today=Date.UTC(+parts.year,+parts.month-1,+parts.day),text=(forumSettings.worldview||'')+'\n'+getForumWorldbookContent(parts.month+'月'+parts.day+'日'),near=[];for(const line of text.split(/\n/)){const matches=[...line.matchAll(/(?:(\d{4})[年\-/])?(\d{1,2})[月\-/](\d{1,2})(?:日|号)?/g)];for(const m of matches){const y=m[1]?+m[1]:+parts.year,mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>31)continue;let delta=(Date.UTC(y,mo-1,d)-today)/86400000;if(!m[1]){const ds=[y-1,y,y+1].map(yr=>(Date.UTC(yr,mo-1,d)-today)/86400000);delta=ds.sort((a,b)=>Math.abs(a)-Math.abs(b))[0];}if(Math.abs(delta)<=3)near.push({date:m[0],daysFromToday:delta,event:line.trim().slice(0,700)});}}return '\n[MONO真实时间·本次请求读取]\n现在是 '+parts.year+'年'+parts.month+'月'+parts.day+'日 '+parts.hour+':'+parts.minute+' '+parts.weekday+'；时区 '+zone+'。相对日期按这个时间判断，不把历史帖子当作今天，不自动替世界观改年份。世界观明确使用虚构年历时保留其设定，不把虚构事件认定为现实已发生。\n附近三天内的已设定事件（可自然提及，不必每帖都写）：'+JSON.stringify(near.slice(0,12));}
-function monoAccountBoundaryContext(){const main=monoPrimaryIdentity(),current=monoPublicIdentity(monoSnapshot(),monoActiveAccount),publicPosts=forumPosts.filter(p=>p.authorType==='user'&&!p.isRetweet).slice(0,18).map(p=>({postId:p.id,...monoPromptRecord(p),timestamp:p.timestamp}));const evidence=[];const originals=forumPosts.filter(p=>p.authorType==='user'&&p.images?.length).slice(0,30);for(let i=0;i<originals.length;i++)for(let j=i+1;j<originals.length;j++){const a=originals[i],b=originals[j];if(monoHandleNorm(a.handle)!==monoHandleNorm(b.handle)&&a.images.some(img=>b.images.includes(img)))evidence.push({posts:[a.id,b.id],handles:[a.handle,b.handle],clue:'两条公开帖子使用相同图片。可能转载、巧合或同一个人，不能据此确认身份。'});}return '\n[MONO公开账号与知情边界]\n当前交谈账号的公开资料：'+JSON.stringify({name:current.name,handle:current.handle,bio:current.bio})+'\n角色既有人设中认识的对象，以主号码的公开名字/柄名定位：'+JSON.stringify(main?{name:main.userNickname,handle:main.userHandle,bio:main.userBio}:null)+'\n不同柄名是不同公开账号，默认并不知道彼此的真实身份或归属。不能因内部ID、账号切换、编辑字段、共同设备、人设替换或共享后台判定同一个人。原有关系只属于原本认识的对象，不能直接套给当前陌生账号；先依据具体互动决定语气。每个账号的私信、记忆与未公开身份不能被其他账号或网友读取。账号身份编辑字段不自动等于他人知道的事实。\n可以依据下列公开帖子、同图线索、实际对话中的自曝或语言习惯产生怀疑，也可以猜错、暂不确定、被否认或被澄清；人物是否关注到线索、是否当面试探，取决于人设和实际关系。不要每轮强制认人、不要把相似风格当实锤，更不能凭空知道账号所属；明确公开自曝则按实际内容反应。\n[公开帖子作者归属·必须逐条区分]\n当前对话中的你/用户，仅指当前交谈账号。每个publicAccountKey/柄名各自代表独立公开账号，不区分所谓大号优先或小号优先；切换查看账号不会改变任何帖文的作者。其他公开账号彼此也不自动合并，同昵称、同头像、相似内容都不是归属证明。当前正在查看的账号不一定是楼主。authorType为public-account只表示公开账号的帖子，不表示它属于当前用户；isCurrentAccount=false的帖子和评论不可称为当前账号的发言、经历或自述，也不可把它的图片当成当前账号本人照片。查看、点赞、评论或分享其他账号的帖子均不改变原作者。角色人设里的原有用户关系仅指原本认识的对象，不自动成为当前陌生账号的关系。以下其他账号作者仅提供公开署名，不透露现实身份或账号归属；可依据公开线索怀疑，但不能凭后台数据确认同一个人。\n当前账号自己发的公开帖子：' + JSON.stringify(publicPosts.filter(p=>p.isCurrentAccount)) + '\n其他公开账号发的帖子（仅为看到的内容）：' + JSON.stringify(publicPosts.filter(p=>!p.isCurrentAccount))+'\n当前对话引用/分享的原帖作者（分享者不等于原作者）：'+JSON.stringify((forumGetConv()?.messages||[]).slice(-8).map(m=>monoSharedPostRecord(m)).filter(Boolean).map(monoPromptRecord))+'\n可见图片重复线索：'+JSON.stringify(evidence.slice(0,8))+'\n[应用边界]\nMONO只使用自己的帖子、私信与总结；HearU听歌、聊天、歌单、选曲理由及记忆不可读取、不可修改，也不会收到MONO的事件。404只提供用户启用的只读资料，MONO动作不会写回404。';}
+function monoDateContext(now=new Date(),worldbookText=null){const zone=forumSettings.monoTimeZone||Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Shanghai';const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',weekday:'long',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));const today=Date.UTC(+parts.year,+parts.month-1,+parts.day),text=(forumSettings.worldview||'')+'\n'+(worldbookText??getForumWorldbookContent(parts.month+'月'+parts.day+'日')),near=[];for(const line of text.split(/\n/)){const matches=[...line.matchAll(/(?:(\d{4})[年\-/])?(\d{1,2})[月\-/](\d{1,2})(?:日|号)?/g)];for(const m of matches){const y=m[1]?+m[1]:+parts.year,mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>31)continue;let delta=(Date.UTC(y,mo-1,d)-today)/86400000;if(!m[1]){const ds=[y-1,y,y+1].map(yr=>(Date.UTC(yr,mo-1,d)-today)/86400000);delta=ds.sort((a,b)=>Math.abs(a)-Math.abs(b))[0];}if(Math.abs(delta)<=3)near.push({date:m[0],daysFromToday:delta,event:line.trim().slice(0,700)});}}return '\n[MONO真实时间·本次请求读取]\n现在是 '+parts.year+'年'+parts.month+'月'+parts.day+'日 '+parts.hour+':'+parts.minute+' '+parts.weekday+'；时区 '+zone+'。相对日期按这个时间判断，不把历史帖子当作今天，不自动替世界观改年份。世界观明确使用虚构年历时保留其设定，不把虚构事件认定为现实已发生。\n附近三天内的已设定事件（可自然提及，不必每帖都写）：'+JSON.stringify(near.slice(0,12));}
+function monoAccountBoundaryContext(){const main=monoPrimaryIdentity(),current=monoPublicIdentity(monoSnapshot(),monoActiveAccount),publicPosts=forumPosts.filter(p=>p.authorType==='user'&&!p.isRetweet).slice(0,18).map(p=>({postId:p.id,...monoPromptRecord(p),timestamp:p.timestamp}));const evidence=[];const originals=forumPosts.filter(p=>p.authorType==='user'&&p.images?.length).slice(0,30);for(let i=0;i<originals.length;i++)for(let j=i+1;j<originals.length;j++){const a=originals[i],b=originals[j];if(monoHandleNorm(a.handle)!==monoHandleNorm(b.handle)&&a.images.some(img=>b.images.includes(img)))evidence.push({posts:[a.id,b.id],handles:[a.handle,b.handle],clue:'两条公开帖子使用相同图片。可能转载、巧合或同一个人，不能据此确认身份。'});}return '\n[MONO公开账号与知情边界]\n当前交谈账号的公开资料：'+JSON.stringify({name:current.name,handle:current.handle,bio:current.bio})+'\n角色既有人设中认识的对象，以主号码的公开名字/柄名定位：'+JSON.stringify(main?{name:main.userNickname,handle:main.userHandle,bio:main.userBio}:null)+'\n不同柄名是不同公开账号，默认并不知道彼此的真实身份或归属。不能因内部ID、账号切换、编辑字段、共同设备、人设替换或共享后台判定同一个人。原有关系只属于原本认识的对象，不能直接套给当前陌生账号；先依据具体互动决定语气。每个账号的私信、记忆与未公开身份不能被其他账号或网友读取。账号身份编辑字段不自动等于他人知道的事实。\n可以依据下列公开帖子、同图线索、实际对话中的自曝或语言习惯产生怀疑，也可以猜错、暂不确定、被否认或被澄清；人物是否关注到线索、是否当面试探，取决于人设和实际关系。不要每轮强制认人、不要把相似风格当实锤，更不能凭空知道账号所属；明确公开自曝则按实际内容反应。\n[公开帖子作者归属·必须逐条区分]\n当前对话中的你/用户，仅指当前交谈账号。每个publicAccountKey/柄名各自代表独立公开账号，不区分所谓大号优先或小号优先；切换查看账号不会改变任何帖文的作者。其他公开账号彼此也不自动合并，同昵称、同头像、相似内容都不是归属证明。当前正在查看的账号不一定是楼主。authorType为public-account只表示公开账号的帖子，不表示它属于当前用户；isCurrentAccount=false的帖子和评论不可称为当前账号的发言、经历或自述，也不可把它的图片当成当前账号本人照片。查看、点赞、评论或分享其他账号的帖子均不改变原作者。角色人设里的原有用户关系仅指原本认识的对象，不自动成为当前陌生账号的关系。以下其他账号作者仅提供公开署名，不透露现实身份或账号归属；可依据公开线索怀疑，但不能凭后台数据确认同一个人。\n当前账号自己发的公开帖子：' + JSON.stringify(publicPosts.filter(p=>p.isCurrentAccount)) + '\n其他公开账号发的帖子（仅为看到的内容）：' + JSON.stringify(publicPosts.filter(p=>!p.isCurrentAccount))+'\n当前对话引用/分享的原帖作者（分享者不等于原作者）：'+JSON.stringify((forumGetConv()?.messages||[]).slice(-8).map(m=>monoSharedPostRecord(m)).filter(p=>p&&forumPosts.some(live=>String(live.id)===String(p.id))).map(monoPromptRecord))+'\n可见图片重复线索：'+JSON.stringify(evidence.slice(0,8))+'\n[应用边界]\nMONO只使用自己的帖子、私信与总结；HearU听歌、聊天、歌单、选曲理由及记忆不可读取、不可修改，也不会收到MONO的事件。404只提供用户启用的只读资料，MONO动作不会写回404。';}
 function monoRuntimeContext(){return monoDateContext()+monoAccountBoundaryContext();}
 // Read only the explicitly supported 404 character fields; HearU state never enters this view.
 const mono14Character=forumCharacter;forumCharacter=function(id){const c=mono14Character(id);if(!c)return c;const out={};for(const k of ['id','name','remarkName','realName','description','persona','systemPrompt','avatar','charName','worldBookIds','status','myName','myPersona','exclusiveCotPreset','exclusiveApiEnabled','exclusiveApiPreset','stickerGroups','history','memoryJournals','exclusivePromptVersion','bilingualModeEnabled','replyCountEnabled','replyCountMax','replyCountMin','maxMemory','gallery','useRealGallery','statusPanel','momentsEnabled','shopInteractionEnabled','videoCallEnabled'])if(c[k]!==undefined)out[k]=structuredClone(c[k]);return out;};
