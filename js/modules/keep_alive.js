@@ -15,6 +15,7 @@
     let gestureHandler = null;
     let listenersBound = false;
     let recoveryRunning = false;
+    const playbackHolds = new Set();
 
     function getStatusElement() {
         return document.getElementById('keep-alive-status');
@@ -29,7 +30,7 @@
 
     // 生成低频、极低振幅的长音频。volume=0 的静音音频不会获得 Chrome 后台调度豁免。
     function createLowImpactWavUrl() {
-        const sampleRate = 8000;
+        const sampleRate = 44100;
         const durationSeconds = 8;
         const sampleCount = sampleRate * durationSeconds;
         const buffer = new ArrayBuffer(44 + sampleCount * 2);
@@ -117,13 +118,22 @@
 
     async function startAudio(fromUserGesture) {
         if (!enabled) return false;
+        if (playbackHolds.size) { updateRunningStatus(); return false; }
         try {
-            await ensureAudio().play();
+            const player = ensureAudio();
+            await player.play();
+            // 恢复事件/开关与播放许可可能交错，语音占用期间不能重启保活音频。
+            if (playbackHolds.size || !enabled || audio !== player) {
+                player.pause();
+                updateRunningStatus();
+                return false;
+            }
             removeGestureFallback();
             updateMediaSession(true);
             updateRunningStatus();
             return true;
         } catch (error) {
+            if (playbackHolds.size || !enabled) return false;
             console.warn('[KeepAlive] 媒体通道启动失败:', error);
             setStatus(fromUserGesture ? '媒体通道被浏览器拒绝' : '点击页面以授权媒体通道', 'waiting');
             installGestureFallback();
@@ -154,6 +164,10 @@
     function updateRunningStatus() {
         if (!enabled) {
             setStatus('未开启', 'off');
+            return;
+        }
+        if (playbackHolds.size) {
+            setStatus('语音播放中：心跳与恢复任务继续运行', 'partial');
             return;
         }
         if (!audio || audio.paused) return;
@@ -293,12 +307,32 @@
         return value ? enable(options) : disable();
     }
 
+    // 仅让出媒体通道；不关闭开关、心跳、生命周期恢复和 Wake Lock。
+    function acquirePlayback() {
+        const token = {};
+        playbackHolds.add(token);
+        removeGestureFallback();
+        if (audio && !audio.paused) audio.pause();
+        updateRunningStatus();
+        let released = false;
+        return () => {
+            if (released) return;
+            released = true;
+            playbackHolds.delete(token);
+            // 延后恢复，让连续切歌/通话队列有机会先取得新的占用。
+            Promise.resolve().then(() => {
+                if (enabled && !playbackHolds.size) startAudio(false);
+            });
+        };
+    }
+
     window.KeepAliveManager = {
         init(value) {
             bindLifecycleListeners();
             return setEnabled(Boolean(value), { userInitiated: false });
         },
         setEnabled,
+        acquirePlayback,
         recover: runRecovery,
         isEnabled() { return enabled; }
     };
