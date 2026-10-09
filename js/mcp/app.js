@@ -31,7 +31,7 @@
   }
   async function disconnectService(s,pause=true){delete sessionRecords[s.id];saveSessionRecords();if(pause){s.autoConnect=false;save();}const pending=connecting.get(s.id);pending?.controller.abort();for(const c of operations.get(s.id)||[])c.abort();const state=status(s);sessions.delete(s.id);if(pending)await pending.promise.catch(()=>{});await state?.client?.close();refreshConnections();}
   function reconnectAll(force=false){for(const s of services){if(s.autoConnect===false||status(s)?.client?.ready||connecting.has(s.id))continue;if(!force&&Date.now()<(status(s)?.nextRetry||0))continue;connectService(s).catch(()=>{});}}
-  runtime.setAdapter({services:()=>services.filter(s=>s.autoConnect!==false),state:id=>sessions.get(id),connect:connectService,callTool:(s,name,args,signal)=>runRPC(s,abort=>status(s).client.callTool(name,args,{signal:abort}),signal)});
+  runtime.setAdapter({configuredServices:()=>services,services:()=>services.filter(s=>s.autoConnect!==false),state:id=>sessions.get(id),connect:connectService,callTool:(s,name,args,signal)=>runRPC(s,abort=>status(s).client.callTool(name,args,{signal:abort}),signal)});
   window.addEventListener('online',()=>reconnectAll(true));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkConnections();reconnectAll(true);}});
   setInterval(()=>{if(!document.hidden)reconnectAll();},15000);
