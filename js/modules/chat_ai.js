@@ -192,6 +192,8 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             }
         }
 
+        systemPrompt += window.KissVoiceScript?.directionPrompt(chat,chatType)||'';
+
         let historySlice = chat.history.slice(-chat.maxMemory);
         
         // 使用工具函数进行过滤（包含深度克隆、屏蔽过滤、双语修正、状态栏剔除）

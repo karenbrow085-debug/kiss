@@ -205,6 +205,7 @@ async function hash(value){if(!window.crypto?.subtle)return null;const b=await c
 async function cacheStats(){const rows=await cacheOp('readonly',s=>s.getAll())||[];return {count:rows.length,bytes:rows.reduce((a,x)=>a+x.blob.size,0)};}
 async function clearCache(){await cacheOp('readwrite',s=>s.clear());}
 async function synthesize(p,text,options={}) {
+ if(window.KissVoiceScript){const prepared=window.KissVoiceScript.prepare(p,text,options);p=prepared.profile;text=prepared.text;}
  validate(p);if(!text.trim())throw new Error('请输入需要朗读的文字');if(text.length>=10000)throw new Error('单条语音文字过长，请分段生成');
  const built=buildRequest(p,text),useCache=options.cache!==false&&settings().cacheEnabled;
  const id=useCache?await hash(built.url+'\n'+JSON.stringify([...built.init.headers])+'\n'+built.init.body):null;

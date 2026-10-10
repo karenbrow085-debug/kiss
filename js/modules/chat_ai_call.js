@@ -259,6 +259,8 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
         }
     }
 
+    systemPrompt += window.KissVoiceScript?.directionPrompt(chat,'private')||'';
+
     const messages = [];
     const hasHistoryPlaceholder = systemPrompt.includes('【动态插入: 通话记录】');
 
