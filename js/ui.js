@@ -1,7 +1,7 @@
 // Remember the one-time desktop relocation; later manual arrangements stay editable.
 if (typeof globalSettingKeys !== 'undefined' && !globalSettingKeys.includes('homeAppTailVersion')) globalSettingKeys.push('homeAppTailVersion');
 function moveHomeUtilityAppsToEnd(pages) {
-    const tail = ['app-mono', 'app-mcp'];
+    const tail = ['app-mono', 'app-mcp', 'app-morrow'];
     const next = pages.map(page => page.filter(id => !tail.includes(id)));
     while (next.length > 1 && next[next.length - 1].length === 0) next.pop();
     if (!next.length) next.push([]);
@@ -486,6 +486,7 @@ function setupHomeScreen() {
 
     // 定义所有可用的组件和应用
     const allItems = {
+        'app-morrow': `<div class="grid-item-1x1" data-id="app-morrow"><a href="#" class="app-icon" data-morrow="home"><img src="${db.customIcons?.['morrow-app'] || 'https://i.ibb.co/jPyCtz03/ad80cbd157eccf99590418826976653f.jpg'}" alt="Morrow" class="icon-img"><span class="app-name">Morrow</span></a></div>`,
         'app-mcp': `<div class="grid-item-1x1" data-id="app-mcp"><a href="#" class="app-icon" data-mcp="home"><img src="${db.customIcons?.['mcp-screen'] || 'https://i.ibb.co/HDS0FCPZ/6a5519bffcf2d251b2a7b369e7f953b9.jpg'}" alt="MCP" class="icon-img"><span class="app-name">MCP</span></a></div>`,
         'app-mono': `<div class="grid-item-1x1" data-id="app-mono"><a href="#" class="app-icon" data-mono="home"><img src="${getIcon('mono-app')}" alt="MONO" class="icon-img"><span class="app-name">MONO</span></a></div>`,
         'app-chat': `<div class="grid-item-1x1" data-id="app-chat"><a href="#" class="app-icon" data-target="chat-list-screen"><img src="${getIcon('chat-list-screen')}" alt="404" class="icon-img"><span class="app-name">${defaultIcons['chat-list-screen'].name}</span></a></div>`,
@@ -541,7 +542,7 @@ function setupHomeScreen() {
     }
 
     // 确保所有项目都在 allItems 中，并处理新添加的项目
-    const allItemIds = [...Object.keys(allItems).filter(id => !['app-mono', 'app-mcp'].includes(id)), 'app-mono', 'app-mcp'];
+    const allItemIds = [...Object.keys(allItems).filter(id => !['app-mono', 'app-mcp', 'app-morrow'].includes(id)), 'app-mono', 'app-mcp', 'app-morrow'];
     
     // 数据结构迁移与初始化
     if (!db.homeLayoutPages) {
@@ -556,7 +557,7 @@ function setupHomeScreen() {
     allItemIds.forEach(id => {
         if (!existingIds.has(id)) {
             // Utility apps belong at the end, rather than beside HearU on page one.
-            const destination = ['app-mono', 'app-mcp'].includes(id) ? db.homeLayoutPages.length - 1 : 0;
+            const destination = ['app-mono', 'app-mcp', 'app-morrow'].includes(id) ? db.homeLayoutPages.length - 1 : 0;
             if (!db.homeLayoutPages[destination]) db.homeLayoutPages[destination] = [];
             db.homeLayoutPages[destination].push(id);
             hasNewItems = true;
@@ -835,6 +836,13 @@ function setupHomeScreen() {
         if (isHomeEditMode) return;
         if (!window.KissMCP) return showToast('MCP 尚未加载，请刷新后重试');
         window.KissMCP.open();
+    });
+
+    homeScreen.querySelector('[data-morrow="home"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (isHomeEditMode) return;
+        if (!window.MorrowApp?.open) return showToast('Morrow尚未加载，请刷新后重试');
+        window.MorrowApp.open();
     });
 
     // MONO follows the existing home grid and edit mode.
