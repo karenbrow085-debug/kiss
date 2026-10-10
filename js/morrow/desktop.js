@@ -1,6 +1,7 @@
 /* Morrow desktop integration for the deployed 404 home grid. */
 (function(){
   'use strict';
+  const APP_URL=new URL('../../Morrow.html?v=root-entry-3',document.currentScript.src).href;
   const DEFAULT_ICON='https://i.ibb.co/jPyCtz03/ad80cbd157eccf99590418826976653f.jpg';
   if(typeof defaultIcons!=='undefined')defaultIcons['morrow-app']={name:'Morrow',url:DEFAULT_ICON};
   if(window.MorrowApp)return;
@@ -48,7 +49,7 @@
     screen.appendChild(frame);(document.querySelector('.phone-screen')||document.body).appendChild(screen);
     new MutationObserver(applyHostVisibility).observe(screen,{attributes:true,attributeFilter:['class']});
     document.addEventListener('visibilitychange',applyHostVisibility);
-    frame.src='Morrow.html?v=root-fix-2';loading=true;
+    frame.src=APP_URL;loading=true;
   }
   window.MorrowApp={
     open(){create();if(typeof switchScreen==='function')switchScreen('morrow-screen');else screen.classList.add('active');applyHostVisibility()},
