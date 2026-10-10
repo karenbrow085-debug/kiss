@@ -42,13 +42,13 @@
     const indicator=document.createElement('div');indicator.className='morrow-loading';indicator.textContent='正在打开远方邮局…';screen.appendChild(indicator);
     frame=document.createElement('iframe');frame.title='Morrow 匿名送信';frame.loading='eager';
     frame.addEventListener('load',async()=>{indicator.hidden=true;loading=false;try{
-      const child=frame.contentWindow;child.morrow404={getCharacters:async()=>characters()};
+      const child=frame.contentWindow;if(!child.Morrow){indicator.hidden=false;indicator.textContent='邮局页面未找到，请把 Morrow.html 上传到 index.html 所在目录后等待部署完成。';return}child.morrow404={getCharacters:async()=>characters()};
       await child.Morrow?.importCharacters(characters());applyHostVisibility();
-    }catch(e){indicator.hidden=false;indicator.textContent='邮局读取失败，请确认 apps/morrow/Morrow.html 已上传。';console.error('Morrow desktop:',e)}});
+    }catch(e){indicator.hidden=false;indicator.textContent='邮局读取失败，请确认 仓库根目录的 Morrow.html 已上传。';console.error('Morrow desktop:',e)}});
     screen.appendChild(frame);(document.querySelector('.phone-screen')||document.body).appendChild(screen);
     new MutationObserver(applyHostVisibility).observe(screen,{attributes:true,attributeFilter:['class']});
     document.addEventListener('visibilitychange',applyHostVisibility);
-    frame.src='apps/morrow/Morrow.html?v=desktop-1';loading=true;
+    frame.src='Morrow.html?v=root-fix-2';loading=true;
   }
   window.MorrowApp={
     open(){create();if(typeof switchScreen==='function')switchScreen('morrow-screen');else screen.classList.add('active');applyHostVisibility()},
