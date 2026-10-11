@@ -370,6 +370,8 @@ const chatSettingsHtml = `
                                         <option value="">跟随全局</option>
                                         <option value="uwu">UwU</option>
                                         <option value="tt">T.T</option>
+                                        <option value="hh">ㅎ.ㅎ（线上）</option>
+                                        <option value="hh_offline">ㅎ-ㅎ（线下）</option>
                                     </select>
                                     <span class="kkt-arrow">›</span>
                                 </div>
