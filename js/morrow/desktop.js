@@ -1,7 +1,7 @@
 /* Morrow desktop integration for the deployed 404 home grid. */
 (function(){
   'use strict';
-  const APP_URL=new URL('../../Morrow.html?v=morrow-clear-glass-20261012',document.currentScript.src).href;
+  const APP_URL=new URL('../../Morrow.html?v=morrow-atlas-sky-20261012',document.currentScript.src).href;
   const DEFAULT_ICON='https://i.ibb.co/jPyCtz03/ad80cbd157eccf99590418826976653f.jpg';
   if(typeof defaultIcons!=='undefined')defaultIcons['morrow-app']={name:'Morrow',url:DEFAULT_ICON};
   if(window.MorrowApp)return;
@@ -29,25 +29,28 @@
     const css=document.createElement('style');css.id='morrow-desktop-css';css.textContent=`
       #morrow-screen.screen{display:none;position:absolute;inset:0;background:#f8f8f9;flex-direction:column;z-index:8;overflow:hidden}
       #morrow-screen.screen.active{display:flex}
-      #morrow-screen .morrow-toolbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:#f8f8f966;border-bottom:1px solid #00000008;min-height:40px}
-      #morrow-screen .morrow-toolbar button{border:0;background:none;color:#92929e;font:13px inherit;min-width:60px;min-height:38px;padding:6px}
-      #morrow-screen .morrow-title{font:20px Georgia,serif;color:#53535f}
-      #morrow-screen iframe{flex:1 1 auto;min-height:0;width:100%;border:0;display:block;background:#f8f8f9}
-      #morrow-screen.morrow-android .morrow-toolbar{padding-top:calc(8px + max(18px,env(safe-area-inset-top,0px)))}
-      #morrow-screen.morrow-ios .morrow-toolbar{padding-top:calc(8px + max(59px,env(safe-area-inset-top,0px)))}
-      @media(orientation:landscape){#morrow-screen.morrow-ios .morrow-toolbar{padding-top:calc(8px + max(20px,env(safe-area-inset-top,0px)))}}
+      #morrow-screen .morrow-toolbar{position:absolute;left:18px;right:18px;top:calc(12px + env(safe-area-inset-top,0px));z-index:5;display:flex;justify-content:flex-start;gap:10px;align-items:center;pointer-events:none}
+      #morrow-screen .morrow-toolbar button{pointer-events:auto;width:50px;height:50px;border:1px solid #ffffffb0;border-radius:50%;background:linear-gradient(135deg,#ffffff40,#ffffff12);color:#304b52;padding:13px;box-shadow:inset 0 1px 1px #fff,inset 0 -1px 1px #ffffff80,0 4px 16px #20484612;-webkit-backdrop-filter:blur(3px) saturate(1.15);backdrop-filter:blur(3px) saturate(1.15)}
+      #morrow-screen .morrow-toolbar button,#morrow-screen.host-glass .morrow-toolbar button{height:46px;width:46px;padding:12px;border:0;background:#fafbf5f5;color:#344c4a;box-shadow:0 4px 16px #20443d12;backdrop-filter:none;-webkit-backdrop-filter:none}
+      #morrow-screen .morrow-toolbar button:first-child{width:135px;border-radius:30px;display:flex;align-items:center;justify-content:center;gap:11px;font:14px -apple-system,sans-serif}
+      #morrow-screen .morrow-toolbar svg{display:block;width:20px;height:20px}
+      #morrow-screen iframe{flex:1 1 auto;min-height:0;width:100%;height:100%;border:0;display:block;background:#eaf4f4}
+      #morrow-screen.morrow-android .morrow-toolbar{top:calc(12px + max(18px,env(safe-area-inset-top,0px)))}
+      #morrow-screen.morrow-ios .morrow-toolbar{top:calc(12px + max(59px,env(safe-area-inset-top,0px)))}
+      @media(orientation:landscape){#morrow-screen.morrow-ios .morrow-toolbar{top:calc(12px + max(20px,env(safe-area-inset-top,0px)))}}
       #morrow-screen .morrow-loading{padding:30px;text-align:center;color:#a0a0ad;font-size:13px}
     `;document.head.appendChild(css);
     screen=document.createElement('div');screen.id='morrow-screen';screen.className='screen';if(/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))screen.classList.add('morrow-ios');else if(/Android/i.test(navigator.userAgent))screen.classList.add('morrow-android');
     const bar=document.createElement('div');bar.className='morrow-toolbar';
-    const back=document.createElement('button');back.type='button';back.textContent='桌面';back.onclick=()=>window.MorrowApp.close();
-    const title=document.createElement('span');title.className='morrow-title';title.textContent='morrow.';
-    const refresh=document.createElement('button');refresh.type='button';refresh.textContent='重开';refresh.onclick=()=>{if(confirm('已保存的信件不会删除，是否重新打开邮局？'))frame.src=frame.src};
-    bar.append(back,title,refresh);screen.appendChild(bar);
+    const back=document.createElement('button');back.type='button';back.setAttribute('aria-label','返回桌面');back.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>';back.insertAdjacentHTML('beforeend','<span>桌面</span>');back.onclick=()=>window.MorrowApp.close();
+    const refresh=document.createElement('button');refresh.type='button';refresh.setAttribute('aria-label','重新打开');refresh.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></svg>';refresh.onclick=()=>{if(confirm('已保存的信件不会删除，是否重新打开邮局？'))frame.src=frame.src};
+    bar.append(back,refresh);screen.appendChild(bar);
     const indicator=document.createElement('div');indicator.className='morrow-loading';indicator.textContent='正在打开远方邮局…';screen.appendChild(indicator);
     frame=document.createElement('iframe');frame.title='Morrow 匿名送信';frame.loading='eager';
     frame.addEventListener('load',async()=>{indicator.hidden=true;loading=false;try{
       const child=frame.contentWindow;if(!child.Morrow){indicator.hidden=false;indicator.textContent='邮局页面未找到，请把 Morrow.html 上传到 index.html 所在目录后等待部署完成。';return}child.morrow404={getCharacters:async()=>characters(),getApiSettings:apiSettings};await child.Morrow.configureHost({getApiSettings:apiSettings,embedded:true});
+      if(child.document.documentElement.classList.contains('glass-refraction')&&!document.getElementById('morrow-host-lens')){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width','0');svg.setAttribute('height','0');svg.style.position='absolute';svg.style.pointerEvents='none';svg.innerHTML='<defs><filter id="morrow-host-lens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage width="100%" height="100%" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="SourceGraphic" in2="lens" scale="7" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';svg.querySelector('feImage').setAttribute('href',child.document.getElementById('liquidMap').getAttribute('href'));screen.appendChild(svg);screen.classList.add('host-glass')}
+
       await child.Morrow?.importCharacters(characters());applyHostVisibility();
     }catch(e){indicator.hidden=false;indicator.textContent='邮局读取失败，请确认 仓库根目录的 Morrow.html 已上传。';console.error('Morrow desktop:',e)}});
     screen.appendChild(frame);(document.querySelector('.phone-screen')||document.body).appendChild(screen);
