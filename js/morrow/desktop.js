@@ -1,7 +1,7 @@
 /* Morrow desktop integration for the deployed 404 home grid. */
 (function(){
   'use strict';
-  const APP_URL=new URL('../../Morrow.html?v=morrow-integrated-qq-20261012',document.currentScript.src).href;
+  const APP_URL=new URL('../../Morrow.html?v=morrow-loom-handles-20261012',document.currentScript.src).href;
   const DEFAULT_ICON='https://i.ibb.co/jPyCtz03/ad80cbd157eccf99590418826976653f.jpg';
   if(typeof defaultIcons!=='undefined')defaultIcons['morrow-app']={name:'Morrow',url:DEFAULT_ICON};
   if(window.MorrowApp)return;
@@ -27,16 +27,16 @@
   function create(){
     if(screen)return;
     const css=document.createElement('style');css.id='morrow-desktop-css';css.textContent=`
-      #morrow-screen.screen{display:none;position:absolute;inset:0;background:#e9dfcb;flex-direction:column;z-index:8;overflow:hidden}
+      #morrow-screen.screen{display:none;position:absolute;inset:0;background:#111114;flex-direction:column;z-index:8;overflow:hidden}
       #morrow-screen.screen.active{display:flex}
-      #morrow-screen .morrow-toolbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:#efe2c7;border-bottom:1px solid #d6c6a4;min-height:46px}
-      #morrow-screen .morrow-toolbar button{border:0;background:none;color:#6b5c44;font:13px inherit;min-width:60px;min-height:38px;padding:6px}
-      #morrow-screen .morrow-title{font:20px Georgia,serif;color:#4a3f30}
-      #morrow-screen iframe{flex:1 1 auto;min-height:0;width:100%;border:0;display:block;background:#e9dfcb}
+      #morrow-screen .morrow-toolbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:#19191e;border-bottom:1px solid #ffffff18;min-height:46px}
+      #morrow-screen .morrow-toolbar button{border:0;background:none;color:#b8b8c1;font:13px inherit;min-width:60px;min-height:38px;padding:6px}
+      #morrow-screen .morrow-title{font:20px Georgia,serif;color:#ededf2}
+      #morrow-screen iframe{flex:1 1 auto;min-height:0;width:100%;border:0;display:block;background:#111114}
       #morrow-screen.morrow-android .morrow-toolbar{padding-top:calc(8px + max(18px,env(safe-area-inset-top,0px)))}
       #morrow-screen.morrow-ios .morrow-toolbar{padding-top:calc(8px + max(59px,env(safe-area-inset-top,0px)))}
       @media(orientation:landscape){#morrow-screen.morrow-ios .morrow-toolbar{padding-top:calc(8px + max(20px,env(safe-area-inset-top,0px)))}}
-      #morrow-screen .morrow-loading{padding:30px;text-align:center;color:#7b6b50;font-size:13px}
+      #morrow-screen .morrow-loading{padding:30px;text-align:center;color:#8e8e99;font-size:13px}
     `;document.head.appendChild(css);
     screen=document.createElement('div');screen.id='morrow-screen';screen.className='screen';if(/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))screen.classList.add('morrow-ios');else if(/Android/i.test(navigator.userAgent))screen.classList.add('morrow-android');
     const bar=document.createElement('div');bar.className='morrow-toolbar';
