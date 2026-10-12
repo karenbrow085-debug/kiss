@@ -2144,7 +2144,7 @@ function fmSceneMenu(){modal(`<div class="hu-modal-kicker">A SOUND FOR THE MOMEN
 // Narrow bridge for storage management and user-triggered sticker suggestions.
 window.KissHearUData={
  busy:()=>generations.size>0 || busy.size>0,
- flush:async()=>{await ready;await saving;},
+ flush:async()=>{await ready;if(room){sampleListening(player.getState());await storeRoom(room);}await saving;},
  stickers:()=>nativeStickers(),
  snapshot:async()=>{await ready;await saving;return new Promise((resolve,reject)=>{const tx=database.transaction('rooms');const r=tx.objectStore('rooms').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});},
  replace:async rows=>{await ready;await saving;if(generations.size || busy.size)throw Error('HearU 正在生成');await new Promise((resolve,reject)=>{const tx=database.transaction('rooms','readwrite');for(const row of rows)tx.objectStore('rooms').put(row);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);});roomsCache.clear();room=null;},
