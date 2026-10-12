@@ -402,7 +402,7 @@ async function handleExport() {
         }
 
         const chosen=new Set(Object.entries(selectedModules).filter(([,v])=>v).map(([k])=>k));
-        if(Object.keys(window.KissAppData.catalog).some(k=>chosen.has(k)))exportData.modules.appData=window.KissAppData.select(await window.KissAppData.snapshot(),chosen);
+        if(Object.keys(window.KissAppData.groups).some(k=>chosen.has(k)))exportData.modules.appData=window.KissAppData.select(await window.KissAppData.snapshot(),chosen);
         const jsonString = JSON.stringify(exportData);
         const dataBlob = new Blob([jsonString]);
         
