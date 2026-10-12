@@ -1,7 +1,7 @@
 /* Morrow desktop integration for the deployed 404 home grid. */
 (function(){
   'use strict';
-  const APP_URL=new URL('../../Morrow.html?v=morrow-smooth-20261012',document.currentScript.src).href;
+  const APP_URL=new URL('../../Morrow.html?v=morrow-clean-20261012',document.currentScript.src).href;
   const DEFAULT_ICON='https://i.ibb.co/jPyCtz03/ad80cbd157eccf99590418826976653f.jpg';
   if(typeof defaultIcons!=='undefined')defaultIcons['morrow-app']={name:'Morrow',url:DEFAULT_ICON};
   if(window.MorrowApp)return;
