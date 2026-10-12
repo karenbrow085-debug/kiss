@@ -140,6 +140,7 @@ async function calculateStorageSize() {
         console.warn("Could not calculate dexie data size:", e);
     }
 
+    Object.assign(sizes,await window.KissAppData.sizes());
     sizes.total = Object.keys(sizes).reduce((sum, key) => key !== 'total' ? sum + sizes[key] : sum, 0);
     return sizes;
 }
@@ -204,7 +205,7 @@ function renderStorageUI() {
     
     backupOptions.innerHTML += `
         <div style="font-size: 12px; color: #888; margin-top: 15px; text-align: center;">
-            * 注：为避免备份文件过大导致崩溃，相册、工坊历史等包含大量图片的本地缓存数据不参与导出。
+            * 注：为避免备份文件过大导致崩溃，404相册、工坊历史等缓存不参与分类导出；独立应用所选图片、消息和档案会随对应分类导出。
         </div>
     `;
 
@@ -400,6 +401,8 @@ async function handleExport() {
             });
         }
 
+        const chosen=new Set(Object.entries(selectedModules).filter(([,v])=>v).map(([k])=>k));
+        if(Object.keys(window.KissAppData.catalog).some(k=>chosen.has(k)))exportData.modules.appData=window.KissAppData.select(await window.KissAppData.snapshot(),chosen);
         const jsonString = JSON.stringify(exportData);
         const dataBlob = new Blob([jsonString]);
         
@@ -459,9 +462,13 @@ async function handleImport(event) {
     importLabel.classList.add('disabled');
     importText.textContent = '处理中...';
 
+    let rollbackDb=null,rollbackApps=null;
     try {
         // 与“教程 → 导入数据”共用格式识别：gzip/普通 JSON、旧版/流式/分类备份。
         const mods = await readBackupFile(file);
+        if(mods.appData)window.KissAppData.validate(mods.appData);
+        rollbackDb=structuredClone(db);
+        if(mods.appData)rollbackApps=await window.KissAppData.snapshot();
 
             // 1. Chats & Contacts
             if ((selectedModules.chats || selectedModules.contacts) && mods.characters) {
@@ -581,12 +588,16 @@ async function handleImport(event) {
             }
 
             await saveData();
+            if(mods.appData){const chosen=new Set(Object.entries(selectedModules).filter(([,v])=>v).map(([k])=>k));const subset=window.KissAppData.select(mods.appData,chosen);if(subset.records.length)await window.KissAppData.restore(subset);}
+            window.kissCleanupLocked=true;
             showToast('导入成功，即将刷新页面');
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
 
         } catch (error) {
+            window.kissCleanupLocked=false;
+            if(rollbackDb){Object.assign(db,rollbackDb);await saveData();}if(rollbackApps)await window.KissAppData.restore(rollbackApps);
             console.error('导入出错:', error);
             showToast('导入失败，文件格式可能不正确');
             importLabel.classList.remove('disabled');

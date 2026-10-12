@@ -605,6 +605,7 @@ function renderTutorialContent() {
 // 创建完整的备份数据
 async function createFullBackupData() {
     const backupData = JSON.parse(JSON.stringify(db));
+    backupData.appData=await window.KissAppData.snapshot();
     backupData._exportVersion = '3.0'; 
     backupData._exportTimestamp = Date.now();
     return backupData;
@@ -765,8 +766,9 @@ function normalizeBackupPayload(payload) {
     const data = object(payload.modules) ? { ...payload.modules,
         _exportVersion: payload._exportVersion || payload.modules._exportVersion,
         _exportTimestamp: payload._exportTimestamp || payload.modules._exportTimestamp } : { ...payload };
+    if(data.appData!==undefined)window.KissAppData.validate(data.appData);
     const arrays = ['characters', 'groups', 'worldBooks', 'myStickers'];
-    const known = [...arrays, ...globalSettingKeys];
+    const known = [...arrays, ...globalSettingKeys, 'appData'];
     if (!known.some(key => data[key] !== undefined)) throw new Error('文件中没有可识别的小手机备份数据');
     for (const key of arrays) {
         if (data[key] !== undefined && !Array.isArray(data[key])) throw new Error(`备份中的 ${key} 必须是数组`);
@@ -818,33 +820,15 @@ function normalizeBackupPayload(payload) {
 
 // 校验在写入之前完成；一次事务失败会回滚，不先清空旧数据。
 async function importBackupData(data) {
-    const startTime = Date.now();
-    try {
-        const convertedData = normalizeBackupPayload(data);
-        const patch = {};
-        const coreKeys = ['characters', 'groups', 'worldBooks', 'myStickers'];
-        for (const key of [...new Set([...coreKeys, ...globalSettingKeys])]) {
-            if (convertedData[key] !== undefined) patch[key] = convertedData[key];
-        }
-        showToast('正在写入备份数据...');
-        await dexieDB.transaction('rw', [dexieDB.characters, dexieDB.groups,
-            dexieDB.worldBooks, dexieDB.myStickers, dexieDB.globalSettings], async () => {
-            for (const key of coreKeys) {
-                if (patch[key] === undefined) continue;
-                await dexieDB[key].clear();
-                if (patch[key].length) await dexieDB[key].bulkPut(patch[key]);
-            }
-            for (const key of globalSettingKeys) {
-                if (patch[key] !== undefined) await dexieDB.globalSettings.put({ key, value: patch[key] });
-            }
-        });
-        // 不调用会重建活动存档的 saveData；备份的 history、archives 按原内容保存。
-        Object.assign(db, patch);
-        return { success: true, message: `导入完成 (耗时${Date.now() - startTime}ms)` };
-    } catch (error) {
-        console.error('导入数据失败:', error);
-        return { success: false, error: error.message, duration: Date.now() - startTime };
-    }
+ const startTime=Date.now();let patch={},previous={};
+ try{const converted=normalizeBackupPayload(data),core=['characters','groups','worldBooks','myStickers'];
+ for(const k of [...core,...globalSettingKeys])if(converted[k]!==undefined){patch[k]=converted[k];previous[k]=structuredClone(db[k]);}
+ if(converted.appData){window.KissAppData.validate(converted.appData);await window.KissAppData.flush();}
+ const write=async values=>dexieDB.transaction('rw',[dexieDB.characters,dexieDB.groups,dexieDB.worldBooks,dexieDB.myStickers,dexieDB.globalSettings],async()=>{for(const k of core)if(k in values){await dexieDB[k].clear();if(values[k]?.length)await dexieDB[k].bulkPut(values[k]);}for(const k of globalSettingKeys)if(k in values){if(values[k]===undefined)await dexieDB.globalSettings.delete(k);else await dexieDB.globalSettings.put({key:k,value:values[k]});}});
+ await write(patch);
+ try{if(converted.appData)await window.KissAppData.restore(converted.appData);}catch(e){await write(previous);throw e}
+ Object.assign(db,patch);if(converted.appData)window.kissCleanupLocked=true;return {success:true,message:`导入完成 (耗时${Date.now()-startTime}ms)`};
+ }catch(error){console.error('导入数据失败:',error);return {success:false,error:error.message,duration:Date.now()-startTime};}
 }
 
 // GitHub Manager
