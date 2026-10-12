@@ -74,22 +74,76 @@ function ensureChatArchives(chat) {
 function ensureAllChatArchives() {
     let changed = false;
     [...(db.characters || []), ...(db.groups || [])].forEach(chat => {
-        if (ensureChatArchives(chat)) changed = true;
+        if (normalizeChatArchiveStorage(chat)) changed = true;
     });
+    return changed;
+}
+
+// 当前存档使用角色本身的数据；只有非当前存档保存独立快照。
+// 不以“打开聊天 / 保存数据”为由创建存档。
+function archiveValuesEqual(a, b) {
+    if (Object.is(a, b)) return true;
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    const keys = Object.keys(a);
+    return keys.length === Object.keys(b).length && keys.every(key =>
+        Object.prototype.hasOwnProperty.call(b, key) && archiveValuesEqual(a[key], b[key]));
+}
+
+function normalizeChatArchiveStorage(chat) {
+    if (!chat || !Array.isArray(chat.archives) || !chat.archives.length) return false;
+    let changed = false;
+    let active = chat.archives.find(item => item.id === chat.activeArchiveId);
+    if (!active) {
+        active = chat.archives[0];
+        chat.activeArchiveId = active.id;
+        changed = true;
+    }
+    // 旧版自动生成且与当前聊天相同的单一“主存档”可以安全收回。
+    // 改过名、有分支来源或包含不同内容的单一存档保留。
+    const data = active.data || {};
+    const same = active.dataStoredOnChat === true || Object.entries(data).every(([key, value]) =>
+        !CHAT_ARCHIVE_META_KEYS.has(key) && archiveValuesEqual(value, chat[key]));
+    if (chat.archives.length === 1 && active.name === '主存档' && !active.origin && same) {
+        delete chat.archives;
+        delete chat.activeArchiveId;
+        return true;
+    }
+    // 某些旧备份仅包含存档快照，先还原后再压缩，不能丢失记录。
+    if (!Array.isArray(chat.history) && Array.isArray(data.history) && active.dataStoredOnChat !== true) {
+        Object.assign(chat, cloneArchiveValue(data));
+        changed = true;
+    }
+    const snapshotMatchesCurrent = Object.entries(data).every(([key, value]) =>
+        !CHAT_ARCHIVE_META_KEYS.has(key) && archiveValuesEqual(value, chat[key]));
+    if (chat.archives.length === 1 && active.dataStoredOnChat !== true &&
+        !snapshotMatchesCurrent) {
+        // 无法证实是重复数据时保留原快照，当前记录另作当前存档。
+        active = { id: createArchiveId(), name: '当前聊天', createdAt: Date.now(),
+            updatedAt: Math.max(Date.now(), getArchiveLatestTime(chat)),
+            origin: null, data: {}, dataStoredOnChat: true };
+        chat.archives.push(active);
+        chat.activeArchiveId = active.id;
+        changed = true;
+    }
+    if (active.dataStoredOnChat !== true || Object.keys(active.data || {}).length) {
+        active.data = {};
+        active.dataStoredOnChat = true;
+        changed = true;
+    }
     return changed;
 }
 
 function syncChatActiveArchive(chat, touch = false) {
     if (!chat) return;
-    ensureChatArchives(chat);
-    const archive = chat.archives.find(item => item.id === chat.activeArchiveId);
+    normalizeChatArchiveStorage(chat);
+    const archive = chat.archives?.find(item => item.id === chat.activeArchiveId);
     if (!archive) return;
 
-    const data = captureArchiveData(chat);
-    const previousLatest = getArchiveLatestTime(archive.data || {});
-    const nextLatest = getArchiveLatestTime(data);
-    archive.data = data;
-    if (touch || nextLatest !== previousLatest) {
+    const nextLatest = getArchiveLatestTime(chat);
+    archive.data = {};
+    archive.dataStoredOnChat = true;
+    if (touch || nextLatest > (archive.updatedAt || 0)) {
         archive.updatedAt = Math.max(Date.now(), nextLatest);
     }
 }
@@ -102,11 +156,20 @@ function syncAllActiveArchives() {
 }
 
 function applyArchiveData(chat, archive) {
+    if (chat.activeArchiveId === archive.id && archive.dataStoredOnChat === true) return;
+    const previous = chat.archives?.find(item => item.id === chat.activeArchiveId);
+    if (previous && previous.id !== archive.id) {
+        previous.data = captureArchiveData(chat);
+        delete previous.dataStoredOnChat;
+    }
+    const data = cloneArchiveValue(archive.data || {});
     Object.keys(chat).forEach(key => {
         if (!CHAT_ARCHIVE_META_KEYS.has(key)) delete chat[key];
     });
-    Object.assign(chat, cloneArchiveValue(archive.data || {}));
+    Object.assign(chat, data);
     chat.activeArchiveId = archive.id;
+    archive.data = {};
+    archive.dataStoredOnChat = true;
 }
 
 function getActiveArchive(chat) {
@@ -146,11 +209,11 @@ async function createBlankArchive() {
     if (!chat) return;
     syncChatActiveArchive(chat, true);
 
-    const active = getActiveArchive(chat);
     const suggestedName = makeArchiveName('新存档');
     const name = prompt('存档名称', suggestedName);
     if (name === null) return;
 
+    getActiveArchive(chat);
     const now = Date.now();
     const archive = {
         id: createArchiveId(),
@@ -158,7 +221,7 @@ async function createBlankArchive() {
         createdAt: now,
         updatedAt: now,
         origin: null,
-        data: resetArchiveRuntime(cloneArchiveValue(active.data))
+        data: resetArchiveRuntime(captureArchiveData(chat))
     };
     chat.archives.push(archive);
     await switchChatArchive(archive.id);
@@ -179,12 +242,12 @@ async function createBranchArchiveAtMessage(messageId) {
     if (branchIndex < 0) return;
 
     syncChatActiveArchive(chat, true);
-    const sourceArchive = getActiveArchive(chat);
     const suggestedName = makeArchiveName('分支');
     const name = prompt('分支存档名称', suggestedName);
     if (name === null) return;
 
-    const data = cloneArchiveValue(sourceArchive.data);
+    const sourceArchive = getActiveArchive(chat);
+    const data = captureArchiveData(chat);
     data.history = data.history.slice(0, branchIndex + 1);
     const includedMessageIds = new Set(data.history.map(message => message.id));
     data.memoryJournals = (data.memoryJournals || []).filter(journal =>
@@ -220,7 +283,7 @@ async function switchChatArchive(archiveId) {
     }
 
     syncChatActiveArchive(chat, true);
-    const archive = chat.archives.find(item => item.id === archiveId);
+    const archive = chat.archives?.find(item => item.id === archiveId);
     if (!archive) return;
     applyArchiveData(chat, archive);
     await saveData();
@@ -278,13 +341,18 @@ function renderArchiveManager() {
     if (!chat || !list) return;
     syncChatActiveArchive(chat, false);
 
-    list.innerHTML = chat.archives
+    const archives = chat.archives?.length ? chat.archives : [{
+        name: '当前聊天', data: {}, dataStoredOnChat: true,
+        updatedAt: getArchiveLatestTime(chat)
+    }];
+    list.innerHTML = archives
         .slice()
         .sort((a, b) => b.updatedAt - a.updatedAt)
         .map(archive => {
-            const active = archive.id === chat.activeArchiveId;
-            const messageCount = archive.data?.history?.length || 0;
-            const journalCount = archive.data?.memoryJournals?.length || 0;
+            const active = archive.dataStoredOnChat === true || archive.id === chat.activeArchiveId;
+            const data = active ? chat : archive.data;
+            const messageCount = data?.history?.length || 0;
+            const journalCount = data?.memoryJournals?.length || 0;
             const origin = archive.origin ? `<div class="archive-origin">来自：${escapeHtml(archive.origin.archiveName || '其他存档')}</div>` : '';
             return `
                 <article class="chat-archive-card ${active ? 'active' : ''}" data-archive-id="${archive.id}">
@@ -298,8 +366,7 @@ function renderArchiveManager() {
                     </div>
                     <div class="archive-actions">
                         ${active ? '' : '<button type="button" data-action="switch">进入</button>'}
-                        <button type="button" data-action="rename">改名</button>
-                        <button type="button" data-action="delete" class="danger">删除</button>
+                        ${archive.id ? '<button type="button" data-action="rename">改名</button><button type="button" data-action="delete" class="danger">删除</button>' : ''}
                     </div>
                 </article>`;
         }).join('');
