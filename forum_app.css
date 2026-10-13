@@ -4554,3 +4554,7 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 @supports(content-visibility:auto){#forumPage .mono-x-post{content-visibility:auto;contain-intrinsic-size:auto 320px}}
 .mono-x-images img,.forum-post-image-item img{content-visibility:auto}
 .mono-text-image-content{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Plain back arrow in the publishing header; retain the tap target. */
+#forumPage .mono-ins-compose .forum-compose-header .forum-compose-cancel{border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;outline:none;width:36px;height:36px}
+#forumPage .mono-ins-compose .forum-compose-header .forum-compose-cancel:before,#forumPage .mono-ins-compose .forum-compose-header .forum-compose-cancel:after{display:none!important}
