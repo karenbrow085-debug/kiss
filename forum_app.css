@@ -4549,3 +4549,8 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 .forum-post-images.triple .forum-post-image-item:first-child{aspect-ratio:auto;max-height:none}
 .mono-text-image-full{width:100%;height:auto;aspect-ratio:1.9;max-height:190px;object-fit:cover;object-position:center;border-radius:10px}
 .mono-image-card-hint{bottom:8px;left:8px;padding:5px 9px;font-size:10px}
+
+/* Avoid painting below-the-fold feed media on every button action. */
+@supports(content-visibility:auto){#forumPage .mono-x-post{content-visibility:auto;contain-intrinsic-size:auto 320px}}
+.mono-x-images img,.forum-post-image-item img{content-visibility:auto}
+.mono-text-image-content{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}

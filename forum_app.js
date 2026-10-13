@@ -15,7 +15,9 @@ function forumReadView(c={}) {
   const view={};for(const k of keys)if(c[k]!==undefined)view[k]=structuredClone(c[k]);
   view.name=c.name||c.remarkName||c.realName||'角色';view.description=c.description||c.persona||'';return Object.freeze(view);
 }
-const characters=new Proxy([], {get(target,key){const list=forumNativeCharacters().map(forumReadView);const value=list[key];return typeof value==='function'?value.bind(list):value;}});
+let monoRenderList=null,monoRenderListReset=false;
+function monoRenderCharacterList(){if(!monoRenderList){monoRenderList=forumNativeCharacters().map(forumReadView);if(!monoRenderListReset){monoRenderListReset=true;queueMicrotask(()=>{monoRenderList=null;monoRenderListReset=false;});}}return monoRenderList;}
+const characters=new Proxy([], {get(target,key){const list=monoRenderCharacterList();const value=list[key];return typeof value==='function'?value.bind(list):value;}});
 const chatSettings=new Proxy({}, {get(target,key){return forumReadView(forumCharacter(key)||window.chatSettings?.[key]||{});}});
 function forumApiEndpoint(config) {
   const base=String(config?.url||'').trim().replace(/\/+$/,'');
@@ -79,7 +81,16 @@ async function fetch(url,options={}) {
       if(system)adapted.systemInstruction={parts:[{text:system}]};if(body.max_tokens)adapted.generationConfig.maxOutputTokens=body.max_tokens;
       options={...options,headers:{'Content-Type':'application/json'},body:JSON.stringify(adapted)};
     }
-    const response=await window.fetch(url,{...options,signal});
+    let response=await window.fetch(url,{...options,signal});
+    if(response.status===400&&!geminiAdapter&&body?.messages){
+      let errorText='';try{errorText=await response.clone().text();}catch{}
+      if(/unsupported|not supported|not allowed|unknown parameter|invalid parameter/i.test(errorText)&&/temperature|max_tokens|stream/i.test(errorText)){
+        const retry={...body};let changed=false;
+        for(const field of ['temperature','max_tokens','stream'])if(errorText.includes(field)&&field in retry){if(field==='max_tokens'&&/max_completion_tokens/.test(errorText))retry.max_completion_tokens=retry.max_tokens;delete retry[field];changed=true;}
+        if(changed)response=await window.fetch(url,{...options,body:JSON.stringify(retry),signal});
+      }
+    }
+
     const read=typeof response.text==='function'?()=>response.text():()=>response.json();
     let cached;
     const json=()=>cached ||= (async()=>{
@@ -95,6 +106,7 @@ async function fetch(url,options={}) {
           }else throw Error('API返回的内容不是有效数据，请检查接口服务');
         }
       }
+      if(Array.isArray(data?.choices?.[0]?.message?.content))data.choices[0].message.content=data.choices[0].message.content.map(p=>typeof p==='string'?p:p?.text||p?.content||'').join('');
       if(data?.error){const reason=String(data.error.message||data.error);if(/PROHIBITED_CONTENT|SAFETY|blocked by Gemini/i.test(reason))throw Error('Gemini 拦截了本次生成，原有内容已保留。请检查输入内容或更换已配置的模型后重试。');throw Error('API请求失败：'+reason.slice(0,180));}
       if(geminiAdapter){const candidate=data.candidates?.[0];const content=candidate?.content?.parts?.filter(p=>!p.thought).map(p=>p.text||'').join('');if(!content){const reason=data.promptFeedback?.blockReason||candidate?.finishReason;if(/SAFETY|PROHIBITED|BLOCK/i.test(reason||''))throw Error('Gemini 拦截了本次生成，原有内容已保留。请检查输入内容或更换已配置的模型后重试。');throw Error('接口未返回正文'+(reason?'：'+reason:''));}return {choices:[{message:{content},finish_reason:candidate.finishReason==='MAX_TOKENS'?'length':'stop'}]};}
       return data;
@@ -4247,6 +4259,8 @@ async function refreshSearchResults(topic) {
 // ==================== 修复：热点生成 (原版提示词 + 智能解析) ====================
 async function generateTopicPosts(topic) {
   const apiConfig = getActiveApiConfig();
+  const topicBudget=Math.max(512,Math.min(16384,parseInt(document.getElementById("apiMaxTokens")?.value)||8192));
+  const topicBatch=topicBudget<3000?2:topicBudget<=4096?3:4;
   if (!apiConfig || !apiConfig.url || !apiConfig.key) {
     showSearchError("请先配置API");
     return;
@@ -4323,11 +4337,11 @@ ${relationships.join("\n")}`;
     systemPrompt += `
 
 【要求】
-1. 生成10-15条与「${topic}」话题相关的论坛帖子
+1. 生成${topicBatch}条与「${topic}」话题相关的论坛帖子
 2. 帖子内容必须围绕「${topic}」展开，可以是讨论、分享、吐槽、求助等
 3. 帖子作者只能是AI角色、固定NPC或随机路人，绝对不要生成用户的帖子
 4. 内容要符合世界观设定，有趣且有互动感
-5. 每条帖子必须有5-10条评论
+5. 每条帖子有3-5条评论
 6. 部分帖子可以包含图片，用[图片:图片描述]格式
 7. 返回JSON数组格式
 8. 禁止使用[爱心][笑哭]等方括号表情格式，必须直接使用emoji如❤️😂😊等`;
@@ -4370,7 +4384,7 @@ ${relationships.join("\n")}`;
 注意：
 1. 所有帖子都必须与「${topic}」话题相关！
 2. authorType只能是"ai"或"npc"，不要生成"user"
-3. 每个帖子必须有10-15条评论！
+3. 每个帖子有3-5条评论！
 4. 禁止使用[表情]格式，用emoji❤️😂代替
 5. **回复格式规范（极其重要）：** 评论的 \`content\` 中**绝对不能**包含“回复@xxx”或“回复 xxx”等前缀。被回复者的【中文昵称】必须写在 \`replyToName\` 字段里（千万不要写英文handle）。绝对不要生成任何回复用户（楼主）的评论。`;
 
@@ -4385,6 +4399,8 @@ ${relationships.join("\n")}`;
           { role: "user", content: userPrompt }
         ],
         temperature: 0.9,
+        max_tokens: topicBudget,
+        stream: false,
       }),
     });
 
@@ -4450,6 +4466,7 @@ ${relationships.join("\n")}`;
           views: p.views || Math.floor(Math.random() * 4900) + 100,
           isSearchResult: true,
           searchTopic: topic,
+          monoTopicAccount: monoActiveAccount,
           comments: []
         };
 
@@ -4457,7 +4474,7 @@ ${relationships.join("\n")}`;
         return tempPost;
     });
 
-    forumPosts = forumPosts.filter(p => !(p.isSearchResult && p.searchTopic === topic));
+    forumPosts = forumPosts.filter(p => !(p.isSearchResult && monoTopicKey(p.searchTopic)===monoTopicKey(topic) && monoTopicOwner(p)===String(monoActiveAccount)));
     forumPosts = [...searchPosts, ...forumPosts];
     await localforage.setItem("forumPosts", forumPosts);
     
@@ -4465,7 +4482,7 @@ ${relationships.join("\n")}`;
 
   } catch (e) {
     console.error("[论坛] 搜索生成失败:", e);
-    showSearchError("生成失败: " + e.message);
+    monoTopicDisplayError(e.message,topic);
   }
 }
 
@@ -7089,7 +7106,7 @@ function monoRecordAvatar(p){const identity=resolveAuthorIdentity(p.authorName,p
 function monoAvatarError(img){img.onerror=null;img.src=getDefaultAvatarDataUrl();}
 function monoAvatar(p,cls='mono-x-avatar'){return `<img class="${cls}" src="${escapeForumHtml(monoRecordAvatar(p))}" alt="" onerror="ForumApp.monoAvatarError(this)">`;}
 function monoXIcon(name){const paths={comment:'<path d="M21 11a8.5 8.5 0 0 1-8.5 8.5H8L3 22l1.5-5A8.5 8.5 0 1 1 21 11Z"/>',retweet:'<path d="m4 4 3 3-3 3M7 7v10a2 2 0 0 0 2 2h5M20 20l-3-3 3-3M17 17V7a2 2 0 0 0-2-2h-5"/>',heart:'<path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 9 8-9a5 5 0 0 0 0-7Z"/>',views:'<path d="M4 20v-6M9 20V4M14 20v-9M19 20V7"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4Z"/>',share:'<circle cx="18" cy="4" r="3"/><circle cx="5" cy="12" r="3"/><circle cx="18" cy="20" r="3"/><path d="m8 10 7-4M8 14l7 4"/>'};return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths[name]||''}</svg>`;}
-function monoXImages(p){return (p.images||[]).length?`<div class="mono-x-images ${p.images.length>1?'multi':''}">${p.images.slice(0,4).map(src=>`<button data-image="${escapeForumHtml(forumSafeImage(src))}" onclick="event.stopPropagation();ForumApp.showForumFullImage(this.dataset.image)"><img loading="lazy" src="${escapeForumHtml(forumSafeImage(src))}" alt=""></button>`).join('')}</div>`:'';}
+function monoXImages(p){return (p.images||[]).length?`<div class="mono-x-images ${p.images.length>1?'multi':''}">${p.images.slice(0,4).map(src=>`<button data-image="${escapeForumHtml(forumSafeImage(src))}" onclick="event.stopPropagation();ForumApp.showForumFullImage(this.dataset.image)"><img decoding="async" loading="lazy" src="${escapeForumHtml(forumSafeImage(src))}" alt=""></button>`).join('')}</div>`:'';}
 function monoXQuote(p){if(!p)return '';return `<div class="mono-x-quote" ${p.id!=null?`onclick="event.stopPropagation();ForumApp.openForumPostDetail(${Number(p.id)})"`:''}><div class="mono-x-quote-head">${monoAvatar(p)}<b>${escapeForumHtml(p.authorName||'访客')}</b><small>@${escapeForumHtml(String(monoAccountHandle(p)).replace(/^@/,''))} · ${escapeForumHtml(formatForumTime(p.timestamp))}</small></div><div>${formatForumContent(p.content||'')}</div>${monoXImages(p)}</div>`;}
 function monoXActions(p,commentId=null){const id=Number(p.id),c=commentId!=null?p.comments?.find(c=>Number(c.id)===Number(commentId)):null,r=c||p;const reply=c?`ForumApp.monoReplyComment(${id},${Number(c.id)})`:`ForumApp.openForumPostDetail(${id})`;const quote=c?`ForumApp.monoQuoteComment(${id},${Number(c.id)})`:`ForumApp.openQuoteRetweet(${id})`;const like=c?`ForumApp.toggleForumCommentLike(${id},${Number(c.id)});ForumApp.renderForumPostDetail()`:`ForumApp.toggleForumPostLike(${id});ForumApp.monoRefreshPostViews()`;return `<div class="mono-x-actions"><button aria-label="评论" onclick="event.stopPropagation();${reply}">${monoXIcon('comment')}<span>${monoCount(c?(p.comments||[]).filter(x=>Number(x.replyTo)===Number(c.id)).length:(p.comments||[]).length)}</span></button><button aria-label="转发" onclick="event.stopPropagation();${quote}">${monoXIcon('retweet')}<span>${monoCount(r.retweets)}</span></button><button aria-label="喜欢" class="${r.liked?'liked':''}" onclick="event.stopPropagation();${like}">${monoXIcon('heart')}<span>${monoCount(r.likes)}</span></button><span aria-label="浏览">${monoXIcon('views')}<span>${monoCount(r.views)}</span></span><button aria-label="收藏" class="${(p.monoBookmarkedBy||[]).includes(monoActiveAccount)?'saved':''}" onclick="event.stopPropagation();ForumApp.monoBookmark(${id})">${monoXIcon('bookmark')}</button><button aria-label="分享" onclick="event.stopPropagation();ForumApp.monoSharePost(${id})">${monoXIcon('share')}</button></div>`;}
 renderForumPostItem=function(p){return `<article class="forum-post mono-x-post" data-post-id="${Number(p.id)}" onclick="ForumApp.openForumPostDetail(${Number(p.id)})"><button class="mono-x-avatar-button" onclick="event.stopPropagation();ForumApp.monoOpenAuthor(${Number(p.id)})">${monoAvatar(p)}</button><div class="mono-x-post-body"><div class="mono-x-header"><b onclick="event.stopPropagation();ForumApp.monoOpenAuthor(${Number(p.id)})">${escapeForumHtml(monoPostName(p))}</b><small>@${escapeForumHtml(String(monoAccountHandle(p)).replace(/^@/,''))} · ${escapeForumHtml(formatForumTime(p.timestamp))}</small><button aria-label="更多" onclick="event.stopPropagation();ForumApp.monoPostMenu(${Number(p.id)},this)">${forumIcon('more')}</button></div>${p.content?`<div class="mono-x-text">${formatForumContent(p.content)}</div>`:''}${monoXImages(p)}${p.isRetweet?monoXQuote(p.originalPost):''}${monoXActions(p)}</div></article>`;};
@@ -7162,7 +7179,13 @@ function monoBrandLabels(root){const selectors='header,header *,button,button *,
 const monoV5Boot=forumBoot;
 // Applied at mount/DOM changes; child text-only changes settle after one mutation batch.
 let monoBrandObserver;
-function monoInstallBranding(){const root=document.getElementById('forumPage');if(!root||monoBrandObserver)return;monoBrandLabels(root);const host=root.parentElement;monoBrandObserver=new MutationObserver(()=>{monoBrandLabels(root);host.querySelectorAll('.forum-aux-overlay,.forum-dm-chat,.forum-dm-page,.forum-modal-overlay').forEach(monoBrandLabels);});monoBrandObserver.observe(host,{childList:true,subtree:true});}
+function monoInstallBranding(){
+ const root=document.getElementById('forumPage');if(!root||monoBrandObserver)return;monoBrandLabels(root);
+ let pending=new Set(),scheduled=false;
+ const flush=()=>{scheduled=false;const items=[...pending];pending.clear();for(const node of items){if(!node.isConnected||!node.closest('#forumPage,.forum-aux-overlay,.forum-dm-chat,.forum-dm-page,.forum-modal-overlay'))continue;if(items.some(parent=>parent!==node&&parent.contains(node)))continue;monoBrandLabels(node);}};
+ monoBrandObserver=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes){if(node.nodeType!==1)continue;if(node.matches('#forumPage,.forum-aux-overlay,.forum-dm-chat,.forum-dm-page,.forum-modal-overlay')||node.closest('#forumPage,.forum-aux-overlay,.forum-dm-chat,.forum-dm-page,.forum-modal-overlay'))pending.add(node);}if(pending.size&&!scheduled){scheduled=true;requestAnimationFrame(flush);}});
+ monoBrandObserver.observe(root.parentElement,{childList:true,subtree:true});
+}
 Object.assign(ForumApp,{forumOpenChatSettings,forumRenderChat,monoExpandReply,monoReplyImage,monoReplySticker,monoRemoveReplyMedia,updateForumCommentInput,submitForumComment,renderForumPostDetail,closeForumPostDetail,refreshPostComments,monoPostMenu,monoViewQuotes,monoRefreshQuotes,renderOtherUserProfile,monoOtherMenu,monoEditOther,monoGenerateProfileSection});
 
 // MONO v6 requested additions; legacy forum prompt templates remain byte-identical.
@@ -7258,8 +7281,8 @@ openForumCompose=function(){monoV8Compose();const toolbar=document.querySelector
 const monoV8Images=renderComposeImages;
 renderComposeImages=function(){monoV8Images();document.querySelectorAll('#forumComposeImages .forum-compose-image-item').forEach((el,i)=>{if(!forumComposeImages[i]?.card)return;const b=document.createElement('button');b.className='mono-edit-image-card';b.textContent='编辑内容';b.onclick=()=>monoTextImageEditor(i);el.append(b);});};
 const monoV8XImages=monoXImages;
-monoXImages=function(p){if(!p.imageCards?.some(Boolean))return monoV8XImages(p);return `<div class="mono-x-images ${p.images.length>1?'multi':''}">${p.images.slice(0,4).map((src,i)=>`<button onclick="event.stopPropagation();ForumApp.monoOpenTextImage(${Number(p.id)},${i})"><img loading="lazy" src="${escapeForumHtml(forumImageValue(src))}" alt="${p.imageCards[i]?'文字图':''}">${p.imageCards[i]?'<span class="mono-image-card-hint">查看内容</span>':''}</button>`).join('')}</div>`;};
-function monoOpenTextImage(id,index){const p=forumPosts.find(p=>Number(p.id)===Number(id)),card=p?.imageCards?.[index];if(!p)return;if(!card)return showForumFullImage(p.images[index]);const own=p.authorType==='user'&&monoOwnPost(p);const sh=forumSheet('图片内容',`<img class="mono-text-image-full" src="${escapeForumHtml(forumImageValue(p.images[index]))}" alt="封面">${own?`<label class="mono-field">文字内容<textarea data-card-content rows="5">${escapeForumHtml(card.content)}</textarea></label><button class="forum-sheet-primary" data-card-update>保存修改</button>`:`<p class="mono-text-image-content">${escapeForumHtml(card.content)}</p>`}`);if(own)sh.querySelector('[data-card-update]').onclick=async()=>{const content=sh.querySelector('textarea').value.trim();if(!content)return showToast('请填写图片内容');card.content=content;await localforage.setItem('forumPosts',forumPosts);sh.remove();monoRefreshPostViews();};}
+monoXImages=function(p){if(!p.imageCards?.some(Boolean))return monoV8XImages(p);return `<div class="mono-x-images ${p.images.length>1?'multi':''}">${p.images.slice(0,4).map((src,i)=>`<button onclick="event.stopPropagation();ForumApp.monoOpenTextImage(${Number(p.id)},${i})"><img decoding="async" loading="lazy" src="${escapeForumHtml(forumImageValue(src))}" alt="${p.imageCards[i]?'文字图':''}">${p.imageCards[i]?'<span class="mono-image-card-hint">查看内容</span>':''}</button>`).join('')}</div>`;};
+function monoOpenTextImage(id,index){const p=forumPosts.find(p=>Number(p.id)===Number(id)),card=p?.imageCards?.[index];if(!p)return;if(!card)return showForumFullImage(p.images[index]);const own=p.authorType==='user'&&monoOwnPost(p);const sh=forumSheet('图片内容',`${own?`<label class="mono-field">文字内容<textarea data-card-content rows="5">${escapeForumHtml(card.content)}</textarea></label><button class="forum-sheet-primary" data-card-update>保存修改</button>`:`<p class="mono-text-image-content">${escapeForumHtml(card.content)}</p>`}`);if(own)sh.querySelector('[data-card-update]').onclick=async()=>{const content=sh.querySelector('textarea').value.trim();if(!content)return showToast('请填写图片内容');card.content=content;await localforage.setItem('forumPosts',forumPosts);sh.remove();monoRefreshPostViews();};}
 Object.assign(ForumApp,{resolveAuthorIdentity,monoTranslatePost,monoPreparePostTranslations,monoTextImageEditor,monoOpenTextImage,openForumCompose,renderComposeImages,renderForumPostItem,renderForumPostDetail,mapAndResolveComments,forumOpenChatSettings,generateForumPosts,generateMoreComments,generateInteractionsForNewPost,generateTopicPosts,generateUserProfilePosts,monoRoleReply});
 
 function forumBoot() {
@@ -7618,7 +7641,7 @@ function monoDateContext(now=new Date(),worldbookText=null){const zone=forumSett
 function monoAccountBoundaryContext(){const main=monoPrimaryIdentity(),current=monoPublicIdentity(monoSnapshot(),monoActiveAccount),publicPosts=forumPosts.filter(p=>p.authorType==='user'&&!p.isRetweet).slice(0,18).map(p=>({postId:p.id,...monoPromptRecord(p),timestamp:p.timestamp}));const evidence=[];const originals=forumPosts.filter(p=>p.authorType==='user'&&p.images?.length).slice(0,30);for(let i=0;i<originals.length;i++)for(let j=i+1;j<originals.length;j++){const a=originals[i],b=originals[j];if(monoHandleNorm(a.handle)!==monoHandleNorm(b.handle)&&a.images.some(img=>b.images.includes(img)))evidence.push({posts:[a.id,b.id],handles:[a.handle,b.handle],clue:'两条公开帖子使用相同图片。可能转载、巧合或同一个人，不能据此确认身份。'});}return '\n[MONO公开账号与知情边界]\n当前交谈账号的公开资料：'+JSON.stringify({name:current.name,handle:current.handle,bio:current.bio})+'\n角色既有人设中认识的对象，以主号码的公开名字/柄名定位：'+JSON.stringify(main?{name:main.userNickname,handle:main.userHandle,bio:main.userBio}:null)+'\n不同柄名是不同公开账号，默认并不知道彼此的真实身份或归属。不能因内部ID、账号切换、编辑字段、共同设备、人设替换或共享后台判定同一个人。原有关系只属于原本认识的对象，不能直接套给当前陌生账号；先依据具体互动决定语气。每个账号的私信、记忆与未公开身份不能被其他账号或网友读取。账号身份编辑字段不自动等于他人知道的事实。\n可以依据下列公开帖子、同图线索、实际对话中的自曝或语言习惯产生怀疑，也可以猜错、暂不确定、被否认或被澄清；人物是否关注到线索、是否当面试探，取决于人设和实际关系。不要每轮强制认人、不要把相似风格当实锤，更不能凭空知道账号所属；明确公开自曝则按实际内容反应。\n[公开帖子作者归属·必须逐条区分]\n当前对话中的你/用户，仅指当前交谈账号。每个publicAccountKey/柄名各自代表独立公开账号，不区分所谓大号优先或小号优先；切换查看账号不会改变任何帖文的作者。其他公开账号彼此也不自动合并，同昵称、同头像、相似内容都不是归属证明。当前正在查看的账号不一定是楼主。authorType为public-account只表示公开账号的帖子，不表示它属于当前用户；isCurrentAccount=false的帖子和评论不可称为当前账号的发言、经历或自述，也不可把它的图片当成当前账号本人照片。查看、点赞、评论或分享其他账号的帖子均不改变原作者。角色人设里的原有用户关系仅指原本认识的对象，不自动成为当前陌生账号的关系。以下其他账号作者仅提供公开署名，不透露现实身份或账号归属；可依据公开线索怀疑，但不能凭后台数据确认同一个人。\n当前账号自己发的公开帖子：' + JSON.stringify(publicPosts.filter(p=>p.isCurrentAccount)) + '\n其他公开账号发的帖子（仅为看到的内容）：' + JSON.stringify(publicPosts.filter(p=>!p.isCurrentAccount))+'\n当前对话引用/分享的原帖作者（分享者不等于原作者）：'+JSON.stringify((forumGetConv()?.messages||[]).slice(-8).map(m=>monoSharedPostRecord(m)).filter(p=>p&&forumPosts.some(live=>String(live.id)===String(p.id))).map(monoPromptRecord))+'\n可见图片重复线索：'+JSON.stringify(evidence.slice(0,8))+'\n[应用边界]\nMONO只使用自己的帖子、私信与总结；HearU听歌、聊天、歌单、选曲理由及记忆不可读取、不可修改，也不会收到MONO的事件。404只提供用户启用的只读资料，MONO动作不会写回404。';}
 function monoRuntimeContext(){return monoDateContext()+monoAccountBoundaryContext();}
 // Read only the explicitly supported 404 character fields; HearU state never enters this view.
-const mono14Character=forumCharacter;forumCharacter=function(id){const c=mono14Character(id);if(!c)return c;const out={};for(const k of ['id','name','remarkName','realName','description','persona','systemPrompt','avatar','charName','worldBookIds','status','myName','myPersona','exclusiveCotPreset','exclusiveApiEnabled','exclusiveApiPreset','stickerGroups','history','memoryJournals','exclusivePromptVersion','bilingualModeEnabled','replyCountEnabled','replyCountMax','replyCountMin','maxMemory','gallery','useRealGallery','statusPanel','momentsEnabled','shopInteractionEnabled','videoCallEnabled'])if(c[k]!==undefined)out[k]=structuredClone(c[k]);return out;};
+const mono14Character=forumCharacter;forumCharacter=function(id){const c=mono14Character(id);if(!c)return c;const out={};for(const k of ['id','name','remarkName','realName','description','persona','systemPrompt','avatar','charName','worldBookIds','status','myName','myPersona','exclusiveCotPreset','exclusiveApiEnabled','exclusiveApiPreset','stickerGroups','history','memoryJournals','exclusivePromptVersion','bilingualModeEnabled','replyCountEnabled','replyCountMax','replyCountMin','maxMemory','gallery','useRealGallery','statusPanel','momentsEnabled','shopInteractionEnabled','videoCallEnabled'])if(c[k]!==undefined)Object.defineProperty(out,k,{enumerable:true,configurable:true,get(){const value=structuredClone(c[k]);Object.defineProperty(out,k,{enumerable:true,configurable:true,writable:true,value});return value;}});return out;};
 const mono14Host=forumHostContext;forumHostContext=function(conv){if(!monoIsSecondary())return mono14Host(conv);const shadow=structuredClone(conv);shadow.chatOptions={...shadow.chatOptions,read404Context:false};return mono14Host(shadow)+'\n当前陌生柄名不能继承404中的用户关系与私聊记忆；原有关系中的用户名字指向主号码，而非自动指向当前账号。';};
 saveGlobalAvatar=async function(value){return compressAvatar(value,150,150);};
 const mono14Open=ForumApp.open;ForumApp.open=async function(){await mono14Open();if(!forumSettings.userAvatar){const avatar=monoAvatarFallback();if(avatar){forumSettings.userAvatar=avatar;await monoStoreAccount();}}if(!forumSettings.monoPrimaryAccountId)monoAccountsMenu();};
@@ -7681,4 +7704,56 @@ monoRecordAvatar = function(record) {
 Object.assign(ForumApp,{renderForumProfile,monoOpenPublicPerson,monoRecordAvatar,monoUserAccountId});
 
 window.KissMonoData={busy:()=>!!(monoBusy||monoAutoFlight||monoGenerationCount||forumDMTasks.size||monoFeatureFlights.size||monoImageFlights.size||monoInvestigationDMFlights.size),flush:async()=>{if(!window.__monoDataLoaded)return;await forumSaveQueue;await localforage.setItem('forumPosts',forumPosts);await localforage.setItem('forumSettings',forumSettings);if(forumDMLoaded)await forumSaveDMs();await forumSaveQueue;}};
+
+// Topic browsing is read-first. Only an explicit refresh replaces a saved topic batch.
+function monoTopicKey(value){return String(value||'').trim().replace(/^#+/,'').normalize('NFKC').toLowerCase();}
+function monoTopicOwner(post){return String(post.monoTopicAccount||forumSettings.monoPrimaryAccountId||'main');}
+function monoSavedTopic(topic,account=monoActiveAccount){const key=monoTopicKey(topic);return forumPosts.filter(p=>p.isSearchResult&&monoTopicKey(p.searchTopic)===key&&monoTopicOwner(p)===String(account));}
+const monoTopicFlights=new Map();
+const monoPersistedTopicGenerator=generateTopicPosts;
+function monoTopicOnScreen(topic){return currentHotView==='search_results'&&monoTopicKey(currentSearchQuery)===monoTopicKey(topic)&&!!document.getElementById('forumSearchResults');}
+const monoTopicResults=showSearchResults;
+showSearchResults=function(posts,topic){if(monoTopicOnScreen(topic))monoTopicResults(posts,topic);};
+function monoTopicDisplayError(reason,topic){
+ const message=/quota exhausted|insufficient_quota|quota.*exceed|余额|额度/i.test(reason)?'接口返回上游额度不足，请检查当前站子的模型线路或额度。':/timeout|超时|abort/i.test(reason)?'生成请求超时，已保存的帖子保留；可稍后重试。':'生成失败：'+reason;
+ if(!monoTopicOnScreen(topic))return;
+ const saved=monoSavedTopic(topic);if(saved.length){showSearchResults(saved,topic);showToast(message);}else showSearchError(message);
+}
+generateTopicPosts=async function(topic,options={}){
+ const account=monoActiveAccount,key=account+':'+monoTopicKey(topic),saved=monoSavedTopic(topic,account);
+ if(!options.force&&saved.length){showSearchResults(saved,topic);return saved;}
+ if(monoTopicFlights.has(key)){await monoTopicFlights.get(key);const rows=monoSavedTopic(topic,account);showSearchResults(rows,topic);return rows;}
+ const run=(async()=>{await monoPersistedTopicGenerator(topic);return monoSavedTopic(topic,account);})();
+ monoTopicFlights.set(key,run);try{return await run;}finally{if(monoTopicFlights.get(key)===run)monoTopicFlights.delete(key);}
+};
+refreshSearchResults=async function(topic){
+ if(monoTopicFlights.has(monoActiveAccount+':'+monoTopicKey(topic)))return;
+ const button=document.querySelector('.forum-search-refresh'),loading=document.getElementById('forumSearchLoading');
+ button?.classList.add('spinning');if(loading)loading.style.display='flex';
+ try{await monoRun(()=>generateTopicPosts(topic,{force:true}));}finally{if(button?.isConnected)button.classList.remove('spinning');}
+};
+// Use whole hashtags/related topics, never 2–4-character chunks from persona prose.
+function monoCleanTopic(value){const t=String(value||'').trim().replace(/^#+/,'').replace(/[。！？!?，,；;]+$/,'');if(t.length<2||t.length>24||/^的/.test(t)||/(?:的|与|及|很|更|充)$/.test(t)||/MONO|论坛名称|世界观|角色设定|用户身份/i.test(t))return '';return t;}
+function monoWholeTopics(){
+ const rows=new Map();const add=(tag,score=1)=>{tag=monoCleanTopic(tag);if(!tag)return;const key=monoTopicKey(tag),old=rows.get(key);if(old){old.score+=score;old.count++;}else rows.set(key,{tag,score,count:1,category:'正在讨论'});};
+ for(const p of forumPosts.filter(p=>!p.isSearchResult&&!p.isRetweet).slice(0,120)){const score=1+Math.min(50,((p.likes||0)+(p.comments?.length||0)*3+(p.retweets||0)*2)/10);for(const match of String(p.monoOriginalContent||p.content||'').matchAll(/#([^\s#，。！？、；：,.!?;:]{2,24})/g))add(match[1],score);for(const tag of p.monoRelatedTopics||[])add(tag,score/2);}
+ if(rows.size<4){const world=forumSettings.worldview||'',fallback=/职场|上班|工作|公司|打工/.test(world)?['下班前的临时会议','打工人的下班时刻','办公室日常','同事之间的默契','通勤路上的小事','加班后的晚饭']:/校园|学校|大学|同学/.test(world)?['课间的日常','校园里的新鲜事','社团活动','考试周日常','食堂里的发现','放学后的约定']:['最近的小确幸','生活里的新发现','值得分享的一天','日常里的小插曲','周末计划','最近的兴趣'];for(const tag of fallback){if(rows.size>=8)break;if(!rows.has(monoTopicKey(tag)))rows.set(monoTopicKey(tag),{tag,score:0,count:'',category:'话题'});}}
+ return [...rows.values()].sort((a,b)=>b.score-a.score).slice(0,12);
+}
+generateHotTopics=function(){return monoWholeTopics();};
+extractWorldviewKeywords=function(){return monoWholeTopics().map(t=>t.tag);};
+monoTrendPartition=function(){
+ const signature=JSON.stringify([forumSettings.worldview,forumSettings.forumName,monoActiveAccount,forumPosts.length,forumPosts[0]?.id,forumPosts.slice(0,40).map(p=>[p.id,p.likes,p.comments?.length,p.monoRelatedTopics])]);
+ if(monoTrendCache&&monoTrendCacheKey===signature)return monoTrendCache;
+ const trending=monoWholeTopics().slice(0,8),blocked=new Set(trending.map(t=>monoTopicKey(t.tag))),recommended=[];
+ for(const p of monoGuessSource())for(const value of p.monoRelatedTopics||[]){const tag=monoCleanTopic(value);if(tag&&!recommended.some(t=>monoTopicKey(t.tag)===monoTopicKey(tag)))recommended.push({tag,category:'为你推荐',count:''});}
+ if(!recommended.length)for(const t of trending.slice().reverse())recommended.push({...t,category:'为你推荐',count:''});
+ monoTrendCacheKey=signature;return monoTrendCache={trending,recommended:recommended.slice(0,8)};
+};
+// Only clone simple profile fields once per synchronous render; expensive histories stay lazy.
+const monoFastCharacters=new Map();let monoFastReset=false;
+const monoLazyCharacter=forumCharacter;
+forumCharacter=function(id){const key=String(id);if(monoFastCharacters.has(key))return monoFastCharacters.get(key);const value=monoLazyCharacter(id);monoFastCharacters.set(key,value);if(!monoFastReset){monoFastReset=true;queueMicrotask(()=>{monoFastReset=false;monoFastCharacters.clear();});}return value;};
+Object.assign(ForumApp,{generateTopicPosts,refreshSearchResults,showSearchResults,generateHotTopics,extractWorldviewKeywords,monoTrendPartition,forumCharacter,monoOpenTextImage});
+
 })();
