@@ -6070,6 +6070,7 @@ ForumApp.refreshPostComments = refreshPostComments;
 
 // 获取当前激活的 API 配置（已集成中央调度分流）
 function getActiveApiConfig() {
+  if(window.AppApi?.active("mono"))return window.AppApi.requestConfig("mono");
   const nativeConfig = forumNativeDb()?.apiSettings;
   if (nativeConfig?.url && nativeConfig?.key) return {url:nativeConfig.url.replace(/\/$/, ''), key:nativeConfig.key, model:nativeConfig.model, provider:nativeConfig.provider};
   // 1. 优先直接调用主程序的中央分流路由器，传入 'forum' 标识
@@ -6650,6 +6651,7 @@ function forumHostContext(conv) {
   return `${prompt}\n${chain?'[当前启用思维链·只读]\n'+chain:''}\n[MONO独立会话]\n404资料仅供只读参考。当前输入在MONO独立对话中发生，MONO事件不写回404聊天或记忆，不触发404操作。`;
 }
 function forumDMConfig(conv) {
+  if(window.AppApi?.active("mono"))return window.AppApi.requestConfig("mono");
   const base={...(forumNativeDb()?.apiSettings || {})};const c=conv.id.startsWith('ai_')?forumCharacter(conv.id.slice(3)):null;
   if(c?.exclusiveApiEnabled){const p=(forumNativeDb()?.apiPresets || []).find(p=>p.name===c.exclusiveApiPreset)?.data;if(p)Object.assign(base,{url:p.apiUrl || base.url,key:p.apiKey || base.key,model:p.model || base.model,provider:p.provider || base.provider});}
   const fallback=getActiveApiConfig();const config={...fallback,...Object.fromEntries(Object.entries(base).filter(([,v])=>v!==undefined && v!==''))};
@@ -7762,5 +7764,10 @@ function monoTopicCommentContext(post=null,topic='') {
 const monoTopicGroundedCommunity=monoCommunityContext;
 monoCommunityContext=function(post=null,speaker=null){return monoTopicGroundedCommunity(post,speaker)+(post?.isSearchResult?monoTopicCommentContext(post):'');};
 Object.assign(ForumApp,{monoCommunityContext});
+
+// App API selection is independent from the host and character API preferences.
+const monoAppApiSettings=renderForumSettings;
+renderForumSettings=function(...args){monoAppApiSettings(...args);if(monoContactOpen||!window.AppApi)return;const root=document.getElementById('forumSettingsContent');if(!root)return;let section=root.querySelector('[data-app-api="mono"]');if(!section){section=document.createElement('section');root.prepend(section);}window.AppApi.mount(section,'mono',{title:'API 设置',kicker:'MONO / MODEL'});};
+Object.assign(ForumApp,{renderForumSettings});
 
 })();
