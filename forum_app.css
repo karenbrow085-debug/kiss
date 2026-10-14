@@ -4562,7 +4562,7 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-topic-search-header {
   display:flex;align-items:center;gap:10px;
   padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top, 0px));
-  background:#fff;border-bottom:1px solid #f0f0f0;
+  background:#fff;border-bottom:0;
 }
 #forumPage .mono-topic-search-header .forum-search-back,
 #forumPage .mono-topic-search-header .forum-search-refresh {
