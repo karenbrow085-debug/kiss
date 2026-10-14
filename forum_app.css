@@ -4631,3 +4631,6 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
   #forumPage .mono-topic-header.scrolled {background:rgba(255,255,255,.96);}
 }
+
+/* Preserve the original search icon when its tab is selected. */
+#forumPage .forum-bottom-nav .forum-nav-item.active[data-section="hot"] svg {fill:none;}
