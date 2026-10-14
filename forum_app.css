@@ -4634,3 +4634,8 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 
 /* Preserve the original search icon when its tab is selected. */
 #forumPage .forum-bottom-nav .forum-nav-item.active[data-section="hot"] svg {fill:none;}
+
+/* Hot-topic landing: pin the search and category controls as one header. */
+#forumPage .mono-trends-header{position:sticky;top:0;z-index:15;background:#fff;}
+#forumPage .mono-trends-header .forum-hot-search{position:relative;top:auto;background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none;z-index:auto;}
+#forumPage .mono-trends-header .mono-trend-tabs{position:relative;top:auto;background:#fff;z-index:auto;}
