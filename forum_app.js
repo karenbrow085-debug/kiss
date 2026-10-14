@@ -4208,15 +4208,18 @@ async function searchForumTopic(topic) {
   feed.innerHTML = `
     <div class="forum-hot-container">
       <!-- 搜索结果头部 -->
-      <div class="forum-search-header">
+      <div class="forum-search-header mono-topic-search-header">
         <button class="forum-search-back" onclick="ForumApp.renderForumHot()">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <div class="forum-search-title">#${escapeForumHtml(topic)}</div>
-        <button class="forum-search-refresh" onclick="ForumApp.refreshSearchResults('${ForumApp.escapeForumHtml(topic)}')" title="刷新">
+        <form class="mono-topic-search-box" role="search" onsubmit="event.preventDefault(); ForumApp.searchForumTopic(this.elements.topic.value.trim())">
+          ${forumIcon('search')}
+          <input name="topic" type="search" value="${escapeForumHtml(topic)}" aria-label="搜索热点词条" autocomplete="off" enterkeyhint="search">
+        </form>
+        <button class="forum-search-refresh" onclick="ForumApp.refreshSearchResults(this.dataset.topic)" data-topic="${escapeForumHtml(topic)}" title="刷新当前词条" aria-label="刷新当前词条">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
             <polyline points="1 20 1 14 7 14"></polyline>

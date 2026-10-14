@@ -4558,3 +4558,29 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 /* Plain back arrow in the publishing header; retain the tap target. */
 #forumPage .mono-ins-compose .forum-compose-header .forum-compose-cancel{border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;outline:none;width:36px;height:36px}
 #forumPage .mono-ins-compose .forum-compose-header .forum-compose-cancel:before,#forumPage .mono-ins-compose .forum-compose-header .forum-compose-cancel:after{display:none!important}
+/* MONO topic detail: compact search header, following the selected topic. */
+#forumPage .mono-topic-search-header {
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top, 0px));
+  background:#fff;border-bottom:1px solid #f0f0f0;
+}
+#forumPage .mono-topic-search-header .forum-search-back,
+#forumPage .mono-topic-search-header .forum-search-refresh {
+  width:32px;height:40px;min-width:32px;flex:0 0 32px;
+  padding:0;border:0;background:transparent;color:#171717;border-radius:0;
+  display:grid;place-items:center;
+}
+#forumPage .mono-topic-search-header .forum-search-back svg,
+#forumPage .mono-topic-search-header .forum-search-refresh svg {width:22px;height:22px;}
+#forumPage .mono-topic-search-box {
+  display:flex;align-items:center;gap:10px;flex:1;min-width:0;
+  height:42px;margin:0;padding:0 15px;border:0;border-radius:999px;background:#f2f2f2;
+}
+#forumPage .mono-topic-search-box>svg {width:22px;height:22px;flex:0 0 22px;color:#777;}
+#forumPage .mono-topic-search-box input {
+  width:100%;min-width:0;flex:1;margin:0;padding:0;border:0;outline:0;
+  background:transparent;color:#181818;font:inherit;font-size:14px;font-weight:400;
+  line-height:1.4;border-radius:0;box-shadow:none;appearance:none;-webkit-appearance:none;
+}
+#forumPage .mono-topic-search-box:focus-within {box-shadow:0 0 0 1px #d5d5d5;}
+#forumPage .mono-topic-search-box input::-webkit-search-cancel-button {display:none;}
