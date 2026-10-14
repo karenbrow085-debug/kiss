@@ -4595,3 +4595,39 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-topic-results-count {font-size:11px;font-weight:400;letter-spacing:.02em;white-space:nowrap;}
 #forumPage .mono-topic-search-header .forum-search-refresh svg {stroke-width:1.8;stroke-linecap:square;}
 #forumPage .mono-topic-search-header .forum-search-refresh.spinning svg {animation:none;opacity:.4;}
+/* Topic detail: the search row scrolls away while the category row stays pinned. */
+#forumPage .mono-topic-header {
+  --mono-topic-search-height:66px;
+  position:sticky;top:calc(env(safe-area-inset-top,0px) - var(--mono-topic-search-height));
+  z-index:20;background:#fff;isolation:isolate;
+  transition:background .18s ease;
+}
+#forumPage .mono-topic-header .mono-topic-search-header {
+  position:relative;top:auto;z-index:auto;background:transparent;border:0;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+#forumPage .mono-topic-header.scrolled {
+  background:rgba(255,255,255,.76);
+  backdrop-filter:blur(18px) saturate(1.08);-webkit-backdrop-filter:blur(18px) saturate(1.08);
+}
+#forumPage .mono-topic-tabs {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;
+  height:52px;padding:0 8px;border-bottom:1px solid #f0f0f0;
+  background:transparent;
+}
+#forumPage .mono-topic-tabs button {
+  position:relative;display:flex;align-items:center;justify-content:center;gap:6px;
+  min-width:0;margin:0;padding:0 5px;border:0;border-radius:0;
+  color:#858589;background:transparent;font:inherit;font-size:13px;font-weight:500;
+}
+#forumPage .mono-topic-tabs button svg {width:19px;height:19px;flex:0 0 19px;}
+#forumPage .mono-topic-tabs button.active {color:#111;font-weight:600;}
+#forumPage .mono-topic-tabs button.active::after {
+  content:'';position:absolute;bottom:-1px;left:12px;right:12px;height:3px;
+  background:#111;border-radius:3px;
+}
+#forumPage .mono-topic-tabs button:focus-visible {outline:1px solid #999;outline-offset:-5px;}
+#forumPage .mono-topic-people {padding:0 16px;}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  #forumPage .mono-topic-header.scrolled {background:rgba(255,255,255,.96);}
+}

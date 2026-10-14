@@ -4200,6 +4200,7 @@ async function searchForumTopic(topic) {
   feed.innerHTML = `
     <div class="forum-hot-container">
       <!-- 搜索结果头部 -->
+      <div class="mono-topic-header">
       <div class="forum-search-header mono-topic-search-header">
         <button class="forum-search-back" onclick="ForumApp.renderForumHot()">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -4218,7 +4219,8 @@ async function searchForumTopic(topic) {
           </svg>
         </button>
       </div>
-      
+      <nav class="mono-topic-tabs" aria-label="话题结果分类">${[['hot','热门'],['latest','最新'],['users','用户'],['media','媒体']].map(([id,label])=>`<button type="button" data-topic-tab="${id}" aria-pressed="${id==='hot'}" class="${id==='hot'?'active':''}">${id==='hot'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 2c0 6-4 10-10 10 6 0 10 4 10 10 0-6 4-10 10-10-6 0-10-4-10-10Z"/><path d="M4 2v4M2 4h4"/></svg>':''}<span>${label}</span></button>`).join('')}</nav>
+      </div>
       <!-- Loading状态 -->
       <div class="forum-search-loading" id="forumSearchLoading">
         <div class="forum-search-spinner"></div>
@@ -4230,6 +4232,8 @@ async function searchForumTopic(topic) {
     </div>
   `;
   
+  monoSetupTopicHeader(feed);
+
   // 调用API生成相关帖子
   await generateTopicPosts(topic);
 }
@@ -4489,13 +4493,10 @@ function showSearchResults(posts, topic) {
   
   if (results) {
     if (posts.length > 0) {
-      results.innerHTML = `
-        <div class="forum-search-stats mono-topic-results-summary">
-          <span class="mono-topic-results-label">相关帖子</span><span class="mono-topic-results-count">${posts.length} 条结果</span>
-        </div>
-        ${posts.map(post => renderForumPostItem(post)).join('')}
-      `;
+      monoTopicViewPosts=posts.slice();
+      monoRenderTopicTab();
     } else {
+      monoTopicViewPosts=[];
       results.innerHTML = `
         <div class="forum-search-empty">
           <div class="forum-search-empty-icon">🔍</div>
@@ -7769,5 +7770,34 @@ Object.assign(ForumApp,{monoCommunityContext});
 const monoAppApiSettings=renderForumSettings;
 renderForumSettings=function(...args){monoAppApiSettings(...args);if(monoContactOpen||!window.AppApi)return;const root=document.getElementById('forumSettingsContent');if(!root)return;let section=root.querySelector('[data-app-api="mono"]');if(!section){section=document.createElement('section');root.prepend(section);}window.AppApi.mount(section,'mono',{title:'API 设置',kicker:'MONO / MODEL'});};
 Object.assign(ForumApp,{renderForumSettings});
+
+// Topic-header UI only. Tabs browse the saved batch without API generation.
+let monoTopicTab='hot',monoTopicViewPosts=[],monoTopicScrollHandler=null,monoTopicHeaderObserver=null;
+function monoSetupTopicHeader(feed){
+ monoTopicTab='hot';monoTopicViewPosts=[];feed.scrollTop=0;
+ if(monoTopicScrollHandler)feed.removeEventListener('scroll',monoTopicScrollHandler);
+ monoTopicHeaderObserver?.disconnect();
+ const header=feed.querySelector('.mono-topic-header'),row=header.querySelector('.mono-topic-search-header');
+ const measure=()=>{if(header.isConnected)header.style.setProperty('--mono-topic-search-height',row.getBoundingClientRect().height+'px');};
+ measure();if(typeof ResizeObserver!=='undefined'){monoTopicHeaderObserver=new ResizeObserver(measure);monoTopicHeaderObserver.observe(row);}
+ monoTopicScrollHandler=()=>{if(header.isConnected)header.classList.toggle('scrolled',feed.scrollTop>8);};
+ feed.addEventListener('scroll',monoTopicScrollHandler,{passive:true});monoTopicScrollHandler();
+ header.querySelectorAll('[data-topic-tab]').forEach(button=>button.onclick=()=>{monoTopicTab=button.dataset.topicTab;monoRenderTopicTab();});
+}
+function monoRenderTopicTab(){
+ const results=document.getElementById('forumSearchResults');if(!results)return;
+ document.querySelectorAll('.mono-topic-tabs [data-topic-tab]').forEach(b=>{const active=b.dataset.topicTab===monoTopicTab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+ if(!monoTopicViewPosts.length)return;
+ let rows=monoTopicViewPosts.slice();
+ if(monoTopicTab==='users'){
+  const unique=new Map();for(const p of rows){const person=monoRecordPerson(p);if(!unique.has(person.key))unique.set(person.key,person);}const people=[...unique.values()];
+  results.innerHTML='<div class="mono-topic-people">'+monoPeopleRows(people)+'</div>';
+  results.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>monoOpenPublicPerson(people[Number(b.dataset.person)]));return;
+ }
+ if(monoTopicTab==='latest')rows.sort((a,b)=>(Number(b.timestamp)||0)-(Number(a.timestamp)||0));
+ if(monoTopicTab==='hot')rows.sort((a,b)=>((Number(b.likes)||0)+(Number(b.retweets)||0)*2+(b.comments?.length||0)*3)-((Number(a.likes)||0)+(Number(a.retweets)||0)*2+(a.comments?.length||0)*3));
+ if(monoTopicTab==='media')rows=rows.filter(p=>p.images?.length||p.monoTextImage||p.imageDescription||p.monoImageDescription||p.monoRealImageUrl||/\[图片[:：]/.test(p.content||''));
+ results.innerHTML=rows.map(renderForumPostItem).join('')||'<p class="mono-x-empty">这个话题还没有媒体帖子</p>';
+}
 
 })();
