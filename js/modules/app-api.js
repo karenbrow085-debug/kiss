@@ -69,7 +69,21 @@
   .app-api-panel.aa-hearu{margin:16px 0;padding:18px 0;border-top:1px solid var(--aa-line);border-bottom:1px solid var(--aa-line)}.aa-hearu .aa-heading small{letter-spacing:.2em}
   .app-api-panel.aa-morrow{--aa-fg:#464b43;--aa-muted:#999b8e;--aa-line:#e6e7dc;--aa-bg:#f8f9f3;padding:0 0 18px;margin:20px 0 0}.aa-morrow .aa-heading h3{font-weight:500}.aa-morrow select,.aa-morrow input,.aa-morrow .aa-fetch{border-radius:8px!important}
   .app-api-panel.aa-mcp{padding:18px 0 22px;margin-bottom:16px;border-bottom:1px solid var(--aa-line)}.aa-mcp .aa-heading h3{font-size:16px}.aa-mcp select,.aa-mcp input,.aa-mcp .aa-fetch{border-radius:6px!important}
-  #hearu-app[data-theme="night"] .app-api-panel,#mcp-screen[data-theme="night"] .app-api-panel{--aa-fg:#e8e8e8;--aa-muted:#9c9ca2;--aa-line:#3a3a3c;--aa-bg:#262628}
+  #hearu-app[data-theme="night"] .app-api-panel{--aa-fg:#e8e8e8;--aa-muted:#9c9ca2;--aa-line:#3a3a3c;--aa-bg:#262628}
+  /* Match only the MCP archive's light-gray surface. */
+  #mcp-screen .app-api-panel{--aa-fg:#303034;--aa-muted:#606068;--aa-line:#b9b9bd;--aa-bg:#eeeef0;color:#303034!important;color-scheme:light;background:transparent!important}
+  #mcp-screen .app-api-panel .aa-heading h3{color:#303034!important;font-size:16px!important}
+  #mcp-screen .app-api-panel .aa-heading small,#mcp-screen .app-api-panel .aa-label,#mcp-screen .app-api-panel .aa-status,#mcp-screen .app-api-panel .aa-empty,#mcp-screen .app-api-panel .aa-model small{color:#606068!important}
+  #mcp-screen .app-api-panel .aa-label{font-size:12px!important}
+  #mcp-screen .app-api-panel .aa-status{font-size:11px!important}
+  #mcp-screen .app-api-panel input,#mcp-screen .app-api-panel select{background:#eeeef0!important;color:#303034!important;border:1px solid #b9b9bd!important;font-size:13px!important;-webkit-text-fill-color:#303034!important;opacity:1!important;box-shadow:none!important}
+  #mcp-screen .app-api-panel input::placeholder{color:#676770!important;opacity:1!important;-webkit-text-fill-color:#676770!important}
+  #mcp-screen .app-api-panel button{background:#d7d7dc!important;color:#303034!important;border-color:#a8a8af!important;-webkit-text-fill-color:#303034!important;box-shadow:none!important}
+  #mcp-screen .app-api-panel .aa-fetch{font-size:12px!important;font-weight:500!important;min-width:72px}
+  #mcp-screen .app-api-panel .aa-model{background:transparent!important;border-color:#c4c4ca!important}
+  #mcp-screen .app-api-panel .aa-model[aria-pressed="true"]{background:#dcdce0!important}
+  #mcp-screen .app-api-panel .aa-status[data-error="true"]{color:#874539!important}
+
   `;
   function mount(container,app,options={}){
     if(!container)return;const doc=container.ownerDocument;if(!doc.getElementById('app-api-style')){const el=doc.createElement('style');el.id='app-api-style';el.textContent=style;doc.head.append(el);}
