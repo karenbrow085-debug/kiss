@@ -4584,3 +4584,14 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 }
 #forumPage .mono-topic-search-box:focus-within {box-shadow:0 0 0 1px #d5d5d5;}
 #forumPage .mono-topic-search-box input::-webkit-search-cancel-button {display:none;}
+
+/* Topic results sit on the same white surface as the search header. */
+#forumPage .mono-topic-results-summary {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:15px 20px 13px;background:#fff;border-bottom:1px solid #eeeeef;
+  font:inherit;line-height:1.4;color:#858589;
+}
+#forumPage .mono-topic-results-label {font-size:13px;font-weight:500;color:#55555a;}
+#forumPage .mono-topic-results-count {font-size:11px;font-weight:400;letter-spacing:.02em;white-space:nowrap;}
+#forumPage .mono-topic-search-header .forum-search-refresh svg {stroke-width:1.8;stroke-linecap:square;}
+#forumPage .mono-topic-search-header .forum-search-refresh.spinning svg {animation:none;opacity:.4;}
