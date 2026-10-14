@@ -960,6 +960,7 @@ async function modelText(c, system, history, signal) {
         provider: p.provider || config.provider,
       };
   }
+  if(window.AppApi?.active("hearu"))config=window.AppApi.resolve("hearu",config);
   if (!config.url || !config.key || !config.model)
     throw Error("先在小手机 API 设置里填写模型");
   const key =
@@ -971,7 +972,7 @@ async function modelText(c, system, history, signal) {
   let response, content;
   if (config.provider === "gemini") {
     response = await fetch(
-      `${base}/v1beta/models/${encodeURIComponent(config.model)}:generateContent?key=${encodeURIComponent(key)}`,
+      `${base.replace(/\/v1(?:beta)?$/, '')}/v1beta/models/${encodeURIComponent(config.model.replace(/^models\//,''))}:generateContent?key=${encodeURIComponent(key)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -991,7 +992,8 @@ async function modelText(c, system, history, signal) {
       ?.map((p) => p.text || "")
       .join("");
   } else {
-    response = await fetch(`${base}/v1/chat/completions`, {
+    const modelUrl=new URL(base);modelUrl.pathname=modelUrl.pathname.replace(/\/+$/,'');if(!/\/chat\/completions$/.test(modelUrl.pathname))modelUrl.pathname+=(/\/v\d+$/.test(modelUrl.pathname)?'/chat/completions':'/v1/chat/completions');
+    response = await fetch(modelUrl.href, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2236,6 +2238,7 @@ async function loadAppearanceFont(){
 }
 function profileSettings(){
  modal(`<div class="hu-appearance"><small>MAKE IT YOURS</small><h2>你的 HearU。</h2><form id="hu-appearance-form"><fieldset><legend>界面 / INTERFACE</legend><div class="hu-ui-options">${[['classic','余响','AFTERGLOW'],['editorial','同频','EDITORIAL']].map(([id,label,en])=>`<label class="hu-ui-option"><input type="radio" name="ui" value="${id}" ${appearance.ui===id?'checked':''}><span class="hu-layout-thumb ${id}"></span><strong>${label}</strong><small>${en}</small></label>`).join('')}</div></fieldset><label class="hu-appearance-night"><span>夜间模式</span><input type="checkbox" name="night" ${root.dataset.theme==='night'?'checked':''} aria-label="夜间模式"><span class="hu-night-track" aria-hidden="true"><i></i></span></label><fieldset><legend>第二套字体 / TYPOGRAPHY</legend>${[['design','设计默认 · 宋体与细字'],['global','跟随小手机全局字体'],['custom','使用字体链接']].map(([id,label])=>`<label class="hu-font-option"><span>${label}</span><input type="radio" name="fontMode" value="${id}" ${appearance.fontMode===id?'checked':''}></label>`).join('')}<input id="hu-font-url" name="fontUrl" type="url" placeholder="字体文件 URL · woff2 / woff / ttf" value="${esc(appearance.fontUrl)}" ${appearance.fontMode==='custom'?'':'hidden'}></fieldset><fieldset class="hu-size-settings"><legend>全局字号 / TEXT SIZE</legend><div class="hu-size-heading"><span>HearU 字体大小</span><output id="hu-font-size-value">${appearance.fontScale}%</output></div><div class="hu-size-slider"><span>A</span><input id="hu-font-size" name="fontScale" type="range" min="80" max="140" step="5" value="${appearance.fontScale}" aria-label="HearU 全局字体大小"><span>A</span></div><div class="hu-size-preview" id="hu-size-preview" style="font-size:${13*appearance.fontScale/100}px">把喜欢的声音，收进生活。</div><button type="button" id="hu-font-size-reset">恢复默认 · 100%</button></fieldset><p class="hu-appearance-note">两套界面都支持夜间模式。余响字体沿用小手机设置。</p><div class="hu-appearance-footer"><button type="button" data-hu="edit-profile">编辑资料</button><button type="submit">应用设置</button></div></form></div>`);
+ const apiSection=document.createElement('section');const form=root.querySelector('#hu-appearance-form');if(form&&window.AppApi){form.prepend(apiSection);window.AppApi.mount(apiSection,'hearu',{title:'API 设置',kicker:'YOUR SOUND / MODEL'});}
 }
 root.addEventListener('change',e=>{if(e.target.name==='fontMode' && e.target.closest('#hu-appearance-form'))root.querySelector('#hu-font-url').hidden=e.target.value!=='custom';});
 root.addEventListener('submit',e=>{
