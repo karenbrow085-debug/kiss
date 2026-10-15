@@ -1,7 +1,7 @@
 /* Morrow desktop integration for the deployed 404 home grid. */
 (function(){
   'use strict';
-  const APP_URL=new URL('../../Morrow.html?v=20261015-postal-coin-1',document.currentScript.src).href;
+  const APP_URL=new URL('../../Morrow.html?v=20261015-reference52',document.currentScript.src).href;
   const DEFAULT_ICON='https://i.ibb.co/jPyCtz03/ad80cbd157eccf99590418826976653f.jpg';
   if(typeof defaultIcons!=='undefined')defaultIcons['morrow-app']={name:'Morrow',url:DEFAULT_ICON};
   if(window.MorrowApp)return;
@@ -49,11 +49,11 @@
     const indicator=document.createElement('div');indicator.className='morrow-loading';indicator.textContent='正在打开远方邮局…';screen.appendChild(indicator);
     frame=document.createElement('iframe');frame.title='Morrow 匿名送信';frame.loading='eager';
     frame.addEventListener('load',async()=>{indicator.hidden=true;loading=false;try{
-      const child=frame.contentWindow;if(!child.Morrow){indicator.hidden=false;indicator.textContent='邮局页面未找到，请把 Morrow.html?v=20261015-postal-coin-1 上传到 index.html 所在目录后等待部署完成。';return}child.morrow404={getCharacters:async()=>characters(),getApiSettings:apiSettings,mountApiSettings:container=>window.AppApi?.mount(container,'morrow',{title:'AI 回信',kicker:'POST OFFICE / MODEL'}),getImageSettings:async()=>structuredClone(nativeDb()?.workshopSettings||{}),generateImage:async (prompt,overrides)=>{const settings=overrides||nativeDb()?.workshopSettings;if(!settings||typeof window.executeImageGeneration!=='function')throw Error('请先在404绘图工坊配置生图接口和模型');window.MorrowImageBusy=(window.MorrowImageBusy||0)+1;try{const config=structuredClone(overrides||settings);return await window.executeImageGeneration(config,prompt)}finally{window.MorrowImageBusy--}}};await child.Morrow.configureHost({getApiSettings:apiSettings,embedded:true});child.Morrow.setSurfaceListener?.(visible=>{bar.hidden=!visible});
+      const child=frame.contentWindow;if(!child.Morrow){indicator.hidden=false;indicator.textContent='邮局页面未找到，请把 Morrow.html?v=20261015-reference52 上传到 index.html 所在目录后等待部署完成。';return}child.morrow404={getCharacters:async()=>characters(),getApiSettings:apiSettings,mountApiSettings:container=>window.AppApi?.mount(container,'morrow',{title:'AI 回信',kicker:'POST OFFICE / MODEL'}),getImageSettings:async()=>structuredClone(nativeDb()?.workshopSettings||{}),generateImage:async (prompt,overrides)=>{const settings=overrides||nativeDb()?.workshopSettings;if(!settings||typeof window.executeImageGeneration!=='function')throw Error('请先在404绘图工坊配置生图接口和模型');window.MorrowImageBusy=(window.MorrowImageBusy||0)+1;try{const config=structuredClone(overrides||settings);return await window.executeImageGeneration(config,prompt)}finally{window.MorrowImageBusy--}}};await child.Morrow.configureHost({getApiSettings:apiSettings,embedded:true});child.Morrow.setSurfaceListener?.(visible=>{bar.hidden=!visible});
       if(child.document.documentElement.classList.contains('glass-refraction')&&!document.getElementById('morrow-host-lens')){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width','0');svg.setAttribute('height','0');svg.style.position='absolute';svg.style.pointerEvents='none';svg.innerHTML='<defs><filter id="morrow-host-lens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage width="100%" height="100%" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="SourceGraphic" in2="lens" scale="7" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';svg.querySelector('feImage').setAttribute('href',child.document.getElementById('liquidMap').getAttribute('href'));screen.appendChild(svg);screen.classList.add('host-glass')}
 
       await child.Morrow?.importCharacters(characters());applyHostVisibility();
-    }catch(e){indicator.hidden=false;indicator.textContent='邮局读取失败，请确认 仓库根目录的 Morrow.html?v=20261015-postal-coin-1 已上传。';console.error('Morrow desktop:',e)}});
+    }catch(e){indicator.hidden=false;indicator.textContent='邮局读取失败，请确认 仓库根目录的 Morrow.html?v=20261015-reference52 已上传。';console.error('Morrow desktop:',e)}});
     screen.appendChild(frame);(document.querySelector('.phone-screen')||document.body).appendChild(screen);
     new MutationObserver(applyHostVisibility).observe(screen,{attributes:true,attributeFilter:['class']});
     document.addEventListener('visibilitychange',applyHostVisibility);
