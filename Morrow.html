@@ -977,235 +977,144 @@ html.morrow-android .courier-dialog.courier-sheet[data-courier-mode="wallet"]{--
 .up-earn b{font:15px MorrowArchiveLatin,Georgia,serif;color:#74825c}
 .up-rewards{display:block;margin:25px auto 0;min-height:42px;border:1px solid #adb59b;border-radius:25px;padding:9px 22px;font-size:14px;color:#697952}
 .up-complete{margin:26px 0;padding:18px 0;border-bottom:1px solid #dedfce;font-size:16px;color:#6f7d5b}
-</style><style>.courier-sheet[data-courier-mode="userProgress"] #dialogTitle{font-family:MorrowArchiveSerif,MorrowCompanionExtra,Georgia,serif!important}</style><style id="morrow-formal-three-journal-pages">
-/* MORROW: three code-backed journal pages. Scoped to these modal bodies only. */
-#overlay:has(.mr-design){background:#f5f2e7!important}
-html body .courier-dialog.courier-sheet.mr-design{--mr-u:min(calc(100vw / 390),calc(500px / 390));--mr-top:var(--morrow-top-base,24px);--mr-bottom:max(12px,env(safe-area-inset-bottom,0px));display:flex!important;flex-direction:column!important;inset:0!important;width:100%!important;max-width:500px!important;height:100dvh!important;max-height:100dvh!important;padding:var(--mr-top) 0 var(--mr-bottom)!important;border:0!important;border-radius:0!important;background:#f5f2e7!important;overflow:hidden!important;font-family:MorrowArchiveLatin,MorrowCompanionExtra,MorrowArchiveSerif,serif!important;color:#30362b!important}
+</style><style>.courier-sheet[data-courier-mode="userProgress"] #dialogTitle{font-family:MorrowArchiveSerif,MorrowCompanionExtra,Georgia,serif!important}</style><style id="morrow-flow-journal-pages">/* The journal UI has its own top row. It contains no <header>, so the host's
+   Android/iOS embedded header padding cannot enter these pages. */
+#overlay:has(.mr-design){background:#f7f4e9!important}
+html body .courier-dialog.courier-sheet.mr-design{display:flex!important;flex-direction:column!important;inset:0!important;width:100%!important;max-width:500px!important;height:100dvh!important;max-height:100dvh!important;padding:var(--morrow-top-base,24px) 0 max(12px,env(safe-area-inset-bottom,0px))!important;border:0!important;border-radius:0!important;background:#f7f4e9!important;overflow:hidden!important;color:#30382c!important;font-family:MorrowArchiveLatin,MorrowCompanionExtra,MorrowArchiveSerif,serif!important}
 .mr-design>.dialog-head{display:none!important}
-html body .mr-design>#dialogBody{display:block!important;flex:1 1 0;min-height:0;width:100%;padding:0!important;overflow:auto!important;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.mr-page,.mr-page *{box-sizing:border-box}
-.mr-page *{margin:0;padding:0;letter-spacing:normal;font-weight:400;font-style:normal;text-shadow:none;box-shadow:none}
-.mr-page button,.mr-page input{font:inherit;color:inherit;box-shadow:none!important;filter:none;transform:none;text-transform:none;letter-spacing:normal;-webkit-tap-highlight-color:transparent}
-.mr-page button{display:inline-block;position:static;min-width:0;min-height:0;width:auto;height:auto;background:none;border:0;cursor:pointer;appearance:none;-webkit-appearance:none;text-align:inherit}
-.mr-page input{appearance:none;-webkit-appearance:none;border:0;border-radius:0;background:transparent}
-.mr-page button:disabled{cursor:default;opacity:.5!important}
-.mr-page button:focus-visible{outline:1px solid #7b8768;outline-offset:3px}
-.mr-page input:focus,.mr-page input:focus-visible{outline:none!important;box-shadow:none!important}
-.mr-page{font-family:MorrowArchiveLatin,MorrowCompanionExtra,MorrowArchiveSerif,serif!important;color:#30362b;font-size:calc(14 * var(--mr-u));line-height:1.4;flex:none;padding:0!important;max-width:none;isolation:isolate}
-.mr-page .mr-top{display:block;padding:0;background:none;border-radius:0;min-height:0;box-shadow:none}
-.mr-page .courier-art{display:block!important;position:relative!important;width:100%!important;height:100%!important;aspect-ratio:auto!important;background:transparent!important;background-image:none!important;border-radius:0!important;mix-blend-mode:normal!important;opacity:1!important;filter:none!important}
-.mr-page .mr-art img{display:block!important;position:static!important;inset:auto!important;width:100%!important;height:100%!important;object-fit:contain!important;border-radius:0!important;filter:none!important;transform:none!important}
-
-.mr-page button,.mr-page a{cursor:pointer}
-.mr-page button:focus-visible,.mr-page a:focus-visible{outline:calc(2 * var(--mr-u)) solid #798163;outline-offset:calc(3 * var(--mr-u))}
-.mr-page{position:relative;width:calc(390 * var(--mr-u));height:calc(844 * var(--mr-u));overflow:hidden;background-color:#f5f2e7;background-image:radial-gradient(ellipse at 15% 0%,#fdfaf0 0%,#f5f2e7 67%,#ede9da 100%);margin:auto}
-.mr-page:after{content:"";position:absolute;pointer-events:none;inset:calc(9 * var(--mr-u));border:calc(1 * var(--mr-u)) solid #c8c3af;opacity:.35}
-.mr-page .mr-top{position:absolute;left:calc(22 * var(--mr-u));right:calc(22 * var(--mr-u));top:calc(22 * var(--mr-u));height:calc(36 * var(--mr-u));border-bottom:calc(1 * var(--mr-u)) solid #aaa994;text-align:center;z-index:3}
-.mr-page .mr-brand{font-size:calc(12 * var(--mr-u));letter-spacing:calc(7 * var(--mr-u));padding-left:calc(7 * var(--mr-u));line-height:calc(21 * var(--mr-u))}
-.mr-page .mr-back{position:absolute;left:0;top:calc(-5 * var(--mr-u));font-size:calc(29 * var(--mr-u));line-height:calc(30 * var(--mr-u));width:calc(24 * var(--mr-u));text-align:left}
-.mr-page .mr-issue{position:absolute;right:0;top:calc(3 * var(--mr-u));font-size:calc(10 * var(--mr-u));letter-spacing:calc(1.5 * var(--mr-u));color:#8b8e77}
-.mr-page .mr-kicker{font-size:calc(9 * var(--mr-u));letter-spacing:calc(2.3 * var(--mr-u));color:#8a8e76;margin:0}
-.mr-page .mr-title{font-size:calc(32 * var(--mr-u));font-weight:normal;line-height:1.3;margin:0}
-.mr-page .mr-muted{color:#8c8e7c}
-.mr-page .mr-small{font-size:calc(11 * var(--mr-u))}
-.mr-page .mr-pill{display:inline-block;border:calc(1 * var(--mr-u)) solid #a3a68e;border-radius:calc(24 * var(--mr-u));padding:calc(6 * var(--mr-u)) calc(12 * var(--mr-u));font-size:calc(12 * var(--mr-u));line-height:calc(17 * var(--mr-u))}
-.mr-page .mr-olive{background:#788263;color:#faf8ef;border-color:#788263}
-.mr-page .mr-atlas{display:block;background-image:url("morrow-assets/wallet-illustrations.png");background-repeat:no-repeat;background-size:300% 300%}
-.mr-page .mr-postmark{background-position:100% 0%;opacity:.57}
-.mr-page .mr-branch{background-position:0% 0%}
-.mr-page .mr-envelope{background-position:0% 50%}
-.mr-page .mr-postcard{background-position:50% 50%}
-.mr-page .mr-books{background-position:100% 50%}
-.mr-page .mr-coin-art{background-position:50% 100%}
-.mr-page .mr-coin{width:calc(22 * var(--mr-u));height:calc(22 * var(--mr-u));object-fit:contain;vertical-align:middle}
-.mr-page .mr-line{position:absolute;left:calc(22 * var(--mr-u));right:calc(22 * var(--mr-u));border-top:calc(1 * var(--mr-u)) solid #b5b59e}
-.mr-page .mr-ticket{border:calc(1 * var(--mr-u)) solid #aaa990;background:rgba(255,255,255,.20);outline:calc(1 * var(--mr-u)) solid #d7d2bf;outline-offset:calc(-5 * var(--mr-u))}
-.mr-page .mr-stamp{border:calc(1 * var(--mr-u)) solid #aaa990;background:radial-gradient(circle at calc(5 * var(--mr-u)) 0,transparent calc(3 * var(--mr-u)),#b8b59f calc(3.3 * var(--mr-u)),#f7f4e9 calc(4 * var(--mr-u))) 0 0/calc(10 * var(--mr-u)) calc(5 * var(--mr-u)) repeat-x,radial-gradient(circle at calc(5 * var(--mr-u)) calc(5 * var(--mr-u)),transparent calc(3 * var(--mr-u)),#b8b59f calc(3.3 * var(--mr-u)),#f7f4e9 calc(4 * var(--mr-u))) 0 100%/calc(10 * var(--mr-u)) calc(5 * var(--mr-u)) repeat-x,#f7f4e9}
-.mr-page .mr-bar{height:calc(6 * var(--mr-u));background:#dcdccd;border-radius:calc(6 * var(--mr-u));overflow:hidden}
-.mr-page .mr-bar>span{display:block;height:100%;background:#879071;border-radius:calc(6 * var(--mr-u))}
-.mr-page .mr-section-title{font-size:calc(20 * var(--mr-u));font-weight:normal;margin:0}
-.mr-page .mr-section-en{font-size:calc(9 * var(--mr-u));letter-spacing:calc(2 * var(--mr-u));color:#8b8f79}
-.mr-page .mr-footer-note{position:absolute;bottom:calc(13 * var(--mr-u));left:0;width:100%;text-align:center;color:#9c9c86;font-size:calc(8 * var(--mr-u));letter-spacing:calc(2 * var(--mr-u))}
-.mr-page .mr-passport-title{position:absolute;left:calc(23 * var(--mr-u));top:calc(78 * var(--mr-u))}
-.mr-page .mr-passport-title .mr-title{font-size:calc(28 * var(--mr-u))}
-.mr-page .mr-passport-no{position:absolute;right:calc(24 * var(--mr-u));top:calc(84 * var(--mr-u));width:calc(78 * var(--mr-u));height:calc(50 * var(--mr-u))}
-.mr-page .mr-profile-hero{position:absolute;left:calc(22 * var(--mr-u));right:calc(17 * var(--mr-u));top:calc(128 * var(--mr-u));height:calc(260 * var(--mr-u))}
-.mr-page .mr-profile-hero .mr-animal{position:absolute;right:calc(-4 * var(--mr-u));top:0;width:calc(258 * var(--mr-u));height:calc(258 * var(--mr-u));object-fit:contain}
-.mr-page .mr-identity{position:absolute;left:0;top:calc(27 * var(--mr-u));z-index:1}
-.mr-page .mr-name{margin:calc(9 * var(--mr-u)) 0 calc(10 * var(--mr-u));font-size:calc(53 * var(--mr-u));line-height:1.05;font-weight:normal}
-.mr-page .mr-rename{font-size:calc(14 * var(--mr-u));vertical-align:middle;color:#8a8e78;padding:0 0 0 calc(3 * var(--mr-u))}
-.mr-page .mr-identity .mr-species{font-size:calc(12 * var(--mr-u));letter-spacing:calc(2 * var(--mr-u));margin-bottom:calc(18 * var(--mr-u))}
-.mr-page .mr-identity .mr-rest{font-size:calc(10 * var(--mr-u));color:#747f61;border-top:calc(1 * var(--mr-u)) solid #bfc3ac;border-bottom:calc(1 * var(--mr-u)) solid #bfc3ac;padding:calc(6 * var(--mr-u)) calc(1 * var(--mr-u));display:inline-block}
-.mr-page .mr-profile-caption{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(383 * var(--mr-u));border-top:calc(1 * var(--mr-u)) solid #b1b29c;padding-top:calc(14 * var(--mr-u));display:flex;align-items:center;justify-content:space-between}
-.mr-page .mr-profile-caption p{font-size:calc(12 * var(--mr-u));margin:0}
-.mr-page .mr-like{font-size:calc(11 * var(--mr-u));color:#8f795e;white-space:nowrap}
-.mr-page .mr-speed-ticket{position:absolute;top:calc(433 * var(--mr-u));left:calc(22 * var(--mr-u));right:calc(22 * var(--mr-u));height:calc(91 * var(--mr-u))}
-.mr-page .mr-speed{position:absolute;left:calc(16 * var(--mr-u));top:calc(10 * var(--mr-u));border-right:calc(1 * var(--mr-u)) solid #c7c8b3;width:calc(110 * var(--mr-u));height:calc(64 * var(--mr-u))}
-.mr-page .mr-speed strong{font-weight:normal;font-size:calc(42 * var(--mr-u));line-height:calc(46 * var(--mr-u))}
-.mr-page .mr-speed .mr-unit{font-size:calc(11 * var(--mr-u));color:#7e866f;margin-left:calc(4 * var(--mr-u))}
-.mr-page .mr-speed small{display:block;font-size:calc(10 * var(--mr-u));color:#858b75}
-.mr-page .mr-animal-progress{position:absolute;left:calc(143 * var(--mr-u));right:calc(16 * var(--mr-u));top:calc(20 * var(--mr-u))}
-.mr-page .mr-animal-progress .mr-progress-label{font-size:calc(12 * var(--mr-u));display:flex;justify-content:space-between}
-.mr-page .mr-animal-progress .mr-bar{margin:calc(10 * var(--mr-u)) 0 calc(7 * var(--mr-u))}
-.mr-page .mr-animal-progress small{font-size:calc(10 * var(--mr-u));color:#899078}
-.mr-page .mr-stats{position:absolute;left:calc(22 * var(--mr-u));right:calc(22 * var(--mr-u));top:calc(546 * var(--mr-u));display:flex;border-bottom:calc(1 * var(--mr-u)) solid #b7b99f;padding-bottom:calc(16 * var(--mr-u))}
-.mr-page .mr-stat{width:33.333%;text-align:center;border-right:calc(1 * var(--mr-u)) solid #c8c9b5}
-.mr-page .mr-stat:last-child{border:0}
-.mr-page .mr-stat strong{font-size:calc(27 * var(--mr-u));font-weight:normal;display:block;line-height:calc(32 * var(--mr-u))}
-.mr-page .mr-stat small{font-size:calc(10 * var(--mr-u));color:#828a72;display:block;margin-top:calc(5 * var(--mr-u));letter-spacing:calc(1 * var(--mr-u))}
-.mr-page .mr-training-head{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(625 * var(--mr-u));display:flex;align-items:center;justify-content:space-between}
-.mr-page .mr-training{position:absolute;left:calc(22 * var(--mr-u));right:calc(22 * var(--mr-u));top:calc(657 * var(--mr-u));display:flex;justify-content:space-between}
-.mr-page .mr-training button{width:calc(104 * var(--mr-u));padding:0;text-align:center}
-.mr-page .mr-training img{width:calc(100 * var(--mr-u));height:calc(88 * var(--mr-u));object-fit:contain;display:block;margin:0 auto calc(5 * var(--mr-u))}
-.mr-page .mr-training span{font-size:calc(12 * var(--mr-u))}
-.mr-page .mr-actions{position:absolute;left:calc(22 * var(--mr-u));right:calc(22 * var(--mr-u));top:calc(780 * var(--mr-u));display:flex;gap:calc(8 * var(--mr-u))}
-.mr-page .mr-actions button{border:calc(1 * var(--mr-u)) solid #afb39a;border-radius:calc(5 * var(--mr-u));height:calc(39 * var(--mr-u));font-size:calc(12 * var(--mr-u))}
-.mr-page .mr-actions .mr-touch{width:calc(57 * var(--mr-u))}
-.mr-page .mr-actions .mr-care{width:calc(86 * var(--mr-u))}
-.mr-page .mr-actions .mr-select{flex:1;background:#788263;color:#fffaf0;border-color:#788263}
-.mr-page .mr-shop-heading{position:absolute;top:calc(79 * var(--mr-u));left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u))}
-.mr-page .mr-shop-heading .mr-kicker{margin-bottom:calc(5 * var(--mr-u))}
-.mr-page .mr-balance{position:absolute;right:0;top:calc(10 * var(--mr-u));display:flex;align-items:center;gap:calc(7 * var(--mr-u));font-size:calc(24 * var(--mr-u));border:calc(1 * var(--mr-u)) solid #b3af91;padding:calc(6 * var(--mr-u)) calc(12 * var(--mr-u));border-radius:calc(25 * var(--mr-u))}
-.mr-page .mr-balance .mr-coin{width:calc(29 * var(--mr-u));height:calc(29 * var(--mr-u))}
-.mr-page .mr-shop-tabs{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(150 * var(--mr-u));height:calc(37 * var(--mr-u));border-bottom:calc(1 * var(--mr-u)) solid #b6b79e;display:flex;gap:calc(28 * var(--mr-u))}
-.mr-page .mr-shop-tabs button{padding:0 calc(1 * var(--mr-u)) calc(11 * var(--mr-u));font-size:calc(16 * var(--mr-u));color:#8d917a}
-.mr-page .mr-shop-tabs .mr-active{border-bottom:calc(2 * var(--mr-u)) solid #7c8665;color:#323b2d}
-.mr-page .mr-search{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(202 * var(--mr-u));height:calc(42 * var(--mr-u));border:calc(1 * var(--mr-u)) solid #b5b89f;border-radius:calc(5 * var(--mr-u));display:flex;align-items:center;padding:0 calc(12 * var(--mr-u));background:#f9f7ee}
-.mr-page .mr-search-icon{display:block;width:calc(14 * var(--mr-u));height:calc(14 * var(--mr-u));border:calc(1 * var(--mr-u)) solid #727d61;border-radius:50%;margin-right:calc(12 * var(--mr-u));position:relative}
-.mr-page .mr-search-icon:after{content:"";width:calc(6 * var(--mr-u));border-top:calc(1 * var(--mr-u)) solid #727d61;position:absolute;right:calc(-5 * var(--mr-u));bottom:calc(-3 * var(--mr-u));transform:rotate(45deg)}
-.mr-page .mr-search input{font-size:calc(12 * var(--mr-u));min-width:0;flex:1;border:0;background:transparent;line-height:calc(24 * var(--mr-u));padding:0}
-.mr-page .mr-search input::placeholder{color:#9a9e88}
-.mr-page .mr-filter-row{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(257 * var(--mr-u));display:flex;align-items:center;gap:calc(22 * var(--mr-u))}
-.mr-page .mr-filter-row button{font-size:calc(11 * var(--mr-u));padding:calc(4 * var(--mr-u)) 0;color:#8c9479}
-.mr-page .mr-filter-row .mr-active{color:#4e5c40;border-bottom:calc(1 * var(--mr-u)) solid #65764d}
-.mr-page .mr-filter-row small{margin-left:auto;font-size:calc(9 * var(--mr-u));letter-spacing:calc(1 * var(--mr-u));color:#9b9d86}
-.mr-page .mr-featured{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(294 * var(--mr-u));height:calc(181 * var(--mr-u))}
-.mr-page .mr-featured-copy{position:absolute;top:calc(20 * var(--mr-u));left:calc(18 * var(--mr-u))}
-.mr-page .mr-featured-copy .mr-kicker{font-size:calc(8 * var(--mr-u));letter-spacing:calc(1.5 * var(--mr-u))}
-.mr-page .mr-featured-copy h2{font-size:calc(30 * var(--mr-u));font-weight:normal;margin:calc(13 * var(--mr-u)) 0 calc(7 * var(--mr-u))}
-.mr-page .mr-featured-copy .mr-desc{font-size:calc(10 * var(--mr-u));color:#868e75;line-height:1.8;margin:0 0 calc(13 * var(--mr-u))}
-.mr-page .mr-featured>.mr-art{position:absolute;width:calc(180 * var(--mr-u));height:calc(180 * var(--mr-u));right:0;bottom:0;object-fit:contain}
-.mr-page .mr-featured .mr-owned{font-size:calc(10 * var(--mr-u));border:calc(1 * var(--mr-u)) solid #b6bea3;padding:calc(4 * var(--mr-u)) calc(9 * var(--mr-u));border-radius:calc(2 * var(--mr-u));color:#758462}
-.mr-page .mr-featured .mr-heart{position:absolute;right:calc(13 * var(--mr-u));top:calc(11 * var(--mr-u));color:#a18c68}
-.mr-page .mr-collection-head{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(494 * var(--mr-u));display:flex;align-items:center;justify-content:space-between}
-.mr-page .mr-collection-head .mr-section-title{font-size:calc(17 * var(--mr-u))}
-.mr-page .mr-shop-grid{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(529 * var(--mr-u));display:flex;flex-wrap:wrap;gap:calc(12 * var(--mr-u))}
-.mr-page .mr-product{width:calc(166 * var(--mr-u));height:calc(137 * var(--mr-u));position:relative;border-bottom:calc(1 * var(--mr-u)) solid #c8cab4;background:#faf8ef}
-.mr-page .mr-product:nth-child(2n){margin-left:auto}
-.mr-page .mr-product>.mr-art{width:calc(112 * var(--mr-u));height:calc(112 * var(--mr-u));object-fit:contain;position:absolute;right:calc(2 * var(--mr-u));top:0}
-.mr-page .mr-product .mr-id{position:absolute;top:calc(8 * var(--mr-u));left:calc(9 * var(--mr-u));font-size:calc(8 * var(--mr-u));letter-spacing:calc(1 * var(--mr-u));color:#989e86}
-.mr-page .mr-product .mr-heart{position:absolute;right:calc(8 * var(--mr-u));top:calc(7 * var(--mr-u));font-size:calc(14 * var(--mr-u));color:#a18c68}
-.mr-page .mr-product h3{position:absolute;bottom:calc(27 * var(--mr-u));left:calc(9 * var(--mr-u));font-size:calc(18 * var(--mr-u));font-weight:normal;margin:0;z-index:1}
-.mr-page .mr-product .mr-product-meta{position:absolute;bottom:calc(8 * var(--mr-u));left:calc(9 * var(--mr-u));right:calc(9 * var(--mr-u));display:flex;justify-content:space-between;align-items:center;color:#8b947a;font-size:calc(10 * var(--mr-u))}
-.mr-page .mr-product .mr-status{font-size:calc(9 * var(--mr-u));color:#8e957d}
-.mr-page .mr-shop-end{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(829 * var(--mr-u));border-top:calc(1 * var(--mr-u)) solid #b9bba5}
-.mr-page .mr-journey-title{position:absolute;left:calc(23 * var(--mr-u));top:calc(79 * var(--mr-u))}
-.mr-page .mr-journey-title .mr-kicker{margin-top:calc(8 * var(--mr-u))}
-.mr-page .mr-journey-stamp{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(152 * var(--mr-u));height:calc(203 * var(--mr-u))}
-.mr-page .mr-journey-stamp:after{content:"";position:absolute;inset:calc(9 * var(--mr-u));border:calc(1 * var(--mr-u)) solid #d1ceba;pointer-events:none}
-.mr-page .mr-journey-stamp .mr-level-copy{position:absolute;left:calc(20 * var(--mr-u));top:calc(26 * var(--mr-u));z-index:2}
-.mr-page .mr-level-copy .mr-kicker{font-size:calc(9 * var(--mr-u))}
-.mr-page .mr-level-big{font-size:calc(76 * var(--mr-u));line-height:calc(96 * var(--mr-u));letter-spacing:calc(-3 * var(--mr-u))}
-.mr-page .mr-level-big small{font-size:calc(20 * var(--mr-u));letter-spacing:0;color:#9a9f85;padding-left:calc(9 * var(--mr-u))}
-.mr-page .mr-level-name{font-size:calc(12 * var(--mr-u));color:#747f61;letter-spacing:calc(3 * var(--mr-u));margin-top:calc(4 * var(--mr-u))}
-.mr-page .mr-journey-stamp .mr-branch{position:absolute;right:calc(8 * var(--mr-u));top:calc(17 * var(--mr-u));width:calc(152 * var(--mr-u));height:calc(152 * var(--mr-u));opacity:.68}
-.mr-page .mr-journey-stamp .mr-postmark{position:absolute;right:calc(17 * var(--mr-u));bottom:calc(10 * var(--mr-u));width:calc(107 * var(--mr-u));height:calc(45 * var(--mr-u))}
-.mr-page .mr-journey-progress{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(379 * var(--mr-u))}
-.mr-page .mr-journey-progress .mr-progress-top{display:flex;justify-content:space-between;align-items:center;font-size:calc(13 * var(--mr-u))}
-.mr-page .mr-journey-progress .mr-remaining{font-size:calc(22 * var(--mr-u));color:#73805e}
-.mr-page .mr-journey-progress .mr-remaining small{font-size:calc(11 * var(--mr-u));margin-left:calc(3 * var(--mr-u))}
-.mr-page .mr-journey-progress .mr-bar{height:calc(8 * var(--mr-u));margin-top:calc(15 * var(--mr-u))}
-.mr-page .mr-journey-progress .mr-progress-bottom{margin-top:calc(10 * var(--mr-u));display:flex;justify-content:space-between;color:#919780;font-size:calc(11 * var(--mr-u))}
-.mr-page .mr-milestones{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(470 * var(--mr-u));display:flex;justify-content:space-between;font-size:calc(10 * var(--mr-u));color:#9a9e87}
-.mr-page .mr-milestones .mr-current{color:#697953}
-.mr-page .mr-unlock{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(511 * var(--mr-u));height:calc(143 * var(--mr-u))}
-.mr-page .mr-unlock>.mr-art{position:absolute;left:calc(6 * var(--mr-u));top:0;width:calc(143 * var(--mr-u));height:calc(143 * var(--mr-u));object-fit:contain}
-.mr-page .mr-unlock-copy{position:absolute;left:calc(162 * var(--mr-u));top:calc(18 * var(--mr-u))}
-.mr-page .mr-unlock-copy .mr-kicker{font-size:calc(8 * var(--mr-u));letter-spacing:calc(1.5 * var(--mr-u))}
-.mr-page .mr-unlock-copy h2{font-weight:normal;font-size:calc(28 * var(--mr-u));margin:calc(8 * var(--mr-u)) 0}
-.mr-page .mr-unlock-copy p{font-size:calc(10 * var(--mr-u));color:#8c967a;margin:0 0 calc(12 * var(--mr-u))}
-.mr-page .mr-unlock-copy .mr-owned{font-size:calc(10 * var(--mr-u));color:#778363;border:calc(1 * var(--mr-u)) solid #b4bea4;padding:calc(4 * var(--mr-u)) calc(7 * var(--mr-u))}
-.mr-page .mr-earn-heading{position:absolute;top:calc(680 * var(--mr-u));left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));display:flex;justify-content:space-between;align-items:center}
-.mr-page .mr-earn-heading h2{font-size:calc(18 * var(--mr-u));font-weight:normal;margin:0}
-.mr-page .mr-earn-row{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));height:calc(49 * var(--mr-u));border-bottom:calc(1 * var(--mr-u)) solid #c7c9b2;display:flex;align-items:center;padding-left:calc(54 * var(--mr-u));font-size:calc(13 * var(--mr-u))}
-.mr-page .mr-earn-row.mr-first{top:calc(718 * var(--mr-u))}
-.mr-page .mr-earn-row.mr-second{top:calc(774 * var(--mr-u))}
-.mr-page .mr-earn-row .mr-atlas{position:absolute;left:calc(2 * var(--mr-u));top:calc(5 * var(--mr-u));width:calc(42 * var(--mr-u));height:calc(38 * var(--mr-u))}
-.mr-page .mr-earn-row strong{font-size:calc(18 * var(--mr-u));font-weight:normal;color:#7b8567;margin-left:auto}
-.mr-page .mr-earn-row strong small{font-size:calc(10 * var(--mr-u))}
-.mr-page .mr-kicker,.mr-page .mr-brand,.mr-page .mr-issue,.mr-page .mr-section-en,.mr-page .mr-level-big,.mr-page .mr-stat strong,.mr-page .mr-speed strong,.mr-page .mr-balance,.mr-page .mr-product .mr-id{font-family:MorrowArchiveLatin,MorrowCompanionExtra,serif}
-.mr-page .mr-rename{width:calc(19 * var(--mr-u));height:calc(20 * var(--mr-u));line-height:calc(20 * var(--mr-u));display:inline-block}
-.mr-page .mr-profile-caption p{font-size:calc(11 * var(--mr-u));white-space:nowrap}
-.mr-page .mr-profile-caption .mr-like{width:calc(52 * var(--mr-u));padding:0;flex:none}
-.mr-page .mr-filter-row button{flex:none}
-.mr-page .mr-filter-row small{white-space:nowrap;flex:none}
-.mr-page .mr-shop-tabs button{width:calc(54 * var(--mr-u));flex:none}
-.mr-page .mr-search-copy{font-size:calc(12 * var(--mr-u));color:#929a80;position:absolute;left:calc(38 * var(--mr-u));top:calc(11 * var(--mr-u));pointer-events:none}
-.mr-page .mr-search input{width:calc(270 * var(--mr-u));position:absolute;left:calc(37 * var(--mr-u));top:calc(8 * var(--mr-u));height:calc(27 * var(--mr-u))}
-.mr-page .mr-search input::placeholder{color:transparent}
-.mr-page .mr-product>.mr-art{width:calc(108 * var(--mr-u));height:calc(95 * var(--mr-u));top:0;right:calc(29 * var(--mr-u))}
-.mr-page .mr-product h3{font-size:calc(16 * var(--mr-u));top:calc(94 * var(--mr-u));bottom:auto;line-height:calc(20 * var(--mr-u))}
-.mr-page .mr-product .mr-product-meta{bottom:calc(7 * var(--mr-u));font-size:calc(9 * var(--mr-u))}
-.mr-page .mr-product .mr-status{font-size:calc(8 * var(--mr-u))}
-.mr-page .mr-shop-heading .mr-kicker{font-size:calc(8 * var(--mr-u));letter-spacing:calc(1.5 * var(--mr-u))}
-.mr-page .mr-shop-heading .mr-balance{top:calc(16 * var(--mr-u))}
-.mr-page .mr-training-head .mr-section-en{font-size:calc(8 * var(--mr-u));letter-spacing:calc(1 * var(--mr-u))}
-
-.mr-page{margin:0 auto!important;display:block!important}
-.mr-page .mr-art{display:block}
-.mr-page .mr-back{display:flex;align-items:center;justify-content:flex-start;width:calc(40 * var(--mr-u));height:calc(40 * var(--mr-u));top:calc(-10 * var(--mr-u));padding:0;z-index:3}
-.mr-page .mr-name{display:flex;align-items:center;width:calc(136 * var(--mr-u));max-width:calc(136 * var(--mr-u));gap:calc(3 * var(--mr-u))}
-.mr-page .mr-name-label{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
-.mr-page .mr-name .mr-rename{flex:none;font-size:calc(14 * var(--mr-u));width:calc(19 * var(--mr-u));height:calc(30 * var(--mr-u));line-height:1;display:block}
-.mr-page .mr-profile-caption{gap:calc(8 * var(--mr-u));align-items:flex-start}
-.mr-page .mr-profile-caption p{white-space:normal;line-height:1.6;min-width:0;flex:1;max-height:calc(40 * var(--mr-u));overflow:auto;scrollbar-width:none}
-.mr-page .mr-profile-caption .mr-like{font-size:calc(11 * var(--mr-u));line-height:1.6;flex:none}
-.mr-page .mr-training button{min-height:44px}
-.mr-page .mr-actions button{white-space:nowrap}
-.mr-page .mr-actions button,.mr-page .mr-supply>button{text-align:center}
-.mr-page .mr-stat strong{font-size:clamp(16px,calc(27 * var(--mr-u)),35px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(110 * var(--mr-u))}
-.mr-page .mr-animal-progress .mr-progress-label{gap:calc(5 * var(--mr-u));font-size:calc(11 * var(--mr-u));white-space:nowrap}
-.mr-page .mr-animal-progress small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
-.mr-page .mr-search input{position:static!important;flex:1 1 0;width:0!important;min-width:0;height:100%!important;top:auto;left:auto;padding:0!important;font-size:max(16px,calc(12 * var(--mr-u)));line-height:normal!important;text-align:left;background:transparent!important}
-.mr-page .mr-search input::placeholder{color:#929a80!important;font-size:calc(12 * var(--mr-u));opacity:1}
-.mr-page .mr-search:focus-within{border-color:#79866a}
-.mr-page .mr-search-icon{flex:none}
-.mr-page .mr-balance{min-height:44px;font-size:calc(24 * var(--mr-u));max-width:calc(115 * var(--mr-u));white-space:nowrap;gap:calc(7 * var(--mr-u));line-height:1}
-.mr-page .mr-balance .mr-coin{flex:none}
-.mr-page .mr-shop-tabs button,.mr-page .mr-filter-row button{min-height:32px}
-.mr-page .mr-featured{text-align:left;display:block;width:calc(344 * var(--mr-u));padding:0;font-family:inherit;border:1px solid #aaa990}
-.mr-page .mr-featured-copy{z-index:1;max-width:calc(148 * var(--mr-u))}
-.mr-page .mr-featured-copy h2{max-width:calc(130 * var(--mr-u));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mr-page.mr-shop-page{height:auto;min-height:calc(844 * var(--mr-u));padding:calc(529 * var(--mr-u)) 0 calc(24 * var(--mr-u))!important;overflow:hidden}
-.mr-page .mr-shop-grid{position:relative;inset:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(12 * var(--mr-u));margin:0 calc(23 * var(--mr-u));width:auto}
-.mr-page .mr-product{display:block;position:relative;width:100%;height:calc(137 * var(--mr-u));margin:0!important;padding:0;overflow:hidden;background:#faf8ef;border-bottom:1px solid #c8cab4}
-.mr-page .mr-product h3{max-width:calc(148 * var(--mr-u));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mr-page .mr-product-meta{gap:calc(5 * var(--mr-u));white-space:nowrap}
-.mr-page .mr-product .mr-heart{line-height:1}
-.mr-page.mr-is-filtered{padding-top:calc(329 * var(--mr-u))!important}
-.mr-page.mr-is-filtered .mr-featured{display:none}
-.mr-page.mr-is-filtered .mr-collection-head{top:calc(294 * var(--mr-u))}
-.mr-page .mr-empty{grid-column:1/-1;text-align:center;padding:calc(35 * var(--mr-u)) calc(8 * var(--mr-u));font-size:calc(12 * var(--mr-u));color:#8c947b}
-.mr-page .mr-unlock-copy h2{max-width:calc(155 * var(--mr-u));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mr-page .mr-unlock-copy h2{line-height:1.2;margin:calc(7 * var(--mr-u)) 0}
-.mr-page .mr-unlock-copy p{line-height:1.3;margin-bottom:calc(8 * var(--mr-u))}
-.mr-page .mr-unlock-copy .mr-owned{display:inline-block;max-width:calc(165 * var(--mr-u));white-space:normal}
-.mr-page .mr-journey-progress .up-meter{margin-top:calc(15 * var(--mr-u));height:calc(8 * var(--mr-u));background:#dcdccd}
-.mr-page .mr-level-name{font-size:calc(11 * var(--mr-u));letter-spacing:calc(2 * var(--mr-u))}
-.mr-page .mr-level-rewards{position:relative;display:block;top:calc(844 * var(--mr-u));margin:0 auto calc(24 * var(--mr-u));min-height:40px;padding:8px 18px;border:1px solid #a3ad8d;border-radius:4px;font-size:13px;color:#657653}
-.mr-page.mr-journey-page:has(.mr-level-rewards){height:calc(920 * var(--mr-u))}
-.mr-page .mr-invite-note{position:absolute;left:calc(23 * var(--mr-u));right:calc(23 * var(--mr-u));top:calc(563 * var(--mr-u));border-top:1px solid #b7b99f;padding-top:calc(24 * var(--mr-u));font-size:calc(14 * var(--mr-u));color:#758165;line-height:2}
-.mr-page .mr-invite-actions .mr-select{width:100%}
-.mr-page.mr-supplies-page{padding-top:calc(210 * var(--mr-u))!important}
-.mr-page .mr-supplies{margin:0 calc(23 * var(--mr-u));padding-bottom:calc(30 * var(--mr-u))}
-.mr-page .mr-supply-for{font-size:calc(11 * var(--mr-u));color:#8a927c;line-height:1.8;margin-bottom:calc(10 * var(--mr-u))}
-.mr-page .mr-supply{display:grid;grid-template-columns:calc(112 * var(--mr-u)) minmax(0,1fr) calc(59 * var(--mr-u));gap:calc(8 * var(--mr-u));align-items:center;position:relative;border-top:1px solid #b6b99e;padding:calc(22 * var(--mr-u)) 0}
-.mr-page .mr-supply>img{width:100%;height:calc(112 * var(--mr-u));object-fit:contain}
-.mr-page .mr-supply h2{font-size:calc(20 * var(--mr-u));margin-bottom:calc(8 * var(--mr-u))}
-.mr-page .mr-supply p{font-size:calc(11 * var(--mr-u));line-height:1.8;color:#899079;margin-bottom:calc(9 * var(--mr-u))}
-.mr-page .mr-supply span{font-size:calc(18 * var(--mr-u));color:#7b8568;white-space:nowrap}
-.mr-page .mr-supply .mr-coin{width:calc(20 * var(--mr-u));height:calc(20 * var(--mr-u))}
-.mr-page .mr-supply>button{font-size:calc(12 * var(--mr-u));min-height:40px;width:100%;border:1px solid #9eac8d;border-radius:4px;align-self:end;margin-bottom:calc(8 * var(--mr-u));padding:calc(6 * var(--mr-u)) calc(10 * var(--mr-u));color:#6e7d5c}
+html body .courier-dialog.mr-design>#dialogBody{display:flex!important;flex:1 1 0;min-height:0;width:100%;padding:0!important;overflow:hidden!important}
+.mr2-page,.mr2-page *{box-sizing:border-box}
+.mr2-page{display:flex!important;flex-direction:column;width:100%;height:100%;min-height:0;margin:0;padding:0 22px!important;isolation:isolate;background:linear-gradient(115deg,#fbf9f0,#f5f2e6);font-family:MorrowArchiveLatin,MorrowCompanionExtra,MorrowArchiveSerif,serif!important;font-size:14px;line-height:1.45;color:#30382c}
+.mr2-page *{margin:0;padding:0;letter-spacing:normal;font-weight:400;font-style:normal;text-shadow:none;box-shadow:none}
+.mr2-page button,.mr2-page input{font:inherit;color:inherit;box-shadow:none!important;filter:none;transform:none;text-transform:none;letter-spacing:normal;appearance:none;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
+.mr2-page button{display:inline-block;position:static;min-width:0;min-height:0;width:auto;height:auto;background:none;border:0;border-radius:0;cursor:pointer;text-align:center}
+.mr2-page button:disabled{cursor:default;opacity:.48!important}
+.mr2-page button:focus-visible{outline:1px solid #7c886b;outline-offset:3px}
+.mr2-page .mr2-top{display:grid;grid-template-columns:80px minmax(0,1fr) 80px;align-items:center;flex:0 0 43px;min-height:43px;height:43px;padding:0!important;margin:0;border:0;border-bottom:1px solid #b4b59f;background:transparent;position:relative;z-index:2}
+.mr2-page .mr2-back{justify-self:start;display:flex;align-items:center;justify-content:flex-start;font:29px/1 MorrowArchiveLatin,serif;width:44px;height:42px;padding:0!important;border:0;background:none}
+.mr2-page .mr2-brand{display:block;text-align:center;white-space:nowrap;font:12px/1 MorrowArchiveLatin,serif;letter-spacing:5px;padding-left:5px;color:#333a2e}
+.mr2-page .mr2-issue{font:9px/1.2 MorrowArchiveLatin,serif;letter-spacing:1.3px;text-align:right;color:#989d84;white-space:nowrap}
+.mr2-page .mr2-body{display:block;flex:1 1 0;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:17px 0 18px}
+.mr2-page .mr2-body::-webkit-scrollbar{display:none}
+.mr2-page .mr2-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 13px;min-height:58px}
+.mr2-page .mr2-heading>div{min-width:0}
+.mr2-page .mr2-heading p{font:8px/1.5 MorrowArchiveLatin,serif;letter-spacing:2px;color:#8c947b;margin-bottom:5px;white-space:nowrap}
+.mr2-page .mr2-heading h1{font:400 29px/1.3 MorrowCompanionExtra,MorrowArchiveSerif,serif;letter-spacing:1px;color:#2d362a}
+.mr2-page .mr2-like{flex:none;min-height:34px;padding:5px 12px;border:1px solid #b5bba3;border-radius:20px;font-size:11px;white-space:nowrap;color:#849170}
+.mr2-page .mr2-like.is-liked{color:#a18c65}
+.mr2-page .mr2-art{display:block;min-width:0;line-height:0}
+.mr2-page .courier-art{display:block!important;position:relative!important;width:100%!important;height:100%!important;aspect-ratio:auto!important;background:transparent!important;background-image:none!important;border-radius:0!important;mix-blend-mode:normal!important;opacity:1!important;filter:none!important}
+.mr2-page .mr2-art img{display:block!important;position:static!important;inset:auto!important;width:100%!important;height:100%!important;object-fit:contain!important;border-radius:0!important;filter:none!important;transform:none!important}
+.mr2-page .mr2-profile{display:grid;grid-template-columns:minmax(0,.38fr) minmax(0,.62fr);align-items:center;gap:0;min-height:195px}
+.mr2-page .mr2-identity{min-width:0;padding-right:6px;position:relative;z-index:1}
+.mr2-page .mr2-name-row{display:flex;align-items:center;gap:5px;max-width:100%}
+.mr2-page .mr2-name-row h2{font:400 clamp(30px,10.5vw,43px)/1.2 MorrowCompanionExtra,MorrowArchiveSerif,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mr2-page .mr2-name-row button{font-size:13px;color:#98a087;flex:none;width:22px;height:35px}
+.mr2-page .mr2-identity>p{font-size:12px;color:#90977f;margin-top:13px;line-height:1.5;overflow-wrap:anywhere}
+.mr2-page .mr2-status{display:inline-block;font-size:10px;color:#7d8a6c;border:1px solid #bdc4ab;padding:4px 8px;border-radius:16px;margin-top:13px;white-space:nowrap}
+.mr2-page .mr2-portrait{width:100%;aspect-ratio:1;min-width:0}
+.mr2-page .mr2-trait{font-size:12px;line-height:1.7;color:#808b72;padding:10px 0 13px;margin-bottom:12px;border-bottom:1px solid #c8ccb9;overflow-wrap:anywhere}
+.mr2-page .mr2-speed-ticket{display:grid;grid-template-columns:101px minmax(0,1fr);align-items:center;gap:15px;border:1px solid #b6bba4;outline:1px solid #e0ddcd;outline-offset:-5px;padding:12px 15px;min-height:87px;background:#fbf9f03b}
+.mr2-page .mr2-speed{border-right:1px solid #ced0bc;padding-right:10px}
+.mr2-page .mr2-speed>div{display:flex;align-items:baseline;gap:4px;white-space:nowrap}
+.mr2-page .mr2-speed strong{font:39px/1 MorrowArchiveLatin,serif;letter-spacing:-1px}
+.mr2-page .mr2-speed span{font:10px/1 MorrowArchiveLatin,serif;color:#8c967c}
+.mr2-page .mr2-speed>small{display:block;font-size:10px;color:#919a81;margin-top:6px}
+.mr2-page .mr2-animal-growth{min-width:0}
+.mr2-page .mr2-growth-label{display:flex;align-items:baseline;justify-content:space-between;gap:6px;font-size:11px;white-space:nowrap}
+.mr2-page .mr2-growth-label small{font:10px/1.3 MorrowArchiveLatin,serif;color:#8e997f}
+.mr2-page .mr2-meter{display:block;height:6px;border-radius:8px;background:#dedfce;overflow:hidden;margin:10px 0 7px}
+.mr2-page .mr2-meter>span{display:block;height:100%;border-radius:inherit;background:#8d9877}
+.mr2-page .mr2-animal-growth>small{display:block;font-size:10px;color:#9ba28c;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mr2-page .mr2-stats{display:flex;align-items:center;padding:15px 0 14px;border-bottom:1px solid #bfc6ae;margin-bottom:14px}
+.mr2-page .mr2-stats>div{flex:1;min-width:0;text-align:center;border-right:1px solid #d5d8c6;padding:0 4px}
+.mr2-page .mr2-stats>div:last-child{border:0}
+.mr2-page .mr2-stats strong{display:block;font:26px/1.1 MorrowArchiveLatin,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mr2-page .mr2-stats small{display:block;margin-top:6px;font-size:10px;color:#939c82;letter-spacing:1px}
+.mr2-page .mr2-training-section h3{font:18px/1.4 MorrowCompanionExtra,MorrowArchiveSerif,serif;margin-bottom:9px}
+.mr2-page .mr2-training{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mr2-page .mr2-training button{display:flex;flex-direction:column;align-items:center;gap:5px;min-height:44px;padding:0;background:transparent!important;border:0!important;border-radius:0;min-width:0}
+.mr2-page .mr2-training img{display:block;width:100%;height:88px;object-fit:contain;border:0;border-radius:0;background:transparent!important;box-shadow:none!important;mix-blend-mode:normal!important}
+.mr2-page .mr2-training span{font-size:12px;line-height:1.5;color:#637454;white-space:nowrap}
+.mr2-page .mr2-footer{display:flex;gap:8px;flex:none;padding:12px 0 3px;margin:0;border-top:1px solid #c5cbb7;background:transparent}
+.mr2-page .mr2-footer button{flex:0 0 auto;min-height:44px;border:1px solid #b8c0a8;border-radius:5px;padding:8px 12px;font-size:12px;color:#7d8b6d;white-space:nowrap}
+.mr2-page .mr2-footer .mr2-primary{flex:1;min-width:0;background:#7d8969;color:#fffdf4;border-color:#7d8969}
+.mr2-page .mr2-invite-note{padding:24px 4px;font-size:14px;color:#78876a;line-height:1.9}
+.mr2-page .mr2-invite-note small{display:block;margin-top:8px;font-size:12px;color:#9aa18d}
+.mr2-page .mr2-coin{display:inline-block;width:24px;height:24px;object-fit:contain;vertical-align:middle;flex:none}
+/* User journey */
+.mr2-page .mr2-level-ticket{display:grid;grid-template-columns:minmax(0,1fr) 117px;align-items:center;gap:4px;min-height:177px;padding:17px 15px;border:1px solid #aeb79b;outline:1px solid #dddcca;outline-offset:-5px;position:relative;background:#faf8ed66}
+.mr2-page .mr2-level-copy{min-width:0;position:relative;z-index:1}
+.mr2-page .mr2-level-copy>p{font-size:11px;color:#919b80;margin-bottom:10px}
+.mr2-page .mr2-level-copy h2{font:71px/1.05 MorrowArchiveLatin,serif;letter-spacing:-3px;white-space:nowrap}
+.mr2-page .mr2-level-copy h2.is-wide{font-size:59px}
+.mr2-page .mr2-level-copy h2 small{font:16px/1 MorrowArchiveLatin,serif;letter-spacing:0;color:#9fa58e;margin-left:8px}
+.mr2-page .mr2-level-copy>span{display:block;margin-top:15px;font-size:10px;line-height:1.5;color:#929d82}
+.mr2-page .mr2-level-leaf{width:117px;height:136px;background:url('morrow-assets/wallet-illustrations.png') 0 0/300% 300% no-repeat;opacity:.76;pointer-events:none}
+.mr2-page .mr2-user-progress{padding:19px 0 15px}
+.mr2-page .mr2-progress-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:13px;color:#626f55}
+.mr2-page .mr2-progress-heading strong{font:26px/1.1 MorrowArchiveLatin,serif;color:#7f8b69}
+.mr2-page .mr2-progress-heading strong small{font:10px/1 MorrowArchiveLatin,serif;margin-left:4px}
+.mr2-page .mr2-user-progress .mr2-meter{height:7px;margin:13px 0 9px}
+.mr2-page .mr2-progress-label{display:flex;justify-content:space-between;gap:8px;font:11px/1.4 MorrowArchiveLatin,MorrowCompanionExtra,serif;color:#9aa18c}
+.mr2-page .mr2-milestones{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:#a0a690;margin-top:17px}
+.mr2-page .mr2-milestones>span:nth-child(2){color:#71805e}
+.mr2-page .mr2-unlock{display:flex;align-items:center;gap:15px;padding:9px 12px;border:1px solid #bdc4ab;background:#fbf9f03b;min-height:139px}
+.mr2-page .mr2-unlock>.mr2-art{flex:0 0 114px;width:114px;height:114px}
+.mr2-page .mr2-unlock>div{flex:1;min-width:0}
+.mr2-page .mr2-unlock p{font-size:11px;color:#929d80;line-height:1.5}
+.mr2-page .mr2-unlock h3{font:24px/1.3 MorrowCompanionExtra,MorrowArchiveSerif,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:7px 0 9px}
+.mr2-page .mr2-unlock>div>span{display:block;font-size:10px;color:#9aa58a;line-height:1.6;overflow-wrap:anywhere}
+.mr2-page .mr2-earn{margin-top:20px}
+.mr2-page .mr2-earn h3{font:18px/1.5 MorrowCompanionExtra,MorrowArchiveSerif,serif;margin-bottom:7px}
+.mr2-page .mr2-earn>div{display:flex;align-items:center;gap:12px;min-height:54px;padding:7px 0;border-bottom:1px solid #d3d8c3;font-size:13px}
+.mr2-page .mr2-earn i{display:block;width:36px;height:34px;flex:none;background-image:url('morrow-assets/wallet-illustrations.png');background-repeat:no-repeat;background-size:300% 300%}
+.mr2-page .mr2-envelope{background-position:0 50%}
+.mr2-page .mr2-postcard{background-position:50% 50%}
+.mr2-page .mr2-earn strong{margin-left:auto;font:20px/1 MorrowArchiveLatin,serif;white-space:nowrap;color:#7f8b69}
+.mr2-page .mr2-earn strong small{font:10px/1 MorrowArchiveLatin,serif}
+.mr2-page .mr2-level-rewards{display:block;width:100%;min-height:44px;border:1px solid #a5b391;border-radius:5px;margin-top:20px;padding:9px 14px;font-size:13px;color:#71835d}
+/* Shop: a larger illustration grid, no duplicate featured animal. */
+.mr2-page .mr2-balance{display:flex;align-items:center;justify-content:center;gap:7px;min-height:39px;min-width:82px;max-width:118px;border:1px solid #c2bd9c;border-radius:23px;padding:5px 11px;white-space:nowrap;flex:none}
+.mr2-page .mr2-balance>span{font:24px/1 MorrowArchiveLatin,serif;flex:none;min-width:24px;overflow:visible}
+.mr2-page .mr2-balance>.mr2-coin{width:27px;height:27px}
+.mr2-page .mr2-shop-tabs{display:flex;align-items:center;gap:26px;border-bottom:1px solid #c3cbb3;margin-bottom:17px}
+.mr2-page .mr2-shop-tabs button{font-size:16px;color:#9ca58e;padding:8px 4px 12px;min-height:40px;border-bottom:2px solid transparent}
+.mr2-page .mr2-shop-tabs .is-active{color:#596b4a;border-bottom-color:#879873}
+.mr2-page .mr2-search{display:flex;align-items:center;gap:12px;min-width:0;height:43px;padding:0 13px;border:1px solid #bac3a9;border-radius:6px;background:#fbfaf366;margin:0}
+.mr2-page .mr2-search>span{display:block;position:relative;flex:0 0 15px;width:15px;height:15px;border:1px solid #8b9a78;border-radius:50%}
+.mr2-page .mr2-search>span:after{content:'';position:absolute;right:-5px;bottom:-3px;width:7px;border-top:1px solid #8b9a78;transform:rotate(45deg)}
+.mr2-page .mr2-search input{display:block;flex:1 1 0;min-width:0;width:0;height:100%;padding:0!important;margin:0!important;border:0!important;border-radius:0;background:none!important;outline:none!important;box-shadow:none!important;font-size:16px;line-height:normal;text-align:left}
+.mr2-page .mr2-search input::placeholder{color:#9ba78b;opacity:1;font-size:12px}
+.mr2-page .mr2-search:focus-within{border-color:#879a70}
+.mr2-page .mr2-filters{display:flex;align-items:center;gap:18px;margin:10px 0 14px;min-height:31px}
+.mr2-page .mr2-filters button{font-size:11px;min-height:31px;padding:5px 0;border-bottom:1px solid transparent;color:#a1aa93;white-space:nowrap}
+.mr2-page .mr2-filters .is-active{border-color:#a4b390;color:#72865d}
+.mr2-page .mr2-filters small{font-size:10px;color:#a4ac95;white-space:nowrap;margin-left:auto}
+.mr2-page .mr2-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 17px}
+.mr2-page .mr2-shop-card{display:block;width:100%;min-width:0;padding:0 0 11px;text-align:left;border-bottom:1px solid #c9d0b9;background:none!important;border-radius:0;overflow:hidden}
+.mr2-page .mr2-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:23px;font:9px/1 MorrowArchiveLatin,serif;letter-spacing:2px;color:#a0ab90;padding:0 2px}
+.mr2-page .mr2-card-top>span:first-child{letter-spacing:2px}
+.mr2-page .mr2-heart{font-size:20px;line-height:1;color:#ad9c75}
+.mr2-page .mr2-shop-card>.mr2-art{width:100%;aspect-ratio:1;margin:2px 0 7px}
+.mr2-page .mr2-card-info{display:flex;align-items:baseline;gap:9px;min-width:0;padding:0 2px}
+.mr2-page .mr2-card-info>strong{font-size:20px;line-height:1.4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mr2-page .mr2-card-info>span{font:13px/1.4 MorrowArchiveLatin,serif;color:#8e9e7c;white-space:nowrap;flex:none}
+.mr2-page .mr2-card-info small{font-size:10px}
+.mr2-page .mr2-card-state{display:flex;align-items:center;justify-content:space-between;gap:5px;min-height:23px;font-size:10px;color:#a1ad91;padding:3px 2px 0}
+.mr2-page .mr2-price{display:inline-flex;align-items:center;gap:4px;font:12px/1 MorrowArchiveLatin,serif;white-space:nowrap;color:#a08e67}
+.mr2-page .mr2-price .mr2-coin{width:14px;height:14px}
+.mr2-page .mr2-empty{grid-column:1/-1;text-align:center;color:#9aa68a;padding:35px 5px;font-size:12px}
+.mr2-page .mr2-supplies>p{font-size:11px;color:#9ba78b;line-height:1.8;margin:12px 0}
+.mr2-page .mr2-supplies article{display:grid;grid-template-columns:100px minmax(0,1fr) 55px;gap:12px;align-items:center;border-bottom:1px solid #c8d0b9;padding:18px 0}
+.mr2-page .mr2-supplies article>img{width:100%;height:106px;object-fit:contain}
+.mr2-page .mr2-supplies h3{font-size:20px;margin-bottom:7px}
+.mr2-page .mr2-supplies article p{font-size:10px;line-height:1.8;color:#9ba78b;margin-bottom:9px}
+.mr2-page .mr2-supplies article span{font:17px/1 MorrowArchiveLatin,serif;color:#8f9e7c;white-space:nowrap}
+.mr2-page .mr2-supplies article .mr2-coin{width:19px;height:19px}
+.mr2-page .mr2-supplies article>button{min-height:39px;border:1px solid #b2c09f;border-radius:5px;padding:6px 8px;font-size:12px;color:#8a9c76}
+@media(max-width:350px){.mr2-page{padding-left:17px!important;padding-right:17px!important}.mr2-page .mr2-top{grid-template-columns:66px minmax(0,1fr) 66px}.mr2-page .mr2-issue{font-size:8px;letter-spacing:1px}.mr2-page .mr2-profile{min-height:174px}.mr2-page .mr2-name-row h2{font-size:32px}.mr2-page .mr2-speed-ticket{grid-template-columns:84px minmax(0,1fr);gap:10px;padding:12px}.mr2-page .mr2-growth-label{font-size:10px;gap:4px}.mr2-page .mr2-growth-label small{font-size:9px}.mr2-page .mr2-footer button{padding:8px 9px;font-size:11px}.mr2-page .mr2-level-ticket{grid-template-columns:minmax(0,1fr) 90px;padding:17px 13px;min-height:166px}.mr2-page .mr2-level-leaf{width:90px;height:120px}.mr2-page .mr2-level-copy h2{font-size:59px}.mr2-page .mr2-level-copy h2.is-wide{font-size:50px}.mr2-page .mr2-level-copy h2 small{font-size:14px;margin-left:6px}.mr2-page .mr2-unlock{padding:8px;gap:10px}.mr2-page .mr2-unlock>.mr2-art{width:96px;height:104px;flex-basis:96px}.mr2-page .mr2-card-info{gap:6px}.mr2-page .mr2-card-info>strong{font-size:19px}.mr2-page .mr2-supplies article{grid-template-columns:82px minmax(0,1fr) 47px;gap:8px}}
+@media(min-width:450px){.mr2-page .mr2-portrait{max-height:245px}.mr2-page .mr2-profile{min-height:228px}.mr2-page .mr2-training img{height:100px}}
 @supports not(height:100dvh){html body .courier-dialog.courier-sheet.mr-design{height:100vh!important;max-height:100vh!important}}
 </style></head><body><svg width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"><defs><filter id="morrow-liquid-lens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage id="liquidMap" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="lens"/><feDisplacementMap in="SourceGraphic" in2="lens" scale="15" xChannelSelector="R" yChannelSelector="G"/></filter></defs></svg>
 <div class="app" id="app"><header><button class="brand" data-go="world" aria-label="回到世界">morrow<span>THE WORLD BETWEEN US</span></button><button class="circle" id="settingsButton" aria-label="邮局设置"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/></svg></button></header><div id="banner"></div><main>
@@ -2020,19 +1929,18 @@ function renderCouriers(){
  const html=items.map(i=>crGalleryCard(i)).join('')||'<div class="cr-empty">这里还没有伙伴。</div>';if($('animalGrid').dataset.signature!==html){$('animalGrid').innerHTML=html;$('animalGrid').dataset.signature=html}
  document.querySelectorAll('[data-animal-filter]').forEach(x=>x.classList.toggle('active',x.dataset.animalFilter===animalFilter));
 }
-function crOpen(title,body){document.querySelector('.cr-header-wallet')?.remove();openDialog(title,body);const d=$('overlay').querySelector('.dialog');d.classList.add('courier-dialog');d.dataset.courierMode=crMode;if(crMode==='wallet'){d.querySelector('.dialog-head').insertAdjacentHTML('beforeend',mwPostmark());const back=d.querySelector('.close');back.dataset.walletInitialFocus='1';back.addEventListener('blur',()=>delete back.dataset.walletInitialFocus,{once:true})}if(crMode==='shop'){const wallet=d.querySelector('.cr-shop .cr-wallet');if(wallet){wallet.classList.add('cr-header-wallet');d.querySelector('.dialog-head').appendChild(wallet)}}if(['detail','wallet','shop','userProgress'].includes(crMode)){d.classList.add('courier-sheet');d.querySelector('.close').textContent='‹';d.querySelector('.close').setAttribute('aria-label','返回')}d.classList.toggle('mr-design',!!d.querySelector('.mr-page'));if(d.classList.contains('mr-design'))d.querySelector('.mr-back')?.focus({preventScroll:true})}
-function mrHeader(issue){return `<header class="mr-top"><button type="button" class="mr-back" data-act="close" aria-label="返回">‹</button><span class="mr-brand">MORROW</span><span class="mr-issue">${issue}</span></header>`}
-function mrArt(i,cls=''){return `<span class="mr-art ${cls}">${art(i)}</span>`}
-function mrCoin(){return '<img class="mr-coin" src="morrow-assets/ui-postal-coin.png" alt="邮币" width="28" height="28">'}
-function mrShopCard(i){const own=unlocked(i),a=courierState().animals[i];return `<button type="button" class="mr-product" data-cr-detail="${i}" aria-label="查看${esc(crName(i))}，${own?'已拥有':crPrice(i)+'邮币'}"><span class="mr-id">No. ${String(i+1).padStart(3,'0')}</span>${mrArt(i)}<span class="mr-heart" aria-hidden="true">${a.favorite?'♥':'♡'}</span><h3>${esc(crName(i))}</h3><div class="mr-product-meta"><span>${own?courierSpeed(i):SPEEDS[i]} km/h</span><span class="mr-status">${own?'已拥有':'邮币 '+crPrice(i)}</span></div></button>`}
-function mrFeatured(i){const own=unlocked(i);return `<button type="button" class="mr-featured mr-stamp" data-cr-detail="${i}" aria-label="查看${esc(crName(i))}的档案"><div class="mr-featured-copy"><p class="mr-kicker">MEET YOUR FIRST FRIEND</p><h2>${esc(crName(i))}</h2><p class="mr-desc">把路上的春天<br>送到你的身边。</p><span class="mr-owned">${own?'已拥有 · '+courierSpeed(i)+' km/h':'邮币 '+crPrice(i)}</span></div>${mrArt(i)}<span class="mr-heart" aria-hidden="true">${courierState().animals[i].favorite?'♥':'♡'}</span></button>`}
+function crOpen(title,body){document.querySelector('.cr-header-wallet')?.remove();openDialog(title,body);const d=$('overlay').querySelector('.dialog');d.classList.add('courier-dialog');d.dataset.courierMode=crMode;if(crMode==='wallet'){d.querySelector('.dialog-head').insertAdjacentHTML('beforeend',mwPostmark());const back=d.querySelector('.close');back.dataset.walletInitialFocus='1';back.addEventListener('blur',()=>delete back.dataset.walletInitialFocus,{once:true})}if(crMode==='shop'){const wallet=d.querySelector('.cr-shop .cr-wallet');if(wallet){wallet.classList.add('cr-header-wallet');d.querySelector('.dialog-head').appendChild(wallet)}}if(['detail','wallet','shop','userProgress'].includes(crMode)){d.classList.add('courier-sheet');d.querySelector('.close').textContent='‹';d.querySelector('.close').setAttribute('aria-label','返回')}d.classList.toggle('mr-design',!!d.querySelector('.mr2-page'));if(d.classList.contains('mr-design'))d.querySelector('.mr2-back')?.focus({preventScroll:true})}
+function mrHeader(issue){return `<div class="mr2-top" role="banner"><button type="button" class="mr2-back" data-act="close" aria-label="返回">‹</button><span class="mr2-brand">MORROW</span><span class="mr2-issue">${issue}</span></div>`}
+function mrArt(i,cls=''){return `<span class="mr2-art ${cls}">${art(i)}</span>`}
+function mrCoin(){return '<img class="mr2-coin" src="morrow-assets/ui-postal-coin.png" alt="邮币" width="24" height="24">'}
+function mrShopCard(i){const own=unlocked(i),a=courierState().animals[i];return `<button type="button" class="mr2-shop-card" data-cr-detail="${i}" aria-label="查看${esc(crName(i))}，${own?'已拥有':crPrice(i)+'邮币'}"><span class="mr2-card-top"><span>No. ${String(i+1).padStart(2,'0')}</span><span class="mr2-heart" aria-hidden="true">${a.favorite?'♥':'♡'}</span></span>${mrArt(i)}<span class="mr2-card-info"><strong>${esc(crName(i))}</strong><span>${own?courierSpeed(i):SPEEDS[i]} <small>km/h</small></span></span><span class="mr2-card-state">${own?(S.animal===i?'当前伙伴':'已拥有'):'Lv.'+(i+1)+' 解锁'}${own?'':`<span class="mr2-price">${mrCoin()}${crPrice(i)}</span>`}</span></button>`}
 function openUserProgress(){
  cancelCourierTraining();crMode='userProgress';const c=courierState(),p=growthProgress(c.userXp,userNeed),max=p.level===52,left=max?0:Math.max(0,p.need-p.current),next=p.level,waiting=Object.values(c.levelRewards).filter(x=>!x.claimed).length;
- crOpen('用户等级',`<main class="mr-page mr-journey-page">${mrHeader('MY JOURNEY')}<div class="mr-journey-title"><h1 class="mr-title">用户等级</h1><p class="mr-kicker">EVERY LETTER IS A LITTLE FURTHER</p></div><section class="mr-journey-stamp mr-stamp"><div class="mr-level-copy"><p class="mr-kicker">YOUR JOURNEY</p><div class="mr-level-big">Lv.${p.level}<small>/ 52</small></div><div class="mr-level-name">${max?'52 位伙伴，一路同行':'每一封信，都是旅程'}</div></div><i class="mr-atlas mr-branch" aria-hidden="true"></i><i class="mr-atlas mr-postmark" aria-hidden="true"></i></section><section class="mr-journey-progress"><div class="mr-progress-top"><span>${max?'已达到最高等级':'距离 Lv.'+(p.level+1)+' 还差'}</span><span class="mr-remaining">${left}<small>XP</small></span></div><div class="mr-bar up-meter" role="progressbar" aria-label="用户升级经验" aria-valuemin="0" aria-valuemax="${max?1:p.need}" aria-valuenow="${max?1:p.current}"><span style="width:${max?100:Math.min(100,p.current/p.need*100)}%"></span></div><div class="mr-progress-bottom"><span>${max?'等级已满':p.current+' / '+p.need+' XP'}</span><span>累计 ${Math.max(0,Number(c.userXp)||0)} XP</span></div></section><div class="mr-milestones"><span>${p.level>1?'✓ Lv.'+(p.level-1)+' · 已完成':'Lv.1 · 旅程起点'}</span><span class="mr-current">● Lv.${p.level} · 当前</span><span>${max?'最高等级':'Lv.'+(p.level+1)+' · 下一站'}</span></div>${max?`<section class="mr-unlock mr-ticket mr-max-level">${mrArt(51)}<div class="mr-unlock-copy"><p class="mr-kicker">THE JOURNEY CONTINUES</p><h2>一路同行</h2><p>每封信，都是新的相遇</p></div></section>`:`<section class="mr-unlock mr-ticket">${mrArt(next)}<div class="mr-unlock-copy"><p class="mr-kicker">YOUR NEXT COMPANION</p><h2>${esc(SPECIES[next])}</h2><p>下一级 · Lv.${p.level+1}</p><span class="mr-owned">${unlocked(next)?'✓ 已提前拥有这位伙伴':'升级后免费解锁'}</span></div></section>`}<div class="mr-earn-heading"><h2>如何获得用户经验</h2><span class="mr-section-en">WAYS TO GROW</span></div><div class="mr-earn-row mr-first"><i class="mr-atlas mr-envelope" aria-hidden="true"></i><span>寄出的信送达</span><strong>+10 <small>XP</small></strong></div><div class="mr-earn-row mr-second"><i class="mr-atlas mr-postcard" aria-hidden="true"></i><span>收到来信</span><strong>+5 <small>XP</small></strong></div>${waiting?`<button type="button" class="mr-level-rewards" data-cr="wallet">${waiting} 份升级奖励待领取</button>`:''}</main>`);
+ crOpen('用户等级',`<main class="mr2-page mr2-journey">${mrHeader('MY JOURNEY')}<div class="mr2-body"><div class="mr2-heading"><div><p>YOUR JOURNEY</p><h1>用户等级</h1></div></div><section class="mr2-level-ticket"><div class="mr2-level-copy"><p>当前等级</p><h2 class="${p.level>=10?'is-wide':''}">Lv.${p.level}<small>/ 52</small></h2><span>${max?'已达到最高等级':'共 52 级'}</span></div><div class="mr2-level-leaf" aria-hidden="true"></div></section><section class="mr2-user-progress"><div class="mr2-progress-heading"><span>${max?'已达到最高等级':'距离 Lv.'+(p.level+1)+' 还差'}</span><strong>${left}<small>XP</small></strong></div><div class="mr2-meter" role="progressbar" aria-label="用户升级经验" aria-valuemin="0" aria-valuemax="${max?1:p.need}" aria-valuenow="${max?1:p.current}"><span style="width:${max?100:Math.min(100,p.current/p.need*100)}%"></span></div><div class="mr2-progress-label"><span>${max?'等级已满':p.current+' / '+p.need+' XP'}</span><span>累计 ${Math.max(0,Number(c.userXp)||0)} XP</span></div><div class="mr2-milestones"><span>${p.level>1?'✓ Lv.'+(p.level-1):'旅程起点'}</span><span>● Lv.${p.level}</span><span>${max?'最高等级':'Lv.'+(p.level+1)+' 下一站'}</span></div></section>${max?`<section class="mr2-unlock mr2-max-level">${mrArt(51)}<div><p>52 位伙伴</p><h3>一路同行</h3><span>旅程还在继续</span></div></section>`:`<section class="mr2-unlock">${mrArt(next)}<div><p>下一位伙伴 · Lv.${p.level+1}</p><h3>${esc(SPECIES[next])}</h3><span>${unlocked(next)?'✓ 已提前拥有这位伙伴':'升级后免费解锁'}</span></div></section>`}<section class="mr2-earn"><h3>如何获得用户经验</h3><div><i class="mr2-envelope" aria-hidden="true"></i><span>寄出的信送达</span><strong>+10 <small>XP</small></strong></div><div><i class="mr2-postcard" aria-hidden="true"></i><span>收到来信</span><strong>+5 <small>XP</small></strong></div></section>${waiting?`<button type="button" class="mr2-level-rewards" data-cr="wallet">${waiting} 份升级奖励待领取</button>`:''}</div></main>`);
 }
 function openCourier(i){
  cancelCourierTraining();if(!Number.isInteger(i)||i<0||i>=52)return;crDetail=i;crMode='detail';const own=unlocked(i),p=courierProgress(i),a=courierState().animals[i];
- crOpen('信使档案',`<main class="mr-page mr-detail-page ${own?'':'mr-locked-page'}">${mrHeader('No. '+String(i+1).padStart(3,'0'))}<div class="mr-passport-title"><p class="mr-kicker">COURIER PASSPORT</p><h1 class="mr-title">信使档案</h1></div><i class="mr-atlas mr-postmark mr-passport-no" aria-hidden="true"></i><section class="mr-profile-hero">${mrArt(i,'mr-animal')}<div class="mr-identity"><p class="mr-kicker">MY COMPANION</p><h2 class="mr-name"><span class="mr-name-label">${esc(crName(i))}</span>${own?`<button type="button" class="mr-rename" data-cr="rename" data-i="${i}" aria-label="修改名字">✎</button>`:''}</h2><div class="mr-species mr-muted">${esc(SPECIES[i])}</div><span class="mr-rest">${own?'● '+crStatus(i):'Lv.'+(i+1)+' 解锁'}</span></div></section><div class="mr-profile-caption"><p>${esc(TRAITS[i])}</p><button type="button" class="mr-like" data-cr="favorite" data-i="${i}" aria-pressed="${!!a.favorite}" aria-label="${a.favorite?'取消喜欢':'喜欢'}">${a.favorite?'♥':'♡'} 喜欢</button></div><section class="mr-speed-ticket mr-ticket"><div class="mr-speed"><strong>${own?courierSpeed(i):SPEEDS[i]}</strong><span class="mr-unit">km/h</span><small>${own?'送信速度':'初始送信速度'}</small></div><div class="mr-animal-progress"><div class="mr-progress-label"><span>${own?'信使 Lv.'+p.level:'用户 Lv.'+(i+1)+' 解锁'}</span><span class="mr-muted">${own?(p.level===52?'已满级':p.current+' / '+p.need+' XP'):''}</span></div><div class="mr-bar"><span style="width:${own?(p.level===52?100:Math.min(100,p.current/p.need*100)):0}%"></span></div><small>${own?(p.level===52?'训练还能让它更熟悉邮路':'下一级 · '+courierSpeed(i,p.level+1)+' km/h'):'也可以攒邮币提前邀请'}</small></div></section>${own?`<section class="mr-stats"><div class="mr-stat"><strong>${a.trips}</strong><small>完成旅程</small></div><div class="mr-stat"><strong>${Math.round(a.km).toLocaleString()}</strong><small>累计公里</small></div><div class="mr-stat"><strong>${a.affection}</strong><small>亲密度</small></div></section><div class="mr-training-head"><h2 class="mr-section-title">训练与养护</h2><span class="mr-section-en">A LITTLE EVERY DAY</span></div><section class="mr-training"><button type="button" data-cr="train" data-i="${i}" data-kind="route"><img src="morrow-assets/ui-route.webp" alt="地图和信封" width="240" height="240"><span>路线练习</span></button><button type="button" data-cr="train" data-i="${i}" data-kind="dodge"><img src="morrow-assets/ui-dodge.webp" alt="避障训练" width="240" height="240"><span>避障练习</span></button><button type="button" data-cr="care" data-i="${i}" data-kind="feed"><img src="morrow-assets/ui-feed.webp" alt="喂食" width="240" height="240"><span>${a.food?'喂食 · 点心 '+a.food:'喂食'}</span></button></section><footer class="mr-actions"><button type="button" class="mr-touch" data-cr="care" data-i="${i}" data-kind="pet">摸摸</button><button type="button" class="mr-care" data-cr="shop" data-shop-tab="supplies">养护用品</button><button type="button" class="mr-select" data-cr="select" data-i="${i}">${S.animal===i?'让它送下一封信':'选为送信伙伴'}</button></footer>`:`<section class="mr-invite-note"><p>达到用户 Lv.${i+1} 后免费解锁</p><p>也可以使用邮币，提前邀请这位伙伴。</p></section><footer class="mr-actions mr-invite-actions"><button type="button" class="mr-select" data-cr="buy" data-i="${i}" ${courierState().balance<crPrice(i)?'disabled':''}>${courierState().balance<crPrice(i)?'还差 '+(crPrice(i)-courierState().balance)+' 邮币':crPrice(i)+' 邮币 · 邀请这位伙伴'}</button></footer>`}</main>`);
+ crOpen('信使档案',`<main class="mr2-page mr2-detail">${mrHeader('No. '+String(i+1).padStart(2,'0'))}<div class="mr2-body"><div class="mr2-heading"><div><p>COURIER PASSPORT</p><h1>信使档案</h1></div><button type="button" class="mr2-like ${a.favorite?'is-liked':''}" data-cr="favorite" data-i="${i}" aria-pressed="${!!a.favorite}" aria-label="${a.favorite?'取消喜欢':'喜欢'}">${a.favorite?'♥':'♡'} 喜欢</button></div><section class="mr2-profile"><div class="mr2-identity"><div class="mr2-name-row"><h2>${esc(crName(i))}</h2>${own?`<button type="button" data-cr="rename" data-i="${i}" aria-label="修改名字">✎</button>`:''}</div><p>${esc(SPECIES[i])}</p><span class="mr2-status">${own?'● '+crStatus(i):'Lv.'+(i+1)+' 解锁'}</span></div>${mrArt(i,'mr2-portrait')}</section><p class="mr2-trait">${esc(TRAITS[i])}</p><section class="mr2-speed-ticket"><div class="mr2-speed"><div><strong>${own?courierSpeed(i):SPEEDS[i]}</strong><span>km/h</span></div><small>${own?'送信速度':'初始送信速度'}</small></div><div class="mr2-animal-growth"><div class="mr2-growth-label"><span>${own?'信使 Lv.'+p.level:'用户 Lv.'+(i+1)+' 解锁'}</span><small>${own?(p.level===52?'已满级':p.current+' / '+p.need+' XP'):''}</small></div><div class="mr2-meter"><span style="width:${own?(p.level===52?100:Math.min(100,p.current/p.need*100)):0}%"></span></div><small>${own?(p.level===52?'训练还能让它更熟悉邮路':'下一级 · '+courierSpeed(i,p.level+1)+' km/h'):'也可以用邮币提前邀请'}</small></div></section>${own?`<section class="mr2-stats"><div><strong>${a.trips}</strong><small>完成旅程</small></div><div><strong>${Math.round(a.km).toLocaleString()}</strong><small>累计公里</small></div><div><strong>${a.affection}</strong><small>亲密度</small></div></section><section class="mr2-training-section"><h3>训练与养护</h3><div class="mr2-training"><button type="button" data-cr="train" data-i="${i}" data-kind="route"><img src="morrow-assets/ui-route-cutout.png" alt="路线练习" width="256" height="256"><span>路线练习</span></button><button type="button" data-cr="train" data-i="${i}" data-kind="dodge"><img src="morrow-assets/ui-dodge-cutout.png" alt="避障练习" width="256" height="256"><span>避障练习</span></button><button type="button" data-cr="care" data-i="${i}" data-kind="feed"><img src="morrow-assets/ui-feed-cutout.png" alt="喂食" width="256" height="256"><span>${a.food?'喂食 · 点心 '+a.food:'喂食'}</span></button></div></section>`:`<div class="mr2-invite-note"><p>达到用户 Lv.${i+1} 后免费解锁</p><small>也可以攒邮币，提前邀请这位伙伴。</small></div>`}</div><div class="mr2-footer">${own?`<button type="button" data-cr="care" data-i="${i}" data-kind="pet">摸摸</button><button type="button" data-cr="shop" data-shop-tab="supplies">养护用品</button><button type="button" class="mr2-primary" data-cr="select" data-i="${i}">${S.animal===i?'让它送下一封信':'选为送信伙伴'}</button>`:`<button type="button" class="mr2-primary" data-cr="buy" data-i="${i}" ${courierState().balance<crPrice(i)?'disabled':''}>${courierState().balance<crPrice(i)?'还差 '+(crPrice(i)-courierState().balance)+' 邮币':crPrice(i)+' 邮币 · 邀请这位伙伴'}</button>`}</div></main>`);
 }
 async function careCourier(i,type){mcEnsureGrowth();if(cleanupLocked()||!unlocked(i))return;if(crStatus(i)==='送信中'){showToast('它正在送信，回来再陪它吧');return}const a=courierState().animals[i],day=crDay(),key=day+':'+type;if(a.care[key]){showToast('今天已经'+(type==='feed'?'喂过它':'摸过它')+'了');return}a.care[key]=true;S.care[i+'-'+type]=Date.now();a.affection+=type==='feed'?2:1;addCourierXp(i,type==='feed'?5:3,'care:'+i+':'+key,{careKey:key,affection:type==='feed'?2:1});noteCourierTask('care',i+':'+key);await persist();render();if(crDetail===i)openCourier(i);showToast(type==='feed'?'喂食完成 · +5 XP':'摸摸完成 · +3 XP')}
 
@@ -2053,12 +1961,12 @@ function mwDate(at){const d=new Date(at),pad=v=>String(v).padStart(2,'0');return
 function openWallet(){cancelCourierTraining();crMode='wallet';const c=courierState(),t=crTaskState(),rewards=Object.entries(c.levelRewards).filter(([,r])=>!r.claimed),claimed=CR_TASKS.filter(([id])=>t.claimed[id]).length;
 crOpen('邮币钱包',`<div class="mw-page"><div class="mw-hero"><div class="mw-hero-copy"><h2 class="mw-balance-title">邮币钱包</h2><strong class="mw-balance" data-digits="${Math.min(6,String(c.balance).length)}">${c.balance}</strong><p class="mw-available">可用邮币</p></div>${mwBranch('mw-hero-branch')}<button class="mw-shop" data-cr="shop" aria-label="信使商店">${mwFrame('shop')}${mwCoin('mw-shop-coin')}<span>信使商店</span></button></div><div class="mw-task-heading"><h3>今日任务</h3><div class="mw-progress" aria-label="今日已领取 ${claimed} 项，共4项"><span>${claimed} / 4</span><span class="mw-progress-track"><i style="width:${claimed/4*100}%"></i></span></div></div><div class="mw-task-grid">${CR_TASKS.map(([id,label,coins],i)=>`<article class="mw-task-card ${t.claimed[id]?'is-claimed':t.done[id]?'is-ready':''}">${mwFrame('card',i%2)}<span class="mw-task-icon">${mwTaskIcon(id)}</span><span class="mw-task-number">${String(i+1).padStart(2,'0')}</span><h4>${esc(label)}</h4><span class="mw-reward">+${coins}${mwCoin()}</span><button class="mw-task-status" data-cr-task="${id}" ${!t.done[id]||t.claimed[id]?'disabled':''}>${t.claimed[id]?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 5 5L21 5"/></svg>':''}${t.claimed[id]?'已领取':t.done[id]?'领取':'待完成'}</button></article>`).join('')}</div>${rewards.length?`<section class="mw-level-rewards"><h3>升级奖励</h3>${rewards.map(([l,r])=>`<div class="mw-level-row"><span>用户 Lv.${l}</span><span>+${r.amount}</span><button data-cr-level="${l}">领取</button></div>`).join('')}</section>`:''}<section class="mw-records"><div class="mw-record-title"><h3><span>RECENT</span> / 最近记录</h3>${mwPostmark()}</div><div class="mw-ledger-list">${[...c.ledger].reverse().slice(0,16).map(x=>{const date=mwDate(x.at);return `<div class="mw-entry"><time class="mw-entry-date" datetime="${new Date(x.at).toISOString()}"><span>${date.day}</span><small>${date.time}</small></time><strong class="mw-entry-label">${esc(x.label)}</strong><span class="mw-entry-amount ${x.amount<0?'is-debit':''}">${x.amount>0?'+':''}${x.amount}${mwCoin()}</span></div>`}).join('')||'<p class="mw-empty">第一枚邮币，等你来收。</p>'}</div></section>${mwBranch('mw-bottom-branch')}</div>`)}
 function openShop(tab='animals'){
- cancelCourierTraining();crMode='shop';const c=courierState();crOpen('信使商店',`<main class="mr-page mr-shop-page ${tab==='supplies'?'mr-supplies-page':''}">${mrHeader('POST SHOP')}<div class="mr-shop-heading"><p class="mr-kicker">A COMPANION FOR EVERY LETTER</p><h1 class="mr-title">信使商店</h1><button type="button" class="mr-balance" data-cr="wallet" aria-label="${c.balance}枚邮币，查看钱包">${mrCoin()}${c.balance}</button></div><nav class="mr-shop-tabs" aria-label="商店分类"><button type="button" data-cr="shop" class="${tab==='animals'?'mr-active':''}">信使</button><button type="button" data-cr="shop" data-shop-tab="supplies" class="${tab==='supplies'?'mr-active':''}">用品</button></nav>${tab==='animals'?`<label class="mr-search"><span class="mr-search-icon" aria-hidden="true"></span><input id="crShopSearch" type="search" placeholder="寻找喜欢的伙伴" aria-label="搜索信使" value="${esc(crShopQuery)}" autocomplete="off"></label><div class="mr-filter-row"><button type="button" data-cr-shop-filter="all">全部</button><button type="button" data-cr-shop-filter="new">未拥有</button><button type="button" data-cr-shop-filter="affordable">买得起</button><small id="mrShopCount">52 位伙伴</small></div>${mrFeatured(0)}<div class="mr-collection-head"><h2 class="mr-section-title">寻找下一位同行者</h2><span class="mr-section-en">THE COLLECTION</span></div><section class="mr-shop-grid" id="crShopGrid" aria-label="信使列表"></section>`:`<section class="mr-supplies"><p class="mr-supply-for">用于 ${esc(crName(crDetail??S.animal))}</p><article class="mr-supply"><img src="morrow-assets/ui-snack.webp" alt="小点心" width="320" height="320"><div><h2>小点心</h2><p>给当前伙伴加餐 · 亲密度 +3</p><span>${mrCoin()} 8</span></div><button type="button" data-cr="supply" data-kind="food" ${c.balance<8?'disabled':''}>购买</button></article><article class="mr-supply"><img src="morrow-assets/ui-ticket.webp" alt="训练券" width="320" height="320"><div><h2>训练券</h2><p>当前伙伴可再练一局</p><span>${mrCoin()} 12</span></div><button type="button" data-cr="supply" data-kind="ticket" ${c.balance<12?'disabled':''}>购买</button></article><p class="mr-supply-for">每天的免费照顾和训练照常保留。</p></section>`}</main>`);
+ cancelCourierTraining();crMode='shop';const c=courierState();crOpen('信使商店',`<main class="mr2-page mr2-shop">${mrHeader('POST SHOP')}<div class="mr2-body"><div class="mr2-heading"><div><p>THE POST SHOP</p><h1>信使商店</h1></div><button type="button" class="mr2-balance" data-cr="wallet" aria-label="${c.balance}枚邮币，查看钱包">${mrCoin()}<span style="font-size:${Math.max(11,24-Math.max(0,String(c.balance).length-4)*3)}px">${c.balance}</span></button></div><div class="mr2-shop-tabs" role="tablist" aria-label="商店分类"><button type="button" role="tab" aria-selected="${tab==='animals'}" data-cr="shop" class="${tab==='animals'?'is-active':''}">信使</button><button type="button" role="tab" aria-selected="${tab==='supplies'}" data-cr="shop" data-shop-tab="supplies" class="${tab==='supplies'?'is-active':''}">用品</button></div>${tab==='animals'?`<label class="mr2-search"><span aria-hidden="true"></span><input id="crShopSearch" type="search" placeholder="寻找喜欢的伙伴" aria-label="搜索信使" value="${esc(crShopQuery)}" autocomplete="off"></label><div class="mr2-filters"><button type="button" data-cr-shop-filter="all">全部</button><button type="button" data-cr-shop-filter="new">未拥有</button><button type="button" data-cr-shop-filter="affordable">买得起</button><small id="mrShopCount">52 位伙伴</small></div><section class="mr2-shop-grid" id="crShopGrid" aria-label="信使列表"></section>`:`<section class="mr2-supplies"><p>用于 ${esc(crName(crDetail??S.animal))}</p><article><img src="morrow-assets/ui-snack.webp" alt="小点心" width="320" height="320"><div><h3>小点心</h3><p>给当前伙伴加餐 · 亲密度 +3</p><span>${mrCoin()} 8</span></div><button type="button" data-cr="supply" data-kind="food" ${c.balance<8?'disabled':''}>购买</button></article><article><img src="morrow-assets/ui-ticket.webp" alt="训练券" width="320" height="320"><div><h3>训练券</h3><p>当前伙伴可再练一局</p><span>${mrCoin()} 12</span></div><button type="button" data-cr="supply" data-kind="ticket" ${c.balance<12?'disabled':''}>购买</button></article><p>每天的免费照顾和训练照常保留。</p></section>`}</div></main>`);
  if(tab==='animals'){renderCrShop();$('crShopSearch').oninput=()=>{crShopQuery=$('crShopSearch').value;renderCrShop()}}
 }
 function renderCrShop(){
- const grid=$('crShopGrid');if(!grid)return;const q=crShopQuery.trim().toLowerCase(),filtered=!!q||crShopFilter!=='all';const items=SPECIES.map((_,i)=>i).filter(i=>(!q||(SPECIES[i]+crName(i)).toLowerCase().includes(q))&&(crShopFilter!=='new'||!unlocked(i))&&(crShopFilter!=='affordable'||!unlocked(i)&&crPrice(i)<=courierState().balance));
- grid.closest('.mr-shop-page').classList.toggle('mr-is-filtered',filtered);grid.innerHTML=items.filter(i=>filtered||i!==0).map(mrShopCard).join('')||'<p class="mr-empty">暂时没有符合条件的伙伴。</p>';$('mrShopCount').textContent=items.length+' 位伙伴';document.querySelectorAll('[data-cr-shop-filter]').forEach(b=>b.classList.toggle('mr-active',b.dataset.crShopFilter===crShopFilter));
+ const grid=$('crShopGrid');if(!grid)return;const q=crShopQuery.trim().toLowerCase();const items=SPECIES.map((_,i)=>i).filter(i=>(!q||(SPECIES[i]+crName(i)).toLowerCase().includes(q))&&(crShopFilter!=='new'||!unlocked(i))&&(crShopFilter!=='affordable'||!unlocked(i)&&crPrice(i)<=courierState().balance));
+ grid.innerHTML=items.map(mrShopCard).join('')||'<p class="mr2-empty">暂时没有符合条件的伙伴。</p>';$('mrShopCount').textContent=items.length+' 位伙伴';document.querySelectorAll('[data-cr-shop-filter]').forEach(b=>{const on=b.dataset.crShopFilter===crShopFilter;b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',String(on))});
 }
 function buyCourier(i){if(!Number.isInteger(i)||i<0||i>=52||cleanupLocked()||unlocked(i))return;if(crTransaction('buy-animal:'+i,-crPrice(i),'邀请 '+SPECIES[i])){courierState().owned.push(i);persist();render();openCourier(i);showToast(SPECIES[i]+'加入了你的伙伴')}else showToast('邮币还不够，再攒一会儿')}
 function cancelCourierTraining(){if(crTrainingTimer)clearInterval(crTrainingTimer);crTrainingTimer=null;crTraining=null}
