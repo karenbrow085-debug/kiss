@@ -2961,6 +2961,24 @@ function mcBuildCourier(origin,events,coins){
  c.levelRewards=rewards;delete c.initialLedgerIds;delete c.walletOpening;return c;
 }
 
+/* Lossless large-value sync over the existing private-sync protocol. */
+const MB_PART_CHARS=65536,MB_STRING_CHARS=24576,MB_DOC_BYTES=280000,MB_BATCH_BYTES=1048576;
+let mbEpoch=-1,mbCache=new Map(),mbCacheChars=0,mbHashes=new Map(),mbHashChars=0,mbPartHashes=new Map(),mbPartHashChars=0;
+function mbScope(scope=accountEpoch){if(scope!==accountEpoch)throw Error('账号已切换');if(mbEpoch!==scope){mbCache.clear();mbHashes.clear();mbPartHashes.clear();mbCacheChars=mbHashChars=mbPartHashChars=0;mbEpoch=scope}return String(S.activeAccount||S.account?.id||'guest')}
+function mbChunkId(hash,index){return 'mb1:'+hash+':'+index}
+function mbChunkDoc(d){return d.kind==='archive'&&/^mb1:[a-f0-9]{64}:\d+$/.test(d.id)&&d.value?.morrowBlobChunk===1}
+function mbRemember(key,value){const old=mbCache.get(key);if(old)mbCacheChars-=old.length;mbCache.delete(key);mbCache.set(key,value);mbCacheChars+=value.length;while(db&&mbCacheChars>4000000&&mbCache.size>1){const k=mbCache.keys().next().value;mbCacheChars-=mbCache.get(k).length;mbCache.delete(k)}}
+async function mbPut(d,scope=accountEpoch){const owner=mbScope(scope),key='morrow-blob|'+owner+'|'+d.id,value=d.value.data;if(typeof value!=='string'||value.length>MB_PART_CHARS+1)throw Error('图片分块格式无效');if(db){await new Promise((resolve,reject)=>{const t=db.transaction('state','readwrite');t.objectStore('state').put(value,key);t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error)})}mbScope(scope);mbRemember(key,value)}
+async function mbGet(id,scope=accountEpoch){const owner=mbScope(scope),key='morrow-blob|'+owner+'|'+id;if(mbCache.has(key))return mbCache.get(key);if(db){const value=await new Promise((resolve,reject)=>{const q=db.transaction('state').objectStore('state').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});mbScope(scope);if(typeof value==='string'){mbRemember(key,value);return value}}throw Object.assign(Error('正在恢复云端图片分块，请稍后重试同步'),{code:'MC_BLOB_MISSING'})}
+async function mbHash(text,scope=accountEpoch){mbScope(scope);const known=mbHashes.get(text);if(known)return known;if(!crypto.subtle)throw Error('此浏览器暂不支持图片分块校验，请使用 HTTPS 页面');const bytes=new TextEncoder().encode(text),digest=await crypto.subtle.digest('SHA-256',bytes);mbScope(scope);const hash=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');mbHashes.set(text,hash);mbHashChars+=text.length;while(mbHashChars>6000000&&mbHashes.size>1){const k=mbHashes.keys().next().value;mbHashChars-=k.length;mbHashes.delete(k)}return hash}
+function mbDocHash(d){if(!mbChunkDoc(d))return mcHash(d.value);const v=d.value;let hash=mbPartHashes.get(v.data);if(!hash){hash=mcHash(v.data);mbPartHashes.set(v.data,hash);mbPartHashChars+=v.data.length;while(mbPartHashChars>4000000&&mbPartHashes.size>1){const k=mbPartHashes.keys().next().value;mbPartHashChars-=k.length;mbPartHashes.delete(k)}}return 'mb1:'+v.sha256+':'+v.index+':'+v.parts+':'+hash}
+
+async function mbPack(text,format,chunks,scope){const hash=await mbHash(text,scope),parts=[];for(let at=0;at<text.length;){let end=Math.min(text.length,at+MB_PART_CHARS);if(end<text.length&&text.charCodeAt(end-1)>=0xD800&&text.charCodeAt(end-1)<=0xDBFF)end--;parts.push(text.slice(at,end));at=end}for(let index=0;index<parts.length;index++){const id=mbChunkId(hash,index);chunks.set('archive\n'+id,{kind:'archive',id,value:{morrowBlobChunk:1,sha256:hash,index,parts:parts.length,data:parts[index]}})}return {morrowBlob:1,sha256:hash,parts:parts.length,format,length:text.length}}
+async function mbWire(value,chunks,scope){if(typeof value==='string')return value.length>MB_STRING_CHARS?mbPack(value,'text-v1',chunks,scope):value;if(Array.isArray(value)){const out=[];for(const v of value)out.push(await mbWire(v,chunks,scope));return out}if(value&&typeof value==='object'){const out={};for(const [k,v]of Object.entries(value))out[k]=await mbWire(v,chunks,scope);return out}return value}
+async function mbDocuments(docs,scope=accountEpoch){const chunks=new Map(),records=new Map();for(const [key,d]of docs){let value=await mbWire(d.value,chunks,scope);mbScope(scope);if(new TextEncoder().encode(JSON.stringify(value)).length>MB_DOC_BYTES){const header={};for(const [k,v]of Object.entries(value)){if(['id','matchId','direction','created','due','read','awarded','growth52','failed','acceleratedAt','originalDue'].includes(k)||(d.kind==='courier-base'&&['userXp','animals','owned','walletOpening','initialLedgerIds'].includes(k)))header[k]=v}const body={...value};for(const k of Object.keys(header))delete body[k];value={...header,...await mbPack(JSON.stringify(body),'json-v1',chunks,scope),header};}if(new TextEncoder().encode(JSON.stringify(value)).length>MB_DOC_BYTES)throw Error('信使基础资料异常偏大，请先导出备份后联系维护者');records.set(key,{...d,value})}return new Map([...chunks,...records])}
+function mbReference(value){return value&&typeof value==='object'&&!Array.isArray(value)&&value.morrowBlob===1&&/^[a-f0-9]{64}$/.test(value.sha256)&&Number.isInteger(value.parts)&&value.parts>0&&value.parts<100000&&['text-v1','json-v1'].includes(value.format)}
+async function mbDecode(value,scope=accountEpoch,depth=0){mbScope(scope);if(depth>30)throw Error('云端资料嵌套过深');if(mbReference(value)){let text='';for(let i=0;i<value.parts;i++)text+=await mbGet(mbChunkId(value.sha256,i),scope);if(text.length!==value.length||await mbHash(text,scope)!==value.sha256)throw Object.assign(Error('图片分块校验失败，请重新同步'),{code:'MC_BLOB_MISSING'});if(value.format==='text-v1')return text;const body=JSON.parse(text),{morrowBlob,sha256,parts,format,length,header={},...overrides}=value;return mbDecode({...body,...header,...overrides},scope,depth+1)}if(Array.isArray(value)){const out=[];for(const v of value)out.push(await mbDecode(v,scope,depth+1));return out}if(value&&typeof value==='object'){const out={};for(const [k,v]of Object.entries(value))out[k]=await mbDecode(v,scope,depth+1);return out}return value}
+
 /* Only Morrow state enters this private sync channel. */
 let mcFlight=null,mcApplying=false,mcSaveTimer=0,mcLastAttempt=0;
 const MC_ARRAYS={match:'matches',letter:'letters',role:'chars',collection:'collections'};
@@ -2984,13 +3002,14 @@ function mcDocuments(){
  add('tasks','main',c.tasks);return docs;
 }
 async function mcCapture(){
- const state=mcState(),docs=mcDocuments();
- let count=0;for(const [key,d]of docs){if(++count%25===0)await new Promise(r=>setTimeout(r,0));const meta=state.records[key];if(meta?.deleted)continue;if(mcHash(d.value)!==meta?.hash)state.pending[key]={...d,deleted:false,baseRevision:meta?.revision||0};else delete state.pending[key]}
+ const scope=accountEpoch,state=mcState(),docs=await mbDocuments(mcDocuments(),scope);mbScope(scope);
+ let count=0;for(const [key,d]of docs){if(++count%25===0)await new Promise(r=>setTimeout(r,0));const meta=state.records[key];if(meta?.deleted)continue;if(mbDocHash(d)!==meta?.hash)state.pending[key]={...d,deleted:false,baseRevision:meta?.revision||0};else delete state.pending[key]}
+ for(const [key,d]of Object.entries(state.pending))if(d.kind==='archive'&&d.id.startsWith('mb1:')&&!docs.has(key))delete state.pending[key];
  for(const [key,meta]of Object.entries(state.records))if(!meta.deleted&&!MC_IMMUTABLE.has(meta.kind)&&['match','letter','letter-meta','role','collection','draft'].includes(meta.kind)&&!docs.has(key))state.pending[key]={kind:meta.kind,id:meta.id,deleted:true,baseRevision:meta.revision};
 }
 function mcRemove(kind,id){const field=MC_ARRAYS[kind];if(field){S[field]=S[field].filter(v=>v.id!==id);if(kind==='match'){S.letters=S.letters.filter(l=>l.matchId!==id);delete S.drafts[id]}}else if(kind==='draft')delete S.drafts[id];else if(kind==='letter-meta')S.letters=S.letters.filter(l=>l.id!==id)}
-function mcSetDoc(d){
- const {kind,id,value}=d;if(kind==='match'&&value&&typeof value==='object')delete value.clue;if(d.deleted){mcRemove(kind,id);return}
+async function mcSetDoc(d,scope=accountEpoch){
+ const {kind,id}=d;let value=d.value;if(!d.deleted)value=await mbDecode(value,scope);mbScope(scope);if(kind==='match'&&value&&typeof value==='object')delete value.clue;if(d.deleted){mcRemove(kind,id);return}
  if(MC_ARRAYS[kind]){const list=S[MC_ARRAYS[kind]],at=list.findIndex(v=>v.id===id);if(at>=0)list[at]={...list[at],...value};else list.push(mcCopy(value));return}
  if(kind==='profile')S.profile={...S.profile,...value};
  else if(kind==='prefs'){if(value.animal!==undefined)S.animal=value.animal;if(value.selected!==undefined)S.selected=value.selected}
@@ -3006,13 +3025,14 @@ function mcSetDoc(d){
  else if(kind==='tasks')mcEnsureGrowth().tasks=mcCopy(value);
 }
 function mcRebuild(){const old=mcEnsureGrowth(),c=mcBuildCourier(old.cloudOrigin,Object.values(old.cloudEvents),old.ledger);for(let i=0;i<52;i++){c.animals[i].favorite=old.animals[i].favorite;c.animals[i].best=old.animals[i].best||0}c.cloudOrigin=old.cloudOrigin;c.cloudEvents=old.cloudEvents;c.notices=old.notices||[];c.tasks=old.tasks;for(const t of c.ledger)if(t.id.startsWith('task:'+c.tasks.day+':'))c.tasks.claimed[t.id.split(':').at(-1)]=true;S.courier52=c}
-function mcAccept(d){
+async function mcAccept(d,scope=accountEpoch){
+ if(mbChunkDoc(d)){await mbPut(d,scope);const state=mcState(),key=d.kind+'\n'+d.id;delete state.pending[key];state.records[key]={kind:d.kind,id:d.id,revision:d.revision,deleted:false,hash:mbDocHash(d)};return;}
  const state=mcState(),key=d.kind+'\n'+d.id,local=state.pending[key],meta=state.records[key];
- if(d.deleted){delete state.pending[key];mcSetDoc(d)}
- else if(local&&!meta&&['profile','prefs','archive','companion','tasks'].includes(d.kind)){delete state.pending[key];mcSetDoc(d)}
+ if(d.deleted){delete state.pending[key];await mcSetDoc(d,scope)}
+ else if(local&&!meta&&['profile','prefs','archive','companion','tasks'].includes(d.kind)){delete state.pending[key];await mcSetDoc(d,scope)}
  else if(local?.deleted){/* A pending local deletion remains pending. */}
- else if(local){const merged=mcMergeDoc(d.kind,local.value,d.value,meta?.base||{});mcSetDoc({...d,value:merged});if(mcEqual(merged,d.value))delete state.pending[key];else state.pending[key]={...local,value:merged,baseRevision:d.revision};}
- else mcSetDoc(d);
+ else if(local){const merged=mcMergeDoc(d.kind,local.value,d.value,meta?.base||{});await mcSetDoc({...d,value:merged},scope);if(mcEqual(merged,d.value))delete state.pending[key];else state.pending[key]={...local,value:merged,baseRevision:d.revision};}
+ else await mcSetDoc(d,scope);
  state.records[key]={kind:d.kind,id:d.id,revision:d.revision,deleted:d.deleted,hash:d.deleted?'':mcHash(d.value),base:['profile','prefs','companion','archive','tasks'].includes(d.kind)?d.value:undefined};
 }
 async function mcRequest(path,options={},scope=accountEpoch){
@@ -3022,25 +3042,26 @@ async function mcRequest(path,options={},scope=accountEpoch){
 async function mcPull(scope){
  const state=mcState();let through=null;for(let pages=0;pages<2000;pages++){
   const data=await mcRequest('?since='+state.cursor+(through===null?'':'&through='+through),{},scope);if(data.schema!==1)throw Error('请先更新 Morrow 的 CF 后台');through=data.through;
-  if(state.cloudHadData===undefined)state.cloudHadData=data.through>0;await mcCapture();for(const d of data.records||[])mcAccept(d);state.cursor=data.cursor;if(!data.more)break;
+  if(state.cloudHadData===undefined)state.cloudHadData=data.through>0;for(const d of data.records||[])await mcAccept(d,scope);state.cursor=data.cursor;if(!data.more)break;
  }
  for(const meta of Object.values(state.records))if(meta.deleted)mcRemove(meta.kind,meta.id);applyMailDeletion(S);mcRebuild();
 }
-function mcBatch(){const ops=[];let bytes=0;for(const d of Object.values(mcState().pending)){const n=new TextEncoder().encode(JSON.stringify(d)).length;if(ops.length&&(ops.length>=25||bytes+n>1700000))break;ops.push(d);bytes+=n;}return ops}
+function mcBatch(){const ops=[],pending=Object.values(mcState().pending).sort((a,b)=>Number(mbChunkDoc(b))-Number(mbChunkDoc(a))),encoder=new TextEncoder();for(const d of pending){const candidate=[...ops,d],bytes=encoder.encode(JSON.stringify({revision:mcState().cursor,operations:candidate})).length;if(bytes>MB_BATCH_BYTES){if(!ops.length)throw Error('单条同步资料尚未完成分块，请刷新后重试');break}ops.push(d);if(ops.length>=25)break}return ops}
+
 function mcQueueSave(){if(mcApplying||!S.settings.token||!S.account||cleanupLocked())return;clearTimeout(mcSaveTimer);mcSaveTimer=setTimeout(()=>{if(!document.hidden&&!hostHidden)mcSync(false)},2000)}
 async function mcSync(manual=false){
  if(!S.account||!S.settings.token){if(manual)showToast('先登录你的 Morrow 邮局账号');return false}
  const scope=accountEpoch;if(mcFlight?.scope===scope)return mcFlight.promise;
  const flight={scope,promise:null};mcFlight=flight;flight.promise=(async()=>{
   try{
-   mcApplying=true;mcLastAttempt=Date.now();await mcCapture();await mcPull(scope);let conflicts=0;
+   mcApplying=true;mcLastAttempt=Date.now();await mcCapture();try{await mcPull(scope)}catch(e){if(e.code!=='MC_BLOB_MISSING')throw e;mcState().cursor=0;await mcPull(scope)}let conflicts=0;
    for(let passes=0;passes<2000;passes++){
     await mcCapture();const operations=mcBatch();if(!operations.length)break;
     try{await mcRequest('',{method:'POST',body:{revision:mcState().cursor,operations}},scope);await mcPull(scope);conflicts=0}
     catch(e){if(e.status===409&&conflicts++<5){await mcPull(scope);continue}if(e.status===402&&e.data?.rejected){const c=mcEnsureGrowth();for(const id of e.data.rejected){delete mcState().pending['coin\n'+id];c.ledger=c.ledger.filter(t=>t.id!==id)}mcRebuild();await mcPull(scope);}throw e}
    }
-   mcState().lastSuccess=Date.now();await mcLocalPersist();render();mcStatus('已同步 · '+S.letters.length+' 封信');if(manual)showToast('同步完成 · '+S.letters.length+' 封信');if(manual)mcOfferGuest();return true;
-  }catch(e){mcStatus('同步失败 · '+(e.status===404?'请先更新 CF 后台':e.message));if(manual)showToast(e.status===404?'请先部署更新包里的完整 CF 代码，再同步信箱':'同步失败：'+e.message);await mcLocalPersist();return false}
+   mcState().lastSuccess=Date.now();delete mcState().lastError;await mcLocalPersist();render();mcStatus('已同步 · '+S.letters.length+' 封信');if(manual)showToast('同步完成 · '+S.letters.length+' 封信');if(manual)mcOfferGuest();return true;
+  }catch(e){if(scope!==accountEpoch)return false;mcState().lastError=e.message;mcStatus('同步失败 · '+(e.status===404?'请先更新 CF 后台':e.message));if(manual)showToast(e.status===404?'请先部署更新包里的完整 CF 代码，再同步信箱':'同步失败：'+e.message);await mcLocalPersist();return false}
   finally{mcApplying=false;if(mcFlight===flight)mcFlight=null}
  })();return flight.promise;
 }
@@ -3070,8 +3091,8 @@ const MP_MAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 function mpLocalInventory(){return mpInventory(courierState().cloudEvents||{},crDay())}
 function mpIsOnlineAccount(){return !!(S.account&&S.settings.token)}
 function mpApply(result){const c=mcEnsureGrowth();for(const [id,event]of Object.entries(result.events||{}))c.cloudEvents[id]=event;for(const t of result.coins||[]){const at=c.ledger.findIndex(x=>x.id===t.id);if(at<0)c.ledger.push(t);else c.ledger[at]=t}mcRebuild();if(result.letter){const l=S.letters.find(x=>x.id===result.letter.id);if(l)Object.assign(l,result.letter)}return result}
-async function mpRequest(action,body={},scope=accountEpoch){if(scope!==accountEpoch)throw Error('账号已切换');if(!mpIsOnlineAccount())throw Error('登录后再同步');const data=await api('/priority',action?{method:'POST',body:{action,...body}}:{});if(scope!==accountEpoch)throw Error('账号已切换');if(data.prioritySchema!==1)throw Error('请更新加速功能的 CF 后台');mpApply(data);return data}
-async function mpPrepareAccount(scope=accountEpoch){if(scope!==accountEpoch)throw Error('账号已切换');if(!mpIsOnlineAccount())return;if(!await mcSync(false))throw Error('请先同步信箱，再使用加速');if(scope!==accountEpoch)throw Error('账号已切换');try{await mpRequest(null,{},scope)}catch(e){if(/404|不存在/.test(e.message))throw Error('请先更新加速功能的 CF 后台');throw e}}
+async function mpRequest(action,body={},scope=accountEpoch){if(scope!==accountEpoch)throw Error('账号已切换');if(!mpIsOnlineAccount())throw Error('登录后再同步');const data=await api('/priority',action?{method:'POST',body:{action,...body}}:{});if(scope!==accountEpoch)throw Error('账号已切换');if(data.letter)data.letter=await mbDecode(data.letter,scope);if(data.prioritySchema!==1)throw Error('请更新加速功能的 CF 后台');mpApply(data);return data}
+async function mpPrepareAccount(scope=accountEpoch){if(scope!==accountEpoch)throw Error('账号已切换');if(!mpIsOnlineAccount())return;if(!await mcSync(false))throw Error('信箱同步未完成：'+(mcState().lastError||'请稍后重试'));if(scope!==accountEpoch)throw Error('账号已切换');try{await mpRequest(null,{},scope)}catch(e){if(/404|不存在/.test(e.message))throw Error('请先更新加速功能的 CF 后台');throw e}}
 function mpCleanup(){mpGame=null;mpTouch=null;const o=$('overlay');o?.classList.remove('mp-priority-open');o?.querySelector('.dialog')?.classList.remove('mp-priority-dialog','mp-game-dialog')}
 function mpOpen(title,body){openDialog(title,body);$('overlay').classList.add('mp-priority-open');const d=$('overlay').querySelector('.dialog');d.classList.add('mp-priority-dialog');d.scrollTop=0;d.querySelector('.close').setAttribute('aria-label','关闭'+title)}
 function mpQuotaMarkup(inv){return `<div class="mp-quota"><div><strong>今日免费</strong><small>每日 3 次</small></div><div class="mp-quota-marks" aria-label="今日免费剩余 ${inv.free} 次">${[0,1,2].map((n)=>`<i class="${n>=inv.free?'used':''}" aria-hidden="true"></i>`).join('')}<span>${inv.free} / 3</span></div></div>`}
