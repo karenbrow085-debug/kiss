@@ -1,0 +1,25 @@
+新增字库来源与授权出处（字体文件保持原样，未修改字形）：
+
+鸿雷行书简体 — 鸿雷字记
+发布及作者声明出处：https://www.maoken.com/freefonts/16904.html
+原作者声明链接：https://mp.weixin.qq.com/s/3X9j26oaVfwaZ9GcROMPWw
+
+鸿雷板书简体 — 鸿雷字记
+发布及作者声明出处：https://www.maoken.com/freefonts/3791.html
+原作者声明链接：https://mp.weixin.qq.com/s/LRKYtTIghVSNX2pY4w-mZA
+
+云峰寒蝉体 — 云峰字库
+发布及作者声明出处：https://www.maoken.com/freefonts/18085.html
+原作者声明链接：https://mp.weixin.qq.com/s/qLRQPJf43h15yPgpcNbLNw
+作者声明允许个人及企业免费商用，禁止修改、二次售卖及违法用途。
+
+猫啃硬笔楷书简体 — 猫啃字库
+官方仓库：https://github.com/maoken-fonts/MaokenYingBiKaiShuJ
+以 SIL OFL 1.1 发布；完整 OFL 随包提供。
+
+Caveat / Allura / Parisienne：SIL OFL 1.1，完整授权随文件提供。
+
+商业字库仅提供导入入口，本包不含其字体文件：
+苏新诗柳楷 https://www.foundertype.com/index.php/FontInfo/index/id/197
+张颢簪花小楷 https://www.foundertype.com/index.php/FontInfo/ductdetail/id/597
+张建军硬笔楷体 https://www.foundertype.com/index.php/FontInfo/index/id/4560
