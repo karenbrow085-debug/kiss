@@ -598,17 +598,14 @@ function setupCleanImageCache() {
 
         if (dexieDB) {
             try {
-                const workshopItems = await dexieDB.workshopHistory.toArray();
-                workshopItems.forEach(item => {
+                await window.KissDataManager.visitTable(dexieDB.workshopHistory, item => {
                     if (isBase64Image(item.image)) cacheSizes.generated += getStringSize(item.image);
                 });
-                const photoItems = await dexieDB.characterPhotos.toArray();
-                photoItems.forEach(item => {
+                await window.KissDataManager.visitTable(dexieDB.characterPhotos, item => {
                     if (isBase64Image(item.image)) cacheSizes.generated += getStringSize(item.image);
                 });
                 if (dexieDB.reader_comments) {
-                    const comments = await dexieDB.reader_comments.toArray();
-                    comments.forEach(item => {
+                    await window.KissDataManager.visitTable(dexieDB.reader_comments, item => {
                         if (item.content && item.content.startsWith('[ILLUSTRATION]')) {
                             cacheSizes.generated += getStringSize(item.content);
                         }

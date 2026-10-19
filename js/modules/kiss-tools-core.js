@@ -73,7 +73,7 @@ function fieldCategory(key,scope){
  return 'preferences';
 }
 // Measure the JSON representation without materializing another full JSON string or UTF-8 buffer.
-function jsonStringBytes(s){let bytes=2;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);if(c===34||c===92||c===8||c===9||c===10||c===12||c===13)bytes+=2;else if(c<32)bytes+=6;else if(c<128)bytes++;else if(c<2048)bytes+=2;else if(c>=0xd800&&c<=0xdbff){const d=s.charCodeAt(i+1);if(d>=0xdc00&&d<=0xdfff){bytes+=4;i++}else bytes+=6;}else if(c>=0xdc00&&c<=0xdfff)bytes+=6;else bytes+=3;}return bytes;}
+function jsonStringBytes(s){if(!/[^\x20-\x21\x23-\x5b\x5d-\x7f]/.test(s))return s.length+2;let bytes=2;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);if(c===34||c===92||c===8||c===9||c===10||c===12||c===13)bytes+=2;else if(c<32)bytes+=6;else if(c<128)bytes++;else if(c<2048)bytes+=2;else if(c>=0xd800&&c<=0xdbff){const d=s.charCodeAt(i+1);if(d>=0xdc00&&d<=0xdfff){bytes+=4;i++}else bytes+=6;}else if(c>=0xdc00&&c<=0xdfff)bytes+=6;else bytes+=3;}return bytes;}
 function createSizeCounter(){
  const memo=new WeakMap(),active=new WeakSet();
  function json(v,key='',arrayItem=false){
