@@ -63,35 +63,79 @@ function rowUnits(name,record){
  if(name==='globalSettings')return [{path:['value'],cat:C.fieldCategory(record.key,'global'),value:record.value,label:'全局 / '+record.key}];
  return [{path:[],cat:tableCats[name]||'preferences',value:record,label:name,removeRecord:true}];
 }
-async function scan(){
- if(!dexieDB)throw Error('数据库尚未加载');
- // Synchronize active archives once before reading; do not add the in-memory db again.
- await saveData();await window.KissHearUData?.flush();
- Object.assign(C.catalog,Object.fromEntries(Object.entries(window.KissAppData.catalog).map(([k,[name,desc]])=>[k,[name,desc,true]])));
- const records=[];const tables=await Promise.all(dexieDB.tables.map(async t=>({table:t,rows:await t.toArray()})));
- for(const {table,rows} of tables)for(const row of rows)records.push({store:'dexie',table:table.name,key:row[table.schema.primKey.keyPath],row,units:rowUnits(table.name,row)});
- const independent=await window.KissAppData.snapshot();for(const row of independent.records)records.push({store:'app',key:row.app+':'+row.key,row,units:window.KissAppData.units(row)});
- for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(window.KissAppData.localApp(key))continue;const value=localStorage.getItem(key);const cat=C.fieldCategory(key,'global');records.push({store:'local',key,row:value,units:[{path:[],cat,value,label:'本地 / '+key,removeRecord:true}]});}
- const cacheRows=[];if('caches' in window)for(const name of await caches.keys()){const cache=await caches.open(name);for(const req of await cache.keys()){const response=await cache.match(req);if(!response)continue;const bytes=(await response.clone().blob()).size;cacheRows.push({name,request:req.url,cat:/^image\//.test(response.headers.get('content-type')||'')?'cacheImages':'cacheOther',bytes});}}
- const sizes={},details={},groups={};const add=(cat,n,label)=>{sizes[cat]=(sizes[cat]||0)+n;const name=label.replace(/ #\d+$/, '');const map=groups[cat] ||= new Map();const entry=map.get(name)||{label:name,bytes:0,count:0};entry.bytes+=n;entry.count++;map.set(name,entry);};
- for(const r of records){let sum=0;for(const u of r.units){const bytes=C.byteSize(u.value);sum+=bytes;add(u.cat,bytes,u.label);}add('structure',Math.max(0,C.byteSize(r.row)-sum),'结构开销');}
- cacheRows.forEach(r=>add(r.cat,r.bytes,r.name+' / '+r.request));
- for(const [cat,map] of Object.entries(groups))details[cat]=[...map.values()].map(x=>({...x,label:x.label+(x.count>1?' · '+x.count+' 项':'')}));
- let estimate=null;try{estimate=await navigator.storage?.estimate();}catch{}
- let unknown=[];if(indexedDB.databases)unknown=(await indexedDB.databases()).filter(x=>!['章鱼喷墨机DB_ee','HearU-v1','ForumApp-v1','morrow-post-office'].includes(x.name)).map(x=>x.name);
- return {records,cacheRows,sizes,details,estimate,unknown};
+const scanPause=()=>new Promise(resolve=>setTimeout(resolve,0));
+let scanFlight=null,scanTail=Promise.resolve(),scanCached=null,scanCachedAt=0;
+async function visitDexie(visitor){
+ for(const table of dexieDB.tables){
+  let last,started=false;
+  // One row per transaction: large image-bearing records are released before the next read.
+  for(;;){const query=started?table.where(':id').above(last).limit(1):table.limit(1);const rows=await query.toArray();if(!rows.length)break;const row=rows[0],key=row[table.schema.primKey.keyPath];await visitor({store:'dexie',table:table.name,key,row,units:rowUnits(table.name,row)});last=key;started=true;await scanPause();}
+ }
 }
+async function visitStorageRecords(visitor,{flush=false}={}){
+ if(!dexieDB)throw Error('数据库尚未加载');
+ if(flush){await saveData();await window.KissAppData.flush();}
+ await visitDexie(visitor);
+ await window.KissAppData.visitRecords(async row=>{await visitor({store:'app',key:row.app+':'+row.key,row,units:window.KissAppData.units(row)})},{flush:false});
+ for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(window.KissAppData.localApp(key))continue;const value=localStorage.getItem(key),cat=C.fieldCategory(key,'global');await visitor({store:'local',key,row:value,units:[{path:[],cat,value,label:'本地 / '+key,removeRecord:true}]});await scanPause();}
+}
+async function cacheSize(response){
+ if(response.type==='opaque'||response.type==='opaqueredirect')return null;
+ if(!response.body)return 0;
+ // Never clone the response or collect a full Blob just to count its bytes.
+ const reader=response.body.getReader();let bytes=0,steps=0;
+ try{for(;;){const chunk=await reader.read();if(chunk.done)break;bytes+=chunk.value.byteLength;if(++steps%16===0)await scanPause();}return bytes;}
+ finally{reader.releaseLock();}
+}
+async function runScan(options={}){
+ Object.assign(C.catalog,Object.fromEntries(Object.entries(window.KissAppData.catalog).map(([k,[name,desc]])=>[k,[name,desc,true]])));
+ const records=[],cacheRows=[],sizes={},details={},groups={},overview={chats:0,contacts:0,worldbooks:0,personas:0,wallpapers:0,fonts:0,settings:0,other:0,monoApp:0,morrowApp:0,hearuApp:0,total:0};
+ let cacheUnknown=0;const retained=options.retainSelected;
+ const mainCategory=cat=>/^(thought|chat404|media404|video404|voice404|cards404|sticker404|calls|memories)$/.test(cat)?'chats':cat==='persona'?'contacts':cat==='world'?'worldbooks':cat==='userpersona'?'personas':/^(beauty|images|stickers|widgets)$/.test(cat)?'wallpapers':cat==='fonts'?'fonts':/^(gallery|workshop|books)$/.test(cat)?'other':'settings';
+ const add=(cat,n,label)=>{sizes[cat]=(sizes[cat]||0)+n;const name=label.replace(/ #\d+$/, '').replace(/\.\d+(?=\.|$)/g,'.*');const map=groups[cat]||=(new Map());const group=map.has(name)||map.size<160?name:'其他明细';const entry=map.get(group)||{label:group,bytes:0,count:0};entry.bytes+=n;entry.count++;map.set(group,entry);};
+ await visitStorageRecords(async r=>{
+  const measure=C.createSizeCounter(),raw= r.store==='app'?r.row.row:r.row;let sum=0;
+  for(let i=0;i<r.units.length;i++){const u=r.units[i],bytes=measure(u.value);sum+=bytes;add(u.cat,bytes,u.label);if(r.store!=='app')overview[mainCategory(u.cat)]+=bytes;if(i%128===127)await scanPause();}
+  const overhead=Math.max(0,measure(raw)-sum);add('structure',overhead,'结构开销');
+  if(r.store==='app'){const app=r.row.app;overview[app==='mono'?'monoApp':app==='morrow'?'morrowApp':'hearuApp']+=measure(raw);}else overview.settings+=overhead;
+  if(retained&&r.units.some(u=>u.cat!=='structure'&&retained.has(u.cat)))records.push(r);
+ },{flush:!!retained});
+ if('caches' in window)for(const name of await caches.keys()){
+  const cache=await caches.open(name);for(const req of await cache.keys()){
+   const response=await cache.match(req);if(!response)continue;let bytes;try{bytes=await cacheSize(response)}catch(e){throw Error('无法统计缓存 '+name+'：'+e.message)}
+   const cat=/^image\//.test(response.headers.get('content-type')||'')?'cacheImages':'cacheOther';if(bytes===null)cacheUnknown++;
+   cacheRows.push({name,request:req.url,cat,bytes,unknown:bytes===null});if(bytes!==null)add(cat,bytes,name+' / '+req.url);else add(cat,0,name+' / 大小未知');await scanPause();
+  }
+ }
+ for(const [cat,map]of Object.entries(groups))details[cat]=[...map.values()].map(x=>({...x,label:x.label+(x.count>1?' · '+x.count+' 项':'')}));
+ overview.total=Object.entries(overview).reduce((n,[k,v])=>k==='total'?n:n+v,0);
+ let estimate=null;try{estimate=await navigator.storage?.estimate()}catch{}
+ let unknown=[];if(indexedDB.databases)unknown=(await indexedDB.databases()).filter(x=>!['章鱼喷墨机DB_ee','HearU-v1','ForumApp-v1','morrow-post-office'].includes(x.name)).map(x=>x.name);
+ return {records,cacheRows,sizes,details,overview,cacheUnknown,estimate,unknown};
+}
+function scan(options={}){
+ if(options.retainSelected){const task=scanTail.catch(()=>{}).then(()=>runScan(options));scanTail=task.then(()=>{},()=>{});scanCached=null;return task;}
+ if(scanFlight)return scanFlight;
+ if(!options.fresh&&scanCached&&Date.now()-scanCachedAt<5000)return Promise.resolve(scanCached);
+ const task=scanTail.catch(()=>{}).then(()=>runScan());scanTail=task.then(()=>{},()=>{});
+ scanFlight=task.then(data=>{scanCached=data;scanCachedAt=Date.now();return data}).finally(()=>{scanFlight=null});return scanFlight;
+}
+
 function busy(){return window.KissAppData.busy() || (typeof isGenerating!=='undefined' && isGenerating) || window.KissHearUData?.busy() || (typeof aiGenerationControl!=='undefined' && aiGenerationControl.isActive());}
 async function encodeBackup(value){
  if(value instanceof Blob || value instanceof ArrayBuffer || ArrayBuffer.isView(value)){const blob=value instanceof Blob?value:new Blob([value]);const bytes=new Uint8Array(await blob.arrayBuffer());let raw='';for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));return {__kissBinary:true,kind:value instanceof Blob?'blob':value instanceof ArrayBuffer?'buffer':value.constructor.name,type:blob.type,data:btoa(raw)};}
- if(Array.isArray(value))return Promise.all(value.map(encodeBackup));
+ if(Array.isArray(value)){const out=[];for(let i=0;i<value.length;i++){out.push(await encodeBackup(value[i]));if(i%128===127)await scanPause()}return out;}
  if(value && typeof value==='object'){const result={};for(const [k,v] of Object.entries(value))result[k]=await encodeBackup(v);return result;}return value;
 }
 async function decodeBackup(value){
  if(value?.__kissBinary===true){const bytes=Uint8Array.from(atob(value.data),c=>c.charCodeAt(0));if(value.kind==='blob')return new Blob([bytes],{type:value.type});if(value.kind==='buffer')return bytes.buffer;const constructors={Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,Float32Array,Float64Array};const T=constructors[value.kind];if(!T)throw Error('备份二进制类型不支持');return new T(bytes.buffer);}
  if(Array.isArray(value))return Promise.all(value.map(decodeBackup));if(value && typeof value==='object'){const out={};for(const [k,v] of Object.entries(value)){if(['__proto__','constructor','prototype'].includes(k))throw Error('非法备份字段');out[k]=await decodeBackup(v);}return out;}return value;
 }
-async function downloadBackup(data){const blob=new Blob([JSON.stringify(await encodeBackup({format:'kiss-cleanup-safety-v1',createdAt:new Date().toISOString(),records:data.records.map(({store,table,key,row})=>({store,table,key,row}))}))],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='kiss-清理前备份-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
+async function downloadBackup({flush=true}={}){
+ const parts=[new Blob(['{"format":"kiss-cleanup-safety-v1","createdAt":'+JSON.stringify(new Date().toISOString())+',"records":['])];let first=true;
+ await visitStorageRecords(async({store,table,key,row})=>{const encoded=await encodeBackup({store,table,key,row});parts.push(new Blob([(first?'':',')+JSON.stringify(encoded)]));first=false;await scanPause();},{flush});
+ parts.push(new Blob([']}']));const blob=new Blob(parts,{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='kiss-清理前备份-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
 async function apply(data,selected){
  if(busy())throw Error('请等待两边生成结束，再清理数据');
  window.kissCleanupLocked=true;
@@ -112,21 +156,21 @@ async function apply(data,selected){
 }
 async function manager(){
  hideSuggestions();const el=panel('给数据留一点空间。','STORAGE / A LITTLE LIGHTER','<div class="kt-body"><p>正在读取 404、MONO、Morrow、HearU 与浏览器缓存…</p></div>');let data;
- try{data=await scan();}catch(e){el.querySelector('.kt-body').textContent='读取失败：'+e.message;return;}
+ try{data=await scan();if(!el.isConnected)return;}catch(e){el.querySelector('.kt-body').textContent='读取失败：'+e.message;return;}
  const total=Object.values(data.sizes).reduce((a,b)=>a+b,0), selected=new Set();
  const renderRow=([cat,[name,desc,risk]])=>`<div class="kt-row"><label><input type="checkbox" data-cat="${cat}" ${cat==='structure'?'disabled':''}><span>${esc(name)}${risk?'<small class="kt-risk">影响对话</small>':''}</span><b>${fmt(data.sizes[cat]||0)}</b></label><p>${esc(desc)}</p><details><summary>查看明细 · ${(data.details[cat]||[]).length} 项</summary><ul>${(data.details[cat]||[]).map(x=>`<li><span>${esc(x.label)}</span><b>${fmt(x.bytes)}</b></li>`).join('')}</ul></details></div>`;
  const appKeys=new Set(Object.keys(window.KissAppData.catalog)),rows=Object.entries(C.catalog),groups=Object.entries(window.KissAppData.groups).map(([key,g])=>{const cats=rows.filter(([cat])=>appKeys.has(cat)&&cat.startsWith(g.app==='hearu'?'hu':g.app)),bytes=cats.reduce((n,[cat])=>n+(data.sizes[cat]||0),0);return `<details class="kt-app-group" data-app-group="${key}"><summary><span>${g.name}<small>查看详情</small></span><b>${fmt(bytes)}</b></summary><div class="kt-app-details">${cats.map(renderRow).join('')}</div></details>`}).join('');
- el.querySelector('.kt-body').innerHTML=`<small>可分类数据 · 估算</small><div class="kt-stat">${fmt(total)}</div><p>选择软件，点开详情后勾选需要清理的数据。未勾选的内容会保留。</p><div class="kt-app-groups">${groups}</div><details class="kt-app-group"><summary><span>404 与浏览器<small>查看详情</small></span></summary><div class="kt-app-details">${rows.filter(([cat])=>!appKeys.has(cat)&&(data.sizes[cat]||0)>0).map(renderRow).join('')}</div></details>${data.unknown.length?'<p>其他数据库（保留）：'+data.unknown.map(esc).join('、')+'</p>':''}<label class="kt-option"><input type="checkbox" data-backup checked>清除前下载备份</label><button data-backup-now>单独下载清理备份</button><button data-restore>恢复清理备份</button><input type="file" data-restore-file accept="application/json" hidden>`;
+ el.querySelector('.kt-body').innerHTML=`<small>可分类数据 · 估算</small><div class="kt-stat">${fmt(total)}</div>${data.cacheUnknown?`<p>另有 ${data.cacheUnknown} 个缓存受浏览器保护，大小未知，未计入总量；仍可按分类清理。</p>`:''}<p>选择软件，点开详情后勾选需要清理的数据。未勾选的内容会保留。</p><div class="kt-app-groups">${groups}</div><details class="kt-app-group"><summary><span>404 与浏览器<small>查看详情</small></span></summary><div class="kt-app-details">${rows.filter(([cat])=>!appKeys.has(cat)&&((data.sizes[cat]||0)>0||data.cacheRows.some(r=>r.cat===cat))).map(renderRow).join('')}</div></details>${data.unknown.length?'<p>其他数据库（保留）：'+data.unknown.map(esc).join('、')+'</p>':''}<label class="kt-option"><input type="checkbox" data-backup checked>清除前下载备份</label><button data-backup-now>单独下载清理备份</button><button data-restore>恢复清理备份</button><input type="file" data-restore-file accept="application/json" hidden>`;
  el.querySelector('footer').innerHTML='<span data-selected>已选 0 项 · 0 B</span><button data-none>取消选择</button><button class="kt-primary" data-clean disabled>清除所选</button>';
  const clean=el.querySelector('[data-clean]');function update(){const bytes=[...selected].reduce((n,k)=>n+data.sizes[k],0);el.querySelector('[data-selected]').textContent='已选 '+selected.size+' 项 · '+fmt(bytes);clean.disabled=!selected.size;}
- el.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{i.checked?selected.add(i.dataset.cat):selected.delete(i.dataset.cat);update();});el.querySelector('[data-none]').onclick=()=>{selected.clear();el.querySelectorAll('[data-cat]').forEach(i=>i.checked=false);update();};el.querySelector('[data-backup-now]').onclick=()=>downloadBackup(data);
- clean.onclick=async()=>{const names=[...selected].map(k=>C.catalog[k][0]).join('、');if(!confirm('确定清除：'+names+'？\n未选的数据保留。清理后将刷新页面；选中人设、记忆、聊天或规则会影响后续对话。'))return;clean.disabled=true;el.querySelector('[data-kt-close]').disabled=true;try{if(busy())throw Error('请等待生成结束');data=await scan();if(el.querySelector('[data-backup]').checked)await downloadBackup(data);await apply(data,selected);}catch(e){window.kissCleanupLocked=false;alert('清理未完成：'+e.message+'。已下载的备份可用于恢复；请刷新后检查。');clean.disabled=false;el.querySelector('[data-kt-close]').disabled=false;}};
+ el.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{i.checked?selected.add(i.dataset.cat):selected.delete(i.dataset.cat);update();});el.querySelector('[data-none]').onclick=()=>{selected.clear();el.querySelectorAll('[data-cat]').forEach(i=>i.checked=false);update();};el.querySelector('[data-backup-now]').onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{if(busy())throw Error('请等待生成结束');await downloadBackup();}catch(err){alert('备份未完成：'+err.message)}finally{b.disabled=false;}};
+ clean.onclick=async()=>{const names=[...selected].map(k=>C.catalog[k][0]).join('、');if(!confirm('确定清除：'+names+'？\n未选的数据保留。清理后将刷新页面；选中人设、记忆、聊天或规则会影响后续对话。'))return;clean.disabled=true;el.querySelector('[data-kt-close]').disabled=true;try{if(busy())throw Error('请等待生成结束');data=await scan({retainSelected:selected});if(el.querySelector('[data-backup]').checked)await downloadBackup({flush:false});await apply(data,selected);}catch(e){window.kissCleanupLocked=false;alert('清理未完成：'+e.message+'。已下载的备份可用于恢复；请刷新后检查。');clean.disabled=false;el.querySelector('[data-kt-close]').disabled=false;}};
  el.querySelector('[data-restore]').onclick=()=>el.querySelector('[data-restore-file]').click();el.querySelector('[data-restore-file]').onchange=async e=>{try{const value=await decodeBackup(JSON.parse(await e.target.files[0].text()));if(value.format!=='kiss-cleanup-safety-v1'||!Array.isArray(value.records))throw Error('不是本功能导出的清理备份');if(busy())throw Error('请等待生成结束');if(!confirm('恢复备份会覆盖备份中的同名记录，确定恢复？'))return;const allowed=new Set(dexieDB.tables.map(t=>t.name));for(const r of value.records)if(!['dexie','hu','local','app'].includes(r.store)||r.store==='dexie'&&!allowed.has(r.table))throw Error('备份含不支持的类型');const applicationRecords=value.records.filter(r=>r.store==='app').map(r=>r.row);if(applicationRecords.length)window.KissAppData.validate({version:1,records:applicationRecords});await dexieDB.transaction('rw',dexieDB.tables,async()=>{for(const r of value.records.filter(r=>r.store==='dexie'))await dexieDB.table(r.table).put(r.row);});const apps=value.records.filter(r=>r.store==='app').map(r=>r.row);if(apps.length){const payload={version:1,complete:false,exact:true,apps:[...new Set(apps.map(r=>r.app))],records:apps};window.KissAppData.validate(payload);await window.KissAppData.restore(payload);}const hu=value.records.filter(r=>r.store==='hu').map(r=>r.row);if(hu.length)await window.KissHearUData.replace(hu);await loadData();for(const r of value.records.filter(r=>r.store==='local'))localStorage.setItem(r.key,r.row);location.reload();}catch(e){alert('恢复失败：'+e.message);}};
 }
 let heroReading=false;
 async function refreshStorageHero(){
  const value=document.querySelector('[data-kt-total-size]');if(!value || heroReading)return;heroReading=true;
- try{const data=await scan();value.textContent=fmt(Object.values(data.sizes).reduce((a,b)=>a+b,0));}catch(e){value.textContent='暂不可用';}finally{heroReading=false;}
+ try{const data=await scan();if(value.isConnected)value.textContent=fmt(data.overview.total);}catch(e){value.textContent='暂不可用';}finally{heroReading=false;}
 }
 function enhance(){
  for(const id of ['global-beautification-css','setting-custom-bubble-css']){const source=document.getElementById(id);if(!source||source.parentNode.querySelector('[data-kt-editor="'+id+'"]'))continue;const b=document.createElement('button');b.type='button';b.className='kt-launch';b.dataset.ktEditor=id;b.textContent='放大编辑 · 搜索代码';b.onclick=()=>editor(source);source.before(b);}

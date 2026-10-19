@@ -72,7 +72,32 @@ function fieldCategory(key,scope){
  if(/callHistory/i.test(key))return 'calls';
  return 'preferences';
 }
-function byteSize(v){if(v instanceof Blob)return v.size;if(v instanceof ArrayBuffer)return v.byteLength;if(ArrayBuffer.isView(v))return v.byteLength;let n=new TextEncoder().encode(JSON.stringify(v)??'').length;function extra(x){if(x instanceof Blob)return x.size;if(x instanceof ArrayBuffer||ArrayBuffer.isView(x))return x.byteLength;if(x && typeof x==='object')return Object.values(x).reduce((a,b)=>a+extra(b),0);return 0;}return n+extra(v);}
+// Measure the JSON representation without materializing another full JSON string or UTF-8 buffer.
+function jsonStringBytes(s){let bytes=2;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);if(c===34||c===92||c===8||c===9||c===10||c===12||c===13)bytes+=2;else if(c<32)bytes+=6;else if(c<128)bytes++;else if(c<2048)bytes+=2;else if(c>=0xd800&&c<=0xdbff){const d=s.charCodeAt(i+1);if(d>=0xdc00&&d<=0xdfff){bytes+=4;i++}else bytes+=6;}else if(c>=0xdc00&&c<=0xdfff)bytes+=6;else bytes+=3;}return bytes;}
+function createSizeCounter(){
+ const memo=new WeakMap(),active=new WeakSet();
+ function json(v,key='',arrayItem=false){
+  if(v&&typeof v==='object'&&typeof v.toJSON==='function')v=v.toJSON(key);
+  if(v===null)return 4;
+  const type=typeof v;
+  if(type==='string')return jsonStringBytes(v);
+  if(type==='number')return Number.isFinite(v)?String(v).length:4;
+  if(type==='boolean')return v?4:5;
+  if(type==='bigint')throw TypeError('BigInt cannot be serialized');
+  if(type!=='object')return arrayItem?4:undefined;
+  if(v instanceof Number||v instanceof String||v instanceof Boolean)return json(v.valueOf(),key,arrayItem);
+  if(active.has(v))throw TypeError('Circular storage data');
+  if(memo.has(v))return memo.get(v);
+  if(v instanceof Blob){const n=2+v.size;memo.set(v,n);return n;}
+  if(v instanceof ArrayBuffer){const n=2+v.byteLength;memo.set(v,n);return n;}
+  active.add(v);let n=2,count=0;
+  if(Array.isArray(v)){for(let i=0;i<v.length;i++)n+=(i?1:0)+json(v[i],String(i),true);}
+  else{for(const k of Object.keys(v)){const value=json(v[k],k,false);if(value===undefined)continue;n+=(count++?1:0)+jsonStringBytes(k)+1+value;}if(ArrayBuffer.isView(v))n+=v.byteLength;}
+  active.delete(v);memo.set(v,n);return n;
+ }
+ return v=>v instanceof Blob?v.size:v instanceof ArrayBuffer||ArrayBuffer.isView(v)?v.byteLength:json(v)??0;
+}
+function byteSize(v){return createSizeCounter()(v);}
 function reset(v){return Array.isArray(v)?[]:v instanceof Blob?'':v && typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,reset(x)])):typeof v==='boolean'?false:typeof v==='number'?0:'';}
 function recordUnits(record,scope,label){
  const units=[];
@@ -109,5 +134,5 @@ function cleanRecord(record,units,selected){
  deletions.sort((a,b)=>JSON.stringify(a.slice(0,-1)).localeCompare(JSON.stringify(b.slice(0,-1))) || b.at(-1)-a.at(-1));
  for(const p of deletions){let node=copy;for(const k of p.slice(0,-1))node=node[k];node.splice(p.at(-1),1);}return copy;
 }
-root.KissToolsCore={symbolKey,score,matches,resolve,catalog,fieldCategory,byteSize,recordUnits,cleanRecord,reset};
+root.KissToolsCore={symbolKey,score,matches,resolve,catalog,fieldCategory,byteSize,createSizeCounter,recordUnits,cleanRecord,reset};
 })(typeof window==='undefined'?globalThis:window);
