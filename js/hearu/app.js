@@ -1,4 +1,4 @@
-import * as player from "./music/player.js?v=kiss-3";
+import * as player from "./music/player.js?v=20261022-kiss-icons";
 import { apiRequest, API_BASE, musicLoginUrl, netease, readAccount, accountSnapshot, homeFeed, qrCreate, qrCheck, logout, allPlaylists, intelligenceSongs, fmSongs, privateDjSongs } from "./lib/api.js?v=kiss-3";
 const icon = (path) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
