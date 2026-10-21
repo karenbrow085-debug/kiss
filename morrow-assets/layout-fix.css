@@ -1,0 +1,64 @@
+/* Measured text flow on every stationery design; never place metadata at a separate paper edge. */
+#mail .em-letter.mi-flow-card{container-type:inline-size;position:relative;display:block;width:100%!important;aspect-ratio:var(--mi-ratio);min-height:0!important;padding:0!important;margin:0!important;box-shadow:none!important;background:none!important;border:0;border-radius:0;overflow:visible;color:#171717;text-align:left}
+#mail .mi-flow-card:before,#mail .mi-flow-card:after{display:none!important}
+#mail .mi-flow-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill!important;filter:none!important;pointer-events:none}
+#mail .mi-flow-area{position:absolute;left:var(--sfx);top:var(--sfy);width:var(--sfw);height:var(--sfh);display:grid;grid-template-rows:auto minmax(0,1fr) auto;row-gap:calc(6px * var(--morrow-font-scale,1));overflow:hidden;min-width:0;box-sizing:border-box;font-family:MorrowInboxSerif,MorrowMailGlyphs,MorrowArchiveSerif,serif}
+#mail .mi-flow-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-height:2.8em;overflow:hidden;overflow-wrap:anywhere;white-space:normal;font-size:calc(clamp(10px,3.1cqw,12px) * var(--morrow-font-scale,1));line-height:1.4;font-weight:400;min-width:0;align-self:start}
+#mail .mi-flow-name .mi-unread-dot{display:inline-block;vertical-align:middle;margin-left:5px}
+#mail .mi-flow-body{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-height:2.9em;overflow:hidden;overflow-wrap:anywhere;white-space:normal;font-size:calc(clamp(14px,5.2cqw,20px) * var(--morrow-font-scale,1));line-height:1.45;font-weight:400;letter-spacing:0;min-width:0;align-self:start;margin:0}
+#mail .mi-flow-footer{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:3px 8px;min-width:0;color:#85858b;font-size:calc(clamp(10px,2.8cqw,12px) * var(--morrow-font-scale,1));line-height:1.4;font-weight:400;align-self:end}
+#mail .mi-flow-footer>span{display:block;min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+#mail .mi-flow-footer>span:last-child{margin-left:auto;text-align:right}
+#mail .mi-flow-card>.em-checkbox{position:absolute;z-index:5;top:8px;left:8px;background:#fff;border:1px solid #444}
+#mail .mi-flow-card.is-selected{outline:1px solid #333!important;outline-offset:1px}
+#mail .mi-flow-hero-photo{position:absolute;left:0;top:0;width:38%!important;height:100%!important;object-fit:cover;transform:rotate(-1deg)}
+#mail .mi-flow-envelope{position:absolute;left:27%;top:2%;width:73%;height:96%;background:url('envelope.webp') center/100% 100%;box-shadow:0 5px 10px #00000014;transform:rotate(-.5deg)}
+#mail .mi-flow-note-paper,#mail .mi-flow-postcard-paper,#mail .mi-flow-strip-paper{position:absolute;inset:0;background:center/100% 100% no-repeat;pointer-events:none}
+#mail .mi-flow-note-paper{background-image:url('note.webp')}
+#mail .mi-flow-postcard-paper{background-image:url('postcard.webp')}
+#mail .mi-flow-postcard-photo{position:absolute;left:0;top:0;width:100%!important;height:52%!important;object-fit:cover}
+#mail .mi-flow-strip-paper{background-image:url('strip.webp')}
+#mail .mi-flow-polaroid{position:absolute;left:2.5%;top:8%;bottom:8%;width:29%;padding:4px 4px 8px;background:#fff;box-shadow:0 2px 5px #0002;transform:rotate(-1deg)}
+#mail .mi-flow-polaroid img{width:100%;height:100%;object-fit:cover}
+#mail [data-mi-style="56"]>.mi-stamp{width:7%;height:25%;right:3%;top:9%;padding:3px}
+#mail [data-mi-style="56"]>.mi-postmark{right:7%;top:18%;width:12%;height:22%}
+@supports not (font-size:1cqw){#mail .mi-flow-body{font-size:calc(16px * var(--morrow-font-scale,1))}#mail .mi-flow-name{font-size:calc(11px * var(--morrow-font-scale,1))}#mail .mi-flow-footer{font-size:calc(10px * var(--morrow-font-scale,1))}}
+/* Fixed, compact attachment journal. Long notes use in-place pages, with no vertical scrolling. */
+html body #overlay.rd-open .dialog.ra-dialog{height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;padding:max(16px,var(--morrow-top-base,16px)) 24px calc(12px + env(safe-area-inset-bottom,0px))!important;background:#fff!important;font-family:MorrowInboxSerif,MorrowMailGlyphs,serif;color:#242426}
+html body #overlay.rd-open .ra-dialog .dialog-head{display:grid!important;grid-template-columns:82px minmax(0,1fr) 82px;flex:none;height:30px!important;margin:0 0 10px!important;padding:0!important;border:0!important}
+html body #overlay.rd-open .ra-dialog .dialog-head h2{font:400 13px/1.4 MorrowArchiveLatin,Georgia,serif;letter-spacing:5px;text-align:center;color:#27272a;margin:0}
+html body #overlay.rd-open .ra-dialog .dialog-head .lr-back{display:block!important;width:82px!important;height:30px;margin:0;padding:0;font:12px/30px MorrowInboxSerif,MorrowMailGlyphs,serif!important;text-align:left;white-space:nowrap}
+html body #overlay.rd-open .ra-dialog .dialog-head .close{justify-self:end;width:30px;height:30px;min-width:30px;min-height:30px;font:300 27px/30px Arial,sans-serif}
+html body #overlay.rd-open .ra-dialog #dialogBody{display:flex!important;flex:1!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important}
+html body #overlay .ra-fixed{display:flex;flex-direction:column;gap:9px;width:100%;height:100%;min-height:0;overflow:hidden;color:#27272a;font-family:MorrowInboxSerif,MorrowMailGlyphs,serif}
+#overlay .ra-fixed .ra-meta{display:flex;justify-content:space-between;align-items:center;flex:none;height:18px;min-height:18px!important;margin:0!important;font:9px/1.4 MorrowArchiveLatin,Georgia,serif;letter-spacing:1.7px;color:#77777c}
+#overlay .ra-fixed .ra-heading{display:block;flex:none;margin:0!important;padding:0!important;border:0}
+#overlay .ra-fixed .ra-heading h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-family:MorrowInboxSerif,MorrowMailGlyphs,serif;font-size:clamp(20px,5.5vw,27px);font-weight:400;line-height:1.4;letter-spacing:0;margin:0 0 4px!important;overflow-wrap:anywhere}
+#overlay .ra-fixed .ra-heading p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;font-size:11px;line-height:1.5;color:#909095;overflow-wrap:anywhere;margin:0}
+#overlay .ra-fixed .ra-print{position:relative;display:block;flex:1.12 1 0;min-height:100px;width:100%;aspect-ratio:auto;margin:0!important;padding:0;background:url('attachment-mount.webp') center/100% 100% no-repeat;box-shadow:none;isolation:isolate}
+#overlay .ra-fixed.ra-without-note .ra-print{flex:1}
+#overlay .ra-fixed .ra-object{position:absolute;left:15%;top:16%;width:70%;height:67%;display:grid;place-items:center}
+#overlay .ra-fixed .ra-object>img,#overlay .ra-fixed .ra-object>.ms-object-image{position:static!important;display:block!important;inset:auto!important;width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;object-fit:contain!important;background-size:contain!important;background-position:center;background-repeat:no-repeat;filter:none}
+#overlay .ra-fixed .ra-print figcaption{position:absolute;left:8%;right:8%;bottom:9%;display:flex;justify-content:space-between;gap:8px;color:#8d8d93;font:10px/1.4 MorrowInboxSerif,MorrowMailGlyphs,serif}
+#overlay .ra-fixed .ra-note{display:flex;flex-direction:column;flex:1 1 0;min-height:95px;margin:0!important;padding:0 2px;overflow:hidden}
+#overlay .ra-fixed .ra-note-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none;height:26px;margin:0 0 5px;color:#77777c;font-size:11px;line-height:1.3}
+#overlay .ra-fixed .ra-note-head>span:before{content:'';display:inline-block;vertical-align:middle;width:18px;height:1px;background:#85858a;margin-right:8px}
+#overlay .ra-fixed .ra-note-pager{display:flex;align-items:center;gap:9px;flex:none;white-space:nowrap;font-size:10px}
+#overlay .ra-fixed .ra-note-pager[hidden]{display:none!important}
+#overlay .ra-fixed .ra-note-pager button{min-width:0;min-height:25px;padding:0;background:none;border:0;color:#444449;font:inherit}
+#overlay .ra-fixed .ra-note-pager button:disabled{opacity:.3}
+#overlay .ra-fixed .ra-note-text{flex:1;min-height:0;height:0;margin:0!important;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;color:#333338;font-family:MorrowInboxSerif,MorrowMailGlyphs,serif;font-weight:400;font-size:calc(15px * min(1.15,var(--morrow-font-scale,1)));line-height:1.8}
+#overlay .ra-fixed .ra-pagination{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none;height:25px;margin:0!important;font-size:10px}
+#overlay .ra-fixed .ra-pagination button{min-height:25px;padding:0;background:none;border:0;color:#55555b;font:inherit}
+#overlay .ra-fixed .ra-collection{display:flex;justify-content:space-between;align-items:center;gap:10px;flex:none;height:34px;padding:5px 0 0;border-top:1px solid #e0e0e1;font-size:11px}
+#overlay .ra-fixed .ra-collection>button{padding:0;background:none;border:0;min-width:0;min-height:28px;font:inherit;color:#8a8a91}
+#overlay .ra-fixed .ra-collection .ra-collect{display:flex;align-items:center;gap:8px;color:#28282b;opacity:1}
+#overlay .ra-fixed .ra-collect svg{display:block;width:19px;height:19px}
+#overlay .ra-fixed>.ra-footer{display:block;flex:none;height:40px;margin:0!important;padding:0!important;border:0!important}
+#overlay .ra-fixed>.ra-footer>button{display:block;width:100%;height:40px!important;min-width:0;border:1px solid #49494d;border-radius:2px;background:none!important;color:#29292c;font:13px/1.4 MorrowInboxSerif,MorrowMailGlyphs,serif;padding:0}
+#overlay .ra-fixed .ra-provenance{display:block;flex:none;height:12px;margin:0!important;padding:0!important;border:0;font:8px/12px MorrowArchiveLatin,Georgia,serif;text-align:center;letter-spacing:1.6px;color:#a2a2a7}
+@media(max-height:720px){html body #overlay.rd-open .dialog.ra-dialog{padding-top:max(12px,env(safe-area-inset-top,0px))!important;padding-bottom:8px!important}html body #overlay.rd-open .ra-dialog .dialog-head{margin-bottom:5px!important}#overlay .ra-fixed{gap:6px}#overlay .ra-fixed .ra-heading h2{font-size:20px;line-height:1.3}#overlay .ra-fixed .ra-print{min-height:85px}#overlay .ra-fixed .ra-note{min-height:85px}#overlay .ra-fixed .ra-note-text{font-size:14px;line-height:1.7}#overlay .ra-fixed .ra-provenance{display:none}}
+@media(max-width:350px){html body #overlay.rd-open .dialog.ra-dialog{padding-left:18px!important;padding-right:18px!important}#overlay .ra-fixed .ra-note-pager{gap:6px}}
+
+html body #overlay.rd-open .ra-dialog .dialog-head .close{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;padding:0!important}
+#overlay .ra-fixed .ra-object>.ms-object-image{mix-blend-mode:multiply}
