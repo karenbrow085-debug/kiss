@@ -1,0 +1,94 @@
+
+@font-face{font-family:"KissStartSerif";font-style:normal;font-weight:400;font-display:swap;src:url(serif-regular.woff) format("woff")}
+@font-face{font-family:"KissStartSerif";font-style:italic;font-weight:400;font-display:swap;src:url(serif-italic.woff) format("woff")}
+#kiss-magazine-start{--sea:url('waves.jpg');--forest:url('forest.jpg');--alps:url('mountains.jpg');display:flex;flex-direction:column;align-items:center;gap:12px}
+#kiss-magazine-start .qm-screen{width:100%;max-width:380px;aspect-ratio:350/620;position:relative;overflow:hidden;container-type:inline-size;perspective:1500px;background:#fafaf7;color:#30302d;font-family:Arial,sans-serif}
+#kiss-magazine-start .qm-overlay{position:absolute;inset:0;perspective:1500px;background:#eeede8;transform-style:preserve-3d}
+#kiss-magazine-start .qm-book{position:absolute;inset:0;transform-origin:center;transform-style:preserve-3d}
+#kiss-magazine-start .qm-page,#kiss-magazine-start .qm-turn,#kiss-magazine-start .qm-front,#kiss-magazine-start .qm-back{position:absolute;inset:0}
+#kiss-magazine-start .qm-page{background:#fafaf7;overflow:hidden}
+#kiss-magazine-start .qm-turn{transform-style:preserve-3d;transform-origin:left center}
+#kiss-magazine-start .qm-front,#kiss-magazine-start .qm-back{backface-visibility:hidden;overflow:hidden}
+#kiss-magazine-start .qm-front{background:#ddd;transform:translateZ(.5px)}
+#kiss-magazine-start .qm-back{transform:rotateY(180deg);background:#fafaf7;box-shadow:inset -10px 0 18px -12px #0005}
+#kiss-magazine-start img{display:block;width:100%;height:100%;object-fit:contain}
+#kiss-magazine-start .qm-top,#kiss-magazine-start .qm-bottom{position:absolute;left:7%;right:7%;display:flex;justify-content:space-between;gap:8px;font-size:clamp(8px,2.3cqw,9px);letter-spacing:.65px;line-height:1.3}
+#kiss-magazine-start .qm-top{top:4%;padding-bottom:12px;border-bottom:1px solid #999991}
+#kiss-magazine-start .qm-bottom{bottom:3.5%}
+#kiss-magazine-start .qm-cover-photo{position:absolute;inset:0;background:var(--sea) center/cover}
+#kiss-magazine-start .qm-cover-small{position:absolute;left:7%;right:7%;top:5%;display:flex;justify-content:space-between;font-size:clamp(8px,2.3cqw,9px);letter-spacing:.7px}
+#kiss-magazine-start .qm-kiss{position:absolute;left:13%;right:13%;top:9%;height:21%}
+#kiss-magazine-start .qm-cover-sub{position:absolute;top:32%;left:0;right:0;text-align:center;font-size:clamp(9px,2.5cqw,10px);letter-spacing:2px}
+#kiss-magazine-start .qm-cover-headline{position:absolute;left:7%;bottom:16%;font:400 9.5cqw/1.12 "KissStartSerif","Times New Roman",serif;letter-spacing:-.2cqw;color:#fafaf7;text-shadow:0 1px 8px #0003}
+#kiss-magazine-start .qm-cover-foot{position:absolute;left:7%;right:7%;bottom:5%;display:flex;justify-content:space-between;gap:12px;color:#fafaf7;font-size:clamp(8px,2.2cqw,9px);line-height:1.35;letter-spacing:.2px}
+#kiss-magazine-start .qm-open{position:absolute;inset:0;width:100%;height:100%;background:transparent;border:0;padding:0;border-radius:0}
+#kiss-magazine-start .qm-wander{position:absolute;left:6%;top:10%;width:70%;height:17%}
+#kiss-magazine-start .qm-wander img{object-position:left center}
+#kiss-magazine-start .qm-collage{position:absolute;background-size:cover;background-position:center}
+#kiss-magazine-start .qm-forest{left:7%;top:31%;width:48%;height:36%;background-image:var(--forest)}
+#kiss-magazine-start .qm-waves{right:7%;top:40%;width:32%;height:23%;background-image:var(--sea);background-position:center 80%}
+#kiss-magazine-start .qm-road{right:7%;top:73%;width:43%;height:16%;background-image:var(--alps);background-position:center 65%}
+#kiss-magazine-start .qm-collage-copy{position:absolute;left:7%;top:74%;font-size:clamp(10px,2.9cqw,11px);line-height:1.5}
+#kiss-magazine-start .qm-collage-copy>span{font-size:clamp(8px,2.25cqw,9px);letter-spacing:.7px}
+#kiss-magazine-start .qm-collage-copy p{margin:10px 0 0;color:#666660}
+#kiss-magazine-start .qm-gallery-photo{position:absolute;left:18%;right:18%;top:20%;height:39%;background:var(--alps) center 58%/cover}
+#kiss-magazine-start .qm-gallery-label{position:absolute;left:18%;right:18%;top:61%;display:flex;justify-content:space-between;gap:8px;font-size:clamp(8px,2.2cqw,9px);letter-spacing:.1px;color:#61615b}
+#kiss-magazine-start .qm-stay{position:absolute;left:23%;right:23%;top:67%;height:15%}
+#kiss-magazine-start .qm-gallery-copy{position:absolute;left:7%;right:7%;top:84%;margin:0;text-align:center;font-size:clamp(11px,3.1cqw,12px);line-height:1.5;color:#62625c}
+#kiss-magazine-start.is-opening .qm-book{animation:kissmag-spread 3.1s cubic-bezier(.45,0,.2,1) both}
+#kiss-magazine-start.is-opening .qm-turn{animation:kissmag-flip 1.55s .15s cubic-bezier(.45,0,.2,1) both}
+
+@keyframes kissmag-spread{0%{transform:translateX(0) scale(1)}55%,62%{transform:translateX(25%) scale(.5)}100%{transform:translateX(0) scale(1)}}
+@keyframes kissmag-flip{0%{transform:rotateY(0)}100%{transform:rotateY(-180deg)}}
+
+
+#kiss-magazine-start .qm-screen{background:#fdfdfa;color:#242523}
+#kiss-magazine-start .qm-kiss{left:5%;right:5%;top:5%;height:24%}
+#kiss-magazine-start .qm-kiss img{object-position:center}
+#kiss-magazine-start .qm-cover-small{top:3.2%;font-size:clamp(8px,2.2cqw,9px);letter-spacing:.7px}
+#kiss-magazine-start .qm-cover-sub{top:30%;left:7%;right:7%;display:flex;align-items:start;justify-content:space-between;text-align:left;font-size:clamp(8px,2.2cqw,9px);letter-spacing:.6px;line-height:1.4}
+#kiss-magazine-start .qm-cover-sub>span:last-child{text-align:right}
+#kiss-magazine-start .qm-cover-headline{left:7%;bottom:14%;font:400 8.7cqw/.95 "KissStartSerif",Didot,serif;letter-spacing:-.35cqw;padding:3px 9px 10px 0}
+#kiss-magazine-start .qm-cover-headline>span{display:block}
+#kiss-magazine-start .qm-cover-headline em{display:block;padding:2px 0;font-size:8cqw;line-height:.95;font-weight:400}
+#kiss-magazine-start .qm-cover-foot{bottom:4.8%;font-size:clamp(8px,2.2cqw,9px);letter-spacing:.2px}
+#kiss-magazine-start .qm-top{border-bottom:0;letter-spacing:.6px}
+#kiss-magazine-start .qm-wander{top:11.5%;left:7%;width:80%;height:auto;font:500 12cqw/.92 Arial,sans-serif;letter-spacing:-.6cqw;padding:0 5px 10px 0}
+#kiss-magazine-start .qm-wander>span{display:block;margin-top:12px;font:400 clamp(8px,2.25cqw,9px)/1.3 Arial,sans-serif;letter-spacing:.8px}
+#kiss-magazine-start .qm-forest{top:33%;height:35%;width:48%}
+#kiss-magazine-start .qm-waves{top:41%;height:23%;width:32%}
+#kiss-magazine-start .qm-collage-copy{top:75%;font-size:clamp(10px,2.9cqw,11px)}
+#kiss-magazine-start .qm-collage-copy p{color:#55554f}
+#kiss-magazine-start .qm-gallery-photo{left:17%;right:17%;top:20%;height:38%}
+#kiss-magazine-start .qm-gallery-label{left:17%;right:17%;top:60%;font-size:clamp(8px,2.2cqw,9px);letter-spacing:.15px;color:#5e5e57}
+#kiss-magazine-start .qm-stay{top:72%;left:7%;right:7%;height:auto;text-align:center;font:400 13cqw/1.2 "KissStartSerif",Didot,serif;letter-spacing:-.55cqw;padding:3px 12px 10px}
+#kiss-magazine-start .qm-gallery-copy{top:84%;font-size:clamp(11px,3cqw,12px);line-height:1.55;color:#55554f}
+#kiss-magazine-start .qm-bottom{font-size:clamp(8px,2.2cqw,9px);letter-spacing:.5px}
+#kiss-magazine-start {
+  position: fixed; inset: 0; z-index: 2147483646;
+  display: block; margin: 0; padding: 0; overflow: hidden;
+  width: 100%; height: 100%; background: #f5f5f1;
+  isolation: isolate; touch-action: manipulation;
+  opacity: 1; transition: opacity .5s ease;
+  text-size-adjust: 100%; -webkit-text-size-adjust: 100%;
+}
+#kiss-magazine-start, #kiss-magazine-start * { box-sizing: border-box; }
+#kiss-magazine-start .qm-screen {
+  position: absolute; inset: 0; max-width: none; width: 100%; height: 100%;
+  aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none;
+}
+#kiss-magazine-start .qm-open { display: block; outline-offset: -6px; }
+#kiss-magazine-start .qm-open:focus-visible { outline: 2px solid #555; }
+#kiss-magazine-start .qm-cover-small { top: max(3.2%, calc(env(safe-area-inset-top, 0px) + 8px)); }
+#kiss-magazine-start .qm-top { top: max(4%, calc(env(safe-area-inset-top, 0px) + 10px)); }
+#kiss-magazine-start .qm-cover-foot { bottom: max(4.8%, calc(env(safe-area-inset-bottom, 0px) + 14px)); }
+#kiss-magazine-start .qm-bottom { bottom: max(3.5%, calc(env(safe-area-inset-bottom, 0px) + 12px)); }
+#kiss-magazine-start.is-leaving { opacity: 0; }
+@media (min-aspect-ratio: 1/1) {
+  #kiss-magazine-start .qm-screen { width: min(100%, 56.45vh); left: 50%; right: auto; transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #kiss-magazine-start.is-opening .qm-book,
+  #kiss-magazine-start.is-opening .qm-turn { animation-duration: 1ms; animation-delay: 0s; }
+  #kiss-magazine-start { transition-duration: .15s; }
+}
