@@ -8,11 +8,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="UwU" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="apple-touch-icon" href="https://i.postimg.cc/DZHdV88x/chan-135.png">
+    <link rel="apple-touch-icon" href="morrow-assets/magazine-start-v1/icon-180.png">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="referrer" content="no-referrer" />
 
+
+    <!-- Kiss magazine startup: styles and assets are local, independent of API settings. -->
+    <link rel="preload" as="image" href="morrow-assets/magazine-start-v1/waves.jpg">
+    <link rel="preload" as="image" href="morrow-assets/magazine-start-v1/masthead.png">
+    <link rel="preload" as="font" type="font/woff" crossorigin href="morrow-assets/magazine-start-v1/serif-regular.woff">
+    <link rel="stylesheet" href="morrow-assets/magazine-start-v1/magazine-start.css?v=20261021-magazine-v1">
+    <script defer src="morrow-assets/magazine-start-v1/magazine-start.js?v=20261021-magazine-v1"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.8/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -22,7 +29,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=20261021-magazine-v1">
     <!-- CSS Split: Base & Layout -->
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
@@ -75,6 +82,41 @@
 </head>
 
 <body>
+<!-- Kiss magazine startup; the existing phone desktop remains intact below. -->
+<div id="kiss-magazine-start" role="dialog" aria-modal="true" aria-label="Kiss magazine" data-phase="cover">
+ <div class="qm-screen">
+  <div class="qm-overlay"><div class="qm-book">
+   <div class="qm-page qm-gallery">
+    <div class="qm-top"><span>KISS</span><span>THE PRIVATE ISSUE / 03</span></div>
+    <div class="qm-gallery-photo" role="img" aria-label="Black and white alpine road"></div>
+    <div class="qm-gallery-label"><span>PLATE III</span><span>THE LONG WAY HOME</span></div>
+    <div class="qm-stay">Elsewhere.</div>
+    <p class="qm-gallery-copy">There is no hurry.<br>Let this moment be enough.</p>
+    <div class="qm-bottom"><span>PERSONAL EDITION</span><span>03</span></div>
+   </div>
+   <div class="qm-turn">
+    <div class="qm-front">
+     <div class="qm-cover-photo" role="img" aria-label="Black and white Atlantic waves"></div>
+     <div class="qm-cover-small"><span>THE EVERYDAY JOURNAL</span><span>VOL. 01</span></div>
+     <div class="qm-kiss"><img src="morrow-assets/magazine-start-v1/masthead.png" alt="Kiss"></div>
+     <div class="qm-cover-sub"><span>THE PRIVATE ISSUE</span><span>NO. 01<br>OCTOBER 2026</span></div>
+     <div class="qm-cover-headline"><span>LIFE</span><em>in the</em><span>QUIET</span></div>
+     <div class="qm-cover-foot"><span>THE ART OF EVERYDAY.</span><span>01 / PERSONAL EDITION</span></div>
+     <button class="qm-open cursor-interaction" type="button" aria-label="Open the magazine"></button>
+    </div>
+    <div class="qm-back">
+     <div class="qm-top"><span>KISS / FIELD NOTES</span><span>02</span></div>
+     <div class="qm-wander">FIELD<br>NOTES<span>THE PLACES BETWEEN.</span></div>
+     <div class="qm-collage qm-forest" role="img" aria-label="Tall trees in white fog"></div>
+     <div class="qm-collage qm-waves" role="img" aria-label="White waves over dark rocks"></div>
+     <div class="qm-collage qm-road" role="img" aria-label="A winding mountain road"></div>
+     <div class="qm-collage-copy"><span>OFF THE MAP.</span><p>A quiet morning.<br>An unfamiliar road.<br>Nowhere else to be.</p></div>
+     <div class="qm-bottom"><span>COLLECTED MOMENTS</span><span>02</span></div>
+    </div>
+   </div>
+  </div></div>
+ </div>
+</div>
 <svg width="0" height="0" style="position:absolute;">
   <defs>
     <clipPath id="heart-clip" clipPathUnits="objectBoundingBox">
