@@ -1,0 +1,118 @@
+@font-face{font-family:MorrowInboxSerif;src:url("serif.woff2") format("woff2");font-weight:400;font-display:swap}
+/* Approved envelope / postcard composition. Everything is scoped to the inbox. */
+html body.mail-editorial-open #mail.page{--mi-u:min(calc(100vw / 850),calc(500px / 850));padding:calc(40 * var(--mi-u) + env(safe-area-inset-top,0px)) calc(49 * var(--mi-u)) calc(115px + env(safe-area-inset-bottom,0px))!important;color:#171717;background:#fff;font-family:MorrowInboxSerif,MorrowMailGlyphs,MorrowArchiveSerif,'Songti SC',serif}
+html.morrow-android body.mail-editorial-open #mail.page{padding-top:calc(40 * var(--mi-u) + max(12px,env(safe-area-inset-top,0px)))!important}
+body.mail-editorial-open .app>header{display:none!important}
+#mail .mi-header{display:grid;grid-template-columns:1fr auto;align-items:center;gap:calc(18 * var(--mi-u));margin:0 0 calc(40 * var(--mi-u))}
+#mail .mi-masthead{display:block;font:400 calc(16 * var(--mi-u))/1.3 MorrowArchiveLatin,Georgia,serif;letter-spacing:calc(8 * var(--mi-u));margin-bottom:calc(18 * var(--mi-u));color:#222}
+#mail .mi-header h1{margin:0;font-size:calc(70 * var(--mi-u) * var(--morrow-font-scale,1));line-height:1.05;font-weight:400;letter-spacing:calc(7 * var(--mi-u));color:#111}
+#mail .mi-header .head-actions{display:flex;gap:calc(32 * var(--mi-u));padding-top:calc(25 * var(--mi-u))}
+#mail .mi-header .circle{display:grid;place-items:center;width:calc(63 * var(--mi-u));height:calc(63 * var(--mi-u));min-width:30px;min-height:30px;padding:calc(7 * var(--mi-u));border:0!important;border-radius:0;background:none!important;box-shadow:none!important;color:#171717;backdrop-filter:none}
+#mail .mi-header .icon{width:100%;height:100%;max-width:none;max-height:none}
+#mail .mi-contact-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:calc(25 * var(--mi-u));align-items:start}
+#mail #penpals{display:block;min-height:0;margin:0;padding:0;border:0;overflow:visible}
+#mail .mi-contact-menu{position:relative;min-width:0;z-index:4}
+#mail .mi-contact-menu summary{cursor:pointer;list-style:none;display:block;font-size:calc(31 * var(--mi-u) * var(--morrow-font-scale,1));line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#141414}
+#mail .mi-contact-menu summary::-webkit-details-marker{display:none}
+#mail .mi-contact-options{position:absolute;top:100%;left:0;width:max-content;max-width:85vw;min-width:100%;max-height:45vh;overflow:auto;background:#fff;padding:8px;box-shadow:0 8px 26px #0002;border:1px solid #e9e9e9;border-radius:2px}
+#mail .mi-contact-options button{display:block;width:100%;padding:10px;text-align:left;border:0;background:#fff;font:inherit;font-size:14px;color:#444;overflow-wrap:anywhere}
+#mail .mi-contact-options button[aria-pressed=true]{background:#f5f5f5;color:#111}
+#mail #mailProgress{padding:calc(6 * var(--mi-u)) 0 0;border:0;position:relative;min-width:0}
+#mail .mi-correspondent{font-size:calc(25 * var(--mi-u) * var(--morrow-font-scale,1));line-height:1.45;color:#85858b;text-align:right;overflow-wrap:anywhere}
+#mail .mi-progress-track{height:calc(7 * var(--mi-u));min-height:3px;background:#ebebed;border-radius:9px;overflow:hidden;width:calc(100% - 10 * var(--mi-u));margin-top:calc(11 * var(--mi-u))}
+#mail .mi-progress-track i{height:100%;display:block;background:#171717;border-radius:9px}
+#mail #mailProgress .em-friend{margin-top:4px;float:right;font-size:11px;background:none;border:0;color:#555;padding:4px 0}
+#mail .mi-filters{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:calc(33 * var(--mi-u)) 0 calc(16 * var(--mi-u))}
+#mail #mailTabs{display:flex;gap:calc(37 * var(--mi-u));align-items:start;flex:1;min-width:0;border:0;padding:0;margin:0;background:none;overflow:visible}
+#mail #mailTabs button{position:relative;min-width:0;flex:none;padding:0 0 calc(26 * var(--mi-u));border:0;border-radius:0;color:#95959b;background:none;box-shadow:none;font:400 calc(28 * var(--mi-u) * var(--morrow-font-scale,1))/1.4 MorrowInboxSerif,MorrowMailGlyphs,MorrowArchiveSerif,serif;white-space:nowrap}
+#mail #mailTabs button:after{display:none}
+#mail #mailTabs button.active{color:#111}
+#mail #mailTabs button.active:after{content:'';display:block;position:absolute;width:calc(11 * var(--mi-u));height:calc(11 * var(--mi-u));min-width:4px;min-height:4px;border-radius:100%;background:#111;left:50%;bottom:calc(6 * var(--mi-u));transform:translateX(-50%)}
+#mail #mailManageBar{display:flex;align-items:start;justify-content:flex-end;gap:8px;flex:none;min-height:0;padding:0 0 calc(26 * var(--mi-u));margin:0;border:0;background:none;font-size:calc(21 * var(--mi-u) * var(--morrow-font-scale,1));color:#8c8c91}
+#mail #mailManageBar .em-section-label{display:none}
+#mail #mailManageBar button{font:inherit;padding:2px 0;border:0;background:none;color:inherit}
+#mail.mi-managing .mi-filters{flex-wrap:wrap}
+#mail.mi-managing #mailManageBar{width:100%;justify-content:space-between;padding-bottom:0}
+#mail #mailManageBar>div{display:flex;gap:15px}
+#mail #mailDeleteTools{margin-bottom:15px}
+#mail #mailCourier{display:none!important}
+#mail #letterList{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,1fr);gap:calc(29 * var(--mi-u)) calc(30 * var(--mi-u));margin:0 calc(-17 * var(--mi-u));padding:0;align-items:stretch}
+#mail #letterList>.em-empty,#mail #letterList>.note{grid-column:1/-1}
+#mail .em-letter.mi-letter{position:relative;display:block;grid-template-columns:none;gap:0;width:100%;min-width:0;min-height:0;margin:0;padding:0;border:0;border-radius:0;outline-offset:5px;color:#171717;text-align:left;box-shadow:0 calc(10 * var(--mi-u)) calc(17 * var(--mi-u)) #00000012;background-color:transparent;background-repeat:no-repeat;background-size:100% 100%;overflow:visible;isolation:isolate;transform:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:none}
+#mail .em-letter.mi-letter:after,#mail .em-letter.mi-letter:before{display:none!important}
+#mail .mi-letter[hidden]{display:none!important}
+#mail .mi-letter:focus-visible{outline:2px solid #777}
+#mail .mi-letter>span,#mail .mi-letter img{box-sizing:border-box}
+#mail .mi-letter img{display:block;width:100%;height:100%;object-fit:cover;filter:grayscale(1)}
+#mail .mi-sender{display:flex;align-items:center;gap:6px;min-width:0;font-size:calc(22 * var(--mi-u) * var(--morrow-font-scale,1));line-height:1.5;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mail .mi-unread-dot{display:inline-block;flex:none;width:4px;height:4px;border-radius:50%;background:#161616}
+#mail .mi-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:normal;font-size:calc(39 * var(--mi-u) * var(--morrow-font-scale,1));line-height:1.45;letter-spacing:calc(.4 * var(--mi-u));font-weight:400;margin:calc(13 * var(--mi-u)) 0 calc(20 * var(--mi-u));color:#111}
+#mail .mi-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:6px;min-width:0;margin-top:auto}
+#mail .mi-meta{display:flex;flex-wrap:wrap;gap:calc(8 * var(--mi-u));font-size:max(10px,calc(20 * var(--mi-u) * var(--morrow-font-scale,1)));line-height:1.5;color:#929299}
+#mail .mi-eta{font-size:max(10px,calc(20 * var(--mi-u) * var(--morrow-font-scale,1)));line-height:1.5;color:#929299;text-align:right}
+#mail .mi-hero{grid-column:1/-1;min-height:calc(455 * var(--mi-u))!important;box-shadow:none!important;background:none!important}
+#mail .mi-hero-photo{position:absolute;left:0;top:0;bottom:0;width:38%!important;height:100%!important;object-position:center;transform:rotate(-1.5deg)}
+#mail .mi-envelope{display:block;position:relative;margin-left:27%;width:73%;min-height:calc(435 * var(--mi-u));margin-top:calc(10 * var(--mi-u));background:url('envelope.webp') center/100% 100%;box-shadow:0 calc(9 * var(--mi-u)) calc(16 * var(--mi-u)) #00000020;transform:rotate(-1deg)}
+#mail .mi-envelope-copy{display:flex;flex-direction:column;position:relative;padding:calc(200 * var(--mi-u)) calc(35 * var(--mi-u)) calc(25 * var(--mi-u));min-height:calc(435 * var(--mi-u))}
+#mail .mi-hero .mi-title{font-size:calc(43 * var(--mi-u) * var(--morrow-font-scale,1));margin-top:calc(17 * var(--mi-u));margin-bottom:calc(26 * var(--mi-u))}
+#mail .mi-stamp{position:absolute;top:calc(34 * var(--mi-u));right:calc(30 * var(--mi-u));width:calc(73 * var(--mi-u));height:calc(96 * var(--mi-u));background:#fafafa;padding:calc(8 * var(--mi-u));border:1px dashed #b3b3b7;outline:calc(4 * var(--mi-u)) solid #efefef;box-shadow:0 0 0 calc(5 * var(--mi-u)) #c7c7c7;z-index:1}
+#mail .mi-status-stamp{width:calc(98 * var(--mi-u));height:calc(85 * var(--mi-u));top:calc(40 * var(--mi-u));right:calc(35 * var(--mi-u));display:grid;place-items:center;padding:calc(10 * var(--mi-u));outline-color:#e9e9e9;background:#f8f8f8}
+#mail .mi-status-stamp>span{display:grid;place-items:center;width:100%;height:100%;border:1px solid #bababa;font:calc(22 * var(--mi-u) * var(--morrow-font-scale,1))/1.3 MorrowInboxSerif,MorrowMailGlyphs,MorrowArchiveSerif,serif;white-space:nowrap;color:#404044}
+#mail .mi-postmark{position:absolute;top:calc(70 * var(--mi-u));right:calc(110 * var(--mi-u));width:calc(103 * var(--mi-u));height:calc(65 * var(--mi-u));color:#68686b;z-index:2;pointer-events:none}
+#mail .mi-note{min-height:calc(445 * var(--mi-u))!important;background-image:url('note.webp');transform:rotate(-.4deg)!important}
+#mail .mi-note-copy{display:flex;flex-direction:column;min-height:calc(445 * var(--mi-u));padding:calc(165 * var(--mi-u)) calc(38 * var(--mi-u)) calc(34 * var(--mi-u))}
+#mail .mi-note .mi-title{margin-top:calc(18 * var(--mi-u));font-size:calc(35 * var(--mi-u) * var(--morrow-font-scale,1))}
+#mail .mi-note .mi-foot{border-top:1px solid #d0d0d2;padding-top:calc(28 * var(--mi-u))}
+#mail .mi-postcard{min-height:calc(445 * var(--mi-u))!important;background-image:url('postcard.webp')}
+#mail .mi-postcard-photo{height:calc(265 * var(--mi-u))!important;width:100%;object-position:center}
+#mail .mi-postcard-copy{display:flex;flex-direction:column;min-height:calc(180 * var(--mi-u));padding:calc(18 * var(--mi-u)) calc(28 * var(--mi-u)) calc(20 * var(--mi-u))}
+#mail .mi-postcard .mi-title{font-size:calc(35 * var(--mi-u) * var(--morrow-font-scale,1));margin:calc(8 * var(--mi-u)) 0 calc(14 * var(--mi-u))}
+#mail .mi-strip{grid-column:1/-1;min-height:calc(270 * var(--mi-u))!important;background-image:url('strip.webp')}
+#mail .mi-polaroid{position:absolute;top:calc(24 * var(--mi-u));bottom:calc(24 * var(--mi-u));left:calc(20 * var(--mi-u));width:30%;padding:calc(9 * var(--mi-u)) calc(9 * var(--mi-u)) calc(15 * var(--mi-u));background:#fff;box-shadow:0 calc(4 * var(--mi-u)) calc(9 * var(--mi-u)) #0002;transform:rotate(-2deg)}
+#mail .mi-strip-copy{display:flex;flex-direction:column;min-height:calc(270 * var(--mi-u));padding:calc(48 * var(--mi-u)) calc(25 * var(--mi-u)) calc(29 * var(--mi-u)) 36%}
+#mail .mi-strip .mi-title{font-size:calc(34 * var(--mi-u) * var(--morrow-font-scale,1));margin:calc(10 * var(--mi-u)) 0 calc(22 * var(--mi-u));padding-right:calc(60 * var(--mi-u))}
+#mail .mi-strip .mi-stamp{top:calc(24 * var(--mi-u));right:calc(23 * var(--mi-u));width:calc(55 * var(--mi-u));height:calc(69 * var(--mi-u));padding:calc(6 * var(--mi-u))}
+#mail .mi-strip .mi-postmark{top:calc(45 * var(--mi-u));right:calc(60 * var(--mi-u));width:calc(88 * var(--mi-u))}
+#mail .mi-letter.is-selected{outline:2px solid #313136!important;background-color:transparent!important;filter:none}
+#mail .mi-letter.is-selected .mi-envelope{outline:1px solid #313136}
+#mail .mi-letter>.em-checkbox{z-index:5;left:6px;top:6px;background:#fff;border:1px solid #555;box-shadow:0 1px 5px #0002}
+#mail .mi-letter.is-selected>.em-checkbox{background:#333!important;color:#fff!important}
+body.mail-editorial-open .nav{width:min(472px,calc(100% - 28px));border:1px solid #eee;border-radius:50px;background:#ffffffed;box-shadow:0 6px 22px #0000000d;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:8px 9px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+body.mail-editorial-open .nav button{color:#93939b;font-weight:400}
+body.mail-editorial-open .nav button.active{color:#111}
+body.mail-editorial-open .nav button>span,body.mail-editorial-open .nav button.active>span{background:none!important;border:0!important;box-shadow:none!important}
+body.mail-editorial-open .nav [data-go=mail].active svg rect{fill:#111;stroke:#111}
+body.mail-editorial-open .nav [data-go=mail].active svg path{stroke:#fff}
+@media(max-width:360px){#mail .mi-filters{gap:4px}#mail #mailTabs{gap:calc(28 * var(--mi-u))}#mail .mi-meta{gap:3px}#mail .mi-hero .mi-foot{flex-wrap:wrap}#mail .mi-eta{text-align:left}#mail .mi-note-copy{padding-left:calc(30 * var(--mi-u));padding-right:calc(25 * var(--mi-u))}}
+
+#mail .mi-header h1{font-family:MorrowInboxSerif,MorrowMailGlyphs,MorrowArchiveSerif,"Songti SC",serif!important}
+body.mail-editorial-open .nav button{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",MorrowInboxSerif,serif}
+body.mail-editorial-open main{padding-bottom:0!important}
+body.mail-editorial-open .nav [data-go=world] svg,body.mail-editorial-open .nav [data-go=animals] svg{display:none}
+body.mail-editorial-open .nav [data-go=world]>span:before,body.mail-editorial-open .nav [data-go=animals]>span:before{content:'';display:block;width:23px;height:23px;background:center/contain no-repeat}
+body.mail-editorial-open .nav [data-go=world]>span:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2393939b' stroke-width='1.2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cellipse cx='12' cy='12' rx='4' ry='9'/%3E%3Cpath d='M3 12h18M5 6c4 3 10 3 14 0M5 18c4-3 10-3 14 0'/%3E%3C/svg%3E")}
+body.mail-editorial-open .nav [data-go=animals]>span:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2393939b' stroke-width='1.2' stroke-linejoin='round'%3E%3Cpath d='m2 10 20-8-8 20-3-9-9-3Zm9 3L22 2'/%3E%3C/svg%3E")}
+/* 52 approved photographic stationery backgrounds plus the original four compositions. */
+#mail .mi-slot-wide{grid-column:1/-1!important}
+#mail .mi-slot-half{grid-column:auto!important}
+#mail .mi-slot-solo{grid-column:1/-1!important;width:78%!important;justify-self:center}
+#mail .em-letter.mi-style-card{container-type:inline-size;aspect-ratio:var(--mi-ratio);background:none!important;box-shadow:none;min-height:0!important;overflow:visible}
+#mail .mi-style-art{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:fill!important;filter:none!important;pointer-events:none}
+#mail .mi-style-copy{position:absolute;left:var(--cx);top:var(--cy);width:var(--cw);height:var(--ch);display:flex;flex-direction:column;justify-content:flex-start;min-width:0;overflow:hidden;gap:clamp(2px,1.5cqw,6px)}
+#mail .mi-style-card .mi-sender{font-size:calc(clamp(8px,2.9cqw,13px) * var(--morrow-font-scale,1));line-height:1.4;flex:none}
+#mail .mi-style-card .mi-title{font-size:calc(clamp(12px,5.2cqw,24px) * var(--morrow-font-scale,1));line-height:1.45;margin:0;letter-spacing:0;-webkit-line-clamp:var(--mi-lines);max-height:calc(var(--mi-lines) * 1.45em);flex:none}
+#mail .mi-style-footer{position:absolute;left:var(--fx);top:var(--fy);width:var(--fw);height:var(--fh);display:flex;flex-wrap:wrap;align-content:start;align-items:start;justify-content:space-between;column-gap:6px;overflow:hidden;font-family:MorrowInboxSerif,MorrowMailGlyphs,serif;font-size:calc(clamp(8px,2.6cqw,11px) * var(--morrow-font-scale,1));line-height:1.4;color:#86868c}
+#mail .mi-style-footer>span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+#mail .mi-style-footer .mi-state{font-size:.95em}
+#mail .mi-slot-half .mi-style-footer{height:max(var(--fh),22px)}
+#mail .mi-style-card.is-selected{outline:1px solid #29292d!important;outline-offset:1px}
+#mail .mi-style-card>.em-checkbox{left:2px;top:2px}
+#mail .mi-slot-solo.mi-note,#mail .mi-slot-solo.mi-postcard{max-width:300px}
+@supports not (font-size:1cqw){#mail .mi-style-card .mi-title{font-size:14px}#mail .mi-style-card .mi-sender{font-size:9px}#mail .mi-style-card .mi-style-footer{font-size:9px}#mail .mi-style-card.mi-slot-wide .mi-title{font-size:20px}}
+#mail .mi-style-card.mi-compact .mi-style-copy{gap:1px}
+#mail .mi-style-card.mi-compact .mi-sender{line-height:1.2}
+#mail .mi-style-card.mi-compact .mi-title{line-height:1.2;max-height:1.2em}
+#mail .em-letter.mi-style-card.mi-slim{min-height:calc(105px * var(--morrow-font-scale,1))!important}
+#mail .mi-style-card.mi-slim .mi-style-copy{gap:1px}
+#mail .mi-style-card.mi-slim .mi-title{font-size:calc(15px * var(--morrow-font-scale,1));line-height:1.2;max-height:1.2em}
+#mail .mi-style-card.mi-slim .mi-sender{font-size:calc(8px * var(--morrow-font-scale,1));line-height:1.2}
