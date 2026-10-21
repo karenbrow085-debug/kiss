@@ -1,0 +1,479 @@
+{
+  "count": 52,
+  "note": "Photographs bundled locally; attribution and original source retained. Each penpal stores its assigned editorialPhoto index.",
+  "photos": [
+    {
+      "file": "penpal-photo-01.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "42",
+      "author": "Luke Chesser",
+      "source": "https://unsplash.com/photos/KR2mdHJ5qMg",
+      "download": "https://picsum.photos/id/42/400/600?grayscale",
+      "sha256": "57c38a7b19a2f16035e42e94d772382e6337b99a96b2496f6cf05e8c90b04199"
+    },
+    {
+      "file": "penpal-photo-02.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "27",
+      "author": "Yoni Kaplan-Nadel",
+      "source": "https://unsplash.com/photos/iJnZwLBOB1I",
+      "download": "https://picsum.photos/id/27/400/600?grayscale",
+      "sha256": "3647e46f1b3fb8a5582415d154174abab8c329a3297d907d12c16690c112d7bc"
+    },
+    {
+      "file": "penpal-photo-03.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "82",
+      "author": "Rula Sibai",
+      "source": "https://unsplash.com/photos/-vq7mi4oF0s",
+      "download": "https://picsum.photos/id/82/400/600?grayscale",
+      "sha256": "0f2bf966382b5415e20b4680c09ec5621afea94e9f008a1ea52b244ae116410b"
+    },
+    {
+      "file": "penpal-photo-04.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "10",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/6J--NXulQCs",
+      "download": "https://picsum.photos/id/10/400/600?grayscale",
+      "sha256": "0dec824c169d987b1225461a5d862149fb9f7a3989f6b66681dfdf165b6ddcf3"
+    },
+    {
+      "file": "penpal-photo-05.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "11",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/Cm7oKel-X2Q",
+      "download": "https://picsum.photos/id/11/400/600?grayscale",
+      "sha256": "157ca53649c1f9a34f66928c0e0bd4d8f13bca371933cd64218ee63608d5e865"
+    },
+    {
+      "file": "penpal-photo-06.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "12",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/I_9ILwtsl_k",
+      "download": "https://picsum.photos/id/12/400/600?grayscale",
+      "sha256": "080edf24f6b6ca4bcdd5295a9bdde9d121be5fd2b65b1fd01e0b134ae2a709e1"
+    },
+    {
+      "file": "penpal-photo-07.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "13",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/3MtiSMdnoCo",
+      "download": "https://picsum.photos/id/13/400/600?grayscale",
+      "sha256": "6a14fdfb3265e1a1fe7ef59bee0385aceb2edbd4fc1153f5869271c4760dcba4"
+    },
+    {
+      "file": "penpal-photo-08.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "14",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/IQ1kOQTJrOQ",
+      "download": "https://picsum.photos/id/14/400/600?grayscale",
+      "sha256": "13f85950cc55f641fa1c46f728394063924ec52508a64e864edec74b3d27e687"
+    },
+    {
+      "file": "penpal-photo-09.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "15",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/NYDo21ssGao",
+      "download": "https://picsum.photos/id/15/400/600?grayscale",
+      "sha256": "501ea7476293e42729be9b86207c31a0cb62379323092953d5d6103010385da1"
+    },
+    {
+      "file": "penpal-photo-10.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "16",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/gkT4FfgHO5o",
+      "download": "https://picsum.photos/id/16/400/600?grayscale",
+      "sha256": "cae73eae895b4541acbed5c5a7cdebbce92a3e8f65beeb429b7436f0572472ed"
+    },
+    {
+      "file": "penpal-photo-11.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "17",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/Ven2CV8IJ5A",
+      "download": "https://picsum.photos/id/17/400/600?grayscale",
+      "sha256": "554c6566b34adb77acfcf55441a115c3fd905ff74cead8363440d257cfcc7696"
+    },
+    {
+      "file": "penpal-photo-12.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "18",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/Ps2n0rShqaM",
+      "download": "https://picsum.photos/id/18/400/600?grayscale",
+      "sha256": "bded19186d5eff248b5e6036a4ee14aca52f98bcb4b693c6b92f7817c28b740f"
+    },
+    {
+      "file": "penpal-photo-13.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "19",
+      "author": "Paul Jarvis",
+      "source": "https://unsplash.com/photos/P7Lh0usGcuk",
+      "download": "https://picsum.photos/id/19/400/600?grayscale",
+      "sha256": "498e5a385dbd86d8b78ba62275ce7aea9c42eba5ae6a4403a1f0db16e75c42da"
+    },
+    {
+      "file": "penpal-photo-14.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "24",
+      "author": "Alejandro Escamilla",
+      "source": "https://unsplash.com/photos/cZhUxIQjILg",
+      "download": "https://picsum.photos/id/24/400/600?grayscale",
+      "sha256": "60d8dcc32f2d1483aa70d59a691ae9a715f37d8bacf303e0c770fd794ecb6b4b"
+    },
+    {
+      "file": "penpal-photo-15.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "25",
+      "author": "Alejandro Escamilla",
+      "source": "https://unsplash.com/photos/Iuq0EL4EINY",
+      "download": "https://picsum.photos/id/25/400/600?grayscale",
+      "sha256": "f24601db70783f2762767a6e756802dc210e80ff530047ef08f1a7a167cc88b8"
+    },
+    {
+      "file": "penpal-photo-16.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "28",
+      "author": "Jerry Adney",
+      "source": "https://unsplash.com/photos/_WiFMBRT7Aw",
+      "download": "https://picsum.photos/id/28/400/600?grayscale",
+      "sha256": "bff60813159ec98029e9adff68116ee0c7a9f2fc9c39a19471a96cbf151fe905"
+    },
+    {
+      "file": "penpal-photo-17.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "29",
+      "author": "Go Wild",
+      "source": "https://unsplash.com/photos/V0yAek6BgGk",
+      "download": "https://picsum.photos/id/29/400/600?grayscale",
+      "sha256": "f512ebd1a45aa1db7f4f69a8107c472a623afcfec974ece4809eff4c0b96da7c"
+    },
+    {
+      "file": "penpal-photo-18.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "32",
+      "author": "Rodrigo Melo",
+      "source": "https://unsplash.com/photos/eG3k60PrTGY",
+      "download": "https://picsum.photos/id/32/400/600?grayscale",
+      "sha256": "00fe9fd4e82f28d38218154a96b246043cb6a7ebb24d7e524c1ef439e3475388"
+    },
+    {
+      "file": "penpal-photo-19.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "33",
+      "author": "Alejandro Escamilla",
+      "source": "https://unsplash.com/photos/LBI7cgq3pbM",
+      "download": "https://picsum.photos/id/33/400/600?grayscale",
+      "sha256": "9c071132d0ed0832015bce7fc09a90b69abeb8ba80ca0e8f69f13122c41b2a3e"
+    },
+    {
+      "file": "penpal-photo-20.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "34",
+      "author": "Aleks Dorohovich",
+      "source": "https://unsplash.com/photos/zZvsEMPxjIA",
+      "download": "https://picsum.photos/id/34/400/600?grayscale",
+      "sha256": "e87c132f6927ff31574e8b50427993b3d89a1c7ae81d618047cfe24cf132751c"
+    },
+    {
+      "file": "penpal-photo-21.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "35",
+      "author": "Shane Colella",
+      "source": "https://unsplash.com/photos/znM0ujn2RUA",
+      "download": "https://picsum.photos/id/35/400/600?grayscale",
+      "sha256": "542e736b6f71b4137fe95e8565ce21341276ff351a2d6d4a5c70a1542863f5ff"
+    },
+    {
+      "file": "penpal-photo-22.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "37",
+      "author": "Austin Neill",
+      "source": "https://unsplash.com/photos/erTjj730fMk",
+      "download": "https://picsum.photos/id/37/400/600?grayscale",
+      "sha256": "1f9b643a9e55e57b50bd6a4e7281fa1570207569c2eaa21b3dbcf114171e16d6"
+    },
+    {
+      "file": "penpal-photo-23.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "38",
+      "author": "Allyson Souza",
+      "source": "https://unsplash.com/photos/JabLtzJl8bc",
+      "download": "https://picsum.photos/id/38/400/600?grayscale",
+      "sha256": "35df43c46c7224632ffe7ebd2a7b038fc0451215dac895d2a0865c9e732f08d0"
+    },
+    {
+      "file": "penpal-photo-24.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "41",
+      "author": "Nithya Ramanujam",
+      "source": "https://unsplash.com/photos/fTKetYpEKNQ",
+      "download": "https://picsum.photos/id/41/400/600?grayscale",
+      "sha256": "cd8f00c5aa05f7c3d9019704b6f7c864b566b18b0db5130065f26c9d4eae8243"
+    },
+    {
+      "file": "penpal-photo-25.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "44",
+      "author": "Christopher Sardegna",
+      "source": "https://unsplash.com/photos/R1E6x8U83Ho",
+      "download": "https://picsum.photos/id/44/400/600?grayscale",
+      "sha256": "620f15344d469446bf6495c07420c1053e5f027e8521d75ab57a3c5c82f02633"
+    },
+    {
+      "file": "penpal-photo-26.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "46",
+      "author": "Jeffrey Kam",
+      "source": "https://unsplash.com/photos/Nzw3HHsNHYU",
+      "download": "https://picsum.photos/id/46/400/600?grayscale",
+      "sha256": "188ac2ebc7a3760c428a5558e7109504aa5d90c332501d494f7e43a400f3e98e"
+    },
+    {
+      "file": "penpal-photo-27.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "47",
+      "author": "Christopher Sardegna",
+      "source": "https://unsplash.com/photos/uDUiRS8YroY",
+      "download": "https://picsum.photos/id/47/400/600?grayscale",
+      "sha256": "14fb5d3696e063684b6ceb79f1b52ff46c4ffb70b3cbf55d28b36a4423d7d3c5"
+    },
+    {
+      "file": "penpal-photo-28.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "49",
+      "author": "Margaret Barley",
+      "source": "https://unsplash.com/photos/Qo51KwK1dKg",
+      "download": "https://picsum.photos/id/49/400/600?grayscale",
+      "sha256": "b68599eeb9beb54cc632115c0e43f36dc115f912eb39bc47d47a68333a1b65cc"
+    },
+    {
+      "file": "penpal-photo-29.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "50",
+      "author": "Tyler Wanlass",
+      "source": "https://unsplash.com/photos/L7MpmBGpM94",
+      "download": "https://picsum.photos/id/50/400/600?grayscale",
+      "sha256": "c47f0041846954d7129d219bd5d353ddf45d4f209dba4977dd0932dc8b8f6d3a"
+    },
+    {
+      "file": "penpal-photo-30.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "51",
+      "author": "Ireneuilia",
+      "source": "https://unsplash.com/photos/knYQ6arClBE",
+      "download": "https://picsum.photos/id/51/400/600?grayscale",
+      "sha256": "de33a98be0cbce6fc784dfa6fa2bed9d119764fc51df78581cad4c2a1215bfcf"
+    },
+    {
+      "file": "penpal-photo-31.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "52",
+      "author": "Cierra",
+      "source": "https://unsplash.com/photos/57vHdjeZ0yg",
+      "download": "https://picsum.photos/id/52/400/600?grayscale",
+      "sha256": "9a70f13cc63eeec5a32ee40c5be59a1e4c21d55713749e96df5ea9f367c5469a"
+    },
+    {
+      "file": "penpal-photo-32.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "54",
+      "author": "Nicholas Swanson",
+      "source": "https://unsplash.com/photos/d19by2PLaPc",
+      "download": "https://picsum.photos/id/54/400/600?grayscale",
+      "sha256": "e6339460b31a160337cf982448503caddd6ee2b7a19eac1ddc260c186254ae74"
+    },
+    {
+      "file": "penpal-photo-33.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "55",
+      "author": "Tyler Wanlass",
+      "source": "https://unsplash.com/photos/akbHiqZy4Pg",
+      "download": "https://picsum.photos/id/55/400/600?grayscale",
+      "sha256": "de63e6fa84132c02814983055b1a52e8ced4a82167b13fe080f10c71f72e2881"
+    },
+    {
+      "file": "penpal-photo-34.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "58",
+      "author": "Tony Naccarato",
+      "source": "https://unsplash.com/photos/-kEr-QltARg",
+      "download": "https://picsum.photos/id/58/400/600?grayscale",
+      "sha256": "5c7aca1844da6f39e8617e52b897e7534d0a050ecf29b56afcbb9d3a53dc99de"
+    },
+    {
+      "file": "penpal-photo-35.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "59",
+      "author": "Art Wave",
+      "source": "https://unsplash.com/photos/algEQavPY4M",
+      "download": "https://picsum.photos/id/59/400/600?grayscale",
+      "sha256": "9c4e4108ddee210038e78da3762642c70f2059f75709cb49b2b8eac8fd708bf5"
+    },
+    {
+      "file": "penpal-photo-36.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "62",
+      "author": "Daniel Genser",
+      "source": "https://unsplash.com/photos/PzPbh-faPgU",
+      "download": "https://picsum.photos/id/62/400/600?grayscale",
+      "sha256": "f630eaa27873d67f2069b7305a890be163eae26bb1517ee6b35e38cb9ae2b407"
+    },
+    {
+      "file": "penpal-photo-37.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "66",
+      "author": "Nicholas Swanson",
+      "source": "https://unsplash.com/photos/agnhLQWqr1Q",
+      "download": "https://picsum.photos/id/66/400/600?grayscale",
+      "sha256": "e605abf70dcc28b40fadf0cc5e601ffaf6be135791d3569ca9fdb3a050678741"
+    },
+    {
+      "file": "penpal-photo-38.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "67",
+      "author": "Rula Sibai",
+      "source": "https://unsplash.com/photos/QbkGwv3xtmQ",
+      "download": "https://picsum.photos/id/67/400/600?grayscale",
+      "sha256": "931ff8729a2d8b2562068a4876b8c1ce492492a17183195dd0c5da9aaa948938"
+    },
+    {
+      "file": "penpal-photo-39.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "68",
+      "author": "Cristian Moscoso",
+      "source": "https://unsplash.com/photos/2SfRAWkinpU",
+      "download": "https://picsum.photos/id/68/400/600?grayscale",
+      "sha256": "05532806d917e416e529c5d44291936093c4ec6648906841bce33925d71d626d"
+    },
+    {
+      "file": "penpal-photo-40.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "69",
+      "author": "Alexander Shustov",
+      "source": "https://unsplash.com/photos/SITaCHf7jjg",
+      "download": "https://picsum.photos/id/69/400/600?grayscale",
+      "sha256": "17d62ff64faec77912c42e19bff9f36ad154752c7e5277adb61ea89f1ad924af"
+    },
+    {
+      "file": "penpal-photo-41.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "70",
+      "author": "Dorothy Lin",
+      "source": "https://unsplash.com/photos/OokBLPrkCNk",
+      "download": "https://picsum.photos/id/70/400/600?grayscale",
+      "sha256": "76e7c49bed1de5d4ade79faf03d285c5acf73c1aadce0010fe54b460a56d864b"
+    },
+    {
+      "file": "penpal-photo-42.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "71",
+      "author": "Jon Eckert",
+      "source": "https://unsplash.com/photos/IoIbdFdGCnQ",
+      "download": "https://picsum.photos/id/71/400/600?grayscale",
+      "sha256": "2968428c7ef57f2d6e88918ae1bfa27e789ee27bc7e8e86c4b4027076aa05261"
+    },
+    {
+      "file": "penpal-photo-43.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "72",
+      "author": "Tyler Finck",
+      "source": "https://unsplash.com/photos/Cs4QZdHrHt4",
+      "download": "https://picsum.photos/id/72/400/600?grayscale",
+      "sha256": "605e46db8a04e4d991632ef123ca94cdf4d29e3658402f5b268fe3d00c8ad010"
+    },
+    {
+      "file": "penpal-photo-44.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "74",
+      "author": "Isaak Dury",
+      "source": "https://unsplash.com/photos/YhZbnxqtooM",
+      "download": "https://picsum.photos/id/74/400/600?grayscale",
+      "sha256": "122511fb3d49bca3f19df4e3efb615ced7f476a95529102a49376014f980d48d"
+    },
+    {
+      "file": "penpal-photo-45.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "75",
+      "author": "Jassy Onyae",
+      "source": "https://unsplash.com/photos/1gBUXhf0PtA",
+      "download": "https://picsum.photos/id/75/400/600?grayscale",
+      "sha256": "bd7a8b18eac544af2adeab68b493d79806d65a71570b0ef5c1b3a9983ce7d237"
+    },
+    {
+      "file": "penpal-photo-46.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "76",
+      "author": "Alexander Shustov",
+      "source": "https://unsplash.com/photos/OxzhYtL-00Y",
+      "download": "https://picsum.photos/id/76/400/600?grayscale",
+      "sha256": "770d43e99981bfe035cc4e9b3c9427ecc2d1152a7b06387a112c20f8d99fe51b"
+    },
+    {
+      "file": "penpal-photo-47.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "77",
+      "author": "May Pamintuan",
+      "source": "https://unsplash.com/photos/j9nfqTi5T5o",
+      "download": "https://picsum.photos/id/77/400/600?grayscale",
+      "sha256": "128bdf8d7c0d0fe5c3ec5902d0ae5ff3643df4bdf2807092ada73a34de27f6ce"
+    },
+    {
+      "file": "penpal-photo-48.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "78",
+      "author": "Paul Evans",
+      "source": "https://unsplash.com/photos/CtkDsu4w-Rs",
+      "download": "https://picsum.photos/id/78/400/600?grayscale",
+      "sha256": "93c7cb4717d6a96badadfd276be0cbe0a7545429419a27b53bfb9594a951daaf"
+    },
+    {
+      "file": "penpal-photo-49.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "79",
+      "author": "Dorothy Lin",
+      "source": "https://unsplash.com/photos/TIr6EwYMRUM",
+      "download": "https://picsum.photos/id/79/400/600?grayscale",
+      "sha256": "deb54c47a25c8720a1f155dd79987b7b029cf6a5196b540e33b48ff85d398c52"
+    },
+    {
+      "file": "penpal-photo-50.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "80",
+      "author": "Sonja Langford",
+      "source": "https://unsplash.com/photos/Y2PYfopoz-k",
+      "download": "https://picsum.photos/id/80/400/600?grayscale",
+      "sha256": "51f48c825e07af3b96c39db3c3a8c02952788b24bf8babd657307a22fd7eeddc"
+    },
+    {
+      "file": "penpal-photo-51.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "81",
+      "author": "Sander Weeteling",
+      "source": "https://unsplash.com/photos/rlxZqmc6D_I",
+      "download": "https://picsum.photos/id/81/400/600?grayscale",
+      "sha256": "4ca9d458b59e0c1057b312432ed05c95609da17359a6dae8b358343e47dd028b"
+    },
+    {
+      "file": "penpal-photo-52.jpg",
+      "provider": "Lorem Picsum / Unsplash",
+      "photoId": "83",
+      "author": "Julie Geiger",
+      "source": "https://unsplash.com/photos/dYshDcTI1Js",
+      "download": "https://picsum.photos/id/83/400/600?grayscale",
+      "sha256": "77681ff2bd5e617f85d6830e96813189e7fce1a5e2d2fe885d306229a262477b"
+    }
+  ],
+  "hero": {
+    "file": "penpal-hero.jpg",
+    "source": "https://unsplash.com/s/photos/pressed-flowers",
+    "download": "https://images.unsplash.com/photo-1630948197497-3c0de9d73ad2?w=1000&q=90&fit=crop&sat=-100"
+  }
+}
