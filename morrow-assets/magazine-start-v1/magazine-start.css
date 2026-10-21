@@ -10,7 +10,7 @@
 #kiss-magazine-start .qm-turn{transform-style:preserve-3d;transform-origin:left center}
 #kiss-magazine-start .qm-front,#kiss-magazine-start .qm-back{backface-visibility:hidden;overflow:hidden}
 #kiss-magazine-start .qm-front{background:#ddd;transform:translateZ(.5px)}
-#kiss-magazine-start .qm-back{transform:rotateY(180deg);background:#fafaf7;box-shadow:inset -10px 0 18px -12px #0005}
+#kiss-magazine-start .qm-back{transform:rotateY(180deg);background:#fafaf7;box-shadow:none}
 #kiss-magazine-start img{display:block;width:100%;height:100%;object-fit:contain}
 #kiss-magazine-start .qm-top,#kiss-magazine-start .qm-bottom{position:absolute;left:7%;right:7%;display:flex;justify-content:space-between;gap:8px;font-size:clamp(8px,2.3cqw,9px);letter-spacing:.65px;line-height:1.3}
 #kiss-magazine-start .qm-top{top:4%;padding-bottom:12px;border-bottom:1px solid #999991}
@@ -84,6 +84,87 @@
 #kiss-magazine-start .qm-cover-foot { bottom: max(4.8%, calc(env(safe-area-inset-bottom, 0px) + 14px)); }
 #kiss-magazine-start .qm-bottom { bottom: max(3.5%, calc(env(safe-area-inset-bottom, 0px) + 12px)); }
 #kiss-magazine-start.is-leaving { opacity: 0; }
+#kiss-magazine-start .qm-curved-paper {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  pointer-events: none; z-index: 10;
+}
+#kiss-magazine-start .qm-paper-strip {
+  position: absolute; top: 0; left: 0; height: 100%;
+  transform-origin: left center; transform-style: preserve-3d;
+  will-change: transform;
+}
+#kiss-magazine-start .qm-paper-face {
+  position: absolute; inset: 0; overflow: hidden;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: #fafaf7;
+}
+#kiss-magazine-start .qm-paper-recto { transform: translateZ(.02px); }
+#kiss-magazine-start .qm-paper-verso { transform: rotateY(180deg) translateZ(.02px); }
+#kiss-magazine-start .qm-paper-face::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: transparent;
+}
+#kiss-magazine-start .qm-paper-face .qm-back::after { display: none; }
+#kiss-magazine-start.has-curved-paper .qm-turn { visibility: hidden; }
+#kiss-magazine-start .qm-paper-shadow {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 58%; z-index: 2;
+  background: linear-gradient(90deg, rgba(35, 34, 28, .15), transparent);
+  filter: blur(12px); opacity: 0; pointer-events: none;
+}
+#kiss-magazine-start .qm-book::before,
+#kiss-magazine-start .qm-book::after {
+  content: ''; position: absolute; top: 0; bottom: 0;
+  pointer-events: none; z-index: 20; opacity: 0;
+}
+/* The light falls across two gently raised sheets into the bound gutter.
+   The broad falloff and tapered inner shadow avoid a ruled divider. */
+#kiss-magazine-start .qm-book::after {
+  left: -12%; width: 24%;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(255,255,255,.15) 12%,
+    rgba(255,255,255,.48) 24%, rgba(57,51,40,.025) 36%,
+    rgba(57,51,40,.10) 44%, rgba(47,42,33,.23) 49%,
+    rgba(47,42,33,.27) 50%, rgba(47,42,33,.16) 53%,
+    rgba(57,51,40,.065) 61%, rgba(255,255,255,.32) 77%,
+    rgba(255,255,255,.08) 91%, transparent 100%);
+}
+#kiss-magazine-start .qm-book::before {
+  left: -.65%; width: 1.3%; top: .15%; bottom: .15%;
+  border-radius: 50% / 5%; filter: blur(.65px);
+  background: linear-gradient(90deg, transparent, rgba(43,38,30,.15) 49%, rgba(43,38,30,.08) 67%, transparent);
+}
+#kiss-magazine-start.is-opening .qm-book::before,
+#kiss-magazine-start.is-opening .qm-book::after { animation: kissmag-spine-light 3.1s ease both; }
+@keyframes kissmag-spine-light {
+  0%, 38%, 100% { opacity: 0; }
+  53%, 67% { opacity: 1; }
+}
+#kiss-magazine-start.is-opening .qm-book > .qm-gallery {
+  animation: kissmag-right-binding 3.1s ease both;
+}
+#kiss-magazine-start.is-opening .qm-book > .qm-turn > .qm-back {
+  animation: kissmag-left-binding 3.1s ease both;
+}
+@keyframes kissmag-right-binding {
+  0%, 38%, 100% { border-radius: 0; }
+  53%, 67% { border-radius: 5% 0 0 5% / 1% 0 0 1%; }
+}
+@keyframes kissmag-left-binding {
+  0%, 38%, 100% { border-radius: 0; }
+  53%, 67% { border-radius: 0 5% 5% 0 / 0 1% 1% 0; }
+}
+#kiss-magazine-start .qm-back::after {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 22px;
+  background: linear-gradient(90deg, transparent, rgba(40, 38, 30, .18));
+  opacity: 0; pointer-events: none;
+}
+#kiss-magazine-start.is-opening .qm-back::after {
+  animation: kissmag-paper-light 1.55s .15s ease both;
+}
+@keyframes kissmag-paper-light {
+  0%, 100% { opacity: 0; }
+  40%, 60% { opacity: .12; }
+}
 @media (min-aspect-ratio: 1/1) {
   #kiss-magazine-start .qm-screen { width: min(100%, 56.45vh); left: 50%; right: auto; transform: translateX(-50%); }
 }
@@ -91,4 +172,7 @@
   #kiss-magazine-start.is-opening .qm-book,
   #kiss-magazine-start.is-opening .qm-turn { animation-duration: 1ms; animation-delay: 0s; }
   #kiss-magazine-start { transition-duration: .15s; }
+  #kiss-magazine-start .qm-back::after { display: none; }
+  #kiss-magazine-start .qm-book::before,
+  #kiss-magazine-start .qm-book::after { display: none; }
 }

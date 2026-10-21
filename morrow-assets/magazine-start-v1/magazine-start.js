@@ -1,4 +1,4 @@
-/* Kiss magazine startup v1. No account, storage, wallpaper or chat data is modified. */
+/* Kiss magazine startup v2. No account, storage, wallpaper or chat data is modified. */
 (() => {
   'use strict';
 
@@ -15,6 +15,9 @@
   let holdStarted = false;
   let animationFallback;
   let desktopObserver;
+  let curlFrame;
+  let paperHost;
+  let castShadow;
   const timers = new Set();
 
   function timer(callback, ms) {
@@ -79,10 +82,89 @@
     setPhase('done');
     for (const id of timers) window.clearTimeout(id);
     timers.clear();
+    if (curlFrame) window.cancelAnimationFrame(curlFrame);
+    if (paperHost) paperHost.remove();
+    if (castShadow) castShadow.remove();
     if (desktopObserver) desktopObserver.disconnect();
     if (phone && !wasInert) phone.removeAttribute('inert');
     root.remove();
     window.dispatchEvent(new CustomEvent('kiss:startup-complete'));
+  }
+
+  function animatePaper() {
+    const width = book.clientWidth;
+    const height = book.clientHeight;
+    const count = 40;
+    const stripWidth = width / count;
+    const frontSource = turn.querySelector('.qm-front');
+    const backSource = turn.querySelector('.qm-back');
+    paperHost = document.createElement('div');
+    paperHost.className = 'qm-curved-paper';
+    paperHost.setAttribute('aria-hidden', 'true');
+    castShadow = document.createElement('div');
+    castShadow.className = 'qm-paper-shadow';
+    book.append(castShadow, paperHost);
+    const strips = [];
+
+    function face(source, index, reverse) {
+      const side = document.createElement('div');
+      side.className = 'qm-paper-face ' + (reverse ? 'qm-paper-verso' : 'qm-paper-recto');
+      const page = source.cloneNode(true);
+      page.querySelectorAll('button').forEach(button => button.remove());
+      const offset = reverse ? width - (index + 1) * stripWidth : index * stripWidth;
+      Object.assign(page.style, {
+        position: 'absolute', top: '0', bottom: 'auto', right: 'auto',
+        left: -offset + 'px', width: width + 'px', height: height + 'px',
+        transform: 'none', boxShadow: 'none', backfaceVisibility: 'visible',
+      });
+      side.append(page);
+      return side;
+    }
+
+    for (let i = 0; i < count; i++) {
+      const strip = document.createElement('div');
+      strip.className = 'qm-paper-strip';
+      // A subpixel overlap keeps the curved surface continuous on phone GPUs.
+      strip.style.width = (stripWidth + 1.5) + 'px';
+      strip.append(face(frontSource, i, false), face(backSource, i, true));
+      paperHost.append(strip);
+      strips.push(strip);
+    }
+
+    root.classList.add('has-curved-paper');
+    const start = performance.now() + 150;
+
+    function frame(now) {
+      if (!root.isConnected || phase === 'done') return;
+      const t = Math.max(0, Math.min(1, (now - start) / 1550));
+      const progress = (1 - Math.cos(Math.PI * t)) / 2;
+      const base = -Math.PI * progress;
+      const bend = .9 * Math.sin(Math.PI * progress);
+      let x = 0;
+      let z = 0;
+      for (let i = 0; i < count; i++) {
+        const s = (i + .5) / count;
+        const angle = base + bend * s;
+        const shade = 0;
+        strips[i].style.transform = 'translate3d(' + x + 'px,0,' + z + 'px) rotateY(' + angle + 'rad)';
+        strips[i].style.setProperty('--paper-shade', String(shade));
+        x += stripWidth * Math.cos(angle);
+        z -= stripWidth * Math.sin(angle);
+      }
+      castShadow.style.opacity = String(.28 * Math.sin(Math.PI * progress));
+      castShadow.style.transform = 'translateX(' + Math.max(0, x * .55) + 'px)';
+      if (t < 1) {
+        curlFrame = window.requestAnimationFrame(frame);
+      } else {
+        turn.style.transform = 'rotateY(-180deg)';
+        root.classList.remove('has-curved-paper');
+        paperHost.remove();
+        castShadow.remove();
+        paperHost = castShadow = null;
+        curlFrame = null;
+      }
+    }
+    frame(start - 150);
   }
 
   async function enterDesktop() {
@@ -124,6 +206,7 @@
     setPhase('opening');
     root.classList.add('is-opening');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) animatePaper();
     animationFallback = timer(() => {
       // Recover if a device suppresses animationend. Still reveal the exact right page.
       book.style.transform = 'translateX(0) scale(1)';
