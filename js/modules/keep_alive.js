@@ -83,13 +83,14 @@
     }
 
     function updateMediaSession(active) {
-        if (!('mediaSession' in navigator)) return;
+        if (!('mediaSession' in navigator) || playbackHolds.size) return;
         try {
             navigator.mediaSession.playbackState = active ? 'playing' : 'none';
             if (active && 'MediaMetadata' in window) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: 'UwU 持续运行增强',
-                    artist: '保持网页任务活跃'
+                    title: 'Kiss 持续运行增强',
+                    artist: '保持网页任务活跃',
+                    artwork: [{ src: new URL('morrow-assets/kiss-icons-v1/keepalive.png', document.baseURI).href, sizes: '512x512', type: 'image/png' }]
                 });
             } else if (!active) {
                 navigator.mediaSession.metadata = null;
