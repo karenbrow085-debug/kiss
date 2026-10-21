@@ -5,6 +5,16 @@ let audio, generation=0, controller, wantPlay=false, fetchedAt=0, detailNeeded=f
 let nextGetter=()=>null, onEnd=()=>{}, prepared=null, preparing=null, nextAudio=null, recovery=null;
 let stallAt=0,lastPosition=-1,retries=0,lastProgress=0,skipCount=0;
 const LAST='hearu.player.last.v2';
+let releaseKeepAlive=null;
+function claimMusicSession(){
+  if(!releaseKeepAlive)releaseKeepAlive=window.KeepAliveManager?.acquirePlayback?.() || null;
+  metadata();
+  try{if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';}catch{}
+}
+function releaseMusicSession(){
+  const release=releaseKeepAlive;releaseKeepAlive=null;release?.();
+  try{if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';}catch{}
+}
 function emit(kind='state') {for(const fn of listeners) {try{fn(state,kind);}catch(e){console.error('HearU player listener',e);}}}
 export function subscribe(fn) {listeners.add(fn);fn(state);return ()=>listeners.delete(fn);}
 export function getState(){return state;}
@@ -18,8 +28,8 @@ function ensureAudio(){
   if(audio) return audio;
   audio=document.createElement('audio');audio.preload='auto';audio.dataset.hearu='player';audio.setAttribute('playsinline','');audio.hidden=true;document.body.append(audio);
   audio.addEventListener('play',()=>{if(state.loading)return;state.playing=true;state.buffering=true;state.error='';stallAt=Date.now();emit();});
-  audio.addEventListener('playing',()=>{if(state.loading)return;state.playing=true;state.pausedAt=0;state.buffering=false;state.error='';skipCount=0;lastProgress=Date.now();emit();});
-  audio.addEventListener('pause',()=>{state.pausedAt=Date.now();state.playing=false;state.buffering=false;emit();});
+  audio.addEventListener('playing',()=>{if(state.loading)return;state.playing=true;state.pausedAt=0;claimMusicSession();state.buffering=false;state.error='';skipCount=0;lastProgress=Date.now();emit();});
+  audio.addEventListener('pause',()=>{releaseMusicSession();state.pausedAt=Date.now();state.playing=false;state.buffering=false;emit();});
   audio.addEventListener('waiting',()=>{if(wantPlay){state.buffering=true;stallAt=Date.now();emit();}});
   audio.addEventListener('timeupdate',()=>{if(audio.currentTime!==lastPosition){lastPosition=audio.currentTime;lastProgress=Date.now();retries=0;}if(!audio.paused && audio.readyState>=3)state.buffering=false;emit('time');if(durationMs()-positionMs()<45000)warmNext();});
   audio.addEventListener('loadedmetadata',()=>emit());
@@ -29,18 +39,18 @@ function ensureAudio(){
     if(state.loading || state.closed)return;
     // Short trials use actual media duration. A network drop before the end is recoverable.
     if(durationMs()>0 && positionMs()<durationMs()-5000 && retries<2){recover();return;}
-    wantPlay=false;state.playing=false;state.buffering=false;save();emit();Promise.resolve(onEnd()).catch(e=>{state.error=e.message;emit();});
+    wantPlay=false;releaseMusicSession();state.playing=false;state.buffering=false;save();emit();Promise.resolve(onEnd()).catch(e=>{state.error=e.message;emit();});
   });
   return audio;
 }
 function start(){
   if(!audio?.getAttribute('src'))return;
-  wantPlay=true;lastProgress=Date.now();state.buffering=true;
+  wantPlay=true;claimMusicSession();lastProgress=Date.now();state.buffering=true;
   // Never await this promise: some WebKit implementations leave it pending during stalls.
-  audio.play()?.catch(e=>{if(e.name==='AbortError')return;state.playing=false;state.buffering=false;wantPlay=false;state.error='点一下播放键开始';emit();});
+  audio.play()?.catch(e=>{if(e.name==='AbortError')return;releaseMusicSession();state.playing=false;state.buffering=false;wantPlay=false;state.error='点一下播放键开始';emit();});
 }
 async function detail(id,seq){try {const d=await songDetail(id);if(generation!==seq || state.song?.songId!==id)return;state.song={...state.song,...d};state.lyrics=d.lyrics || [];detailNeeded=false;save();emit();metadata();}catch{detailNeeded=true;}}
-function metadata(){if(!('mediaSession' in navigator)||!state.song)return;try{navigator.mediaSession.metadata=new MediaMetadata({title:state.song.title,artist:state.song.artist,album:state.song.album,artwork:state.song.coverUrl?[{src:state.song.coverUrl}]:[]});}catch{}}
+function metadata(){if(!('mediaSession' in navigator)||!state.song||state.closed||(!state.playing&&!wantPlay))return;try{navigator.mediaSession.metadata=new MediaMetadata({title:state.song.title,artist:state.song.artist,album:state.song.album,artwork:[{src:new URL('morrow-assets/kiss-icons-v1/music.png',document.baseURI).href,sizes:'512x512',type:'image/png'}]});}catch{}}
 export async function warm(song,atMs=0){if(!song || state.playing)return;ensureAudio();const seq=++generation;state.song={...song,songId:String(song.songId)};state.closed=false;state.lyrics=[];state.error='';emit();const id=state.song.songId;detail(id,seq);try{const r=await playUrl(id);if(generation!==seq)return;audio.src=r.url;fetchedAt=Date.now();state.trial=r.trial;audio.addEventListener('loadedmetadata',()=>{if(generation===seq)audio.currentTime=atMs/1000;},{once:true});audio.load();emit();}catch(e){if(generation===seq){state.error=e.message;emit();}}}
 export async function play(song,atMs=0,opts={}){
   opts.signal?.throwIfAborted(); ensureAudio();
