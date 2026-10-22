@@ -942,77 +942,212 @@ async function sources() {
         )
         .join("") || "暂无可用歌单";
 }
-async function modelText(c, system, history, signal) {
-  const modelSignal = signal
-    ? AbortSignal.any([signal, AbortSignal.timeout(90000)])
-    : AbortSignal.timeout(90000);
-  let config = { ...db.apiSettings };
+// HearU API transport. Never mutate desktop settings or retry a paid POST automatically.
+function hearuApiConfig(c = {}) {
+  let config = { ...db.apiSettings }, source = '桌面 API';
   if (c.exclusiveApiEnabled) {
-    const p = (db.apiPresets || []).find(
-      (p) => p.name === c.exclusiveApiPreset,
-    )?.data;
-    if (p)
-      config = {
-        ...config,
-        url: p.apiUrl || config.url,
-        key: p.apiKey || config.key,
-        model: p.model || config.model,
-        provider: p.provider || config.provider,
-      };
+    const p = (db.apiPresets || []).find(p => p.name === c.exclusiveApiPreset)?.data;
+    if (p) {
+      config = { ...config, url:p.apiUrl || config.url, key:p.apiKey || config.key,
+        model:p.model || config.model, provider:p.provider || config.provider,
+        temperatureEnabled:p.temperatureEnabled ?? config.temperatureEnabled,
+        temperature:p.temperature ?? config.temperature };
+      source = '角色专属预设：' + c.exclusiveApiPreset;
+    }
   }
-  if(window.AppApi?.active("hearu"))config=window.AppApi.resolve("hearu",config);
-  if (!config.url || !config.key || !config.model)
-    throw Error("先在小手机 API 设置里填写模型");
-  const key =
-    typeof getRandomValue === "function"
-      ? getRandomValue(config.key)
-      : config.key;
-  const base = config.url.replace(/\/$/, "");
-  system = hostPrompt(c) + "\n" + system + "\n[HearU输出协议]以上本体消息格式用于理解角色；本轮以当前 HearU JSON 协议输出最终结果，保留人设、世界书和思维链规则。不要把内部思考显示在聊天气泡里。本体/世界书/角色预设中涉及 UI 和输出包装的规则（HTML、Markdown 卡片、pvcard、状态栏、before/highlight/after/qas、|||分隔）仅是404界面的旧格式，不适用于HearU；人设、语气、关系和记忆继续遵循。本轮最终输出必须只有一个JSON对象，messages里text是自然聊天原话，禁止包装标签、HTML和卡片字段。";
-  let response, content;
-  if (config.provider === "gemini") {
-    response = await fetch(
-      `${base.replace(/\/v1(?:beta)?$/, '')}/v1beta/models/${encodeURIComponent(config.model.replace(/^models\//,''))}:generateContent?key=${encodeURIComponent(key)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: history.map((m) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: m.content }],
-          })),
-        }),
-        signal: modelSignal,
-      },
-    );
-    const data = await response.json();
-    if (!response.ok) throw Error(data.error?.message || "模型请求失败");
-    content = data.candidates?.[0]?.content?.parts
-      ?.map((p) => p.text || "")
-      .join("");
+  if (window.AppApi?.active('hearu')) {
+    config = window.AppApi.resolve('hearu', config);
+    const p = window.AppApi.profile('hearu');
+    if (p.presetId) source = 'HearU 独立预设';
+    if (p.model) source += ' · HearU 自选模型';
+  }
+  return { ...config, source };
+}
+function hearuEndpoint(config) {
+  let u;
+  try { u = new URL(String(config.url || '').trim()); }
+  catch { throw Error('API 地址无效，请在桌面 API 预设中检查地址'); }
+  if (!['https:', 'http:'].includes(u.protocol) || u.username || u.password)
+    throw Error('API 地址需使用 HTTP 或 HTTPS，密钥请填写在密钥栏');
+  u.hash = '';
+  // Keep pathname in a string: assigning an empty URL.pathname restores "/".
+  let path = u.pathname.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
+  const provider = String(config.provider || 'newapi').toLowerCase();
+  let kind;
+  if (provider === 'gemini') {
+    kind = 'gemini';
+    path = path.replace(/\/v1(?:beta)?\/models(?:\/[^/]+(?::\w+)?)?$/, '')
+      .replace(/\/(?:chat\/completions|responses|messages|models)$/, '')
+      .replace(/\/v1(?:beta)?$/, '');
+    path += '/v1beta/models/' + encodeURIComponent(String(config.model).replace(/^models\//, '')) + ':generateContent';
+    u.searchParams.delete('key');
   } else {
-    const modelUrl=new URL(base);modelUrl.pathname=modelUrl.pathname.replace(/\/+$/,'');if(!/\/chat\/completions$/.test(modelUrl.pathname))modelUrl.pathname+=(/\/v\d+$/.test(modelUrl.pathname)?'/chat/completions':'/v1/chat/completions');
-    response = await fetch(modelUrl.href, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [{ role: "system", content: system }, ...history],
-        temperature: config.temperature ?? 0.8,
-        stream: false,
-      }),
-      signal: modelSignal,
-    });
-    const data = await response.json();
-    if (!response.ok) throw Error(data.error?.message || "模型请求失败");
-    content = data.choices?.[0]?.message?.content;
+    kind = /\/(?:chat\/completions)$/.test(path) ? 'openai'
+      : /\/responses$/.test(path) ? 'responses'
+      : /\/messages$/.test(path) || ['claude','anthropic'].includes(provider) ? 'anthropic' : 'openai';
+    path = path.replace(/\/(?:chat\/completions|responses|messages|models)$/, '');
+    if (!/\/v\d+(?:beta)?$/.test(path)) path += '/v1';
+    path += kind === 'anthropic' ? '/messages' : kind === 'responses' ? '/responses' : '/chat/completions';
   }
-  if (!content) throw Error("模型没有返回文字");
-  return content;
+  u.pathname = path;
+  const safe = new URL(u.href); safe.search = ''; safe.hash = '';
+  return { url:u.href, kind, display:safe.origin + safe.pathname };
+}
+function hearuApiSafeError(text, config) {
+  let value = String(text || '未知错误');
+  for (const secret of [config.key, ...(String(config.key || '').split(/[,\n]/))].filter(Boolean))
+    value = value.split(secret).join('[密钥已隐藏]').split(encodeURIComponent(secret)).join('[密钥已隐藏]');
+  return value.replace(/https?:\/\/[^\s<>"']+/g, '[请求地址]')
+    .replace(/Bearer\s+\S+/gi, 'Bearer [已隐藏]')
+    .replace(/sk-[\w-]+/g, '[密钥已隐藏]').slice(0, 360);
+}
+function hearuContentText(content) {
+  if (typeof content === 'string') return content;
+  return Array.isArray(content) ? content.filter(p => !['thinking','reasoning'].includes(p?.type))
+    .map(p => typeof p === 'string' ? p : typeof p?.text === 'string' ? p.text : '').join('') : '';
+}
+function hearuResponseText(data, kind) {
+  if (kind === 'gemini') return (data.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('');
+  if (kind === 'anthropic') return hearuContentText(data.content);
+  if (kind === 'responses') return data.output_text || (data.output || []).filter(p => p.type === 'message').map(p => hearuContentText(p.content)).join('');
+  return hearuContentText(data.choices?.[0]?.message?.content ?? data.choices?.[0]?.text);
+}
+function hearuStreamText(raw, kind, config) {
+  let content = '', finalText = '', seen = false;
+  for (const event of raw.replace(/\r\n/g, '\n').split(/\n\n+/)) {
+    const value = event.split('\n').filter(line => /^data:/.test(line)).map(line => line.slice(5).trimStart()).join('\n').trim();
+    if (!value || value === '[DONE]') continue;
+    let data;
+    try { data = JSON.parse(value); } catch { throw Error('接口流式数据不完整，请重试'); }
+    seen = true;
+    if (data.error || data.type === 'error') throw Error(hearuApiSafeError(data.error?.message || '接口返回流式错误', config));
+    if (kind === 'gemini') content += hearuResponseText(data, kind);
+    else if (kind === 'anthropic') {
+      if (data.type === 'content_block_start') content += hearuContentText([data.content_block]);
+      if (data.type === 'content_block_delta' && data.delta?.type === 'text_delta') content += data.delta.text || '';
+    } else if (kind === 'responses') {
+      if (data.type === 'response.output_text.delta') content += data.delta || '';
+      if (data.type === 'response.completed') finalText = hearuResponseText(data.response || {}, kind);
+    } else {
+      content += hearuContentText(data.choices?.[0]?.delta?.content ?? data.choices?.[0]?.text);
+      finalText = hearuResponseText(data, kind) || finalText;
+    }
+  }
+  if (!seen) throw Error('接口没有返回可识别的流式数据');
+  return content || finalText;
+}
+async function hearuSendModel(config, system, history, signal) {
+  if (!config.url || !config.key || !config.model) throw Error('请先在 API 设置里选择完整的接口与模型');
+  const endpoint = hearuEndpoint(config), controller = new AbortController();
+  let timedOut = false;
+  const cancel = () => controller.abort(signal?.reason);
+  if (signal?.aborted) cancel();
+  else signal?.addEventListener('abort', cancel, { once:true });
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 90000);
+  const key = typeof getRandomValue === 'function' ? getRandomValue(config.key) : config.key;
+  const safeConfig = { ...config, key };
+  let headers = { 'Content-Type':'application/json', Authorization:'Bearer ' + key }, body;
+  const messages = [{ role:'system', content:system }, ...history];
+  if (endpoint.kind === 'gemini') {
+    headers = { 'Content-Type':'application/json', 'x-goog-api-key':key };
+    body = { systemInstruction:{ parts:[{ text:system }] }, contents:history.map(m => ({ role:m.role === 'assistant' ? 'model' : 'user', parts:[{ text:m.content }] })) };
+  } else if (endpoint.kind === 'anthropic') {
+    headers = { 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' };
+    body = { model:config.model, system, messages:history, max_tokens:4096, stream:false };
+  } else if (endpoint.kind === 'responses') {
+    body = { model:config.model, input:messages, stream:false };
+  } else body = { model:config.model, messages, stream:false };
+  if (config.temperatureEnabled !== false && Number.isFinite(Number(config.temperature))) {
+    if (endpoint.kind === 'gemini') body.generationConfig = { temperature:Number(config.temperature) };
+    else body.temperature = Number(config.temperature);
+  }
+  try {
+    const response = await fetch(endpoint.url, { method:'POST', headers, body:JSON.stringify(body), signal:controller.signal });
+    const raw = (await response.text()).replace(/^\uFEFF/, '').trim();
+    if (controller.signal.aborted) throw controller.signal.reason || new DOMException('已取消', 'AbortError');
+    const status = 'HTTP ' + response.status;
+    // Classify the envelope before parsing; never store HTML or the raw model output.
+    if (/^(?:<!doctype\b|<html\b|<head\b|<body\b)/i.test(raw) || /text\/html/i.test(response.headers.get('content-type') || ''))
+      throw Error(status + '：接口返回了网页而非模型数据。请检查 API 路径、中转站网关或验证页面；更换模型通常无法解决');
+    let data, content;
+    if (/^data:|^event:/m.test(raw)) {
+      if (!response.ok) throw Error(status + '：接口返回流式错误');
+      content = hearuStreamText(raw, endpoint.kind, safeConfig);
+    } else {
+      try { data = JSON.parse(raw); }
+      catch { throw Error(status + (raw ? '：接口返回的内容不是有效 JSON 或 SSE 数据' : '：接口返回了空响应')); }
+      if (!response.ok || data?.error) throw Error(status + '：' + hearuApiSafeError(data?.error?.message || data?.error || data?.message || '模型请求失败', safeConfig));
+      if (!data || typeof data !== 'object') throw Error(status + '：接口返回了不支持的数据结构');
+      content = hearuResponseText(data, endpoint.kind);
+    }
+    if (!content) throw Error(status + '：接口没有返回可见文字，请检查模型权限或接口协议');
+    return content;
+  } catch (error) {
+    if (timedOut && !signal?.aborted) throw Error('模型请求超时（90 秒），请稍后重试');
+    if (signal?.aborted || error.name === 'AbortError') throw error;
+    if (error instanceof TypeError) throw Error('无法连接模型接口：可能是网络、跨域限制或接口不可用。更换模型不一定能解决');
+    throw Error(hearuApiSafeError(error.message, safeConfig));
+  } finally {
+    clearTimeout(timer); signal?.removeEventListener('abort', cancel);
+  }
+}
+
+function hearuMountApiSettings(container) {
+  const picker = document.createElement('div'), summary = document.createElement('p'),
+    controls = document.createElement('div'), test = document.createElement('button'), reset = document.createElement('button'),
+    status = document.createElement('p');
+  container.append(picker, summary, controls, status);
+  summary.className = status.className = 'aa-status';
+  summary.style.cssText = 'font-size:11px;line-height:1.7;overflow-wrap:anywhere';
+  status.style.cssText = summary.style.cssText;
+  controls.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin:12px 0';
+  for (const button of [test, reset]) {
+    button.type = 'button';
+    button.style.cssText = 'font:inherit;font-size:12px;padding:8px 12px;border:1px solid #9996;border-radius:8px;background:transparent;color:inherit';
+    controls.append(button);
+  }
+  test.textContent = '测试连接'; reset.textContent = '恢复跟随桌面';
+  let revision = 0, pending;
+  const current = () => hearuApiConfig(character(roleId) || {});
+  const draw = () => {
+    revision++; pending?.abort(); pending = null; test.disabled = false; status.textContent = '';
+    try {
+      const config = current(), endpoint = hearuEndpoint(config);
+      const protocol = { openai:'OpenAI 兼容', gemini:'Gemini 原生', anthropic:'Claude 原生', responses:'Responses' }[endpoint.kind];
+      summary.textContent = '当前使用：' + config.source + '；模型：' + (config.model || '未选择') + '；协议：' + protocol + '。请求地址：' + endpoint.display;
+      test.disabled = !config.key || !config.model;
+    } catch (error) { summary.textContent = error.message; test.disabled = true; }
+  };
+  const mount = () => window.AppApi.mount(picker, 'hearu', {
+    title:'API 设置', kicker:'YOUR SOUND / MODEL',
+    description:'地址与桌面 API 使用相同填法，自动补齐接口路径。独立预设和自选模型会优先用于 HearU。', onChange:draw
+  });
+  reset.onclick = () => {
+    try {
+      window.AppApi.set('hearu', { presetId:'', model:'' });
+      mount(); draw();
+      status.textContent = '已清除 HearU 独立选择；当前角色如有专属 API，仍按角色配置使用。';
+    } catch (error) { status.textContent = error.message; }
+  };
+  test.onclick = async () => {
+    const serial = ++revision, controller = new AbortController();
+    pending?.abort(); pending = controller; test.disabled = true;
+    status.textContent = '正在发送一次短测试请求（不写入聊天记录）…';
+    try {
+      await hearuSendModel(current(), '这是接口连通性测试，请只回复 OK。', [{ role:'user', content:'OK' }], controller.signal);
+      if (serial === revision && container.isConnected) status.textContent = '连接成功，已收到模型文字回复。';
+    } catch (error) {
+      if (serial === revision && container.isConnected) status.textContent = error.name === 'AbortError' ? '测试已取消。' : error.message;
+    } finally {
+      if (serial === revision) { pending = null; test.disabled = false; }
+    }
+  };
+  mount(); draw();
+}
+
+async function modelText(c, system, history, signal) {
+  system = hostPrompt(c) + "\n" + system + "\n[HearU输出协议]以上本体消息格式用于理解角色；本轮以当前 HearU JSON 协议输出最终结果，保留人设、世界书和思维链规则。不要把内部思考显示在聊天气泡里。本体/世界书/角色预设中涉及 UI 和输出包装的规则（HTML、Markdown 卡片、pvcard、状态栏、before/highlight/after/qas、|||分隔）仅是404界面的旧格式，不适用于HearU；人设、语气、关系和记忆继续遵循。本轮最终输出必须只有一个JSON对象，messages里text是自然聊天原话，禁止包装标签、HTML和卡片字段。";
+  return hearuSendModel(hearuApiConfig(c), system, history, signal);
 }
 async function saveMessage(text) {
   chatDrafts.delete(String(roleId));
@@ -2238,7 +2373,7 @@ async function loadAppearanceFont(){
 }
 function profileSettings(){
  modal(`<div class="hu-appearance"><small>MAKE IT YOURS</small><h2>你的 HearU。</h2><form id="hu-appearance-form"><fieldset><legend>界面 / INTERFACE</legend><div class="hu-ui-options">${[['classic','余响','AFTERGLOW'],['editorial','同频','EDITORIAL']].map(([id,label,en])=>`<label class="hu-ui-option"><input type="radio" name="ui" value="${id}" ${appearance.ui===id?'checked':''}><span class="hu-layout-thumb ${id}"></span><strong>${label}</strong><small>${en}</small></label>`).join('')}</div></fieldset><label class="hu-appearance-night"><span>夜间模式</span><input type="checkbox" name="night" ${root.dataset.theme==='night'?'checked':''} aria-label="夜间模式"><span class="hu-night-track" aria-hidden="true"><i></i></span></label><fieldset><legend>第二套字体 / TYPOGRAPHY</legend>${[['design','设计默认 · 宋体与细字'],['global','跟随小手机全局字体'],['custom','使用字体链接']].map(([id,label])=>`<label class="hu-font-option"><span>${label}</span><input type="radio" name="fontMode" value="${id}" ${appearance.fontMode===id?'checked':''}></label>`).join('')}<input id="hu-font-url" name="fontUrl" type="url" placeholder="字体文件 URL · woff2 / woff / ttf" value="${esc(appearance.fontUrl)}" ${appearance.fontMode==='custom'?'':'hidden'}></fieldset><fieldset class="hu-size-settings"><legend>全局字号 / TEXT SIZE</legend><div class="hu-size-heading"><span>HearU 字体大小</span><output id="hu-font-size-value">${appearance.fontScale}%</output></div><div class="hu-size-slider"><span>A</span><input id="hu-font-size" name="fontScale" type="range" min="80" max="140" step="5" value="${appearance.fontScale}" aria-label="HearU 全局字体大小"><span>A</span></div><div class="hu-size-preview" id="hu-size-preview" style="font-size:${13*appearance.fontScale/100}px">把喜欢的声音，收进生活。</div><button type="button" id="hu-font-size-reset">恢复默认 · 100%</button></fieldset><p class="hu-appearance-note">两套界面都支持夜间模式。余响字体沿用小手机设置。</p><div class="hu-appearance-footer"><button type="button" data-hu="edit-profile">编辑资料</button><button type="submit">应用设置</button></div></form></div>`);
- const apiSection=document.createElement('section');const form=root.querySelector('#hu-appearance-form');if(form&&window.AppApi){form.prepend(apiSection);window.AppApi.mount(apiSection,'hearu',{title:'API 设置',kicker:'YOUR SOUND / MODEL'});}
+ const apiSection=document.createElement('section');const form=root.querySelector('#hu-appearance-form');if(form&&window.AppApi){form.prepend(apiSection);hearuMountApiSettings(apiSection);}
 }
 root.addEventListener('change',e=>{if(e.target.name==='fontMode' && e.target.closest('#hu-appearance-form'))root.querySelector('#hu-font-url').hidden=e.target.value!=='custom';});
 root.addEventListener('submit',e=>{
