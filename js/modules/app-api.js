@@ -10,12 +10,13 @@
   function presets(){return (host().apiPresets||[]).filter(p=>p&&p.data&&p.name).map(p=>({id:String(p.id||'name:'+p.name),name:String(p.name),data:p.data}));}
   function profile(app){if(!apps.has(app))throw Error('未知应用');const p=profiles[app]||{};return {presetId:String(p.presetId||''),model:String(p.model||'')};}
   function set(app,value){profile(app);const next={...profiles,[app]:{presetId:String(value.presetId||''),model:String(value.model||'').trim()}};localStorage.setItem(KEY,JSON.stringify(next));profiles=next;cache.delete(app);global.dispatchEvent(new CustomEvent('app-api-updated',{detail:{app}}));return profile(app);}
-  function active(app){const p=profile(app);return !!(p.presetId||p.model);}
+  function active(app){const p=profile(app);return !!(p.presetId||p.model||(typeof isSecondaryApiSelected==='function'&&isSecondaryApiSelected(app)));}
   function resolve(app,fallback){
     const p=profile(app);let config={...(fallback||host().apiSettings||{})};
+    if(typeof isSecondaryApiSelected==='function'&&isSecondaryApiSelected(app))return resolveAuxiliaryApiConfig(app,config);
     if(p.presetId){const preset=presets().find(x=>x.id===p.presetId||p.presetId==='name:'+x.name);if(!preset)throw Error('已选 API 预设已被删除，请在本软件设置里重新选择');const d=preset.data;config={url:d.apiUrl??d.url??'',key:d.apiKey??d.key??'',model:d.model||'',provider:d.provider||'newapi',temperatureEnabled:!!d.temperatureEnabled,temperature:d.temperature};}
     if(p.model)config.model=p.model;
-    return config;
+    return typeof resolveAuxiliaryApiConfig==='function'?resolveAuxiliaryApiConfig(app,config):config;
   }
   function requestConfig(app,fallback){const c=resolve(app,fallback);if(typeof getRandomValue==='function'&&c.key)c.key=getRandomValue(c.key);return c;}
   const norm=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
@@ -91,10 +92,11 @@
     container.classList.add('app-api-panel','aa-'+app);container.dataset.appApi=app;
     container.innerHTML=`<div class="aa-heading"><h3>${esc(options.title||'API 设置')}</h3><small>${esc(options.kicker||'MODEL / API')}</small></div>${options.description?`<p class="aa-status">${esc(options.description)}</p>`:''}<label class="aa-label">API 预设<select data-aa="preset" aria-label="API 预设"><option value="">跟随桌面 API</option>${list.map(p=>`<option value="${esc(p.id)}" ${p.id===state.presetId?'selected':''}>${esc(p.name)}</option>`).join('')}${state.presetId&&!list.some(p=>p.id===state.presetId)?`<option value="${esc(state.presetId)}" selected>已删除的预设 · 请重新选择</option>`:''}</select></label><label class="aa-label">当前模型 · 可手动修改<input data-aa="model" value="${esc(config.model||'')}" aria-label="当前模型" autocomplete="off" placeholder="输入模型名称"></label><div class="aa-model-tools"><input data-aa="search" type="search" placeholder="搜模型 · 支持片段和模糊匹配" aria-label="模糊搜索模型" autocomplete="off"><button type="button" class="aa-fetch" data-aa="fetch">拉取模型</button></div><p class="aa-status" role="status" aria-live="polite"></p><div class="aa-results" data-aa="results" hidden></div>`;
     const select=container.querySelector('[data-aa="preset"]'),model=container.querySelector('[data-aa="model"]'),query=container.querySelector('[data-aa="search"]'),button=container.querySelector('[data-aa="fetch"]'),results=container.querySelector('[data-aa="results"]'),status=container.querySelector('.aa-status');
+    const secondaryRouted=config?.apiRouteSource==='secondary';select.disabled=secondaryRouted;model.readOnly=secondaryRouted;
     let models=[],revision=0;
     const say=(text,bad=false)=>{status.textContent=text;status.dataset.error=String(bad);};
     const cached=cache.get(app);if(cached&&config&&cached.stamp===signature(config))models=cached.models;
-    const draw=()=>{results.replaceChildren();if(!models.length){results.hidden=true;return;}const found=search(models,query.value);results.hidden=false;for(const name of found.slice(0,100)){const row=doc.createElement('button');row.type='button';row.className='aa-model';row.setAttribute('aria-pressed',String(name===model.value));const text=doc.createElement('span');text.textContent=name;row.append(text);if(name===model.value){const check=doc.createElement('small');check.textContent='使用中';row.append(check);}row.onclick=()=>{model.value=name;saveModel(name);draw();};results.append(row);}if(!found.length){const empty=doc.createElement('p');empty.className='aa-empty';empty.textContent='没有匹配模型，试试更短的关键词。';results.append(empty);}say(found.length>100?'匹配 '+found.length+' 个模型，先显示 100 个；输入关键词缩小范围。':'匹配 '+found.length+' / '+models.length+' 个模型');};
+    const draw=()=>{results.replaceChildren();if(!models.length){results.hidden=true;return;}const found=search(models,query.value);results.hidden=false;for(const name of found.slice(0,100)){const row=doc.createElement('button');row.type='button';row.className='aa-model';row.setAttribute('aria-pressed',String(name===model.value));const text=doc.createElement('span');text.textContent=name;row.append(text);if(name===model.value){const check=doc.createElement('small');check.textContent='使用中';row.append(check);}row.disabled=secondaryRouted;row.onclick=()=>{model.value=name;saveModel(name);draw();};results.append(row);}if(!found.length){const empty=doc.createElement('p');empty.className='aa-empty';empty.textContent='没有匹配模型，试试更短的关键词。';results.append(empty);}say(found.length>100?'匹配 '+found.length+' 个模型，先显示 100 个；输入关键词缩小范围。':'匹配 '+found.length+' / '+models.length+' 个模型');};
     const commit=value=>{try{set(app,value);options.onChange?.(resolve(app));return true;}catch(e){say(e.message,true);return false;}};
     const saveModel=name=>{const p=profile(app);if(commit({...p,model:name}))say(name?'已保存 · '+name:'已恢复预设默认模型');};
     select.onchange=()=>{revision++;const p=profile(app);if(!commit({presetId:select.value,model:''})){select.value=p.presetId;return;}models=[];query.value='';model.value=resolve(app).model||'';results.hidden=true;say('已保存，点击拉取模型选择其他模型。');};
@@ -104,7 +106,7 @@
     query.oninput=()=>{if(models.length)draw();else say('先点击拉取模型，再搜索名称。');};
     button.onclick=async()=>{const serial=revision;button.disabled=true;say('正在拉取模型…');try{const rows=await fetchModels(app);if(serial!==revision||!container.isConnected)return;models=rows;draw();}catch(e){if(serial===revision&&container.isConnected)say(e.message,true);}finally{button.disabled=false;}};
     mounts.set(container,{app,options});for(const [element] of mounts)if(!element.isConnected)mounts.delete(element);
-    if(error)say(error,true);else if(models.length)draw();else say(list.length?'地址与密钥沿用桌面预设，选择后自动保存。':'桌面尚无 API 预设；可跟随当前桌面配置，或先到桌面保存预设。');
+    if(error)say(error,true);else if(config?.apiRouteSource==='secondary')say('当前优先使用桌面副 API 的地址、密钥与模型；关闭该功能的副 API 勾选后恢复原预设。');else if(models.length)draw();else say(list.length?'地址与密钥沿用桌面预设，选择后自动保存。':'桌面尚无 API 预设；可跟随当前桌面配置，或先到桌面保存预设。');
   }
   global.addEventListener('api-presets-updated',()=>{cache.clear();for(const [element,item] of [...mounts])if(element.isConnected)mount(element,item.app,item.options);});
   global.addEventListener('storage',e=>{if(e.key===KEY){try{profiles=JSON.parse(e.newValue||'{}')||{};}catch{}cache.clear();}});

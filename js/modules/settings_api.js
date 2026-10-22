@@ -182,6 +182,7 @@ function setupApiSettingsApp() {
             secondary
         };
         await saveData();
+        window.dispatchEvent(new CustomEvent('api-presets-updated'));
         showToast('API设置已保存！')
     })
 }
@@ -193,7 +194,13 @@ function getDefaultSecondaryApiRoutes() {
         journal: false,
         peek: false,
         shop: false,
-        batteryReminder: false
+        batteryReminder: false,
+        peekMoments: false,
+        mono: false,
+        hearu: false,
+        morrow: false,
+        mcp: false,
+        workshopText: false
     };
 }
 
