@@ -85,22 +85,6 @@
 .kp-question-panel input[hidden]{display:none!important}
 .kp-question-panel footer{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 .kp-modal .modal-window button.kp-question-accept{background:#181818!important;color:#fff!important;border-color:#181818!important}
-/* Home presets retain their existing actions and internal forms. */
-#hp-dialog#hp-dialog{background:#0006;padding:18px 14px;z-index:10070}
-#hp-dialog#hp-dialog .hp-panel{background:#fff;border:1px solid #e8e8e8;border-radius:17px;max-width:470px;box-shadow:none}
-#hp-dialog#hp-dialog .hp-header{padding:22px;border-radius:17px 17px 0 0;border-bottom:1px solid #eee}
-#hp-dialog#hp-dialog h3{font-size:19px;letter-spacing:-.3px;font-weight:600}
-#hp-dialog#hp-dialog .hp-subtitle,#hp-dialog#hp-dialog .hp-eyebrow{display:none}
-#hp-dialog#hp-dialog .hp-heading-top{margin-bottom:7px;justify-content:flex-end}
-#hp-dialog#hp-dialog button,#hp-dialog#hp-dialog summary{border-radius:6px;border-color:#dedede;box-shadow:none;min-height:34px;padding:8px 12px;font-size:11px;background:#fff;color:#333}
-#hp-dialog#hp-dialog .hp-toolbar,#hp-dialog#hp-dialog .hp-utilities{padding:14px 22px;gap:8px}
-#hp-dialog#hp-dialog .hp-row{border-radius:0;border:0;border-bottom:1px solid #e8e8e8;background:#fff;padding:16px 0;box-shadow:none}
-#hp-dialog#hp-dialog .hp-row h4{font-size:15px;font-weight:500}
-#hp-dialog#hp-dialog .hp-sheet{background:#0006}
-#hp-dialog#hp-dialog .hp-sheet-box{border-radius:17px;background:#fff;padding:22px;box-shadow:none;border:1px solid #eee}
-#hp-dialog#hp-dialog .hp-sheet-box input{background:#fafafa;border:1px solid #ddd;border-radius:6px;font-size:13px}
-#hp-dialog#hp-dialog #hp-accept{background:#181818;color:#fff;border-color:#181818}
-
 /* Moments changes are confined to the toolbar controls, never cover/profile/feed. */
 #moments-header .action-btn-group{display:flex;align-items:center;flex-direction:row;gap:9px;flex-shrink:0}
 #moments-header #moments-generate-btn,#moments-header #moments-refresh-btn{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;height:32px;min-height:32px;width:auto!important;min-width:65px;padding:0 11px!important;border:1px solid #d9d9d9;border-radius:18px;background:#ffffffe8;color:#202020;font-family:inherit;font-size:12px;line-height:1.2;box-shadow:none;white-space:nowrap;cursor:pointer;flex-shrink:0}
@@ -116,3 +100,8 @@
 
 #customize-screen #hp-entry .kkt-item-icon svg{display:none}
 #customize-screen #hp-entry .kkt-item-icon::before{content:"";display:block;width:23px;height:23px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m3 10 9-7 9 7v11h-6v-7H9v7H3Z' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m3 10 9-7 9 7v11h-6v-7H9v7H3Z' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+
+.kp-css-import-row{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:10px}
+.kp-css-import-row input[hidden]{display:none!important}
+.kp-css-import-row [role=status]{flex:1;min-width:130px;color:#888;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.kp-css-import-row button:disabled{opacity:.55;cursor:wait}
