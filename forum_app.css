@@ -4561,7 +4561,7 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 /* MONO topic detail: compact search header, following the selected topic. */
 #forumPage .mono-topic-search-header {
   display:flex;align-items:center;gap:10px;
-  padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top, 0px));
+  height:48px;min-height:48px;box-sizing:border-box;padding:0 14px;
   background:#fff;border-bottom:0;
 }
 #forumPage .mono-topic-search-header .forum-search-back,
@@ -4574,7 +4574,7 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-topic-search-header .forum-search-refresh svg {width:22px;height:22px;}
 #forumPage .mono-topic-search-box {
   display:flex;align-items:center;gap:10px;flex:1;min-width:0;
-  height:42px;margin:0;padding:0 15px;border:0;border-radius:999px;background:#f2f2f2;
+  height:36px;margin:0;padding:0 15px;border:0;border-radius:999px;background:#f2f2f2;
 }
 #forumPage .mono-topic-search-box>svg {width:22px;height:22px;flex:0 0 22px;color:#777;}
 #forumPage .mono-topic-search-box input {
@@ -4595,10 +4595,9 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-topic-results-count {font-size:11px;font-weight:400;letter-spacing:.02em;white-space:nowrap;}
 #forumPage .mono-topic-search-header .forum-search-refresh svg {stroke-width:1.8;stroke-linecap:square;}
 #forumPage .mono-topic-search-header .forum-search-refresh.spinning svg {animation:none;opacity:.4;}
-/* Topic detail: the search row scrolls away while the category row stays pinned. */
+/* Topic detail shares the main header's safe area and pins both rows. */
 #forumPage .mono-topic-header {
-  --mono-topic-search-height:66px;
-  position:sticky;top:calc(env(safe-area-inset-top,0px) - var(--mono-topic-search-height));
+  position:absolute;top:var(--mono-top);left:0;right:0;
   z-index:20;background:#fff;isolation:isolate;
   transition:background .18s ease;
 }
@@ -4639,3 +4638,13 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-trends-header{position:sticky;top:0;z-index:15;background:#fff;}
 #forumPage .mono-trends-header .forum-hot-search{position:relative;top:auto;background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none;z-index:auto;}
 #forumPage .mono-trends-header .mono-trend-tabs{position:relative;top:auto;background:#fff;z-index:auto;}
+
+/* The containing block stays outside the results scroller. The topic DOM is
+   still removed naturally when the feed changes page. */
+#forumPage .forum-container:has(.mono-topic-header){position:relative;}
+#forumPage #forumFeed:has(.mono-topic-header){position:static;min-height:0;}
+#forumPage .forum-hot-container:has(>.mono-topic-header){position:static;padding-top:100px;}
+.forum-dm-page:has(.mono-contacts-nav){overflow:hidden;}
+.forum-dm-page:has(.mono-contacts-nav) .forum-dm-list{flex:1 1 0;min-height:0;overscroll-behavior:contain;}
+.forum-dm-page .mono-contacts-nav{flex-shrink:0;border-top:1px solid #eee;}
+.forum-dm-page .mono-contacts-nav .forum-nav-item.active[data-section=dm] svg{fill:none;}
