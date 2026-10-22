@@ -69,6 +69,12 @@ function setupAirDropPanelBtn() {
 
 // 屏幕切换
 const switchScreen = (targetId) => {
+    if (targetId === 'wallpaper-screen') {
+        targetId = 'customize-screen';
+        renderCustomizeForm();
+        requestAnimationFrame(() => { const section=document.getElementById('kp-wallpaper');if(section)section.scrollIntoView({block:'start'}); });
+    }
+
     // 离开聊天室时清理自定义样式
     if (targetId !== 'chat-room-screen') {
         const customStyles = document.querySelectorAll('style[id^="custom-bubble-style-for-"]');
@@ -1258,7 +1264,7 @@ function updatePageIndicator(index) {
 }
 
 function applyWallpaper(url) {
-    if (homeScreen) homeScreen.style.backgroundImage = `url(${url})`;
+    if (homeScreen) homeScreen.style.backgroundImage = 'url(' + JSON.stringify(url) + ')';
 }
 
 async function applyHomeScreenMode(mode) {
