@@ -222,8 +222,8 @@ async function handleExport() {
             exportData.modules.characters = [];
             exportData.modules.groups = [];
 
-            db.characters.forEach(char => {
-                let exportChar = { ...char };
+            for (const char of db.characters) {
+                let exportChar = await PhoneBackup.diskChat(char);
                 if (!selectedModules.chats) {
                     exportChar.history = [];
                     exportChar.callHistory = [];
@@ -232,15 +232,15 @@ async function handleExport() {
                 }
                 if (!selectedModules.contacts) {
                     // If only exporting chats, we still need basic info to identify the char
-                    exportChar = { id: char.id, name: char.name, history: char.history, callHistory: char.callHistory, archives: char.archives, activeArchiveId: char.activeArchiveId };
+                    exportChar = { id: char.id, name: char.name, history: exportChar.history, callHistory: char.callHistory, archives: exportChar.archives, activeArchiveId: char.activeArchiveId };
                 }
                 // 始终不导出 gallery
                 exportChar.gallery = [];
                 exportData.modules.characters.push(exportChar);
-            });
+            }
 
-            db.groups.forEach(group => {
-                let exportGroup = { ...group };
+            for (const group of db.groups) {
+                let exportGroup = await PhoneBackup.diskChat(group);
                 if (!selectedModules.chats) {
                     exportGroup.history = [];
                     exportGroup.callHistory = [];
@@ -248,10 +248,10 @@ async function handleExport() {
                     delete exportGroup.activeArchiveId;
                 }
                 if (!selectedModules.contacts) {
-                    exportGroup = { id: group.id, name: group.name, history: group.history, callHistory: group.callHistory, archives: group.archives, activeArchiveId: group.activeArchiveId };
+                    exportGroup = { id: group.id, name: group.name, history: exportGroup.history, callHistory: group.callHistory, archives: exportGroup.archives, activeArchiveId: group.activeArchiveId };
                 }
                 exportData.modules.groups.push(exportGroup);
-            });
+            }
         }
 
         // 2. Worldbooks
@@ -303,14 +303,9 @@ async function handleExport() {
 
         const chosen=new Set(Object.entries(selectedModules).filter(([,v])=>v).map(([k])=>k));
         if(Object.keys(window.KissAppData.groups).some(k=>chosen.has(k)))exportData.modules.appData=window.KissAppData.select(await window.KissAppData.snapshot(),chosen);
-        const jsonString = JSON.stringify(exportData);
-        const dataBlob = new Blob([jsonString]);
-        
+        const compressedBlob = await PhoneBackup.exportBlob(exportData.modules);
+        const dataBlob = compressedBlob;
         try {
-            const compressionStream = new CompressionStream('gzip');
-            const compressedStream = dataBlob.stream().pipeThrough(compressionStream);
-            const compressedBlob = await new Response(compressedStream, { headers: { 'Content-Type': 'application/octet-stream' } }).blob();
-
             const url = URL.createObjectURL(compressedBlob);
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", url);
@@ -346,457 +341,16 @@ async function handleExport() {
 
 // --- 导入逻辑 ---
 async function handleImport(event) {
-    const input = event.target;
-    if (!input.files || input.files.length === 0) return;
-
-    if (!Object.values(selectedModules).some(v => v)) {
-        showToast('请至少选择一项要导入的数据类型');
-        input.value = '';
-        return;
-    }
-
-    const file = input.files[0];
-
-    const importLabel = document.getElementById('storage-import-label');
-    const importText = document.getElementById('storage-import-text');
-    importLabel.classList.add('disabled');
-    importText.textContent = '处理中...';
-
-    let rollbackDb=null,rollbackApps=null;
+    const input=event.target, file=input.files?.[0]; if(!file)return;
+    if(!Object.values(selectedModules).some(Boolean)){showToast('请至少选择一项要导入的数据类型');input.value='';return;}
+    const label=document.getElementById('storage-import-label'),text=document.getElementById('storage-import-text');
+    label?.classList.add('disabled');if(text)text.textContent='处理中…';
     try {
-        // 与“教程 → 导入数据”共用格式识别：gzip/普通 JSON、旧版/流式/分类备份。
-        const mods = await readBackupFile(file);
-        if(mods.appData)window.KissAppData.validate(mods.appData);
-        rollbackDb=structuredClone(db);
-        if(mods.appData)rollbackApps=await window.KissAppData.snapshot();
-
-            // 1. Chats & Contacts
-            if ((selectedModules.chats || selectedModules.contacts) && mods.characters) {
-                mods.characters.forEach(importedChar => {
-                    const existingCharIndex = db.characters.findIndex(c => c.id === importedChar.id);
-                    if (existingCharIndex !== -1) {
-                        let existingChar = db.characters[existingCharIndex];
-                        if (selectedModules.chats && (importedChar.history !== undefined || importedChar.archives !== undefined)) {
-                            if (importedChar.history !== undefined) existingChar.history = importedChar.history;
-                            existingChar.callHistory = importedChar.callHistory || [];
-                            if (importedChar.archives !== undefined) existingChar.archives = importedChar.archives;
-                            if (importedChar.activeArchiveId !== undefined) existingChar.activeArchiveId = importedChar.activeArchiveId;
-                        }
-                        if (selectedModules.contacts) {
-                            // Merge contact info, keep existing history if not importing chats
-                            const tempHistory = existingChar.history;
-                            const tempCallHistory = existingChar.callHistory;
-                            const tempGallery = existingChar.gallery;
-                            const tempArchives = existingChar.archives;
-                            const tempArchiveId = existingChar.activeArchiveId;
-                            
-                            Object.assign(existingChar, importedChar);
-                            
-                            if (!selectedModules.chats) {
-                                existingChar.history = tempHistory;
-                                existingChar.callHistory = tempCallHistory;
-                                existingChar.archives = tempArchives;
-                                existingChar.activeArchiveId = tempArchiveId;
-                            }
-                            // 始终保留原有的 gallery
-                            existingChar.gallery = tempGallery;
-                        }
-                    } else if (selectedModules.contacts) {
-                        // Only add new character if contacts is selected
-                        db.characters.push(importedChar);
-                    }
-                });
-            }
-
-            if ((selectedModules.chats || selectedModules.contacts) && mods.groups) {
-                mods.groups.forEach(importedGroup => {
-                    const existingGroupIndex = db.groups.findIndex(g => g.id === importedGroup.id);
-                    if (existingGroupIndex !== -1) {
-                        let existingGroup = db.groups[existingGroupIndex];
-                        if (selectedModules.chats && (importedGroup.history !== undefined || importedGroup.archives !== undefined)) {
-                            if (importedGroup.history !== undefined) existingGroup.history = importedGroup.history;
-                            existingGroup.callHistory = importedGroup.callHistory || [];
-                            if (importedGroup.archives !== undefined) existingGroup.archives = importedGroup.archives;
-                            if (importedGroup.activeArchiveId !== undefined) existingGroup.activeArchiveId = importedGroup.activeArchiveId;
-                        }
-                        if (selectedModules.contacts) {
-                            const tempHistory = existingGroup.history;
-                            const tempCallHistory = existingGroup.callHistory;
-                            const tempArchives = existingGroup.archives;
-                            const tempArchiveId = existingGroup.activeArchiveId;
-                            Object.assign(existingGroup, importedGroup);
-                            if (!selectedModules.chats) {
-                                existingGroup.history = tempHistory;
-                                existingGroup.callHistory = tempCallHistory;
-                                existingGroup.archives = tempArchives;
-                                existingGroup.activeArchiveId = tempArchiveId;
-                            }
-                        }
-                    } else if (selectedModules.contacts) {
-                        db.groups.push(importedGroup);
-                    }
-                });
-            }
-
-            // 2. Worldbooks
-            if (selectedModules.worldbooks && mods.worldBooks) {
-                db.worldBooks = mods.worldBooks;
-            }
-
-            // 3. Personas
-            if (selectedModules.personas) {
-                if (mods.myPersonaPresets) db.myPersonaPresets = mods.myPersonaPresets;
-                if (mods.homeSignature !== undefined) db.homeSignature = mods.homeSignature;
-                if (mods.activePersonaId !== undefined) db.activePersonaId = mods.activePersonaId;
-            }
-
-            // 4. Wallpapers
-            if (selectedModules.wallpapers) {
-                if (mods.wallpaper !== undefined) db.wallpaper = mods.wallpaper;
-                if (mods.bubbleCssPresets) db.bubbleCssPresets = mods.bubbleCssPresets;
-                if (mods.globalCss !== undefined) db.globalCss = mods.globalCss;
-                if (mods.globalCssPresets) db.globalCssPresets = mods.globalCssPresets;
-                if (mods.myStickers) db.myStickers = mods.myStickers;
-                if (mods.moreProfileCardBg !== undefined) db.moreProfileCardBg = mods.moreProfileCardBg;
-                if (mods.themeSettings) db.themeSettings = mods.themeSettings;
-                if (mods.themePresets) db.themePresets = mods.themePresets;
-            }
-
-            // 5. Fonts
-            if (selectedModules.fonts) {
-                if (mods.fontUrl !== undefined) db.fontUrl = mods.fontUrl;
-                if (mods.fontPresets) db.fontPresets = mods.fontPresets;
-            }
-
-            // 6. Settings
-            if (selectedModules.settings) {
-                const settingsKeys = [
-                    'apiSettings', 'apiPresets', 'cotSettings', 'cotPresets', 'homeScreenMode', 
-                    'customIcons', 'insWidgetSettings', 'homeWidgetSettings', 'chatFolders', 
-                    'fontSizeScale', 'savedKeyboardHeight', 'statusBarPresets', 'globalSendSound', 
-                    'globalReceiveSound', 'multiMsgSoundEnabled', 'soundPresets', 'galleryPresets', 
-                    'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint', 'workshopSettings', 
-                    'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder', 'homeLayoutPages', 
-                    'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stickerMatchSettings',
-                    'homePresets', 'activeHomePresetId', 'homePresetUndo'
-                ];
-                settingsKeys.forEach(key => {
-                    if (mods[key] !== undefined) {
-                        db[key] = mods[key];
-                    }
-                });
-            }
-
-            await saveData();
-            if(mods.appData){const chosen=new Set(Object.entries(selectedModules).filter(([,v])=>v).map(([k])=>k));const subset=window.KissAppData.select(mods.appData,chosen);if(subset.records.length)await window.KissAppData.restore(subset);}
-            window.kissCleanupLocked=true;
-            showToast('导入成功，即将刷新页面');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-
-        } catch (error) {
-            window.kissCleanupLocked=false;
-            if(rollbackDb){Object.assign(db,rollbackDb);await saveData();}if(rollbackApps)await window.KissAppData.restore(rollbackApps);
-            console.error('导入出错:', error);
-            showToast('导入失败，文件格式可能不正确');
-            importLabel.classList.remove('disabled');
-            importText.textContent = '导入备份';
-            input.value = '';
-        }
+        const data=await PhoneBackup.readFile(file);
+        const selected=await PhoneBackup.selectPrepared(data,selectedModules);
+        const result=await PhoneBackup.importData(selected);
+        if(!result.success)throw Error(result.error);
+        showToast('导入成功，即将刷新');setTimeout(()=>location.reload(),1000);
+    }catch(e){showToast('导入失败：'+e.message);}
+    finally{input.value='';label?.classList.remove('disabled');if(text)text.textContent='导入选中数据';}
 }
-
-// --- 持久化存储逻辑 ---
-async function checkAndRequestPersistence() {
-    if (navigator.storage && navigator.storage.persist) {
-        const isPersisted = await navigator.storage.persisted();
-        if (isPersisted) {
-            console.log("Storage is already persisted.");
-            return;
-        }
-
-        const hasPrompted = localStorage.getItem('storage_persist_prompted');
-        if (hasPrompted) return;
-
-        showPersistencePrompt();
-    }
-}
-
-function showPersistencePrompt() {
-    if (document.getElementById('persistence-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'persistence-modal';
-    modal.className = 'modal-overlay visible';
-    modal.style.zIndex = '10000';
-    modal.innerHTML = `
-        <div class="modal-window" style="max-width: 320px;">
-            <h3 style="margin-bottom: 10px;">🛡️ 防止数据丢失</h3>
-            <p style="color: #666; line-height: 1.6; margin-bottom: 20px; font-size: 14px;">
-                为了避免聊天记录被浏览器自动清理，建议开启<strong>持久化存储</strong>保护。<br>
-                <span style="font-size: 12px; color: #999; display: block; margin-top: 8px;">(开启后，浏览器将不会在空间不足时自动删除你的数据)</span>
-            </p>
-            <div style="display: flex; gap: 10px;">
-                <button id="persist-allow-btn" class="btn btn-primary" style="flex: 1;">开启保护</button>
-                <button id="persist-later-btn" class="btn btn-neutral" style="flex: 1;">稍后</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    document.getElementById('persist-allow-btn').onclick = async () => {
-        const persisted = await navigator.storage.persist();
-        if (persisted) {
-            showToast("已成功开启持久化存储！");
-        } else {
-            showToast("开启失败，可能是浏览器策略限制。");
-        }
-        localStorage.setItem('storage_persist_prompted', 'true');
-        modal.remove();
-    };
-
-    document.getElementById('persist-later-btn').onclick = () => {
-        localStorage.setItem('storage_persist_prompted', 'true');
-        modal.remove();
-    };
-}
-
-// --- 清理图片缓存逻辑 ---
-function setupCleanImageCache() {
-    const openBtn = document.getElementById('open-clean-cache-btn');
-    const modal = document.getElementById('clean-image-cache-modal');
-    const form = document.getElementById('clean-image-cache-form');
-    const cancelBtn = document.getElementById('cancel-clean-btn');
-    const confirmBtn = document.getElementById('confirm-clean-btn');
-    const loadingDiv = document.getElementById('clean-cache-loading');
-    
-    // The modal might not be in DOM immediately if it's injected, but it's in index.html currently.
-    if (!modal || !form) return;
-    
-    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-
-    let cacheSizes = {
-        generated: 0,
-        chat: 0,
-        gallery: 0,
-        stickers: 0
-    };
-
-    function isBase64Image(str) {
-        if (typeof str !== 'string') return false;
-        if (str.startsWith('data:image/')) return true;
-        if (str.length > 1000 && !str.startsWith('http') && !str.includes(' ')) return true;
-        return false;
-    }
-
-    function getStringSize(str) {
-        return typeof str === 'string' ? str.length : 0;
-    }
-
-    async function calculateCacheSizes() {
-        cacheSizes = { generated: 0, chat: 0, gallery: 0, stickers: 0 };
-
-        if (dexieDB) {
-            try {
-                await window.KissDataManager.visitTable(dexieDB.workshopHistory, item => {
-                    if (isBase64Image(item.image)) cacheSizes.generated += getStringSize(item.image);
-                });
-                await window.KissDataManager.visitTable(dexieDB.characterPhotos, item => {
-                    if (isBase64Image(item.image)) cacheSizes.generated += getStringSize(item.image);
-                });
-                if (dexieDB.reader_comments) {
-                    await window.KissDataManager.visitTable(dexieDB.reader_comments, item => {
-                        if (item.content && item.content.startsWith('[ILLUSTRATION]')) {
-                            cacheSizes.generated += getStringSize(item.content);
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error("Error calculating generated images size:", e);
-            }
-        }
-
-        const processHistory = (history) => {
-            if (!history) return;
-            history.forEach(msg => {
-                if (msg.content) {
-                    if (isBase64Image(msg.content)) {
-                        cacheSizes.chat += getStringSize(msg.content);
-                    } else {
-                        const imgRegex = /!\[.*?\]\((data:image\/[^)]+)\)/g;
-                        let match;
-                        while ((match = imgRegex.exec(msg.content)) !== null) {
-                            cacheSizes.chat += getStringSize(match[1]);
-                        }
-                        const htmlImgRegex = /<img[^>]+src=["'](data:image\/[^"']+)["']/g;
-                        while ((match = htmlImgRegex.exec(msg.content)) !== null) {
-                            cacheSizes.chat += getStringSize(match[1]);
-                        }
-                    }
-                }
-                if (msg.parts) {
-                    msg.parts.forEach(part => {
-                        if (part.type === 'image' && isBase64Image(part.data)) {
-                            cacheSizes.chat += getStringSize(part.data);
-                        }
-                    });
-                }
-            });
-        };
-        (db.characters || []).forEach(char => processHistory(char.history));
-        (db.groups || []).forEach(group => processHistory(group.history));
-
-        (db.characters || []).forEach(char => {
-            if (char.gallery) {
-                char.gallery.forEach(item => {
-                    if (isBase64Image(item.url)) cacheSizes.gallery += getStringSize(item.url);
-                });
-            }
-        });
-
-        (db.myStickers || []).forEach(sticker => {
-            if (isBase64Image(sticker.url)) cacheSizes.stickers += getStringSize(sticker.url);
-        });
-
-        document.getElementById('size-generated-images').textContent = `(${formatBytes(cacheSizes.generated)})`;
-        document.getElementById('size-chat-images').textContent = `(${formatBytes(cacheSizes.chat)})`;
-        document.getElementById('size-gallery-images').textContent = `(${formatBytes(cacheSizes.gallery)})`;
-        document.getElementById('size-sticker-images').textContent = `(${formatBytes(cacheSizes.stickers)})`;
-    }
-
-    // Use event delegation for the open button since it's injected dynamically
-    document.addEventListener('click', async (e) => {
-        if (e.target && (e.target.id === 'open-clean-cache-btn' || e.target.closest('#open-clean-cache-btn'))) {
-            modal.classList.add('visible');
-            form.style.display = 'none';
-            loadingDiv.style.display = 'block';
-            confirmBtn.disabled = true;
-            checkboxes.forEach(cb => cb.checked = false);
-
-            await calculateCacheSizes();
-
-            loadingDiv.style.display = 'none';
-            form.style.display = 'block';
-        }
-    });
-
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
-            modal.classList.remove('visible');
-        };
-    }
-
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', () => {
-            const anyChecked = Array.from(checkboxes).some(c => c.checked);
-            confirmBtn.disabled = !anyChecked;
-        });
-    });
-
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-        const selectedCategories = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-        
-        if (selectedCategories.length === 0) return;
-
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = '清理中...';
-
-        try {
-            let dataChanged = false;
-
-            if (selectedCategories.includes('generated') && dexieDB) {
-                const workshopItems = await dexieDB.workshopHistory.toArray();
-                const workshopIdsToDelete = workshopItems.filter(item => isBase64Image(item.image)).map(item => item.id);
-                if (workshopIdsToDelete.length > 0) {
-                    await dexieDB.workshopHistory.bulkDelete(workshopIdsToDelete);
-                }
-
-                const photoItems = await dexieDB.characterPhotos.toArray();
-                const photoIdsToDelete = photoItems.filter(item => isBase64Image(item.image)).map(item => item.id);
-                if (photoIdsToDelete.length > 0) {
-                    await dexieDB.characterPhotos.bulkDelete(photoIdsToDelete);
-                }
-
-                if (dexieDB.reader_comments) {
-                    const comments = await dexieDB.reader_comments.toArray();
-                    const commentIdsToDelete = comments.filter(item => item.content && item.content.startsWith('[ILLUSTRATION]')).map(item => item.id);
-                    if (commentIdsToDelete.length > 0) {
-                        await dexieDB.reader_comments.bulkDelete(commentIdsToDelete);
-                    }
-                }
-            }
-
-            if (selectedCategories.includes('chat')) {
-                const cleanHistory = (history) => {
-                    if (!history) return;
-                    history.forEach(msg => {
-                        if (msg.content) {
-                            if (isBase64Image(msg.content)) {
-                                msg.content = '[图片已清理]';
-                                dataChanged = true;
-                            } else {
-                                let originalContent = msg.content;
-                                msg.content = msg.content.replace(/!\[.*?\]\((data:image\/[^)]+)\)/g, '[图片已清理]');
-                                msg.content = msg.content.replace(/<img[^>]+src=["'](data:image\/[^"']+)["'][^>]*>/g, '[图片已清理]');
-                                if (originalContent !== msg.content) dataChanged = true;
-                            }
-                        }
-                        if (msg.parts) {
-                            msg.parts.forEach(part => {
-                                if (part.type === 'image' && isBase64Image(part.data)) {
-                                    part.data = '';
-                                    part.type = 'text';
-                                    part.text = '[图片已清理]';
-                                    dataChanged = true;
-                                }
-                            });
-                        }
-                    });
-                };
-                (db.characters || []).forEach(char => cleanHistory(char.history));
-                (db.groups || []).forEach(group => cleanHistory(group.history));
-            }
-
-            if (selectedCategories.includes('gallery')) {
-                (db.characters || []).forEach(char => {
-                    if (char.gallery) {
-                        const originalLength = char.gallery.length;
-                        char.gallery = char.gallery.filter(item => !isBase64Image(item.url));
-                        if (originalLength !== char.gallery.length) dataChanged = true;
-                    }
-                });
-            }
-
-            if (selectedCategories.includes('stickers')) {
-                const originalLength = db.myStickers.length;
-                db.myStickers = db.myStickers.filter(sticker => !isBase64Image(sticker.url));
-                if (originalLength !== db.myStickers.length) dataChanged = true;
-            }
-
-            if (dataChanged) {
-                await saveData();
-            }
-
-            showToast('清理完成！');
-            modal.classList.remove('visible');
-            
-            const screen = document.getElementById('storage-analysis-screen');
-            if (screen && screen.classList.contains('active')) {
-                currentStorageSizes = await calculateStorageSize();
-                renderStorageUI();
-            }
-
-        } catch (error) {
-            console.error("Error cleaning cache:", error);
-            showToast('清理过程中发生错误');
-        } finally {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = '确认清理';
-        }
-    };
-}
-
-window.checkAndRequestPersistence = checkAndRequestPersistence;
-window.setupStorageAnalysisScreen = setupStorageAnalysisScreen;
-window.setupCleanImageCache = setupCleanImageCache;

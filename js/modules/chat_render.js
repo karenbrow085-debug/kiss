@@ -952,7 +952,7 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         }
         const remarkHTML = remarkText ? `<p class="transfer-remark">${remarkText}</p>` : '';
         bubbleElement.innerHTML = `<div class="overlay"></div><div class="transfer-content"><p class="transfer-title">${titleText}</p><p class="transfer-amount">¥${amount}</p>${remarkHTML}<p class="transfer-status">${statusText}</p></div>`;
-    } else if (imageRecogMatch || urlRegex.test(content)) {
+    } else if (imageRecogMatch || (urlRegex.test(content) || PhoneBackup.isImage(content))) {
         bubbleElement = document.createElement('div');
         bubbleElement.className = 'image-bubble';
         bubbleElement.innerHTML = `<img src="${content}" alt="图片消息">`;

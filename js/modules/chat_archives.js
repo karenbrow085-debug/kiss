@@ -1,7 +1,7 @@
 // --- 聊天存档与分支 ---
 
 const CHAT_ARCHIVE_META_KEYS = new Set([
-    'id', 'archives', 'activeArchiveId', 'isPinned', 'unreadCount',
+    'id', 'archives', 'activeArchiveId', 'isPinned', 'unreadCount', '__phoneHistory',
     'realName', 'remarkName', 'name', 'avatar', 'folderId', 'folderIds'
 ]);
 
@@ -91,6 +91,7 @@ function archiveValuesEqual(a, b) {
 }
 
 function normalizeChatArchiveStorage(chat) {
+    if (PhoneBackup.isCold(chat) || chat?.archives?.some(a => a.data?.__phoneArchive)) return false;
     if (!chat || !Array.isArray(chat.archives) || !chat.archives.length) return false;
     let changed = false;
     let active = chat.archives.find(item => item.id === chat.activeArchiveId);
@@ -135,6 +136,7 @@ function normalizeChatArchiveStorage(chat) {
 }
 
 function syncChatActiveArchive(chat, touch = false) {
+    if (PhoneBackup.isCold(chat)) return;
     if (!chat) return;
     normalizeChatArchiveStorage(chat);
     const archive = chat.archives?.find(item => item.id === chat.activeArchiveId);
@@ -155,7 +157,9 @@ function syncAllActiveArchives() {
     });
 }
 
-function applyArchiveData(chat, archive) {
+async function applyArchiveData(chat, archive) {
+    await PhoneBackup.hydrateChat(chat);
+    await PhoneBackup.hydrateArchive(archive);
     if (chat.activeArchiveId === archive.id && archive.dataStoredOnChat === true) return;
     const previous = chat.archives?.find(item => item.id === chat.activeArchiveId);
     if (previous && previous.id !== archive.id) {
@@ -206,6 +210,7 @@ function makeArchiveName(prefix) {
 
 async function createBlankArchive() {
     const chat = getCurrentChatEntity();
+    await PhoneBackup.hydrateChat(chat);
     if (!chat) return;
     syncChatActiveArchive(chat, true);
 
@@ -237,6 +242,7 @@ function journalBelongsToBranch(journal, includedMessageIds, cutoff) {
 
 async function createBranchArchiveAtMessage(messageId) {
     const chat = getCurrentChatEntity();
+    await PhoneBackup.hydrateChat(chat);
     if (!chat || !Array.isArray(chat.history)) return;
     const branchIndex = chat.history.findIndex(message => message.id === messageId);
     if (branchIndex < 0) return;
@@ -277,6 +283,7 @@ async function createBranchArchiveAtMessage(messageId) {
 
 async function switchChatArchive(archiveId) {
     const chat = getCurrentChatEntity();
+    await PhoneBackup.hydrateChat(chat);
     if (!chat || chat.activeArchiveId === archiveId) {
         closeArchiveManager();
         return;
@@ -285,7 +292,7 @@ async function switchChatArchive(archiveId) {
     syncChatActiveArchive(chat, true);
     const archive = chat.archives?.find(item => item.id === archiveId);
     if (!archive) return;
-    applyArchiveData(chat, archive);
+    await applyArchiveData(chat, archive);
     await saveData();
     closeArchiveManager();
     openChatRoom(currentChatId, currentChatType);
@@ -305,6 +312,7 @@ async function renameChatArchive(archiveId) {
 
 async function deleteChatArchive(archiveId) {
     const chat = getCurrentChatEntity();
+    await PhoneBackup.hydrateChat(chat);
     if (!chat || chat.archives.length <= 1) {
         showToast('至少保留一个存档');
         return;
@@ -316,7 +324,7 @@ async function deleteChatArchive(archiveId) {
         syncChatActiveArchive(chat, true);
         const fallback = chat.archives.find(item => item.id !== archiveId);
         chat.archives = chat.archives.filter(item => item.id !== archiveId);
-        applyArchiveData(chat, fallback);
+        await applyArchiveData(chat, fallback);
         await saveData();
         closeArchiveManager();
         openChatRoom(currentChatId, currentChatType);
@@ -351,8 +359,8 @@ function renderArchiveManager() {
         .map(archive => {
             const active = archive.dataStoredOnChat === true || archive.id === chat.activeArchiveId;
             const data = active ? chat : archive.data;
-            const messageCount = data?.history?.length || 0;
-            const journalCount = data?.memoryJournals?.length || 0;
+            const messageCount = data?.messageCount ?? data?.history?.length ?? 0;
+            const journalCount = data?.journalCount ?? data?.memoryJournals?.length ?? 0;
             const origin = archive.origin ? `<div class="archive-origin">来自：${escapeHtml(archive.origin.archiveName || '其他存档')}</div>` : '';
             return `
                 <article class="chat-archive-card ${active ? 'active' : ''}" data-archive-id="${archive.id}">

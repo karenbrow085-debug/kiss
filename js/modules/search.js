@@ -88,7 +88,7 @@ const SearchSystem = {
     },
 
     // 执行搜索
-    performSearch(keyword) {
+    async performSearch(keyword) {
         const container = document.getElementById('search-results-container');
         if (!keyword) {
             container.innerHTML = '';
@@ -117,8 +117,11 @@ const SearchSystem = {
         // 2. 遍历搜索
         let totalCount = 0;
         
-        targets.forEach(chat => {
-            if (!chat.history || chat.history.length === 0) return;
+        for (const chat of targets) {
+            const source = [...db.characters,...db.groups].find(c => c.id === chat.id);
+            await PhoneBackup.hydrateChat(source);
+            chat.history = source.history;
+            if (!chat.history || chat.history.length === 0) continue;
 
             // 获取该聊天的清理正则（如果是私聊）
             let statusRegex = null;
@@ -215,7 +218,8 @@ const SearchSystem = {
                 });
                 totalCount += matches.length;
             }
-        });
+            await PhoneBackup.evictOthers(null);
+        }
 
         // 3. 渲染结果
         if (totalCount === 0) {
@@ -448,7 +452,7 @@ const SearchSystem = {
         if (imageRecogRegex.test(content) || (msg.parts && msg.parts.some(p => p.type === 'image'))) return true;
         if (msg.parts && msg.parts.some(p => p.type === 'html')) return true;
         if (htmlRegex.test(content)) return true;
-        if (urlRegex.test(content)) return true;
+        if ((urlRegex.test(content) || PhoneBackup.isImage(content))) return true;
 
         return false;
     },

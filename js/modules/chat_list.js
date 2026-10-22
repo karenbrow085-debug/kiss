@@ -411,7 +411,7 @@ function renderChatList() {
                     if (htmlRegex.test(text)) {
                         lastMessageText = '[互动]';
                     } else {
-                        lastMessageText = urlRegex.test(text) ? '[图片]' : text;
+                        lastMessageText = (urlRegex.test(text) || PhoneBackup.isImage(text)) ? '[图片]' : text;
                     }
                 }
             } else {

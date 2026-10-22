@@ -71,7 +71,14 @@ async function visitTable(table,visitor){
  for(;;){const query=started?table.where(':id').above(last).limit(1):table.limit(1),rows=await query.toArray();if(!rows.length)break;const row=rows[0],key=row[table.schema.primKey.keyPath];await visitor(row,key);last=key;started=true;await scanPause();}
 }
 async function visitDexie(visitor){
- for(const table of dexieDB.tables)await visitTable(table,(row,key)=>visitor({store:'dexie',table:table.name,key,row,units:rowUnits(table.name,row)}));
+ for(const table of dexieDB.tables){
+  if(['safeParts','safeMeta'].includes(table.name))continue;
+  await visitTable(table,async(row,key)=>{
+   // Classify logical records, never disk-only references or binary backing blocks.
+   row=await PhoneBackup.expand(row);
+   await visitor({store:'dexie',table:table.name,key,row,units:rowUnits(table.name,row)});
+  });
+ }
 }
 
 async function visitStorageRecords(visitor,{flush=false}={}){
@@ -161,6 +168,7 @@ async function apply(data,selected){
  for(const r of changes.filter(r=>r.store==='local'))localStorage.removeItem(r.key);
  for(const r of data.cacheRows.filter(r=>selected.has(r.cat)))await (await caches.open(r.name)).delete(r.request);
  await loadData();
+ await PhoneBackup.collectUnused();
  // Reload prevents old view state or archive snapshots from resurrecting removed data.
  location.reload();
  } catch(error) {

@@ -127,6 +127,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
 
     const chat = (chatType === 'private') ? db.characters.find(c => c.id === chatId) : db.groups.find(g => g.id === chatId);
     if (!chat) return;
+    await PhoneBackup.hydrateChat(chat);
 
     let apiConfig = db.apiSettings;
     
@@ -198,6 +199,8 @@ async function getAiReply(chatId, chatType, isBackground = false) {
         
         // 使用工具函数进行过滤（包含深度克隆、屏蔽过滤、双语修正、状态栏剔除）
         historySlice = filterHistoryForAI(chat, historySlice);
+        // API requests require portable data URLs, never browser-local blob URLs.
+        historySlice = await PhoneBackup.expand(historySlice);
         // 【新增】过滤掉不应进入上下文的消息（如思考过程、被撤回的消息标记等）
         historySlice = historySlice.filter(m => !m.isContextDisabled && m.type !== 'mcp-activity' && m.type !== 'mcp-request');
         // A selected MCP card is a new user task, not an invitation to continue old chat.

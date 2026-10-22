@@ -604,162 +604,13 @@ function renderTutorialContent() {
 
 // 创建完整的备份数据
 async function createFullBackupData() {
-    const backupData = JSON.parse(JSON.stringify(db));
-    backupData.appData=await window.KissAppData.snapshot();
-    backupData._exportVersion = '3.0'; 
-    backupData._exportTimestamp = Date.now();
-    return backupData;
+    // Object-returning compatibility API; downloads use the bounded streaming writer.
+    return PhoneBackup.materializeBackup();
 }
 
 // 同时读取旧版单 JSON 备份和 3.0 流式备份；完整校验通过后才允许清空现有数据。
-async function readBackupFile(blob) {
-    const magic = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
-    let stream = blob.stream();
-    if (magic[0] === 0x1f && magic[1] === 0x8b) {
-        stream = stream.pipeThrough(new DecompressionStream('gzip'));
-    }
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    let pending = '';
-    const legacyParts = [];
-    let mode = null;
-    let header = null;
-    let footer = null;
-    let recordCount = 0;
-    let currentChat = null;
-    const data = Object.create(null);
-    const openContainers = new Map();
+async function readBackupFile(blob) { return PhoneBackup.readFile(blob); }
 
-    function processLine(line) {
-        if (!line.trim()) return;
-        let record;
-        try { record = JSON.parse(line); }
-        catch (error) { throw new Error(`流式备份第 ${recordCount + 1} 条记录无效：${error.message}`); }
-
-        if (!header) {
-            if (record.type !== 'header' || record.format !== 'ovo-stream-backup' || record.formatRevision !== 1) {
-                throw new Error('不支持的流式备份格式');
-            }
-            if (!Array.isArray(record.dataKeys) || record.dataKeys.some(key => typeof key !== 'string' || ['__proto__', 'constructor', 'prototype'].includes(key))) throw new Error('流式备份字段清单无效');
-            header = record;
-            return;
-        }
-        if (footer) throw new Error('备份结束标记后还有多余内容');
-        recordCount++;
-        const { type, key, value } = record;
-        if (type === 'footer') {
-            if (openContainers.size || currentChat) throw new Error('备份数据未完整结束');
-            if (record.completed !== true || record.recordCount !== recordCount) {
-                throw new Error('备份不完整或记录数量不匹配');
-            }
-            footer = record;
-            return;
-        }
-        if (!header.dataKeys.includes(key)) throw new Error(`备份包含未知数据项：${key}`);
-        switch (type) {
-            case 'value':
-                if (openContainers.has(key)) throw new Error(`数据项 ${key} 未结束`);
-                data[key] = value;
-                break;
-            case 'array-start':
-            case 'object-start':
-                if (openContainers.has(key)) throw new Error(`数据项 ${key} 重复开始`);
-                data[key] = type === 'array-start' ? [] : Object.create(null);
-                openContainers.set(key, type === 'array-start' ? 'array' : 'object');
-                break;
-            case 'array-item':
-                if (openContainers.get(key) !== 'array' || currentChat || record.index !== data[key].length) {
-                    throw new Error(`数组 ${key} 的记录顺序有误`);
-                }
-                data[key].push(value);
-                break;
-            case 'object-entry':
-                if (openContainers.get(key) !== 'object' || typeof record.property !== 'string') {
-                    throw new Error(`对象 ${key} 的记录无效`);
-                }
-                data[key][record.property] = value;
-                break;
-            case 'chat-start':
-                if (openContainers.get(key) !== 'array' || currentChat || record.chatIndex !== data[key].length || !value || typeof value !== 'object') {
-                    throw new Error(`聊天 ${key} 的起始记录无效`);
-                }
-                value.history = [];
-                data[key].push(value);
-                currentChat = { key, chatIndex: record.chatIndex };
-                break;
-            case 'chat-history':
-                if (!currentChat || currentChat.key !== key || currentChat.chatIndex !== record.chatIndex || !Array.isArray(value)) {
-                    throw new Error(`聊天 ${key} 的历史记录无效`);
-                }
-                for (const message of value) data[key][record.chatIndex].history.push(message);
-                break;
-            case 'chat-end':
-                if (!currentChat || currentChat.key !== key || currentChat.chatIndex !== record.chatIndex) {
-                    throw new Error(`聊天 ${key} 的结束记录无效`);
-                }
-                currentChat = null;
-                break;
-            case 'array-end':
-            case 'object-end':
-                if (currentChat || openContainers.get(key) !== (type === 'array-end' ? 'array' : 'object')) {
-                    throw new Error(`数据项 ${key} 的结束记录无效`);
-                }
-                openContainers.delete(key);
-                break;
-            default:
-                throw new Error(`不支持的备份记录类型：${type}`);
-        }
-    }
-
-    try {
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            if (mode === 'legacy') { legacyParts.push(value); continue; }
-            pending += value;
-            if (mode === null) {
-                const newline = pending.indexOf('\n');
-                // 正常流式头记录很短；单个大 JSON 不应一直等待换行并反复拼接。
-                if (newline < 0) {
-                    if (pending.length < 65536) continue;
-                    mode = 'legacy'; legacyParts.push(pending); pending = ''; continue;
-                }
-                const firstLine = pending.slice(0, newline).trim();
-                let first;
-                try { first = JSON.parse(firstLine); } catch (_) { /* 旧版格式可能跨行 */ }
-                mode = first && first.type === 'header' && first.format === 'ovo-stream-backup' ? 'stream' : 'legacy';
-            }
-            if (mode === 'legacy') {
-                legacyParts.push(pending);
-                pending = '';
-                continue;
-            }
-            let newline;
-            while ((newline = pending.indexOf('\n')) !== -1) {
-                processLine(pending.slice(0, newline));
-                pending = pending.slice(newline + 1);
-            }
-        }
-        if (mode === null) {
-            // 单行 JSON 是旧版格式；空文件交给 JSON.parse 报错。
-            mode = 'legacy';
-        }
-        if (mode === 'legacy') {
-            if (pending) legacyParts.push(pending);
-            return normalizeBackupPayload(JSON.parse(legacyParts.join('').replace(/^\uFEFF/, '')));
-        }
-        processLine(pending);
-        if (!footer) throw new Error('备份缺少完成标记，可能下载不完整');
-        // dataKeys 是可导出的字段清单，未设置的可选字段不会产生记录。
-        if (!Object.keys(data).length) throw new Error('备份中没有可导入的数据');
-        data._exportVersion = header.exportVersion;
-        data._exportTimestamp = header.exportTimestamp;
-        return normalizeBackupPayload(data);
-    } finally {
-        reader.releaseLock();
-    }
-}
-
-// 同一个兼容层供完整恢复、GitHub 恢复、分类导入使用。
 function normalizeBackupPayload(payload) {
     const object = value => value && typeof value === 'object' && !Array.isArray(value);
     if (!object(payload)) throw new Error('备份必须是 JSON 对象');
@@ -819,17 +670,7 @@ function normalizeBackupPayload(payload) {
 }
 
 // 校验在写入之前完成；一次事务失败会回滚，不先清空旧数据。
-async function importBackupData(data) {
- const startTime=Date.now();let patch={},previous={};
- try{const converted=normalizeBackupPayload(data),core=['characters','groups','worldBooks','myStickers'];
- for(const k of [...core,...globalSettingKeys])if(converted[k]!==undefined){patch[k]=converted[k];previous[k]=structuredClone(db[k]);}
- if(converted.appData){window.KissAppData.validate(converted.appData);await window.KissAppData.flush();}
- const write=async values=>dexieDB.transaction('rw',[dexieDB.characters,dexieDB.groups,dexieDB.worldBooks,dexieDB.myStickers,dexieDB.globalSettings],async()=>{for(const k of core)if(k in values){await dexieDB[k].clear();if(values[k]?.length)await dexieDB[k].bulkPut(values[k]);}for(const k of globalSettingKeys)if(k in values){if(values[k]===undefined)await dexieDB.globalSettings.delete(k);else await dexieDB.globalSettings.put({key:k,value:values[k]});}});
- await write(patch);
- try{if(converted.appData)await window.KissAppData.restore(converted.appData);}catch(e){await write(previous);throw e}
- Object.assign(db,patch);if(converted.appData)window.kissCleanupLocked=true;return {success:true,message:`导入完成 (耗时${Date.now()-startTime}ms)`};
- }catch(error){console.error('导入数据失败:',error);return {success:false,error:error.message,duration:Date.now()-startTime};}
-}
+async function importBackupData(data) { return PhoneBackup.importData(data); }
 
 // GitHub Manager
 const GitHubMgr = {
@@ -962,15 +803,8 @@ const GitHubMgr = {
         }
 
         onProgress('正在打包数据...');
-        const backupData = await createFullBackupData();
-        const jsonString = JSON.stringify(backupData);
-        
-        onProgress('正在压缩...');
-        const dataBlob = new Blob([jsonString]);
-        const compressionStream = new CompressionStream('gzip');
-        const compressedStream = dataBlob.stream().pipeThrough(compressionStream);
-        const compressedBlob = await new Response(compressedStream, { headers: { 'Content-Type': 'application/octet-stream' } }).blob();
-        
+        const compressedBlob = await PhoneBackup.exportBlob();
+
         onProgress('正在编码...');
         const base64Content = await new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -1145,14 +979,7 @@ async function triggerManualBackup() {
     try {
         showToast('正在准备导出数据...');
 
-        const fullBackupData = await createFullBackupData();
-
-        const jsonString = JSON.stringify(fullBackupData);
-        const dataBlob = new Blob([jsonString]);
-
-        const compressionStream = new CompressionStream('gzip');
-        const compressedStream = dataBlob.stream().pipeThrough(compressionStream);
-        const compressedBlob = await new Response(compressedStream, { headers: { 'Content-Type': 'application/octet-stream' } }).blob();
+        const compressedBlob = await PhoneBackup.exportBlob();
 
         const url = URL.createObjectURL(compressedBlob);
         const a = document.createElement('a');
