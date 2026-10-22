@@ -400,7 +400,7 @@ function renderSongThought() {
     line = song?.favoriteLine;
   root.innerHTML =
     header(name(c), "BEHIND THIS SONG") +
-    `<main class="hu-body hu-thought"><div class="hu-thought-heading"><span>A NOTE, JUST FOR YOU</span><h2>Liner Notes<span>.</span></h2></div><div class="hu-thought-track"><img src="${esc(song?.coverUrl || "assets/hearu.svg")}" alt=""><div><strong>${esc(song?.title || "还没有选歌")}</strong><small>${esc(song?.artist || "等一首歌，等一句话。")}</small></div></div><div class="hu-thought-owner"><img src="${esc(c?.avatar || "assets/hearu.svg")}" alt=""><span>${esc(name(c))}<small>${song?.addedBy === "ta" ? "这首，是 TA 为你放的。" : "听听 TA 怎么说。"}</small></span></div><section class="hu-thought-note"><span class="hu-thought-kicker">TA 留下的话</span><p>${song?.note ? esc(song.note) : song ? "TA 还没有为这首歌留言。" : "开始一起听后，TA 的选曲心意会留在这里。"}</p></section><section class="hu-thought-lyric"><span class="hu-thought-kicker">TA 偏爱的这一句</span>${line ? `<button data-hu="thought-seek" class="hu-thought-quote"><span>“</span><strong>${esc(line.text)}</strong>${line.trans ? `<small>${esc(line.trans)}</small>` : ""}<em>${format(line.timeMs)} ${icons.play}</em></button>` : '<p class="hu-thought-empty">还没有选中的歌词。</p>'}</section>${song ? `<div class="hu-thought-actions"><button data-hu="ask-song-thought" ${busy.has(roleId) ? "disabled" : ""}>${busy.has(roleId) ? "正在听 TA 说…" : song.note ? "再听 TA 说" : "听 TA 说"} ${icons.send}</button>${busy.has(roleId) ? '<button data-hu="stop-generation">暂停</button>' : ""}<button data-hu="share-current">分享这首</button></div>` : ""}<p class="hu-thought-foot">a little closer, through music.</p></main>` +
+    `<main class="hu-body hu-thought"><div class="hu-thought-sheet"><div class="hu-thought-heading"><span>A NOTE, JUST FOR YOU</span><h2>Liner Notes<span>.</span></h2></div><div class="hu-thought-track"><img src="${esc(song?.coverUrl || "assets/hearu.svg")}" alt=""><div><strong>${esc(song?.title || "还没有选歌")}</strong><small>${esc(song?.artist || "等一首歌，等一句话。")}</small></div></div><div class="hu-thought-owner"><img src="${esc(c?.avatar || "assets/hearu.svg")}" alt=""><span>${esc(name(c))}<small>${song?.addedBy === "ta" ? "这首，是 TA 为你放的。" : "听听 TA 怎么说。"}</small></span></div><section class="hu-thought-note"><span class="hu-thought-kicker">TA 留下的话</span><p>${song?.note ? esc(song.note) : song ? "TA 还没有为这首歌留言。" : "开始一起听后，TA 的选曲心意会留在这里。"}</p></section><section class="hu-thought-lyric"><span class="hu-thought-kicker">TA 偏爱的这一句</span>${line ? `<button data-hu="thought-seek" class="hu-thought-quote"><span>“</span><strong>${esc(line.text)}</strong>${line.trans ? `<small>${esc(line.trans)}</small>` : ""}<em>${format(line.timeMs)} ${icons.play}</em></button>` : '<p class="hu-thought-empty">还没有选中的歌词。</p>'}</section>${song ? `<div class="hu-thought-actions"><button data-hu="ask-song-thought" ${busy.has(roleId) ? "disabled" : ""}>${busy.has(roleId) ? "正在听 TA 说…" : song.note ? "再听 TA 说" : "听 TA 说"} ${icons.send}</button>${busy.has(roleId) ? '<button data-hu="stop-generation">暂停</button>' : ""}<button data-hu="share-current">分享这首</button></div>` : ""}<p class="hu-thought-foot">a little closer, through music.</p></div></main>` +
     status();
 }
 async function describeSong() {
@@ -2395,7 +2395,7 @@ function fitEditorialPlayer(){
  const size=Math.max(60,Math.floor(Math.min(285,body.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),body.clientHeight-used-3)));
  const value=size+'px';if(body.style.getPropertyValue('--hu-fitted-cover')!==value)body.style.setProperty('--hu-fitted-cover',value);
 }
-let fitFrame;function schedulePlayerFit(){cancelAnimationFrame(fitFrame);fitFrame=requestAnimationFrame(fitEditorialPlayer);}
+let fitFrame;function schedulePlayerFit(){cancelAnimationFrame(fitFrame);fitFrame=requestAnimationFrame(()=>{fitEditorialPlayer();fitHearuThought();});}
 new MutationObserver(schedulePlayerFit).observe(root,{childList:true,subtree:true,characterData:true});
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(schedulePlayerFit).observe(root);
 window.addEventListener('resize',schedulePlayerFit);document.fonts?.ready?.then(schedulePlayerFit);schedulePlayerFit();
@@ -2424,3 +2424,74 @@ root.addEventListener('input',e=>{if(e.target.id==='hu-font-size')updateSizePrev
 root.addEventListener('click',e=>{if(e.target.closest('#hu-font-size-reset')){root.querySelector('#hu-font-size').value='100';updateSizePreview();}});
 new MutationObserver(scheduleHearuFontSize).observe(root,{childList:true,subtree:true});
 window.addEventListener('resize',scheduleHearuFontSize);document.fonts?.addEventListener?.('loadingdone',scheduleHearuFontSize);scheduleHearuFontSize();
+
+// Continuous user bubble tail; its mask does not depend on the chat background.
+repairStyle.textContent += `
+#hearu-app .hu-message.mine.tail > p::before{
+ content:""!important;display:block!important;position:absolute!important;
+ left:auto!important;right:-5px!important;bottom:0!important;top:auto!important;
+ width:22px!important;height:20px!important;border:0!important;border-radius:0!important;
+ background-color:inherit!important;background-image:none!important;box-shadow:none!important;
+ transform:none!important;z-index:-1;pointer-events:none;
+ -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 20'%3E%3Cpath d='M0 0H12V8C12 14 16 18 22 20H0Z' fill='black'/%3E%3C/svg%3E");
+ mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 20'%3E%3Cpath d='M0 0H12V8C12 14 16 18 22 20H0Z' fill='black'/%3E%3C/svg%3E");
+ -webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+}
+#hearu-app .hu-message.mine.tail > p::after{content:none!important;display:none!important}
+#hearu-app[data-hearu-view="thought"]{overflow:hidden;overscroll-behavior:none}
+#hearu-app[data-hearu-view="thought"] .hu-header{flex-shrink:0}
+#hearu-app[data-hearu-view="thought"] .hu-thought{
+ position:relative;display:block!important;flex:1 1 0!important;min-height:0!important;
+ overflow:hidden!important;overscroll-behavior:none;box-sizing:border-box;
+ padding:14px 24px 12px!important;touch-action:pan-x;
+}
+#hearu-app .hu-thought-sheet{
+ display:flow-root;width:100%;min-width:0;box-sizing:border-box;
+ transform:scale(var(--hu-thought-fit,1));transform-origin:top center;
+}
+#hearu-app .hu-thought-sheet .hu-thought-heading h2{font-size:26px;line-height:1.2;margin:6px 0 14px}
+#hearu-app .hu-thought-sheet .hu-thought-track{gap:12px;padding:0 0 14px}
+#hearu-app .hu-thought-sheet .hu-thought-track>img{width:52px;height:52px;flex-shrink:0;border-radius:9px}
+#hearu-app .hu-thought-sheet .hu-thought-track strong{font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+#hearu-app .hu-thought-sheet .hu-thought-track small{display:block;margin-top:3px;line-height:1.4}
+#hearu-app .hu-thought-sheet .hu-thought-owner{margin:12px 0 13px;gap:9px;font-size:11px}
+#hearu-app .hu-thought-sheet .hu-thought-owner>img{width:26px;height:26px;flex-shrink:0}
+#hearu-app .hu-thought-sheet .hu-thought-owner small{display:block;margin-top:2px;line-height:1.35}
+#hearu-app .hu-thought-sheet .hu-thought-note{margin:0 0 15px}
+#hearu-app .hu-thought-sheet .hu-thought-note>p{font-size:18px;line-height:1.5;margin:8px 0 0}
+#hearu-app .hu-thought-sheet .hu-thought-lyric{padding:12px 0 13px}
+#hearu-app .hu-thought-sheet .hu-thought-quote{margin-top:6px}
+#hearu-app .hu-thought-sheet .hu-thought-quote>span{font-size:21px;line-height:1}
+#hearu-app .hu-thought-sheet .hu-thought-quote strong{font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+#hearu-app .hu-thought-sheet .hu-thought-quote small{display:block;font-size:10px;line-height:1.5;margin-top:6px;overflow-wrap:anywhere}
+#hearu-app .hu-thought-sheet .hu-thought-quote em{margin-top:9px;line-height:1.3}
+#hearu-app .hu-thought-sheet .hu-thought-empty{margin:8px 0 0;line-height:1.5}
+#hearu-app .hu-thought-sheet .hu-thought-actions{padding:10px 0 4px;margin-top:0;gap:12px}
+#hearu-app .hu-thought-sheet .hu-thought-actions button{min-height:30px;padding:4px 0;line-height:1.4}
+#hearu-app .hu-thought-sheet .hu-thought-foot{margin:10px 0 0;font-size:8px;line-height:1.4}
+@media(max-height:680px){
+ #hearu-app[data-hearu-view="thought"] .hu-thought{padding:10px 22px 8px!important}
+ #hearu-app .hu-thought-sheet .hu-thought-heading h2{font-size:24px;margin-bottom:10px}
+ #hearu-app .hu-thought-sheet .hu-thought-track{padding-bottom:10px}
+ #hearu-app .hu-thought-sheet .hu-thought-track>img{width:46px;height:46px}
+ #hearu-app .hu-thought-sheet .hu-thought-owner{margin:10px 0}
+ #hearu-app .hu-thought-sheet .hu-thought-note>p{font-size:17px;line-height:1.45}
+ #hearu-app .hu-thought-sheet .hu-thought-lyric{padding:10px 0}
+}
+`;
+function fitHearuThought(){
+ if(view!=='thought'||root.hidden)return;
+ const body=root.querySelector('.hu-thought'),sheet=body?.querySelector('.hu-thought-sheet');
+ if(!body||!sheet||!body.clientHeight)return;
+ const style=getComputedStyle(body);
+ const available=body.clientHeight-(parseFloat(style.paddingTop)||0)-(parseFloat(style.paddingBottom)||0);
+ const natural=Math.max(sheet.offsetHeight,sheet.scrollHeight);
+ if(available<=0||natural<=0)return;
+ // Layout dimensions ignore transforms, so repeated fitting never compounds.
+ const scale=Math.min(1,Math.max(.001,(available-2)/natural));
+ const value=String(Math.floor(scale*10000)/10000);
+ if(sheet.style.getPropertyValue('--hu-thought-fit')!==value)sheet.style.setProperty('--hu-thought-fit',value);
+ if(body.scrollTop)body.scrollTop=0;
+}
+window.visualViewport?.addEventListener('resize',schedulePlayerFit);
+document.fonts?.addEventListener?.('loadingdone',schedulePlayerFit);
