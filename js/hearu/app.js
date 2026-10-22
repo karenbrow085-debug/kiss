@@ -961,6 +961,7 @@ function hearuApiConfig(c = {}) {
     if (p.presetId) source = 'HearU 独立预设';
     if (p.model) source += ' · HearU 自选模型';
   }
+  if (config.apiRouteSource === 'secondary') source = '桌面副 API';
   return { ...config, source };
 }
 function hearuEndpoint(config) {
