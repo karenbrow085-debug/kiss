@@ -39,6 +39,7 @@
     <!-- CSS Split: Core Features -->
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/modules/personalize.css?v=20261023-personalize-1">
 
     <!-- CSS Split: Modules -->
     <link rel="stylesheet" href="css/modules/peek.css">
@@ -1874,10 +1875,8 @@
                 <h1 class="title" id="moments-title" style="opacity: 0; transition: opacity 0.3s;">动态</h1>
             </div>
             <div class="action-btn-group">
-                <button type="button" class="action-btn" id="moments-generate-btn" aria-label="生成新动态" style="font-size:12px;width:auto;padding:0 8px;">生成</button>
-                <button class="action-btn" id="moments-refresh-btn">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                </button>
+                <button type="button" class="action-btn" id="moments-generate-btn" aria-label="生成新动态">生成</button>
+                <button type="button" class="action-btn" id="moments-refresh-btn" aria-label="刷新动态">刷新</button>
             </div>
         </header>
         <main class="content moments-content" id="moments-content-area" style="padding: 0;">
@@ -2797,7 +2796,7 @@
 
 <!-- [2. 核心交互层] -->
 <script src="js/modules/kiss-tools-core.js?v=cleanup-speed-20261019-2"></script>
-<script src="js/ui.js?v=morrow-desktop-1"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
+<script src="js/ui.js?v=20261023-personalize-1"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
 <script src="js/modules/chat_list.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/character_import.js"></script>
@@ -2823,8 +2822,8 @@
 <script src="js/modules/keep_alive.js?v=20261022-kiss-icons"></script> <!-- 跨平台持续运行增强 -->
 <script src="js/modules/settings_api.js?v=20261023-aux-apps-1"></script>
 <script src="js/modules/app-api.js?v=20261023-aux-apps-1"></script> <!-- API 设置与预设 -->
-<script src="js/modules/settings_presets.js"></script> <!-- 预设管理 (气泡、人设等) -->
-<script src="js/modules/settings_customize.js?v=morrow-desktop-1"></script> <!-- 个性化与外观设置 -->
+<script src="js/modules/settings_presets.js?v=20261023-personalize-1"></script> <!-- 预设管理 (气泡、人设等) -->
+<script src="js/modules/settings_customize.js?v=20261023-personalize-1"></script> <!-- 个性化与外观设置 -->
 
 <!-- [3. 独立功能模块 (Plugins)] -->
 <script src="js/modules/sticker.js"></script>   <!-- 表情包管理系统 -->
