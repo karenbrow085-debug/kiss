@@ -244,14 +244,17 @@ async function createBranchArchiveAtMessage(messageId) {
     const chat = getCurrentChatEntity();
     await PhoneBackup.hydrateChat(chat);
     if (!chat || !Array.isArray(chat.history)) return;
-    const branchIndex = chat.history.findIndex(message => message.id === messageId);
+    const branchIndex = chat.history.findIndex(message => String(message.id) === String(messageId));
     if (branchIndex < 0) return;
 
-    syncChatActiveArchive(chat, true);
     const suggestedName = makeArchiveName('分支');
-    const name = prompt('分支存档名称', suggestedName);
+    const name = typeof kpPrompt === 'function'
+        ? await kpPrompt('分支存档名称', '从这条消息开始建立独立分支，原存档会保留。', suggestedName)
+        : prompt('分支存档名称', suggestedName);
     if (name === null) return;
+    if (getCurrentChatEntity() !== chat) return showToast('聊天已切换，请在当前聊天重新创建分支');
 
+    syncChatActiveArchive(chat, true);
     const sourceArchive = getActiveArchive(chat);
     const data = captureArchiveData(chat);
     data.history = data.history.slice(0, branchIndex + 1);

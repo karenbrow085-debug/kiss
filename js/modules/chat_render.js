@@ -497,7 +497,7 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
     let bubbleElement;
     const urlRegex = /^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)|data:image\/[a-z]+;base64,)/i;
     
-    const sentStickerRegex = /\[(?:.+?)发送的表情包[：:](.+?)\]/i;
+    const sentStickerRegex = /\[(?:.*?)发送的表情包[：:](.+?)\]/i;
     const receivedStickerRegex = /\[(?:.*?的)?表情包[：:](.+?)\]/i;
     
     const voiceRegex = /\[(?:.+?)的语音[：:]([\s\S]+?)\]/;
@@ -815,7 +815,7 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
             </div>
         `;
 
-    } else if ((isSent && sentStickerMatch) || (!isSent && receivedStickerMatch)) {
+    } else if ((isSent && (stickerData || sentStickerMatch)) || (!isSent && receivedStickerMatch)) {
         bubbleElement = document.createElement('div');
         bubbleElement.className = 'image-bubble';
         let stickerSrc = '';

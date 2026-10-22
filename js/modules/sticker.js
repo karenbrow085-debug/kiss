@@ -371,7 +371,9 @@ async function sendSticker(sticker) {
     }
 
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
-    const myName = (currentChatType === 'private') ? chat.myName : chat.me.nickname;
+    if (!chat) return;
+    const rawName = currentChatType === 'private' ? chat.myName : chat.me?.nickname;
+    const myName = String(rawName || '').trim() || 'User';
     
     const messageContentForAI = `[${myName}发送的表情包：${sticker.name}]`;
     const message = {

@@ -11,10 +11,11 @@ function handleMessageLongPress(messageWrapper, x, y) {
     if (window.getSelection) {
         window.getSelection().removeAllRanges();
     }
-    const messageId = messageWrapper.dataset.id;
+    const rawMessageId = messageWrapper.dataset.id;
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
-    const message = chat.history.find(m => m.id === messageId);
+    const message = chat?.history?.find(m => String(m.id) === rawMessageId);
     if (!message) return;
+    const messageId = message.id;
 
     const isImageRecognitionMsg = message.parts && message.parts.some(p => p.type === 'image');
     const isVoiceMessage = /\[.*?的语音：.*?\]/.test(message.content);

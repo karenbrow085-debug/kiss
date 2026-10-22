@@ -218,6 +218,10 @@ function setupCustomizeApp() {
     });
 
     document.body.addEventListener('change', async (e) => {
+        if (e.target.id === 'kp-css-file') {
+            await kpImportGlobalCssFile(e.target);
+            return;
+        }
         if (e.target.id === 'local-font-upload') {
             const file = e.target.files[0];
             if (!file) return;
@@ -351,7 +355,7 @@ function renderCustomizeForm() {
     const iconOrder = [
         'chat-list-screen', 'api-settings-screen', 'wallpaper-screen',
         'world-book-screen', 'customize-screen', 'tutorial-screen',
-        'day-mode-btn', 'night-mode-btn', 'forum-screen', 'music-screen', 'console-screen', 'pomodoro-screen', 'storage-analysis-screen', 'widget-market-screen', 'reader-bookshelf-screen', 'placeholder-app', 'mono-app', 'mcp-screen', 'morrow-app'
+        'day-mode-btn', 'night-mode-btn', 'forum-screen', 'console-screen', 'pomodoro-screen', 'storage-analysis-screen', 'widget-market-screen', 'reader-bookshelf-screen', 'placeholder-app', 'mono-app', 'mcp-screen', 'morrow-app'
     ];
 
     let iconsContentHTML = '';
@@ -382,7 +386,7 @@ function renderCustomizeForm() {
         <div id="kp-wallpaper-preview" class="kp-wallpaper-preview" role="img" aria-label="当前壁纸"><span>壁纸</span></div>
         <div class="kp-wallpaper-tools">
           <label for="kp-wallpaper-upload" class="kp-upload">${kpIcon('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/>')}<span>相册上传</span></label>
-          <button type="button" id="kp-wallpaper-link">${kpIcon('<path d="m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m4 0 2-2a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 -1)"/>')}<span>图片 URL</span></button>
+          <button type="button" id="kp-wallpaper-link">${kpIcon('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>')}<span>图片 URL</span></button>
           <button type="button" id="kp-wallpaper-reset">恢复默认</button>
           <input type="file" id="kp-wallpaper-upload" accept="image/*" hidden>
         </div>
@@ -445,6 +449,11 @@ function renderCustomizeForm() {
                         <button type="button" id="apply-global-css-now-btn" class="btn btn-primary btn-small" style="width:auto;">立即应用</button>
                     </div>
                     <textarea id="global-beautification-css" class="form-group" rows="8" placeholder="在此输入CSS代码..." style="width:100%; border:1px solid #eee; border-radius:8px; padding:10px; font-family: monospace; font-size: 12px;"></textarea>
+                    <div class="kp-css-import-row">
+                        <button type="button" id="kp-css-import-btn" class="btn btn-small" onclick="document.getElementById('kp-css-file').click()">导入 TXT / DOCX</button>
+                        <input type="file" id="kp-css-file" accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+                        <span id="kp-css-import-status" role="status" aria-live="polite">导入后按文件名自动保存为预设</span>
+                    </div>
                 </div>
                 <div style="background:#f9f9f9; padding:10px; border-radius:8px; border: 1px solid #f0f0f0;">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -657,4 +666,64 @@ async function kpApplyWallpaperFile(input){
         if(saved){const field=document.getElementById('kp-wallpaper-url');if(field)field.value='';}
     }catch(error){if(revision===kpWallpaperRevision){kpWallpaperStatus('图片处理或保存失败，请重试',true);showToast('壁纸未保存，请重试');}}
     finally{input.value='';}
+}
+
+// CSS imports only extract plain text. They never render document HTML or apply styles.
+let kpCssImportBusy = false;
+async function kpReadCssFile(file) {
+    const ext = (file.name.match(/\.([^.]+)$/) || [])[1]?.toLowerCase();
+    if (!['txt', 'docx'].includes(ext)) throw new Error('请选择 TXT 或 DOCX 文件');
+    if (file.size > 10 * 1024 * 1024) throw new Error('文件过大，请选择 10 MB 以内的文件');
+    const buffer = await file.arrayBuffer();
+    let text;
+    if (ext === 'docx') {
+        if (typeof mammoth === 'undefined') throw new Error('文档解析组件未加载，请刷新后重试');
+        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+        text = result.value;
+    } else {
+        const bytes = new Uint8Array(buffer);
+        const encoding = bytes[0] === 255 && bytes[1] === 254 ? 'utf-16le' :
+            bytes[0] === 254 && bytes[1] === 255 ? 'utf-16be' : 'utf-8';
+        try { text = new TextDecoder(encoding, { fatal: true }).decode(bytes); }
+        catch { throw new Error('TXT 编码无法识别，请另存为 UTF-8 后导入'); }
+    }
+    text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
+    if (!text) throw new Error('文件中没有可导入的 CSS 内容');
+    if (text.includes('\0')) throw new Error('文件不是有效的文本内容');
+    return { name: file.name.replace(/\.(txt|docx)$/i, '').trim() || '未命名预设', css: text };
+}
+async function kpImportGlobalCssFile(input) {
+    const file = input.files?.[0];
+    if (!file || kpCssImportBusy) { input.value = ''; return; }
+    kpCssImportBusy = true;
+    const button = document.getElementById('kp-css-import-btn');
+    const status = document.getElementById('kp-css-import-status');
+    if (button) button.disabled = true;
+    if (status) status.textContent = '正在读取并保存…';
+    try {
+        const preset = await kpReadCssFile(file);
+        const previous = db.globalCssPresets;
+        const next = (previous || []).slice();
+        const index = next.findIndex(item => item.name === preset.name);
+        if (index < 0) next.push(preset);
+        else next[index] = { ...next[index], ...preset };
+        db.globalCssPresets = next;
+        try { await saveData(); }
+        catch (error) { db.globalCssPresets = previous; throw new Error('预设保存失败，请重试'); }
+        populateGlobalCssPresetSelect();
+        const select = document.getElementById('global-css-preset-select');
+        if (select) select.value = preset.name;
+        const editor = document.getElementById('global-beautification-css');
+        if (editor) editor.value = preset.css;
+        if (status) status.textContent = '已保存预设「' + preset.name + '」，点击应用后生效';
+        showToast('已导入并保存 CSS 预设');
+    } catch (error) {
+        const message = error.message || '导入失败，请检查文件后重试';
+        if (status) status.textContent = message;
+        showToast(message);
+    } finally {
+        input.value = '';
+        if (button) button.disabled = false;
+        kpCssImportBusy = false;
+    }
 }
