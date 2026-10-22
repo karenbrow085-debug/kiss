@@ -492,9 +492,11 @@ function setupChatRoom() {
     document.getElementById('cancel-reply-btn').addEventListener('click', cancelQuoteReply);
 }
 
-function openChatRoom(chatId, type) {
+async function openChatRoom(chatId, type) {
     const chat = (type === 'private') ? db.characters.find(c => c.id === chatId) : db.groups.find(g => g.id === chatId);
     if (!chat) return;
+    await PhoneBackup.evictOthers(chat);
+    await PhoneBackup.hydrateChat(chat);
 
     // 迁移旧的私聊数据 (仅群聊)
     if (type === 'group' && chat.privateSessions && typeof migratePrivateSessionsToHistory === 'function') {

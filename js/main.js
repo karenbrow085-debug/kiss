@@ -217,8 +217,9 @@ async function checkAutoReply() {
 
 // === 主入口 ===
 document.addEventListener('DOMContentLoaded', () => {
-    initDatabase();
-    init().then(() => {
+    try { initDatabase(); } catch (error) { PhoneBackup.recovery(error); return; }
+    PhoneBackup.boot(async () => {
+      await init();
         if (window.KeepAliveManager) {
             window.KeepAliveManager.init(Boolean(db.apiSettings && db.apiSettings.keepAliveEnabled));
         }

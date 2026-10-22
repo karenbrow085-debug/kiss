@@ -487,6 +487,7 @@ var dexieDB; // 声明全局变量，但不初始化
 
 function initDatabase() {
     dexieDB = new Dexie('章鱼喷墨机DB_ee');
+    dexieDB.version(9).stores({safeParts: '&id, kind', safeMeta: '&key'});
     dexieDB.version(1).stores({
         storage: 'key, value'
     });
@@ -605,35 +606,16 @@ function initDatabase() {
 }
 
 // 数据保存与加载
-const saveData = async () => {
-    if (!dexieDB || window.kissCleanupLocked) return;
-    if (typeof syncAllActiveArchives === 'function') {
-        syncAllActiveArchives();
-    }
-    await dexieDB.transaction('rw', dexieDB.tables, async () => {
-        await dexieDB.characters.bulkPut(db.characters);
-        await dexieDB.groups.bulkPut(db.groups);
-        await dexieDB.worldBooks.bulkPut(db.worldBooks);
-        await dexieDB.myStickers.bulkPut(db.myStickers);
-
-        const settingsPromises = globalSettingKeys.map(key => {
-            if (db[key] !== undefined) {
-                return dexieDB.globalSettings.put({ key: key, value: db[key] });
-            }
-            return null;
-        }).filter(p => p);
-        await Promise.all(settingsPromises);
-    });
-};
+const saveData = async () => window.PhoneBackup.save();
 
 const loadData = async () => {
-    const [characters, groups, worldBooks, myStickers, settingsArray] = await Promise.all([
-        dexieDB.characters.toArray(),
-        dexieDB.groups.toArray(),
-        dexieDB.worldBooks.toArray(),
-        dexieDB.myStickers.toArray(),
-        dexieDB.globalSettings.toArray()
-    ]);
+    // Keyset reads avoid concurrent full-table copies; histories stay on disk.
+    const characters = await PhoneBackup.loadRows('characters');
+    const groups = await PhoneBackup.loadRows('groups');
+    const worldBooks = await PhoneBackup.loadRows('worldBooks');
+    const myStickers = await PhoneBackup.loadRows('myStickers');
+    const settingsArray = await PhoneBackup.loadRows('globalSettings');
+    for (const {key} of settingsArray) if (!globalSettingKeys.includes(key)) globalSettingKeys.push(key);
 
     db.characters = characters;
     db.groups = groups;
