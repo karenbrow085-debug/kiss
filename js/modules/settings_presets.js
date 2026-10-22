@@ -510,13 +510,13 @@ function populateFontPresetSelect() {
     });
 }
 
-function saveCurrentFontAsPreset() {
+async function saveCurrentFontAsPreset() {
     const fontUrlInput = document.getElementById('customize-font-url');
     if (!fontUrlInput) return showToast('找不到字体 URL 输入框');
     const url = fontUrlInput.value.trim();
     if (!url) return showToast('字体 URL 为空，无法保存');
     
-    let name = prompt('请输入预设名称（将覆盖同名预设）：');
+    let name = await kpPrompt('保存预设', '请输入预设名称，同名将覆盖。');
     if (!name) return;
     
     const presets = _getFontPresets();
@@ -595,8 +595,8 @@ function openFontManageModal() {
         renameBtn.className = 'btn';
         renameBtn.style.padding = '6px 8px;border-radius:8px';
         renameBtn.textContent = '重命名';
-        renameBtn.onclick = function(){
-            const newName = prompt('输入新名称：', p.name);
+        renameBtn.onclick = async function(){
+            const newName = await kpPrompt('重命名预设', '输入新的预设名称。', p.name);
             if (!newName) return;
             const all = _getFontPresets();
             all[idx].name = newName;
@@ -610,7 +610,7 @@ function openFontManageModal() {
         deleteBtn.style.padding = '6px 8px;border-radius:8px;color:#e53935';
         deleteBtn.textContent = '删除';
         deleteBtn.onclick = async function(){
-            if (!confirm('确认删除该预设？')) return;
+            if (!await kpConfirm('删除后无法恢复，请确认是否删除该预设。','删除预设')) return;
             const all = _getFontPresets();
             const deletedPreset = all.splice(idx,1)[0];
             _saveFontPresets(all);
@@ -971,8 +971,8 @@ function openGlobalCssManageModal() {
         renameBtn.className = 'btn';
         renameBtn.style.padding = '6px 8px';
         renameBtn.textContent = '重命名';
-        renameBtn.onclick = function() {
-            const newName = prompt('输入新名称：', p.name);
+        renameBtn.onclick = async function() {
+            const newName = await kpPrompt('重命名预设', '输入新的预设名称。', p.name);
             if (!newName || newName === p.name) return;
             db.globalCssPresets[idx].name = newName;
             saveData();
@@ -984,8 +984,8 @@ function openGlobalCssManageModal() {
         delBtn.className = 'btn btn-danger';
         delBtn.style.padding = '6px 8px';
         delBtn.textContent = '删除';
-        delBtn.onclick = function() {
-            if (!confirm('确定删除预设 "' + p.name + '" ?')) return;
+        delBtn.onclick = async function() {
+            if (!await kpConfirm('确定删除预设“' + p.name + '”？','删除预设')) return;
             db.globalCssPresets.splice(idx, 1);
             saveData();
             openGlobalCssManageModal();
@@ -1021,13 +1021,13 @@ function populateSoundPresetSelect() {
     });
 }
 
-function saveCurrentSoundAsPreset() {
+async function saveCurrentSoundAsPreset() {
     const sendUrl = document.getElementById('global-send-sound-url').value.trim();
     const receiveUrl = document.getElementById('global-receive-sound-url').value.trim();
     
     if (!sendUrl && !receiveUrl) return showToast('提示音配置为空，无法保存');
     
-    let name = prompt('请输入预设名称（将覆盖同名预设）：');
+    let name = await kpPrompt('保存预设', '请输入预设名称，同名将覆盖。');
     if (!name) return;
     
     const presets = _getSoundPresets();
@@ -1099,8 +1099,8 @@ function openSoundManageModal() {
         renameBtn.className = 'btn';
         renameBtn.style.padding = '6px 8px;border-radius:8px';
         renameBtn.textContent = '重命名';
-        renameBtn.onclick = function(){
-            const newName = prompt('输入新名称：', p.name);
+        renameBtn.onclick = async function(){
+            const newName = await kpPrompt('重命名预设', '输入新的预设名称。', p.name);
             if (!newName) return;
             const all = _getSoundPresets();
             all[idx].name = newName;
@@ -1113,8 +1113,8 @@ function openSoundManageModal() {
         deleteBtn.className = 'btn';
         deleteBtn.style.padding = '6px 8px;border-radius:8px;color:#e53935';
         deleteBtn.textContent = '删除';
-        deleteBtn.onclick = function(){
-            if (!confirm('确认删除该预设？')) return;
+        deleteBtn.onclick = async function(){
+            if (!await kpConfirm('删除后无法恢复，请确认是否删除该预设。','删除预设')) return;
             const all = _getSoundPresets();
             all.splice(idx,1);
             _saveSoundPresets(all);

@@ -1,28 +1,27 @@
 // --- 个性化与外观设置逻辑 ---
 
 function setupWallpaperApp() {
-    const e = document.getElementById('wallpaper-upload'), t = document.getElementById('wallpaper-preview');
-    if (t) {
-        t.style.backgroundImage = `url(${db.wallpaper})`;
-        t.textContent = '';
-    }
-    if (e) {
-        e.addEventListener('change', async (a) => {
-            const n = a.target.files[0];
-            if (n) {
-                try {
-                    const r = await compressImage(n, {quality: 0.85, maxWidth: 1080, maxHeight: 1920});
-                    db.wallpaper = r;
-                    applyWallpaper(r);
-                    if (t) t.style.backgroundImage = `url(${r})`;
-                    await saveData();
-                    showToast('壁纸已更新');
-                } catch (error) {
-                    showToast('壁纸压缩失败');
-                }
-            }
-        });
-    }
+    kpSyncWallpaperPreview();
+    if(document.body.dataset.kpWallpaperBound)return;
+    document.body.dataset.kpWallpaperBound='true';
+    document.body.addEventListener('change',event=>{
+        if(['wallpaper-upload','kp-wallpaper-upload'].includes(event.target.id))kpApplyWallpaperFile(event.target);
+    });
+    document.body.addEventListener('click',async event=>{
+        const control=event.target.closest('button');if(!control)return;
+        if(control.id==='kp-wallpaper-link')document.getElementById('kp-wallpaper-url')?.focus();
+        if(control.id==='kp-wallpaper-apply')kpApplyWallpaperURL();
+        if(control.id==='kp-wallpaper-reset' && await kpConfirm('将桌面壁纸恢复为默认图片。','恢复默认壁纸')){
+            const revision=++kpWallpaperRevision;
+            try{await kpCommitWallpaper(KP_DEFAULT_WALLPAPER,revision);const field=document.getElementById('kp-wallpaper-url');if(field)field.value='';}
+            catch{kpWallpaperStatus('壁纸保存失败，请重试',true);}
+        }
+    });
+    document.body.addEventListener('submit',event=>{
+        if(event.target.id!=='customize-form')return;
+        event.preventDefault();
+        if(document.activeElement?.id==='kp-wallpaper-url')kpApplyWallpaperURL();
+    });
 }
 
 function setupCustomizeApp() {
@@ -79,7 +78,7 @@ function setupCustomizeApp() {
             const textarea = document.getElementById('global-beautification-css');
             const css = textarea.value.trim();
             if (!css) return showToast('CSS内容为空，无法保存');
-            const name = prompt('请输入此预设的名称（同名将覆盖）:');
+            const name = await kpPrompt('保存 CSS 预设', '请输入预设名称，同名将覆盖。');
             if (!name) return;
             if (!db.globalCssPresets) db.globalCssPresets = [];
             const existingIndex = db.globalCssPresets.findIndex(p => p.name === name);
@@ -369,89 +368,31 @@ function renderCustomizeForm() {
             <div class="kkt-item-control" style="gap: 8px;">
                 <input type="url" placeholder="URL" value="${(db.customIcons && db.customIcons[id]) || ''}" data-icon-id="${id}" style="text-align:right; border:none; background:transparent; width: 100px; font-size: 13px; color: #888;">
                 <input type="file" id="upload-icon-${id}" data-icon-id="${id}" accept="image/*" style="display:none;" class="icon-upload-input">
-                <label for="upload-icon-${id}" class="btn btn-small btn-neutral" style="padding: 4px 8px; font-size: 12px; margin: 0; cursor: pointer;">📷</label>
+                <label for="upload-icon-${id}" class="btn btn-small btn-neutral" style="padding: 4px 8px; font-size: 12px; margin: 0; cursor: pointer;">上传</label>
                 <button type="button" class="reset-icon-btn btn btn-small" data-id="${id}" style="padding: 4px 8px; font-size: 12px; margin: 0; background-color: #f0f0f0; color: #666; border:none;">↺</button>
             </div>
         </div>`;
     });
 
-    const appearanceSection = `
-    <div class="kkt-group-title" style="margin-left: 15px; margin-bottom: 8px; font-size: 13px; color: #666;">界面与外观</div>
-    <div class="kkt-group">
-        <!-- 字体大小 -->
-        <div class="kkt-item" style="flex-direction: column; align-items: stretch; padding-bottom: 15px;">
-            <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                <div class="kkt-item-icon" style="background: transparent; color: #007AFF;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
-                </div>
-                <div class="kkt-item-content">
-                    <div class="kkt-item-title">全局字体大小</div>
-                    <div class="kkt-item-subtitle">调整应用内文字的缩放比例</div>
-                </div>
-                <span id="font-size-value" style="color: var(--primary-color); font-weight: bold; font-size: 16px;">${(db.fontSizeScale || 1.0).toFixed(1)}x</span>
-            </div>
-            <input type="range" id="font-size-slider" min="0.8" max="1.5" step="0.1" value="${db.fontSizeScale || 1.0}" style="width: 100%; accent-color: var(--primary-color); margin-top: 8px;">
+    container.className = 'kp-settings';
+    const kpIcon = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+    const kpRow = (label, modal, paths, detail = '') => `<button type="button" class="kp-row" onclick="document.getElementById('${modal}').classList.add('visible')"><span class="kp-row-icon">${kpIcon(paths)}</span><span class="kp-row-label">${label}</span>${detail ? `<small>${detail}</small>` : '<span class="kp-chevron">›</span>'}</button>`;
+    const wallpaperSection = `
+      <section id="kp-wallpaper" class="kp-wallpaper">
+        <div id="kp-wallpaper-preview" class="kp-wallpaper-preview" role="img" aria-label="当前壁纸"><span>壁纸</span></div>
+        <div class="kp-wallpaper-tools">
+          <label for="kp-wallpaper-upload" class="kp-upload">${kpIcon('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/>')}<span>相册上传</span></label>
+          <button type="button" id="kp-wallpaper-link">${kpIcon('<path d="m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m4 0 2-2a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 -1)"/>')}<span>图片 URL</span></button>
+          <button type="button" id="kp-wallpaper-reset">恢复默认</button>
+          <input type="file" id="kp-wallpaper-upload" accept="image/*" hidden>
         </div>
-
-        <!-- 字体设置 -->
-        <div class="kkt-item" onclick="document.getElementById('font-settings-modal').classList.add('visible')" style="cursor: pointer;">
-            <div class="kkt-item-icon" style="background: transparent; color: #FF9500;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-            </div>
-            <div class="kkt-item-content">
-                <div class="kkt-item-title">自定义字体</div>
-                <div class="kkt-item-subtitle">上传或输入字体链接</div>
-            </div>
-            <span class="kkt-arrow">›</span>
-        </div>
-
-        <!-- 全局CSS -->
-        <div class="kkt-item" onclick="document.getElementById('global-css-modal').classList.add('visible')" style="cursor: pointer;">
-            <div class="kkt-item-icon" style="background: transparent; color: #AF52DE;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
-            </div>
-            <div class="kkt-item-content">
-                <div class="kkt-item-title">全局CSS美化</div>
-                <div class="kkt-item-subtitle">自定义应用全局样式</div>
-            </div>
-            <span class="kkt-arrow">›</span>
-        </div>
-    </div>
-    `;
-
-    const soundSectionHTML = `
-    <div class="kkt-group-title" style="margin-left: 15px; margin-bottom: 8px; font-size: 13px; color: #666; margin-top: 20px;">声音与振动</div>
-    <div class="kkt-group">
-        <div class="kkt-item" onclick="document.getElementById('sound-settings-modal').classList.add('visible')" style="cursor: pointer;">
-            <div class="kkt-item-icon" style="background: transparent; color: #34C759;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-            </div>
-            <div class="kkt-item-content">
-                <div class="kkt-item-title">消息提示音</div>
-                <div class="kkt-item-subtitle">发送与接收消息的音效</div>
-            </div>
-            <span class="kkt-arrow">›</span>
-        </div>
-    </div>
-    `;
-
-    const iconsSectionHTML = `
-    <div class="kkt-group-title" style="margin-left: 15px; margin-bottom: 8px; font-size: 13px; color: #666; margin-top: 20px;">个性化</div>
-    <div class="kkt-group">
-        <div class="kkt-item" onclick="document.getElementById('icon-settings-modal').classList.add('visible')" style="cursor: pointer;">
-            <div class="kkt-item-icon" style="background: transparent; color: #FF2D55;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-            </div>
-            <div class="kkt-item-content">
-                <div class="kkt-item-title">自定义图标</div>
-                <div class="kkt-item-subtitle">修改主页应用图标</div>
-            </div>
-            <span class="kkt-arrow">›</span>
-        </div>
-    </div>
-    `;
-
-    container.innerHTML = appearanceSection + soundSectionHTML + iconsSectionHTML;
+        <div class="kp-url-row"><input type="url" id="kp-wallpaper-url" placeholder="粘贴图片链接" aria-label="壁纸图片链接" autocomplete="off" spellcheck="false"><button type="button" id="kp-wallpaper-apply">应用</button></div>
+        <p id="kp-wallpaper-status" class="kp-inline-status" role="status" aria-live="polite"></p>
+      </section>`;
+    const appearanceSection = `<section class="kp-section"><h2>字体与外观</h2><div class="kp-size-setting"><div><span class="kp-size-mark">aA</span><span>全局字体大小</span><output id="font-size-value">${(db.fontSizeScale || 1).toFixed(1)}×</output></div><input type="range" id="font-size-slider" min="0.8" max="1.5" step="0.1" value="${db.fontSizeScale || 1}" aria-label="全局字体大小"></div>${kpRow('自定义字体','font-settings-modal','<path d="M4 5h16M12 5v15M8 20h8M4 5v3m16-3v3"/>','上传 / 链接')}${kpRow('全局 CSS 美化','global-css-modal','<path d="m8 6-6 6 6 6m8-12 6 6-6 6M14 3l-4 18"/>','编辑样式')}</section>`;
+    const iconsSectionHTML = `<section class="kp-section kp-desktop-section"><h2>桌面</h2>${kpRow('自定义图标','icon-settings-modal','<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>')}</section>`;
+    const soundSectionHTML = `<section class="kp-section"><h2>声音</h2>${kpRow('消息提示音','sound-settings-modal','<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>')}</section>`;
+    container.innerHTML = wallpaperSection + appearanceSection + iconsSectionHTML + soundSectionHTML;
     customizeForm.appendChild(container);
 
     // 注入模态框 HTML 到 body (如果不存在)
@@ -470,7 +411,7 @@ function renderCustomizeForm() {
                 <div class="form-group" style="margin-top: 10px;">
                     <input type="file" id="local-font-upload" accept=".ttf,.woff,.woff2,.otf" style="display: none;">
                     <label for="local-font-upload" class="btn btn-secondary" style="display: block; text-align: center; cursor: pointer; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; background: #fafafa; color: #666;">
-                        <span style="font-size: 16px; margin-right: 5px;">📁</span> 从本地上传字体文件
+                        从本地上传字体文件
                     </label>
                 </div>
                 <div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-top:15px; border: 1px solid #f0f0f0;">
@@ -531,7 +472,7 @@ function renderCustomizeForm() {
                     <div style="display: flex; gap: 8px; margin-top: 5px;">
                         <input type="url" id="global-send-sound-url" placeholder="音频URL" value="${db.globalSendSound || ''}" style="flex: 1; border: 1px solid #eee; border-radius: 8px; padding: 8px; font-size: 13px;">
                         <input type="file" id="global-send-sound-upload" accept="audio/*" style="display: none;">
-                        <label for="global-send-sound-upload" class="btn btn-secondary btn-small" style="margin: 0; display: flex; align-items: center; cursor: pointer;">📂</label>
+                        <label for="global-send-sound-upload" class="btn btn-secondary btn-small" style="margin: 0; display: flex; align-items: center; cursor: pointer;">上传</label>
                         <button type="button" id="test-send-sound-btn" class="btn btn-primary btn-small" style="margin: 0;">▶</button>
                         <button type="button" id="reset-send-sound-btn" class="btn btn-danger btn-small" style="margin: 0;">×</button>
                     </div>
@@ -541,7 +482,7 @@ function renderCustomizeForm() {
                     <div style="display: flex; gap: 8px; margin-top: 5px;">
                         <input type="url" id="global-receive-sound-url" placeholder="音频URL" value="${db.globalReceiveSound || ''}" style="flex: 1; border: 1px solid #eee; border-radius: 8px; padding: 8px; font-size: 13px;">
                         <input type="file" id="global-receive-sound-upload" accept="audio/*" style="display: none;">
-                        <label for="global-receive-sound-upload" class="btn btn-secondary btn-small" style="margin: 0; display: flex; align-items: center; cursor: pointer;">📂</label>
+                        <label for="global-receive-sound-upload" class="btn btn-secondary btn-small" style="margin: 0; display: flex; align-items: center; cursor: pointer;">上传</label>
                         <button type="button" id="test-receive-sound-btn" class="btn btn-primary btn-small" style="margin: 0;">▶</button>
                         <button type="button" id="reset-receive-sound-btn" class="btn btn-danger btn-small" style="margin: 0;">×</button>
                     </div>
@@ -602,7 +543,8 @@ function renderCustomizeForm() {
     if (fontSizeSlider) {
         fontSizeSlider.addEventListener('input', (e) => {
             const scale = parseFloat(e.target.value);
-            fontSizeValue.textContent = `${scale.toFixed(1)}x`;
+            fontSizeValue.textContent = `${scale.toFixed(1)}×`;
+            e.target.style.setProperty('--kp-font-progress',((scale-.8)/.7*100)+'%');
             applyFontSize(scale);
         });
         fontSizeSlider.addEventListener('change', async (e) => {
@@ -617,4 +559,102 @@ function renderCustomizeForm() {
     if (globalCssTextarea) {
         globalCssTextarea.value = db.globalCss || '';
     }
+    kpPreparePersonalization();
+}
+
+// Personalization dialogs and wallpaper controls share the same saved settings.
+const KP_DEFAULT_WALLPAPER = 'https://i.postimg.cc/W4Z9R9x4/ins-1.jpg';
+let kpWallpaperRevision = 0, kpWallpaperQueue = Promise.resolve(), kpQuestionQueue = Promise.resolve();
+function kpSyncWallpaperPreview(){
+    for(const id of ['kp-wallpaper-preview','wallpaper-preview']){
+        const el=document.getElementById(id);if(el)el.style.backgroundImage='url('+JSON.stringify(db.wallpaper || KP_DEFAULT_WALLPAPER)+')';
+    }
+}
+function kpPreparePersonalization(){
+    const screen=document.getElementById('customize-screen');
+    screen?.classList.add('kp-screen');
+    const header=screen?.querySelector('.app-header');
+    const slot=header?.querySelector('.placeholder');
+    if(slot){slot.classList.add('kp-brand');slot.textContent='kiss';}
+    kpSyncWallpaperPreview();
+    document.getElementById('font-size-slider')?.style.setProperty('--kp-font-progress',(((db.fontSizeScale || 1)-.8)/.7*100)+'%');
+    for(const id of ['font-settings-modal','global-css-modal','sound-settings-modal','icon-settings-modal','font-presets-modal','global-css-presets-modal','sound-presets-modal']){
+        const modal=document.getElementById(id);if(!modal)continue;
+        modal.classList.add('kp-modal');
+        const panel=modal.querySelector('.modal-window');
+        if(panel){panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');const heading=panel.querySelector('h3');if(heading){heading.id ||= id+'-title';panel.setAttribute('aria-labelledby',heading.id);}}
+    }
+}
+function kpQuestion(options){
+    const run=()=>new Promise(resolve=>{
+        const previous=document.activeElement,overlay=document.createElement('div');
+        overlay.className='modal-overlay kp-modal kp-question visible';
+        overlay.innerHTML='<form class="modal-window kp-question-panel" role="dialog" aria-modal="true"><header><h3></h3><button type="button" class="kp-question-close" aria-label="关闭">×</button></header><p class="kp-question-description"></p><input class="kp-question-input" autocomplete="off" maxlength="100"><footer><button type="button" class="kp-question-cancel">取消</button><button type="submit" class="btn-primary kp-question-accept">确认</button></footer></form>';
+        const form=overlay.querySelector('form'),input=overlay.querySelector('input'),heading=overlay.querySelector('h3');
+        const titleId='kp-question-'+Math.random().toString(36).slice(2);heading.id=titleId;heading.textContent=options.title;form.setAttribute('aria-labelledby',titleId);
+        overlay.querySelector('p').textContent=options.description || '';
+        input.hidden=!!options.confirm;input.value=options.value || '';input.setAttribute('aria-label',options.title);
+        let closed=false;
+        const close=value=>{if(closed)return;closed=true;overlay.remove();if(previous?.isConnected)previous.focus({preventScroll:true});resolve(value);};
+        form.onsubmit=e=>{e.preventDefault();if(options.confirm)return close(true);const value=input.value.trim();if(!value){input.focus();return;}close(value);};
+        overlay.querySelector('.kp-question-close').onclick=()=>close(null);
+        overlay.querySelector('.kp-question-cancel').onclick=()=>close(null);
+        overlay.onclick=e=>{if(e.target===overlay)close(null);};
+        overlay.onkeydown=e=>{
+            if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close(null);}
+            if(e.key==='Tab'){
+                const controls=[...form.querySelectorAll('input,button')].filter(el=>!el.hidden&&!el.disabled),first=controls[0],last=controls.at(-1);
+                if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+                else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+            }
+        };
+        document.body.appendChild(overlay);
+        requestAnimationFrame(()=>{if(closed)return;const target=options.confirm?overlay.querySelector('.kp-question-cancel'):input;target.focus();if(!options.confirm)input.select();});
+    });
+    const answer=kpQuestionQueue.then(run,run);kpQuestionQueue=answer.then(()=>undefined,()=>undefined);return answer;
+}
+function kpPrompt(title,description='',value=''){return kpQuestion({title,description,value});}
+function kpConfirm(description,title='确认操作'){return kpQuestion({title,description,confirm:true});}
+function kpWallpaperStatus(message,error=false){
+    const el=document.getElementById('kp-wallpaper-status');if(el){el.textContent=message;el.classList.toggle('is-error',error);}
+}
+function kpCheckWallpaperImage(url){
+    return new Promise((resolve,reject)=>{
+        const image=new Image();
+        const timer=setTimeout(()=>finish(Error('图片加载超时，请检查链接')),15000);
+        const finish=error=>{clearTimeout(timer);image.onload=image.onerror=null;error?reject(error):resolve();};
+        image.onload=()=>image.naturalWidth&&image.naturalHeight?finish():finish(Error('链接没有返回有效图片'));
+        image.onerror=()=>finish(Error('图片无法加载，请使用可直接打开的图片链接'));
+        // No canvas or credential request: cross-origin image hosts can be used directly.
+        image.src=url;
+    });
+}
+function kpCommitWallpaper(value,revision){
+    const commit=async()=>{
+        if(revision!==kpWallpaperRevision)return false;
+        const previous=db.wallpaper;db.wallpaper=value;applyWallpaper(value);kpSyncWallpaperPreview();
+        try{await saveData();}
+        catch(error){if(db.wallpaper===value){db.wallpaper=previous;applyWallpaper(previous);kpSyncWallpaperPreview();}throw error;}
+        if(revision===kpWallpaperRevision){kpWallpaperStatus('壁纸已更新');showToast('壁纸已更新');}
+        return true;
+    };
+    const task=kpWallpaperQueue.then(commit,commit);kpWallpaperQueue=task.catch(()=>{});return task;
+}
+async function kpApplyWallpaperURL(){
+    const input=document.getElementById('kp-wallpaper-url');if(!input)return;
+    let url;try{url=new URL(input.value.trim());if(!['https:','http:'].includes(url.protocol)||url.username||url.password)throw Error();}
+    catch{kpWallpaperStatus('请填写有效的 http 或 https 图片链接',true);input.focus();return;}
+    const revision=++kpWallpaperRevision;kpWallpaperStatus('正在检查图片…');
+    try{await kpCheckWallpaperImage(url.href);await kpCommitWallpaper(url.href,revision);}
+    catch(error){if(revision===kpWallpaperRevision)kpWallpaperStatus(error.message || '壁纸保存失败，请重试',true);}
+}
+async function kpApplyWallpaperFile(input){
+    const file=input.files?.[0];if(!file)return;
+    const revision=++kpWallpaperRevision;kpWallpaperStatus('正在处理图片…');
+    try{
+        const value=await compressImage(file,{quality:.85,maxWidth:1080,maxHeight:1920});
+        const saved=await kpCommitWallpaper(value,revision);
+        if(saved){const field=document.getElementById('kp-wallpaper-url');if(field)field.value='';}
+    }catch(error){if(revision===kpWallpaperRevision){kpWallpaperStatus('图片处理或保存失败，请重试',true);showToast('壁纸未保存，请重试');}}
+    finally{input.value='';}
 }
