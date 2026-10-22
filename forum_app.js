@@ -6600,10 +6600,10 @@ function forumChatTime(stamp) {
 }
 async function sendDirectMessage() {
   const conv=forumGetConv();const field=document.getElementById('dmInput');const text=field?.value.trim();if(!conv || !text)return;
-  conv.messages ||= [];conv.messages.push({id:Date.now(),sender:'user',content:text,timestamp:Date.now()});conv.lastMessage=text;conv.lastMessageTime=Date.now();field.value='';forumDrafts.set(conv.id,'');await forumSaveDMs();if(currentDMConversationId===conv.id)forumRenderChat(conv);
+  conv.messages ||= [];conv.messages.push({id:crypto.randomUUID(),sender:'user',content:text,timestamp:Date.now(),...monoDMTakeReply(conv)});conv.lastMessage=text;conv.lastMessageTime=Date.now();field.value='';forumDrafts.set(conv.id,'');await forumSaveDMs();if(currentDMConversationId===conv.id)forumRenderChat(conv);
 }
 async function forumSendAttachment(attachment) {
-  const conv=forumGetConv();if(!conv)return;conv.messages ||= [];conv.messages.push({id:Date.now(),sender:'user',timestamp:Date.now(),...attachment});conv.lastMessage=attachment.content;conv.lastMessageTime=Date.now();await forumSaveDMs();if(currentDMConversationId===conv.id)forumRenderChat(conv);document.getElementById('forumAuxSheet')?.remove();
+  const conv=forumGetConv();if(!conv)return;conv.messages ||= [];conv.messages.push({id:crypto.randomUUID(),sender:'user',timestamp:Date.now(),...monoDMTakeReply(conv),...attachment});conv.lastMessage=attachment.content;conv.lastMessageTime=Date.now();await forumSaveDMs();if(currentDMConversationId===conv.id)forumRenderChat(conv);document.getElementById('forumAuxSheet')?.remove();
 }
 function forumStickers(roleId=null) {
   const groups=roleId?String(forumCharacter(roleId)?.stickerGroups || '').split(/[,，]/).map(x=>x.trim()).filter(Boolean):null;
@@ -6679,8 +6679,8 @@ async function forumGenerateFor(id,reroll=false,legacyPending=false) {
   try{
     if(currentDMConversationId===id)forumRenderChat(conv);
     const pool=forumStickers(id.startsWith('ai_')?id.slice(3):null);
-    const system=forumHostContext(conv)+'\n'+(legacyPending?forumLegacyPendingPrompt({...conv,messages:kept}):forumOriginalDMPrompt({...conv,messages:kept}))+'\n[论坛私信输出协议]\n保留上文角色设定与思维链，不执行404消息动作。可以从此列表选择表情包：'+pool.map(s=>s.name).join('、')+'。最终回复用JSON：{"messages":[{"text":"消息"},{"sticker":"表情包名称"}]}。只使用普通文本和已有表情包，不输出HTML、界面包装、转账或404动作。内部思考不显示在气泡里。\n[论坛独立记忆总结]\n'+(conv.summaries?.at(-1)?.content || '尚无总结')+monoDMFeatureProtocol();
-    const history=kept.slice(-limit).map(m=>({role:m.sender==='user'?'user':'assistant',content:m.content || '[图片]'}));
+    const system=forumHostContext(conv)+'\n'+(legacyPending?forumLegacyPendingPrompt({...conv,messages:kept}):forumOriginalDMPrompt({...conv,messages:kept}))+'\n[论坛私信输出协议]\n保留上文角色设定与思维链，不执行404消息动作。可以从此列表选择表情包：'+pool.map(s=>s.name).join('、')+'。最终回复用JSON：{"messages":[{"text":"消息"},{"sticker":"表情包名称"}]}。只使用普通文本和已有表情包，不输出HTML、界面包装、转账或404动作。内部思考不显示在气泡里。\n[论坛独立记忆总结]\n'+(conv.summaries?.at(-1)?.content || '尚无总结')+monoDMFeatureProtocol()+monoDMReplyProtocol(conv,kept.slice(-limit));
+    const history=kept.slice(-limit).map(m=>({role:m.sender==='user'?'user':'assistant',content:monoDMHistoryContent(m)}));
     const raw=await forumModel(conv,system,history,controller.signal);if(controller.signal.aborted || forumDMTasks.get(id)!==task)return;
     if(JSON.stringify(conv.messages || [])!==fingerprint)throw Error('对话已变化，本次回复未写入，请重新生成');
     const replies=forumParseReply(raw,conv);await monoDeliverReplies(conv,replies,kept,task);
@@ -7830,5 +7830,58 @@ renderDirectMessagesList=function(...args){if(monoSyncDMAccountNames())forumSave
 const monoAccountNamesChat=forumRenderChat;
 forumRenderChat=function(conv,...args){const changed=monoSyncDMAccountNames();if(conv?.id?.startsWith('ai_'))conv.name=monoDMAccountName(conv);if(changed)forumSaveDMs().catch(e=>showToast('联系人名称保存失败：'+e.message));return monoAccountNamesChat(conv,...args)};
 Object.assign(ForumApp,{renderDirectMessagesList,forumRenderChat});
+
+let monoDMReplyObserver=null;
+function monoDMMessageSummary(m){return m.sticker?'[表情包] '+(m.sticker.name||''):m.image?'[图片]':m.profile?'[分享主页] '+(m.profile.name||''):m.forumPost?'[分享帖子] '+(m.forumPost.content||m.content||''):String(m.content||'')}
+function monoDMReplySnapshot(conv,m){return {id:String(m.id),sender:m.sender==='user'?'user':'other',name:m.sender==='user'?String(forumSettings.userNickname||'你'):String(conv.name||'MONO 用户'),text:monoDMMessageSummary(m).slice(0,1200),kind:m.sticker?'sticker':m.image?'image':'text'}}
+function monoDMReplyTarget(conv,id){const matches=(conv.messages||[]).filter(m=>String(m.id)===String(id));return matches.length===1?matches[0]:null}
+function monoDMTakeReply(conv){const reply=conv.monoReplyDraft;if(!reply)return {};delete conv.monoReplyDraft;return {monoReply:structuredClone(reply)}}
+function monoDMHistoryContent(m){return (m.monoReply?'[引用'+(m.monoReply.sender==='user'?'用户':'对方')+'的消息：'+m.monoReply.text+']\n':'')+(m.content||'[图片]')}
+function monoDMReplyProtocol(conv,messages){return '\n[MONO消息引用]\n需要针对某条既有消息回复时，可在messages内某一条加入 replyToId，必须是下面列表中真实存在的id；不需要引用时省略。不要编造原话或ID，不要每条都引用。示例：{"messages":[{"text":"回复内容","replyToId":"原消息id"}]}。用户历史中的[引用…]表示该用户消息所回复的原话。\n可引用的本对话消息：'+JSON.stringify(messages.filter(m=>m.id!=null).map(m=>({id:String(m.id),sender:m.sender,text:monoDMMessageSummary(m).slice(0,1200)})))}
+const monoDMQuoteParser=forumParseReply;
+forumParseReply=function(raw,conv){let obj;try{obj=forumStructuredValue(raw)}catch{return monoDMQuoteParser(raw,conv)}const rows=Array.isArray(obj)?obj:Array.isArray(obj?.messages)?obj.messages:null;if(!rows)return monoDMQuoteParser(raw,conv);const out=[];for(const row of rows){const parsed=monoDMQuoteParser(JSON.stringify({messages:[row]}),conv);const target=row&&typeof row==='object'&&row.replyToId!=null?monoDMReplyTarget(conv,row.replyToId):null;if(target&&parsed[0])parsed[0].monoReply=monoDMReplySnapshot(conv,target);out.push(...parsed)}if(!out.length)throw Error('没有可显示的回复');return out};
+function monoDMQuoteMarkup(conv,reply,mine,draft=false){
+ const target=monoDMReplyTarget(conv,reply.id),media=target?.sticker?.data||target?.image;
+ const caption=draft?'回复 '+(reply.sender==='user'?'自己':conv.name):mine?'你回复了'+(reply.sender==='user'?'自己':conv.name):reply.sender==='user'?'回复了你':'回复了'+conv.name;
+ return `<span class="mono-dm-reply-label">${escapeForumHtml(caption)}</span><span class="mono-dm-reply-excerpt">${media?`<img src="${forumSafeImage(media)}" alt="${escapeForumHtml(reply.kind==='sticker'?'表情包':'图片')}">`:''}<span>${escapeForumHtml(reply.text||'[消息]')}</span></span>`;
+}
+function monoDMSetReply(conv,index){const m=conv.messages?.[index];if(!m)return;conv.monoReplyDraft=monoDMReplySnapshot(conv,m);forumSaveDMs().catch(e=>showToast(e.message));const page=document.querySelector('.forum-dm-chat');if(page?.dataset.conversation===conv.id){monoDMRenderReplyDraft(page,conv);page.querySelector('#dmInput')?.focus({preventScroll:true})}}
+function monoDMRenderReplyDraft(page,conv){
+ const footer=page.querySelector('.forum-dm-composer');footer.querySelector('.mono-dm-reply-draft')?.remove();if(conv.monoReplyDraft&&!monoDMReplyTarget(conv,conv.monoReplyDraft.id)){delete conv.monoReplyDraft;forumSaveDMs().catch(e=>showToast(e.message))}
+ if(conv.monoReplyDraft){const el=document.createElement('div');el.className='mono-dm-reply-draft';const copy=document.createElement('div');copy.innerHTML=monoDMQuoteMarkup(conv,conv.monoReplyDraft,true,true);const cancel=document.createElement('button');cancel.type='button';cancel.setAttribute('aria-label','取消引用');cancel.textContent='×';cancel.onclick=()=>{delete conv.monoReplyDraft;forumSaveDMs().catch(e=>showToast(e.message));monoDMRenderReplyDraft(page,conv)};el.append(copy,cancel);footer.prepend(el)}
+ page.style.setProperty('--mono-dm-composer-space',(footer.getBoundingClientRect().height+20)+'px');
+}
+function monoDMMessageMenu(conv,index){const m=conv.messages?.[index];if(!m)return;const media=m.image||m.sticker?.data;const sh=forumSheet('消息选项',`<button class="forum-sheet-row" data-dm-quote>引用回复</button>${media?'<button class="forum-sheet-row" data-dm-view>查看原图</button>':''}<button class="forum-sheet-row" data-dm-delete>选择删除聊天记录</button>`);sh.querySelector('[data-dm-quote]').onclick=()=>{sh.remove();monoDMSetReply(conv,index)};sh.querySelector('[data-dm-delete]').onclick=()=>{sh.remove();monoMessageDeletion()};if(media)sh.querySelector('[data-dm-view]').onclick=()=>{sh.remove();showForumFullImage(media)}}
+function monoDMWireReplyMenu(page,conv){
+ let timer=null,start=null,suppressUntil=0;const cancel=()=>{clearTimeout(timer);timer=null;start=null};
+ page.addEventListener('pointerdown',e=>{const row=e.target.closest('[data-mono-dm-index]');if(!row||e.button!==0||e.target.closest('.mono-dm-reply'))return;e.stopPropagation();cancel();start={x:e.clientX,y:e.clientY};timer=setTimeout(()=>{if(row.isConnected){suppressUntil=Date.now()+700;monoDMMessageMenu(conv,Number(row.dataset.monoDmIndex))}cancel()},450)},{capture:true});
+ page.addEventListener('pointermove',e=>{if(start&&Math.hypot(start.x-e.clientX,start.y-e.clientY)>10)cancel()},{capture:true});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])page.addEventListener(type,cancel,{capture:true});page.querySelector('.forum-dm-messages').addEventListener('scroll',cancel,{passive:true});
+ page.addEventListener('contextmenu',e=>{const row=e.target.closest('[data-mono-dm-index]');if(!row)return;e.preventDefault();e.stopPropagation();cancel();monoDMMessageMenu(conv,Number(row.dataset.monoDmIndex))},{capture:true});
+ page.addEventListener('click',e=>{if(Date.now()<suppressUntil&&e.target.closest('[data-mono-dm-index]')){e.preventDefault();e.stopImmediatePropagation()}},{capture:true});
+ page.addEventListener('keydown',e=>{const row=e.target.closest('[data-mono-dm-index]');if(row&&(e.key==='ContextMenu'||e.shiftKey&&e.key==='F10')){e.preventDefault();monoDMMessageMenu(conv,Number(row.dataset.monoDmIndex))}});
+}
+const monoDMGroupedChat=forumRenderChat;
+forumRenderChat=function(conv){
+ monoDMReplyObserver?.disconnect();monoDMGroupedChat(conv);const page=document.querySelector('.forum-dm-chat');if(!page)return;page.classList.add('mono-dm-grouped');
+ const rows=[...page.querySelectorAll('.forum-dm-message')],messages=conv.messages||[];
+ rows.forEach((row,i)=>{
+  const m=messages[i],next=messages[i+1],previous=messages[i-1];if(!m)return;row.dataset.monoDmIndex=i;row.tabIndex=0;row.setAttribute('aria-label',(m.sender==='user'?'你':conv.name)+'的消息，长按引用回复');
+  const continues=next&&next.sender===m.sender&&Number(next.timestamp||0)-Number(m.timestamp||0)<=300000;
+  const starts=!previous||previous.sender!==m.sender||Number(m.timestamp||0)-Number(previous.timestamp||0)>300000;
+  row.classList.toggle('mono-dm-group-start',!!starts);row.classList.toggle('mono-dm-group-end',!continues);
+  const avatar=row.querySelector('.forum-dm-msg-avatar');if(avatar){avatar.classList.toggle('mono-dm-avatar-hidden',!!continues);avatar.setAttribute('aria-hidden',String(!!continues));avatar.style.removeProperty('margin-top')}
+  const body=document.createElement('div');body.className='mono-dm-body';for(const child of [...row.children])if(child!==avatar)body.append(child);row.append(body);
+  const reply=m.monoReply;if(reply&&typeof reply==='object'){
+   const quote=document.createElement('button');quote.type='button';quote.className='mono-dm-reply';quote.innerHTML=monoDMQuoteMarkup(conv,reply,m.sender==='user');quote.setAttribute('aria-label','查看引用的消息');quote.onclick=()=>{const target=monoDMReplyTarget(conv,reply.id);if(!target)return showToast('原消息已删除或不可定位');const index=messages.indexOf(target),node=rows[index];node?.scrollIntoView({block:'center',behavior:'smooth'});node?.classList.add('mono-dm-reply-target');setTimeout(()=>node?.classList.remove('mono-dm-reply-target'),1500)};body.prepend(quote)
+  }
+ });
+ monoDMRenderReplyDraft(page,conv);monoDMWireReplyMenu(page,conv);
+ if(typeof ResizeObserver!=='undefined'){const observer=new ResizeObserver(()=>{if(page.isConnected){monoDMRenderReplySpace(page);monoDMReplyRenderAvatarAlign(page);}else observer.disconnect()});monoDMReplyObserver=observer;observer.observe(page.querySelector('.forum-dm-composer'));page.querySelectorAll('.mono-dm-body').forEach(body=>observer.observe(body))}
+ requestAnimationFrame(()=>{if(page.isConnected){monoDMReplyRenderAvatarAlign(page);const body=page.querySelector('.forum-dm-messages');body.scrollTop=body.scrollHeight}});
+};
+function monoDMRenderReplySpace(page){const footer=page.querySelector('.forum-dm-composer');page.style.setProperty('--mono-dm-composer-space',(footer.getBoundingClientRect().height+20)+'px')}
+function monoDMReplyRenderAvatarAlign(page){page.querySelectorAll('.forum-dm-message.other').forEach(row=>{const body=row.querySelector('.mono-dm-body'),translation=body?.querySelector('.mono-message-translation');row.style.setProperty('--mono-dm-avatar-offset',translation?Math.max(0,body.getBoundingClientRect().bottom-body.querySelector('.forum-dm-msg-bubble').getBoundingClientRect().bottom)+'px':'0px')})}
+Object.assign(ForumApp,{forumRenderChat,forumParseReply});
 
 })();
