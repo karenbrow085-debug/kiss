@@ -4679,4 +4679,9 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 
 .phone-screen .forum-dm-chat.mono-dm-grouped .mono-dm-body>.mono-profile-shell,.phone-screen .forum-dm-chat.mono-dm-grouped .mono-dm-body>.mono-post-shell{max-width:100%;}
 
-.phone-screen .forum-dm-chat.mono-dm-grouped .mono-dm-body>.mono-profile-shell,.phone-screen .forum-dm-chat.mono-dm-grouped .mono-dm-body>.mono-post-shell{max-width:100%;}
+/* Connected corners mirror across the two senders; a single bubble stays round. */
+.phone-screen .forum-dm-chat.mono-dm-grouped .mono-dm-body>.forum-dm-msg-bubble{border-radius:20px!important;}
+.phone-screen .forum-dm-chat.mono-dm-grouped .other:not(.mono-dm-group-start) .mono-dm-body>.forum-dm-msg-bubble{border-top-left-radius:4px!important;}
+.phone-screen .forum-dm-chat.mono-dm-grouped .other:not(.mono-dm-group-end) .mono-dm-body>.forum-dm-msg-bubble{border-bottom-left-radius:4px!important;}
+.phone-screen .forum-dm-chat.mono-dm-grouped .mine:not(.mono-dm-group-start) .mono-dm-body>.forum-dm-msg-bubble{border-top-right-radius:4px!important;}
+.phone-screen .forum-dm-chat.mono-dm-grouped .mine:not(.mono-dm-group-end) .mono-dm-body>.forum-dm-msg-bubble{border-bottom-right-radius:4px!important;}
