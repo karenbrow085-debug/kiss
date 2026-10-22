@@ -1,4 +1,13 @@
 /* API Studio — monochrome archive windows, scoped to the API app. */
+/* Android header controls sit below the status area; iOS retains its own rules. */
+#api-settings-screen.kv-api-screen.kv-android .app-header{--kv-android-top:max(24px,env(safe-area-inset-top,0px));padding:calc(9px + var(--kv-android-top)) 9px 9px;min-height:calc(49px + var(--kv-android-top));display:grid;grid-template-columns:32px minmax(0,1fr) 32px;align-items:center;flex-shrink:0;box-sizing:border-box}
+#api-settings-screen.kv-api-screen.kv-android .app-header .title-container{position:static;left:auto;transform:none;min-width:0;text-align:center}
+#api-settings-screen .kv-book-list{height:180px;max-height:220px;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;border:1px solid var(--kv-ink);border-radius:5px;padding:5px 8px;box-sizing:border-box;background:var(--kv-paper)}
+#api-settings-screen .kv-book-list .kv-book-option{display:flex;align-items:center;gap:10px;min-height:39px;margin:0;padding:8px 3px;box-sizing:border-box;cursor:pointer;touch-action:pan-y;border-bottom:1px solid var(--kv-line);font-size:12px;line-height:1.5;color:var(--kv-ink)}
+#api-settings-screen .kv-book-list .kv-book-option:last-child{border-bottom:0}
+#api-settings-screen .kv-book-list input[type="checkbox"]{appearance:auto;-webkit-appearance:checkbox;flex:0 0 17px;width:17px;height:17px;padding:0;margin:0;accent-color:var(--kv-ink);box-shadow:none}
+#api-settings-screen .kv-book-list .kv-book-option>span{min-width:0;overflow-wrap:anywhere;margin:0;font:inherit;color:inherit}
+#api-settings-screen .kv-books-empty{margin:12px 2px;color:var(--kv-muted);font-size:11px;line-height:1.7}
 #api-settings-screen.kv-api-screen{--kv-ink:#23232d;--kv-muted:#85858d;--kv-line:#d9d9de;--kv-paper:#fff;--kv-bg:#f8f8fa;background:var(--kv-bg);color:var(--kv-ink);border:2px solid var(--kv-ink);border-radius:17px;box-shadow:inset 0 0 0 3px white,inset 0 0 0 4px var(--kv-ink);overflow:hidden}
 #api-settings-screen.kv-api-screen .app-header{margin:7px 7px 0;padding:9px 9px;min-height:49px;background:var(--kv-ink);color:white;border:1px solid var(--kv-ink);border-radius:9px 9px 0 0;box-shadow:inset 0 0 0 2px white,inset 0 0 0 3px var(--kv-ink)}
 #api-settings-screen.kv-api-screen .app-header .title{font:inherit;font-size:15px;font-weight:700;letter-spacing:2px;color:white;line-height:1.5}
