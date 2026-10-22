@@ -478,7 +478,24 @@ function calculatePagesFromIds(ids, allItemsHtmlMap) {
     return pages;
 }
 
+// Old phones exported a retired music shortcut. Run after every restore/render,
+// rather than once per installation, so a later backup cannot bring it back.
+function kpRemoveLegacyMusicShortcut() {
+    let changed = false;
+    if (db.customIcons && Object.prototype.hasOwnProperty.call(db.customIcons, 'music-screen')) {
+        delete db.customIcons['music-screen'];
+        changed = true;
+    }
+    for (const key of ['homeLayoutOrder', 'homeLayoutPages']) {
+        if (!Array.isArray(db[key])) continue;
+        const clean = key === 'homeLayoutPages' ? db[key].map(page => page.filter(id => !['app-music', 'music-screen'].includes(id))) :
+            db[key].filter(id => !['app-music', 'music-screen'].includes(id));
+        if (JSON.stringify(clean) !== JSON.stringify(db[key])) { db[key] = clean; changed = true; }
+    }
+    return changed;
+}
 function setupHomeScreen() {
+    const removedLegacyMusic = kpRemoveLegacyMusicShortcut();
     const getIcon = (id) => db.customIcons[id] || defaultIcons[id].url;
     if (!db.insWidgetSettings) {
         db.insWidgetSettings = {
@@ -655,7 +672,7 @@ function setupHomeScreen() {
         pagesChanged = true;
     }
     
-    if (pagesChanged || hasNewItems) { db.homeLayoutOrder = db.homeLayoutPages.flat(); saveData(); }
+    if (pagesChanged || hasNewItems || removedLegacyMusic) { db.homeLayoutOrder = db.homeLayoutPages.flat(); saveData(); }
 
     // 生成 HTML
     let swiperHtml = '';
