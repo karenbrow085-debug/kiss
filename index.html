@@ -26,7 +26,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.8/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://unpkg.com/mammoth@1.4.21/mammoth.browser.min.js"></script>
+    <script src="js/vendor/mammoth.browser.min.js?v=1.4.21"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
     <!-- CSS Split: Core Features -->
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/settings.css">
-    <link rel="stylesheet" href="css/modules/personalize.css?v=20261023-personalize-1">
+    <link rel="stylesheet" href="css/modules/personalize.css?v=20261023-personalize-2">
 
     <!-- CSS Split: Modules -->
     <link rel="stylesheet" href="css/modules/peek.css">
@@ -51,7 +51,7 @@
     <link rel="stylesheet" href="css/modules/steps.css">
     <link rel="stylesheet" href="css/modules/more.css">
     <link rel="stylesheet" href="css/modules/monitor.css">
-    <link rel="stylesheet" href="css/modules/tutorial.css">
+    <link rel="stylesheet" href="css/modules/tutorial.css?v=20261023-chat-fixes-1">
     <link rel="stylesheet" href="css/modules/shop.css">
     <link rel="stylesheet" href="css/modules/widget_market.css">
     <link rel="stylesheet" href="css/modules/cot_settings.css">
@@ -2796,19 +2796,19 @@
 
 <!-- [2. 核心交互层] -->
 <script src="js/modules/kiss-tools-core.js?v=cleanup-speed-20261019-2"></script>
-<script src="js/ui.js?v=20261023-personalize-1"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
+<script src="js/ui.js?v=20261023-personalize-2"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
 <script src="js/modules/chat_list.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/character_import.js"></script>
-<script src="js/modules/chat_render.js?v=20261022-safe-backup-1"></script>
-<script src="js/modules/chat_archives.js?v=20261022-safe-backup-1"></script>
+<script src="js/modules/chat_render.js?v=20261023-chat-fixes-1"></script>
+<script src="js/modules/chat_archives.js?v=20261023-chat-fixes-1"></script>
     <script src="js/modules/chat_ai_airdrop.js"></script>
     <script src="js/modules/cot_hh.js?v=20261010-loki-6"></script>
     <script src="js/modules/chat_ai_prompt.js?v=20261003-hh-items-only-6"></script>
     <script src="js/modules/chat_ai_call.js?v=20261010-voice-worldbook-1"></script>
     <script src="js/modules/chat_ai.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/chat_features.js"></script>
-<script src="js/modules/chat_ops.js"></script>
+<script src="js/modules/chat_ops.js?v=20261023-chat-fixes-1"></script>
 <script src="js/modules/status_history.js?v=20261003-1"></script>
 <script src="js/chat.js?v=20261022-safe-backup-1"></script>     <!-- 聊天核心入口 -->
 <script src="js/group_chat.js"></script> <!-- 群聊系统：群聊管理、设置、Prompt生成 -->
@@ -2822,11 +2822,11 @@
 <script src="js/modules/keep_alive.js?v=20261022-kiss-icons"></script> <!-- 跨平台持续运行增强 -->
 <script src="js/modules/settings_api.js?v=20261023-aux-apps-1"></script>
 <script src="js/modules/app-api.js?v=20261023-aux-apps-1"></script> <!-- API 设置与预设 -->
-<script src="js/modules/settings_presets.js?v=20261023-personalize-1"></script> <!-- 预设管理 (气泡、人设等) -->
-<script src="js/modules/settings_customize.js?v=20261023-personalize-1"></script> <!-- 个性化与外观设置 -->
+<script src="js/modules/settings_presets.js?v=20261023-personalize-2"></script> <!-- 预设管理 (气泡、人设等) -->
+<script src="js/modules/settings_customize.js?v=20261023-personalize-2"></script> <!-- 个性化与外观设置 -->
 
 <!-- [3. 独立功能模块 (Plugins)] -->
-<script src="js/modules/sticker.js"></script>   <!-- 表情包管理系统 -->
+<script src="js/modules/sticker.js?v=20261023-chat-fixes-1"></script>   <!-- 表情包管理系统 -->
 <script src="js/modules/worldbook.js"></script> <!-- 世界书设定集 -->
 <script src="js/modules/peek.js?v=20261023-moments-aux-1"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js"></script>   <!-- 回忆日记生成 -->
