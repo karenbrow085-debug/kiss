@@ -72,7 +72,7 @@
 <link rel="stylesheet" href="css/modules/status_history.css?v=ios-safe-20261006">
 <link rel="stylesheet" href="forum_app.css?v=20261022-dm-connected">
 <link rel="stylesheet" href="mcp_app.css?v=10-archive-ui">
-<link rel="stylesheet" href="css/modules/voice-settings.css?v=20261010-voice7-fish">
+<link rel="stylesheet" href="css/modules/voice-settings.css?v=20261023-android-books-1">
 <style id="kv-ios-header-fix">
 /* iPhone / iPad only: Android keeps the original header geometry. */
 #api-settings-screen.kv-api-screen.kv-ios .app-header{--kv-safe-top:env(safe-area-inset-top,0px);--kv-top-space:max(59px,var(--kv-safe-top));padding:calc(9px + var(--kv-top-space)) 9px 9px;min-height:calc(64px + var(--kv-top-space));display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center}
@@ -591,7 +591,7 @@
                                 </div>
                             </div>
                             <div class="kkt-item" style="display:block;padding-top:14px;padding-bottom:14px;">
-                                <div class="kkt-item-title" style="margin-bottom:4px;">使用副 API 的功能</div>
+                                <div class="kkt-item-title" style="margin-bottom:4px;">使用副 API 的功能</div><p style="font-size:11px;line-height:1.7;color:#888;margin:6px 0 12px;">勾选后优先使用副 API 的地址、密钥和模型；取消勾选恢复原配置。图片与语音合成仍使用各自服务。</p>
                                 <div class="kkt-item-subtitle" style="margin-bottom:12px;">生图提示词由工坊独立 API 负责，不在此列表中</div>
                                 <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;">
                                     <label><input type="checkbox" data-secondary-route="callReply"> 通话回复</label>
@@ -600,6 +600,12 @@
                                     <label><input type="checkbox" data-secondary-route="peek"> 偷看手机</label>
                                     <label><input type="checkbox" data-secondary-route="shop"> 商城生成</label>
                                     <label><input type="checkbox" data-secondary-route="batteryReminder"> 低电量提醒</label>
+                                    <label><input type="checkbox" data-secondary-route="peekMoments"> 查手机动态生成</label>
+                                    <label><input type="checkbox" data-secondary-route="mono"> MONO 帖子、私信与文字生成</label>
+                                    <label><input type="checkbox" data-secondary-route="hearu"> HearU 聊天、选歌与总结</label>
+                                    <label><input type="checkbox" data-secondary-route="morrow"> MORROW AI 回信</label>
+                                    <label><input type="checkbox" data-secondary-route="mcp"> MCP 工具判断与试聊</label>
+                                    <label><input type="checkbox" data-secondary-route="workshopText"> 工坊文字处理、阅读插图提示</label>
                                 </div>
                             </div>
                         </div>
@@ -1868,6 +1874,7 @@
                 <h1 class="title" id="moments-title" style="opacity: 0; transition: opacity 0.3s;">动态</h1>
             </div>
             <div class="action-btn-group">
+                <button type="button" class="action-btn" id="moments-generate-btn" aria-label="生成新动态" style="font-size:12px;width:auto;padding:0 8px;">生成</button>
                 <button class="action-btn" id="moments-refresh-btn">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                 </button>
@@ -2784,7 +2791,7 @@
 -->
 
 <!-- [1. 基础层] -->
-<script src="js/utils.js"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
+<script src="js/utils.js?v=20261023-aux-apps-1"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
 <script src="js/db.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/backup-safe.js?v=20261022-safe-backup-1"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
@@ -2814,15 +2821,15 @@
 <script src="js/modules/shop_html.js"></script> <!-- 商城HTML注入 -->
 <script src="js/modules/settings_chat.js?v=20261010-loki-6"></script> <!-- 聊天设置与管理 -->
 <script src="js/modules/keep_alive.js?v=20261022-kiss-icons"></script> <!-- 跨平台持续运行增强 -->
-<script src="js/modules/settings_api.js?v=20261009-voice3-retro"></script>
-<script src="js/modules/app-api.js?v=20261014-mcp-gray-only-4"></script> <!-- API 设置与预设 -->
+<script src="js/modules/settings_api.js?v=20261023-aux-apps-1"></script>
+<script src="js/modules/app-api.js?v=20261023-aux-apps-1"></script> <!-- API 设置与预设 -->
 <script src="js/modules/settings_presets.js"></script> <!-- 预设管理 (气泡、人设等) -->
 <script src="js/modules/settings_customize.js?v=morrow-desktop-1"></script> <!-- 个性化与外观设置 -->
 
 <!-- [3. 独立功能模块 (Plugins)] -->
 <script src="js/modules/sticker.js"></script>   <!-- 表情包管理系统 -->
 <script src="js/modules/worldbook.js"></script> <!-- 世界书设定集 -->
-<script src="js/modules/peek.js"></script>      <!-- 偷看手机(相册/短信等) -->
+<script src="js/modules/peek.js?v=20261023-moments-aux-1"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
 <script src="js/modules/storage.js?v=20261022-safe-backup-1"></script>   <!-- 存储空间分析图表 -->
@@ -2856,12 +2863,12 @@
 <script src="js/modules/home_presets.js?v=mcp-20261009"></script>
 <script src="js/modules/voice-service.js?v=20261010-voice-worldbook-1"></script>
 <script src="js/modules/voice-script.js?v=20261010-voice-worldbook-1"></script>
-<script src="js/modules/voice-settings.js?v=20261010-voice-worldbook-1"></script>
+<script src="js/modules/voice-settings.js?v=20261023-book-scroll-1"></script>
 <script src="js/morrow/desktop.js?v=20261022-keepsake-envelope"></script>
 <script src="js/main.js?v=20261022-safe-backup-1"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
 <script src="js/modules/app-data.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/kiss-tools.js?v=20261022-safe-backup-1"></script>
-<script type="module" src="js/hearu/app.js?v=20261023-tail-thought-2"></script>
+<script type="module" src="js/hearu/app.js?v=20261023-aux-apps-1"></script>
 <script src="forum_app.js?v=20261022-dm-connected"></script>
 <script src="js/mcp/icons.js?v=10-archive-ui"></script>
 <script src="js/mcp/view.js?v=20261014-app-api-1"></script>
