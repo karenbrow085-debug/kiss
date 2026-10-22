@@ -651,13 +651,15 @@ function filterHistoryForAI(chat, historySlice, ignoreContextDisabled = false) {
     return filteredHistory;
 }
 
+function isSecondaryApiSelected(featureKey) {
+    const secondary = db.apiSettings && db.apiSettings.secondary;
+    return Boolean(secondary && secondary.enabled && secondary.routes && secondary.routes[featureKey]);
+}
+
 function resolveAuxiliaryApiConfig(featureKey, fallbackConfig = null) {
     const primaryConfig = fallbackConfig || (db.apiSettings || {});
     const secondary = db.apiSettings && db.apiSettings.secondary;
-    const shouldUseSecondary = secondary
-        && secondary.enabled
-        && secondary.routes
-        && secondary.routes[featureKey];
+    const shouldUseSecondary = isSecondaryApiSelected(featureKey);
 
     if (!shouldUseSecondary) return primaryConfig;
 
@@ -666,7 +668,8 @@ function resolveAuxiliaryApiConfig(featureKey, fallbackConfig = null) {
         provider: secondary.provider || 'newapi',
         url: secondary.url || '',
         key: secondary.key || '',
-        model: secondary.model || ''
+        model: secondary.model || '',
+        apiRouteSource: 'secondary'
     };
 }
 
@@ -681,11 +684,11 @@ function resolveWorkshopLlmApiConfig() {
         ? settings.gptLlmApiPresetId
         : settings.llmApiPresetId;
 
-    if (!independentEnabled || !presetId) return primaryConfig;
+    if (!independentEnabled || !presetId) return resolveAuxiliaryApiConfig('workshopText', primaryConfig);
 
     const presets = Array.isArray(db.apiPresets) ? db.apiPresets : [];
     const preset = presets.find(item => item.id === presetId || item.name === presetId);
-    if (!preset || !preset.data) return primaryConfig;
+    if (!preset || !preset.data) return resolveAuxiliaryApiConfig('workshopText', primaryConfig);
 
     const independentConfig = {
         ...primaryConfig,
@@ -697,9 +700,9 @@ function resolveWorkshopLlmApiConfig() {
         temperature: preset.data.temperature
     };
 
-    return independentConfig.url && independentConfig.key && independentConfig.model
+    return resolveAuxiliaryApiConfig('workshopText', independentConfig.url && independentConfig.key && independentConfig.model
         ? independentConfig
-        : primaryConfig;
+        : primaryConfig);
 }
 
 function buildChatApiRequest(apiConfig, messages, options = {}) {
