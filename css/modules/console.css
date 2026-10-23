@@ -1,363 +1,126 @@
-/* --- 控制台 3.0 样式 (Edge 风格全屏) --- */
-
-/* CSS 变量定义，方便主题切换 */
-:root {
-    /* 默认深色主题 */
-    --console-bg-main: #1E1E1E;
-    --console-bg-tab-bar: #000000;
-    --console-bg-tab-active: #1E1E1E;
-    --console-bg-toolbar: #1E1E1E;
-    --console-border-color: #333333;
-    --console-text-main: #CCCCCC;
-    --console-text-tab: #FFFFFF;
-    --console-text-muted: #858585;
-    --console-btn-bg-hover: rgba(255, 255, 255, 0.1);
-    --console-btn-border: #444444;
-    --console-btn-border-hover: #666666;
-    --console-filter-bg: #2D2D2D;
-    --console-filter-active: #4D4D4D;
-    --console-item-border: #2A2A2A;
-    --console-item-hover: #2A2D2E;
-    --console-scrollbar-track: #1E1E1E;
-    --console-scrollbar-thumb: #424242;
-    --console-scrollbar-thumb-hover: #4F4F4F;
-    
-    /* 日志级别颜色 (深色) */
-    --console-warn-bg: rgba(206, 145, 120, 0.05);
-    --console-warn-border: #ce9178;
-    --console-warn-text: #ce9178;
-    --console-error-bg: rgba(244, 71, 71, 0.08);
-    --console-error-border: #f44747;
-    --console-error-text: #f44747;
-}
-
-/* 亮色主题变量 */
-.light-theme {
-    --console-bg-main: #FFFFFF;
-    --console-bg-tab-bar: #E5E5E5;
-    --console-bg-tab-active: #FFFFFF;
-    --console-bg-toolbar: #F3F3F3;
-    --console-border-color: #E0E0E0;
-    --console-text-main: #333333;
-    --console-text-tab: #111111;
-    --console-text-muted: #666666;
-    --console-btn-bg-hover: rgba(0, 0, 0, 0.05);
-    --console-btn-border: #CCCCCC;
-    --console-btn-border-hover: #999999;
-    --console-filter-bg: #E0E0E0;
-    --console-filter-active: #FFFFFF;
-    --console-item-border: #F0F0F0;
-    --console-item-hover: #F9F9F9;
-    --console-scrollbar-track: #F3F3F3;
-    --console-scrollbar-thumb: #C1C1C1;
-    --console-scrollbar-thumb-hover: #A8A8A8;
-    
-    /* 日志级别颜色 (亮色) */
-    --console-warn-bg: rgba(255, 165, 0, 0.1);
-    --console-warn-border: #D97706;
-    --console-warn-text: #B45309;
-    --console-error-bg: rgba(255, 0, 0, 0.05);
-    --console-error-border: #DC2626;
-    --console-error-text: #B91C1C;
-}
-
-#console-screen {
-    background-color: var(--console-bg-main);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
-    display: none;
-    flex-direction: column;
-}
-
-#console-screen.active {
-    display: flex;
-}
-
-/* 隐藏默认的 header */
-#console-screen > .app-header {
-    display: none;
-}
-
-.edge-console-container {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    background-color: var(--console-bg-main);
-    animation: consoleFadeIn 0.3s ease;
-}
-
-@keyframes consoleFadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-}
-
-/* Edge 风格标签栏 */
-.edge-tab-bar {
-    height: calc(40px + env(safe-area-inset-top));
-    background-color: var(--console-bg-tab-bar);
-    display: flex;
-    align-items: flex-end;
-    padding: env(safe-area-inset-top) 8px 0 8px;
-    flex-shrink: 0;
-    position: relative;
-    transition: background-color 0.3s;
-}
-
-.edge-tab {
-    height: 32px;
-    background-color: var(--console-bg-tab-active);
-    border-radius: 8px 8px 0 0;
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
-    color: var(--console-text-tab);
-    font-size: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    position: relative;
-    min-width: 120px;
-    max-width: 200px;
-    transition: background-color 0.3s, color 0.3s;
-}
-
-/* 标签两侧的圆角过渡效果 */
-.edge-tab::before, .edge-tab::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    width: 8px;
-    height: 8px;
-    transition: background 0.3s;
-}
-.edge-tab::before {
-    left: -8px;
-    background: radial-gradient(circle at 0 0, transparent 8px, var(--console-bg-tab-active) 8px);
-}
-.edge-tab::after {
-    right: -8px;
-    background: radial-gradient(circle at 100% 0, transparent 8px, var(--console-bg-tab-active) 8px);
-}
-
-.edge-window-controls {
-    position: absolute;
-    right: 0;
-    top: env(safe-area-inset-top);
-    height: 40px;
-    display: flex;
-    align-items: center;
-}
-
-.edge-control-btn {
-    background: transparent;
-    border: none;
-    color: var(--console-text-tab);
-    width: 46px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.3s;
-}
-
-.edge-control-btn:hover {
-    background-color: var(--console-btn-bg-hover);
-}
-
-.edge-control-btn.close-btn:hover {
-    background-color: #E81123; /* Windows 经典的关闭红 */
-    color: #FFFFFF;
-}
-
-/* Edge 风格工具栏 */
-.edge-toolbar {
-    height: 44px;
-    background-color: var(--console-bg-toolbar);
-    border-bottom: 1px solid var(--console-border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
-    flex-shrink: 0;
-    transition: background-color 0.3s, border-color 0.3s;
-}
-
-.edge-toolbar-left, .edge-toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.console-filters {
-    display: flex;
-    gap: 4px;
-    background: var(--console-filter-bg);
-    padding: 2px;
-    border-radius: 6px;
-    transition: background-color 0.3s;
-}
-
-.console-filter-btn {
-    background: transparent;
-    border: none;
-    color: var(--console-text-muted);
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.console-filter-btn:hover {
-    background: var(--console-btn-bg-hover);
-    color: var(--console-text-main);
-}
-
-.console-filter-btn.active {
-    background: var(--console-filter-active);
-    color: var(--console-text-main);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.edge-action-btn {
-    background: transparent;
-    border: 1px solid var(--console-btn-border);
-    color: var(--console-text-main);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
-}
-
-.edge-action-btn:hover {
-    background: var(--console-btn-bg-hover);
-    border-color: var(--console-btn-border-hover);
-}
-
-/* 日志容器 */
-#console-log-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--console-text-main);
-    background-color: var(--console-bg-main);
-    scroll-behavior: smooth;
-    transition: background-color 0.3s, color 0.3s;
-}
-
-/* 自定义滚动条 */
-#console-log-container::-webkit-scrollbar {
-    width: 10px;
-}
-#console-log-container::-webkit-scrollbar-track {
-    background: var(--console-scrollbar-track);
-}
-#console-log-container::-webkit-scrollbar-thumb {
-    background: var(--console-scrollbar-thumb);
-    border: 2px solid var(--console-scrollbar-track);
-    border-radius: 5px;
-}
-#console-log-container::-webkit-scrollbar-thumb:hover {
-    background: var(--console-scrollbar-thumb-hover);
-}
-
-/* 单条日志样式 */
-.console-log-item {
-    margin-bottom: 4px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--console-item-border);
-    position: relative;
-    transition: background-color 0.2s, border-color 0.3s;
-}
-
-.console-log-item:hover {
-    background-color: var(--console-item-hover);
-}
-
-.console-msg-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0; /* 防止 flex 子项溢出 */
-}
-
-.console-msg {
-    flex: 1;
-    word-break: break-all; /* 强制换行，防止移动端溢出 */
-    white-space: pre-wrap; /* 保留空格和换行 */
-}
-
-.console-time {
-    color: var(--console-text-muted);
-    font-size: 11px;
-    align-self: flex-start;
-    margin-top: 2px;
-    user-select: none;
-}
-
-/* 移动端优化：复制按钮常驻但半透明，点击区域变大 */
-.console-item-copy-btn {
-    background: transparent;
-    border: none;
-    color: var(--console-text-muted);
-    cursor: pointer;
-    padding: 8px; /* 增大点击区域 */
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.5; /* 移动端常驻半透明 */
-    transition: all 0.2s;
-    margin-left: 8px;
-    flex-shrink: 0;
-}
-
-.console-log-item:hover .console-item-copy-btn {
-    opacity: 1;
-    background: var(--console-btn-bg-hover);
-    color: var(--console-text-main);
-}
-
-.console-item-copy-btn:active {
-    background: var(--console-btn-bg-hover);
-}
-
-/* 日志级别颜色 */
-.console-log-item.log .console-msg { color: var(--console-text-main); }
-.console-log-item.warn { background-color: var(--console-warn-bg); border-left: 3px solid var(--console-warn-border); }
-.console-log-item.warn .console-msg { color: var(--console-warn-text); }
-.console-log-item.error { background-color: var(--console-error-bg); border-left: 3px solid var(--console-error-border); }
-.console-log-item.error .console-msg { color: var(--console-error-text); }
-
-/* 移动端适配调整 */
-@media (max-width: 768px) {
-    .edge-tab {
-        min-width: auto;
-        padding: 0 12px;
-    }
-    .edge-btn-text {
-        display: none; /* 手机端隐藏文字，只留图标 */
-    }
-    .console-log-item {
-        padding: 8px 4px;
-    }
-    #console-log-container {
-        font-size: 12px; /* 手机端字体稍微调小 */
-    }
-}
+/* White / mist grey / lilac console. Compact layout, isolated from other apps. */
+#console-screen{--kc-bg:#f7f7f9;--kc-card:#fff;--kc-ink:#35333e;--kc-sub:#9995a4;--kc-line:#e9e7ee;--kc-purple:#9772d8;--kc-pale:#f1eafd;--kc-error:#ce6683;--kc-warn:#9a8a6f;background:var(--kc-bg);color:var(--kc-ink);position:relative;min-height:0;animation:none;font-family:inherit}
+#console-screen *{box-sizing:border-box}
+#kc-root{display:flex;flex-direction:column;flex:1;min-height:0;height:100%;overflow:hidden}
+#console-screen button,#console-screen input,#console-screen select{font-family:inherit;font-size:inherit;color:inherit;letter-spacing:0}
+#console-screen button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:none}
+#console-screen button:focus-visible,#console-screen input:focus-visible,#console-screen select:focus-visible,#console-screen article:focus-visible{outline:2px solid #ba9ee9;outline-offset:2px}
+#console-screen svg{display:block;width:19px;height:19px;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;fill:none;flex:none}
+#console-screen .kc-header{display:flex;align-items:center;gap:10px;flex:none;min-height:57px;padding:8px 16px;padding-top:max(8px,env(safe-area-inset-top,0px));background:var(--kc-card)}
+#console-screen .kc-header>button{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;background:transparent;flex:none;border-radius:9px}
+#console-screen .kc-header>button:first-child:has(svg path[d^="M4 6"]){background:var(--kc-pale);color:var(--kc-purple);width:36px;height:36px}
+#console-screen .kc-header>div{flex:1;min-width:0}
+#console-screen h1{font-size:18px;line-height:1.3;margin:0;font-weight:650;letter-spacing:0;color:var(--kc-ink)}
+#console-screen .kc-header small{display:block;font-size:10px;color:var(--kc-sub);margin-top:2px}
+#console-screen .kc-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:10px 15px 13px;scrollbar-width:thin;scrollbar-color:#d5d0df transparent}
+#console-screen .kc-summary{background:var(--kc-card);border:1px solid var(--kc-line);border-radius:13px;padding:11px 13px 10px;margin-bottom:17px}
+#console-screen .kc-session{display:flex;align-items:center;justify-content:space-between;font-size:10px;line-height:1.4}
+#console-screen .kc-session>span{color:#8867c1;background:var(--kc-pale);border-radius:6px;padding:3px 7px;font-weight:600}
+#console-screen .kc-session>small{color:var(--kc-sub);font-size:10px}
+#console-screen .kc-metrics{display:grid;grid-template-columns:repeat(3,1fr);margin-top:11px}
+#console-screen .kc-metrics button{display:flex;align-items:center;flex-direction:column;background:none;border:0;border-right:1px solid var(--kc-line);padding:0;gap:4px}
+#console-screen .kc-metrics button:last-child{border:0}
+#console-screen .kc-metrics strong{font-size:23px;line-height:1.1;font-weight:600;font-variant-numeric:tabular-nums}
+#console-screen .kc-metrics small{font-size:11px;line-height:1.4;color:var(--kc-sub)}
+#console-screen [data-stat="warn"] strong{color:var(--kc-warn)}
+#console-screen [data-stat="error"] strong{color:var(--kc-error)}
+#console-screen .kc-section{margin:0 0 16px}
+#console-screen h3{display:flex;align-items:center;justify-content:space-between;margin:0 0 9px;font-size:14px;line-height:1.4;font-weight:600;letter-spacing:0}
+#console-screen h3>button{display:flex;align-items:center;gap:2px;font-size:11px;font-weight:400;border:0;background:none;color:var(--kc-sub);padding:3px 0}
+#console-screen h3>button svg{width:13px;height:13px;transform:rotate(180deg)}
+#console-screen .kc-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#console-screen .kc-app-card{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;min-height:68px;border:1px solid var(--kc-line);border-radius:12px;padding:10px;background:var(--kc-card)}
+#console-screen .kc-app-card[data-app="hearu"]{background:#f4effc;border-color:#dfd1f6}
+#console-screen .kc-app-icon{display:flex;align-items:center;justify-content:center;flex:none;width:39px;height:39px;border-radius:12px;background:#f5f1fa;color:#767080}
+#console-screen .kc-app-icon svg{width:24px;height:24px;stroke-width:1.6}
+#console-screen .kc-app-card>span:last-child{min-width:0;flex:1}
+#console-screen .kc-app-card strong{display:block;font-size:13px;font-weight:600;line-height:1.4}
+#console-screen .kc-app-card small{display:block;font-size:10px;color:var(--kc-sub);line-height:1.5;margin-top:5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#console-screen .kc-app-card[data-app="hearu"] strong::after{content:'';display:block;height:2px;background:#b194e2;width:17px;margin-top:3px}
+#console-screen .kc-timeline{position:relative;padding-left:11px}
+#console-screen .kc-timeline::before{content:'';position:absolute;left:0;top:14px;bottom:18px;width:1px;background:#e0dae9}
+#console-screen .kc-log{position:relative;display:flex;align-items:center;gap:9px;background:var(--kc-card);border:1px solid var(--kc-line);border-radius:11px;padding:10px 8px;min-height:65px;margin:0 0 8px;cursor:pointer}
+#console-screen .kc-dot{position:absolute;width:7px;height:7px;border-radius:50%;background:#baa3dd;left:-15px;top:20px;border:1px solid var(--kc-bg)}
+#console-screen .kc-log.error .kc-dot{background:#d27b96}
+#console-screen .kc-log.warn .kc-dot{background:#b0a08b}
+#console-screen .kc-log-icon{display:flex;align-items:center;justify-content:center;width:33px;height:33px;flex:none;border-radius:11px;background:#f5f1fa;color:#898294}
+#console-screen .kc-log-icon svg{width:19px;height:19px}
+#console-screen .kc-log-copy{min-width:0;flex:1}
+#console-screen .kc-log-meta{display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:9px;line-height:1.3;color:var(--kc-sub);margin-bottom:3px}
+#console-screen .kc-log-meta span{max-width:60%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+#console-screen .kc-log-meta time{font-variant-numeric:tabular-nums;flex:none}
+#console-screen .kc-log strong{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-weight:550;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+#console-screen .kc-log p{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:10px;line-height:1.5;color:var(--kc-sub);margin:2px 0 0;overflow-wrap:anywhere}
+#console-screen .kc-copy{align-self:flex-end;display:flex;align-items:center;justify-content:center;width:23px;height:26px;flex:none;border:0;border-radius:4px;background:none;color:#aaa4b2;padding:0}
+#console-screen .kc-copy svg{width:14px;height:14px}
+#console-screen .kc-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--kc-card);border-top:1px solid var(--kc-line);padding:9px 15px max(9px,env(safe-area-inset-bottom,0px));flex:none;min-height:46px;font-size:11px;color:#8d879b}
+#console-screen .kc-footer>button{display:flex;gap:5px;align-items:center;border:0;background:none;font-size:11px;padding:4px 0;color:#8d879b}
+#console-screen .kc-footer>button svg{width:17px;height:17px}
+#console-screen .kc-footer>label{display:flex;align-items:center;gap:6px;cursor:pointer;margin-right:auto;position:relative}
+#console-screen .kc-footer input{position:absolute;opacity:0;left:0;width:30px;height:20px}
+#console-screen .kc-switch{display:block;width:31px;height:18px;background:#ddd9e4;border-radius:20px;position:relative}
+#console-screen .kc-switch::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%}
+#console-screen .kc-footer input:checked+.kc-switch{background:#a68bdf}
+#console-screen .kc-footer input:checked+.kc-switch::after{left:15px}
+#console-screen .kc-identity{display:flex;align-items:center;gap:12px;margin-bottom:15px;padding:3px 0}
+#console-screen .kc-identity>.kc-app-icon{width:54px;height:54px;border-radius:50%;background:var(--kc-pale)}
+#console-screen .kc-identity>.kc-app-icon svg{width:29px;height:29px}
+#console-screen h2{font-size:20px;line-height:1.4;letter-spacing:0;font-weight:600;margin:0;color:var(--kc-ink);overflow-wrap:anywhere}
+#console-screen .kc-identity small{display:block;font-size:11px;color:var(--kc-sub);margin:4px 0 0}
+#console-screen .kc-tabs{display:flex;background:var(--kc-card);border:1px solid var(--kc-line);padding:0;border-radius:10px;margin-bottom:10px;overflow:hidden}
+#console-screen .kc-tabs button{flex:1;font-size:12px;padding:9px 2px;border:0;background:none;line-height:1.4;color:#9b95a6}
+#console-screen .kc-tabs button.selected{background:var(--kc-pale);border-radius:9px;color:#9875cf;font-weight:600}
+#console-screen .kc-filters{display:flex;gap:8px;margin-bottom:14px}
+#console-screen .kc-filters select{min-width:0;max-width:43%;flex:1;border:1px solid var(--kc-line);border-radius:10px;padding:8px;background:var(--kc-card);color:#777181;font-size:11px;min-height:35px}
+#console-screen .kc-search{display:flex;align-items:center;gap:6px;flex:1.3;min-width:0;border:1px solid var(--kc-line);border-radius:10px;background:var(--kc-card);padding:6px 9px}
+#console-screen .kc-search svg{width:15px;height:15px;color:#aaa3b6}
+#console-screen .kc-search input{width:100%;min-width:0;padding:0;margin:0;border:0;outline:none;box-shadow:none;background:none;font-size:12px;height:22px;color:var(--kc-ink)}
+#console-screen .kc-search input::placeholder{color:#b2aabf;opacity:1}
+#console-screen .kc-list-label{font-size:10px;color:var(--kc-sub);margin-bottom:10px}
+#console-screen .kc-empty{font-size:12px;color:var(--kc-sub);text-align:center;padding:28px 0}
+#console-screen .kc-load{display:block;background:var(--kc-card);border:1px solid var(--kc-line);border-radius:8px;font-size:12px;padding:10px;margin:10px auto;color:var(--kc-sub)}
+#console-screen .kc-detail-top{border:1px solid var(--kc-line);border-radius:12px;overflow:hidden;background:var(--kc-card);margin-bottom:17px;padding:12px 11px 0}
+#console-screen .kc-detail-top .kc-identity{gap:11px;margin-bottom:12px;padding:0}
+#console-screen .kc-detail-top .kc-identity>.kc-app-icon{width:43px;height:43px}
+#console-screen .kc-detail-top .kc-identity small{margin:0 0 3px;font-size:10px}
+#console-screen .kc-detail-top h2{font-size:17px;max-height:76px;overflow:auto}
+#console-screen .kc-message{display:flex;gap:10px;align-items:center;border-radius:10px;background:var(--kc-pale);padding:10px;margin-bottom:12px;min-width:0}
+#console-screen .kc-message>svg{width:24px;height:24px;color:#a28abc}
+#console-screen .kc-message>div{min-width:0}
+#console-screen .kc-message strong{display:block;font-size:12px;line-height:1.6;font-weight:500;white-space:pre-wrap;overflow-wrap:anywhere;max-height:125px;overflow:auto}
+#console-screen .kc-message small{display:block;font-size:10px;color:#9b8cac;line-height:1.6;margin-top:3px}
+#console-screen .kc-message.error>svg{color:#d386a0}
+#console-screen .kc-metadata{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0 -11px;background:var(--kc-card);font-size:11px}
+#console-screen .kc-metadata>div{border-top:1px solid var(--kc-line);padding:9px 11px;min-width:0}
+#console-screen .kc-metadata>div:nth-child(odd){border-right:1px solid var(--kc-line)}
+#console-screen dt{font-size:10px;color:var(--kc-sub);margin:0 0 4px}
+#console-screen dd{margin:0;font-size:12px;color:#736d7f;line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+#console-screen dd.error{color:var(--kc-error)}
+#console-screen dd.warn{color:var(--kc-warn)}
+#console-screen .kc-trace{padding:3px 0 0}
+#console-screen .kc-trace>div{display:flex;align-items:center;gap:10px;position:relative;padding:0 0 16px;min-height:42px;font-size:12px}
+#console-screen .kc-trace>div:not(:last-child)::after{content:'';position:absolute;top:24px;bottom:0;left:11px;width:1px;background:#ded6eb}
+#console-screen .kc-trace i{font-size:10px;font-style:normal;display:flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%;background:var(--kc-pale);color:#9b87b9}
+#console-screen .kc-trace strong{font-weight:500;overflow-wrap:anywhere}
+#console-screen pre{background:#f2eff7;border:0;border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;line-height:1.7;color:#8a809e;white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto;margin:0 0 9px}
+#console-screen .kc-privacy{display:block;font-size:9px;color:#aaa3b5;line-height:1.6}
+#console-screen .kc-detail-buttons{display:flex;gap:9px;margin:12px 0 0}
+#console-screen .kc-button{display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--kc-line);border-radius:10px;background:var(--kc-card);color:#877c9c;font-size:12px;padding:10px;min-height:38px;flex:1}
+#console-screen .kc-button svg{width:16px;height:16px}
+#console-screen .kc-button.primary{background:var(--kc-pale);border-color:var(--kc-pale);color:#9b7aca}
+#console-screen .kc-overlay{position:absolute;inset:0;z-index:40;background:#3c34464d;display:flex;align-items:center;justify-content:center;padding:20px}
+#console-screen .kc-dialog{display:flex;flex-direction:column;max-height:85%;width:100%;max-width:380px;overflow:hidden;border-radius:16px;background:white;padding:15px}
+#console-screen .kc-dialog>header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+#console-screen .kc-dialog>header h2{font-size:17px}
+#console-screen .kc-dialog>header button{border:0;background:#f5f1fa;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%}
+#console-screen .kc-dialog>p{font-size:12px;color:#92899f;line-height:1.8;margin:0 0 15px}
+#console-screen .kc-app-dialog{overflow:auto;min-height:0;overscroll-behavior:contain}
+#console-screen .kc-app-dialog>button{display:flex;align-items:center;gap:12px;border:0;border-bottom:1px solid var(--kc-line);padding:12px 3px;width:100%;background:none;color:#92849e;font-size:13px;text-align:left}
+#console-screen .kc-app-dialog>button span{flex:1}
+#console-screen .kc-app-dialog small{font-size:11px;color:var(--kc-sub)}
+@media(max-width:350px){#console-screen .kc-content{padding-left:12px;padding-right:12px}#console-screen .kc-app-card{padding:9px 8px;gap:7px;min-height:62px}#console-screen .kc-app-card .kc-app-icon{width:31px;height:35px}#console-screen .kc-app-card strong{font-size:12px}#console-screen .kc-app-card small{font-size:9px}#console-screen .kc-log{gap:6px}#console-screen .kc-log-icon{width:28px;height:30px}#console-screen .kc-log strong{font-size:11px}}
+@media(max-height:720px){#console-screen .kc-content{padding-top:8px}#console-screen .kc-summary{margin-bottom:13px;padding:9px 11px}#console-screen .kc-app-card{min-height:60px;padding-top:8px;padding-bottom:8px}#console-screen .kc-section{margin-bottom:13px}#console-screen .kc-log{min-height:60px;padding-top:8px;padding-bottom:8px}#console-screen .kc-identity{margin-bottom:11px}}
+@media(prefers-reduced-motion:reduce){#console-screen *{scroll-behavior:auto!important}}
+#kc-root[data-view="detail"] .kc-content{display:flex;flex-direction:column}
+#kc-root[data-view="detail"] .kc-content>section{flex:none}
+#kc-root[data-view="detail"] .kc-detail-buttons{margin-top:auto;padding-top:12px;flex:none}
