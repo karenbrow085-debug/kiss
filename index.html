@@ -83,7 +83,7 @@
 </style>
 <link rel="stylesheet" href="css/modules/interaction.css?v=20261023-four-fixes-1">
 <script defer src="js/modules/interaction.js?v=20261023-four-fixes-1"></script>
-    <link rel="stylesheet" href="css/modules/worldbook.css?v=20261023-wb-redesign-1">
+    <link rel="stylesheet" href="css/modules/worldbook.css?v=20261023-wb-compact-2">
 </head>
 
 <body>
@@ -336,7 +336,7 @@
           <input type="hidden" id="world-book-id">
           <div class="wb-editor-tools"><span id="wb-editor-folder">世界书</span><button type="button" class="wb-import-button" id="wb-editor-import">导入 TXT / DOCX</button></div>
           <div class="form-group"><label for="world-book-name">名称</label><input type="text" id="world-book-name" placeholder="条目名称" required></div>
-          <div class="form-group"><label for="world-book-category">分类</label><input type="text" id="world-book-category" placeholder="分类（可选）"></div>
+          <div class="form-group"><label for="world-book-category">分类</label><select id="world-book-category" aria-label="选择所属文件夹"></select></div>
           <div class="wb-writing"><label for="world-book-content">CONTENT</label><textarea id="world-book-content" placeholder="写下这项设定…" required></textarea><span id="wb-character-count">0 字</span></div>
           <section class="wb-injection"><label>注入位置</label><div class="wb-position-options">
             <label><input type="radio" name="world-book-position" value="limit_break"><span>破限</span></label><label><input type="radio" name="world-book-position" value="before" checked><span>前</span></label><label><input type="radio" name="world-book-position" value="after"><span>后</span></label><label><input type="radio" name="world-book-position" value="guidelines"><span>聊天规范</span></label>
@@ -2770,7 +2770,7 @@
 
 <!-- [3. 独立功能模块 (Plugins)] -->
 <script src="js/modules/sticker.js?v=20261023-chat-fixes-1"></script>   <!-- 表情包管理系统 -->
-<script src="js/modules/worldbook.js?v=20261023-wb-redesign-1"></script> <!-- 世界书设定集 -->
+<script src="js/modules/worldbook.js?v=20261023-wb-compact-2"></script> <!-- 世界书设定集 -->
 <script src="js/modules/peek.js?v=20261023-moments-aux-1"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
