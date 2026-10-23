@@ -37,7 +37,7 @@ window.KissWidgetRuntime = (() => {
         Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key] ?? '') : token);
     function unload(node) { frames.get(node)?.remove(); frames.delete(node); }
     function prune() {
-        for (const node of previews.keys()) if (!node.isConnected) { observer?.unobserve(node); unload(node); previews.delete(node); }
+        for (const node of previews.keys()) if (!node.isConnected) { observer?.unobserve(node); node.__widgetResizeObserver?.disconnect(); unload(node); previews.delete(node); }
     }
     function load(node) {
         const item = previews.get(node);
@@ -62,7 +62,22 @@ window.KissWidgetRuntime = (() => {
     }, { threshold: .05 }) : null;
     new MutationObserver(prune).observe(document.documentElement, { childList: true, subtree: true });
     function preview(node, template) {
-        prune(); node.style.position = 'relative';
+        prune();
+        const canvas = node.parentElement;
+        const width = parseFloat(node.style.width) || 160;
+        const height = parseFloat(node.style.height) || 160;
+        const resize = () => {
+            if (!canvas?.isConnected || !canvas.clientWidth) return;
+            const shownHeight = canvas.clientWidth * height / width;
+            canvas.style.setProperty('height', shownHeight + 'px', 'important');
+            canvas.style.setProperty('min-height', shownHeight + 'px', 'important');
+            node.style.cssText += ';position:absolute;left:50%;top:50%;transform-origin:center;transform:translate(-50%,-50%) scale(' + Math.min(1, canvas.clientWidth / width) + ')';
+        };
+        node.style.position = 'relative';
+        const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
+        if (canvas) resizeObserver?.observe(canvas);
+        node.__widgetResizeObserver = resizeObserver;
+        native.setTimeout(resize, 0);
         previews.set(node, { template });
         node.dataset.widgetPreview = 'true';
         observer?.observe(node);
