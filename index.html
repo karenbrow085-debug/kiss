@@ -45,7 +45,6 @@
     <link rel="stylesheet" href="css/modules/peek.css">
     <link rel="stylesheet" href="css/modules/moments.css">
     <link rel="stylesheet" href="css/modules/search.css">
-    <link rel="stylesheet" href="css/modules/worldbook.css">
     <link rel="stylesheet" href="css/modules/journal.css">
     <link rel="stylesheet" href="css/modules/chat_archives.css">
     <link rel="stylesheet" href="css/modules/steps.css">
@@ -84,6 +83,7 @@
 </style>
 <link rel="stylesheet" href="css/modules/interaction.css?v=20261023-four-fixes-1">
 <script defer src="js/modules/interaction.js?v=20261023-four-fixes-1"></script>
+    <link rel="stylesheet" href="css/modules/worldbook.css?v=20261023-wb-redesign-1">
 </head>
 
 <body>
@@ -301,94 +301,49 @@
         </div>
     </div>
 
-    <div id="world-book-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" id="world-book-back-btn">‹</button>
-            <div class="title-container">
-                <h1 class="title" id="world-book-title">世界书</h1>
-            </div>
-            <div class="action-btn-group" style="position: relative;">
-                <!-- 视图切换按钮 -->
-                <button class="action-btn" id="world-book-view-toggle-btn" title="切换视图" style="display: flex; align-items: center; justify-content: center;">
-                    <svg id="wb-grid-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                    <svg id="wb-list-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
-                </button>
-                <button class="action-btn" id="add-world-book-btn">+</button>
-                <button class="action-btn" id="cancel-wb-multi-select-btn" style="display: none; font-size: 16px;">取消</button>
-                
-                <!-- 新建下拉菜单 -->
-                <div id="world-book-new-menu" class="world-book-new-menu" style="display: none;">
-                    <div class="menu-item" id="wb-menu-new-folder">新建文件夹</div>
-                    <div class="menu-item" id="wb-menu-new-entry">新建条目</div>
-                </div>
-            </div>
-        </header>
-        <main class="content" id="world-book-content-scroll">
-            <div id="world-book-list-container" class="grid-view"></div>
-            <div class="placeholder-text" id="no-world-books-placeholder" style="display: none;">
-                <p>你的世界一片混沌...</p>
-                <p>点击右上角的“+”创造第一个设定吧！</p>
-            </div>
-        </main>
-        <div id="world-book-multi-select-bar" style="display: none;">
-            <span id="world-book-select-count">已选择 0 项</span>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" id="move-selected-world-books-btn" style="width: auto; padding: 8px 16px;" disabled>移动到此处</button>
-                <button class="btn btn-danger" id="delete-selected-world-books-btn" style="width: auto; padding: 8px 16px;">删除已选</button>
-            </div>
+    <div id="world-book-screen" class="screen wb-app">
+      <header class="app-header">
+        <button class="back-btn" id="world-book-back-btn" aria-label="返回">‹</button>
+        <div class="title-container"><h1 class="title" id="world-book-title">世界书</h1></div>
+        <div class="action-btn-group">
+          <button class="action-btn" id="world-book-view-toggle-btn" aria-label="切换视图"><svg id="wb-grid-icon" viewBox="0 0 24 24"><path d="M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3z"/></svg><svg id="wb-list-icon" viewBox="0 0 24 24" style="display:none"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></button>
+          <button class="action-btn" id="add-world-book-btn" aria-label="新建">+</button>
+          <button class="action-btn wb-text-action" id="cancel-wb-multi-select-btn" style="display:none">完成</button>
+          <div id="world-book-new-menu" class="world-book-new-menu" style="display:none">
+            <button class="menu-item" id="wb-menu-new-entry">新建条目</button>
+            <button class="menu-item" id="wb-menu-new-folder">新建文件夹</button>
+            <button class="menu-item" id="wb-menu-import">导入 TXT / DOCX</button>
+          </div>
         </div>
+      </header>
+      <main class="content" id="world-book-content-scroll">
+        <div class="wb-intro" id="wb-home-heading"><h2>设定集 <span>✦</span></h2><span>WORLD<br>BOOK</span></div>
+        <div class="wb-breadcrumb" id="wb-path"></div>
+        <label class="wb-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="wb-search" type="search" placeholder="搜索文件夹或条目" aria-label="搜索文件夹或条目"></label>
+        <nav class="wb-tabs" id="wb-filter-tabs" aria-label="筛选"></nav>
+        <div id="world-book-list-container" class="grid-view"></div>
+        <div class="placeholder-text" id="no-world-books-placeholder" style="display:none">暂无条目</div>
+        <section id="wb-recent"><h3>最近编辑</h3><div id="wb-recent-list"></div></section>
+        <footer id="wb-brand"><i></i><span>✦ &nbsp; kiss</span><i></i></footer>
+      </main>
+      <div class="wb-bottom" id="wb-normal-bar"><button id="wb-select-start" class="wb-button">多选</button><button id="wb-new-entry-bottom" class="wb-button wb-primary">新建条目</button></div>
+      <div class="wb-bottom" id="world-book-multi-select-bar" style="display:none"><span id="world-book-select-count">已选 0 项</span><button class="wb-button" id="move-selected-world-books-btn" disabled>移动</button><button class="wb-button wb-primary" id="delete-selected-world-books-btn" disabled>删除</button></div>
     </div>
-    <div id="edit-world-book-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" data-target="world-book-screen">‹</button>
-            <div class="title-container">
-                <h1 class="title" id="edit-world-book-title">创建/编辑条目</h1>
-            </div>
-            <div class="placeholder"></div>
-        </header>
-        <main class="content">
-            <form id="edit-world-book-form">
-                <input type="hidden" id="world-book-id">
-                <div class="form-group">
-                    <label for="world-book-name">条目名称</label>
-                    <input type="text" id="world-book-name" placeholder="例如：世界观背景、魔法体系" required>
-                </div>
-                <div class="form-group">
-                    <label for="world-book-category">条目分类</label>
-                    <input type="text" id="world-book-category" placeholder="例如：人物、地点、组织（可选）">
-                </div>
-                <div class="form-group">
-                    <label for="world-book-content">条目内容</label>
-                    <textarea id="world-book-content" rows="8" placeholder="详细描述此项设定..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>注入位置</label>
-                    <div class="form-group radio-group">
-                        <label><input type="radio" name="world-book-position" value="limit_break"> 破限</label>
-                        <label><input type="radio" name="world-book-position" value="before" checked> 前</label>
-                        <label><input type="radio" name="world-book-position" value="after"> 后</label>
-                        <label><input type="radio" name="world-book-position" value="guidelines"> 聊天规范</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="world-book-depth">注入深度 (1-999)</label>
-                    <input type="number" id="world-book-depth" min="1" max="999" value="100" placeholder="默认100，数值越小注入顺序越靠前" required>
-                </div>
-                <button type="submit" class="btn btn-primary">保存条目</button>
-            </form>
-        </main>
+    <div id="edit-world-book-screen" class="screen wb-app">
+      <header class="app-header"><button class="back-btn" data-target="world-book-screen" aria-label="返回">‹</button><div class="title-container"><h1 class="title" id="edit-world-book-title">编辑条目</h1></div><button type="submit" form="edit-world-book-form" class="wb-save-top">保存</button></header>
+      <main class="content">
+        <form id="edit-world-book-form">
+          <input type="hidden" id="world-book-id">
+          <div class="wb-editor-tools"><span id="wb-editor-folder">世界书</span><button type="button" class="wb-import-button" id="wb-editor-import">导入 TXT / DOCX</button></div>
+          <div class="form-group"><label for="world-book-name">名称</label><input type="text" id="world-book-name" placeholder="条目名称" required></div>
+          <div class="form-group"><label for="world-book-category">分类</label><input type="text" id="world-book-category" placeholder="分类（可选）"></div>
+          <div class="wb-writing"><label for="world-book-content">CONTENT</label><textarea id="world-book-content" placeholder="写下这项设定…" required></textarea><span id="wb-character-count">0 字</span></div>
+          <section class="wb-injection"><label>注入位置</label><div class="wb-position-options">
+            <label><input type="radio" name="world-book-position" value="limit_break"><span>破限</span></label><label><input type="radio" name="world-book-position" value="before" checked><span>前</span></label><label><input type="radio" name="world-book-position" value="after"><span>后</span></label><label><input type="radio" name="world-book-position" value="guidelines"><span>聊天规范</span></label>
+          </div><label for="world-book-depth">注入深度</label><div class="wb-depth-row"><input type="number" id="world-book-depth" min="1" max="999" value="100" required><small>数值越小，注入顺序越靠前</small></div></section>
+          <button type="submit" class="wb-button wb-primary wb-save-bottom">保存条目</button>
+        </form>
+      </main>
     </div>
     <div id="api-settings-screen" class="screen">
         <header class="app-header">
@@ -1488,32 +1443,17 @@
     </div>
     <!-- Private Chat Settings (KKT Style) -->
     <div id="chat-settings-screen" class="screen"></div>
-    <div id="world-book-selection-modal" class="modal-overlay full-screen-modal">
-        <div class="modal-window" style="width: 100%; height: 100%; max-width: none; border-radius: 0; display: flex; flex-direction: column; padding: 0; background: #f5f5f5;">
-            <header class="app-header" style="flex-shrink: 0;">
-                <button class="back-btn" id="cancel-world-book-selection-btn" style="font-size: 16px; width: auto; padding: 0 10px;">取消</button>
-                <div class="title-container">
-                    <h1 class="title">选择世界书</h1>
-                </div>
-                <button class="action-btn" id="save-world-book-selection-btn" style="font-size: 16px; width: auto; padding: 0 10px; color: var(--primary-color); font-weight: bold;">完成</button>
-            </header>
-            
-            <div id="wb-selector-breadcrumb" style="background: #fff; padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; font-size: 14px; color: #666; flex-shrink: 0;">
-                <button id="wb-selector-back-folder-btn" style="background: none; border: none; color: var(--primary-color); display: none; align-items: center; padding: 0; margin-right: 10px; cursor: pointer;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    返回上一级
-                </button>
-                <span id="wb-selector-current-folder-name" style="font-weight: bold; color: #333;">根目录</span>
-            </div>
-
-            <div style="flex: 1; overflow-y: auto; padding: 15px;">
-                <div class="kkt-group" style="margin: 0;">
-                    <div id="world-book-selection-list" style="display: flex; flex-direction: column;">
-                        <!-- JS populated -->
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div id="world-book-selection-modal" class="modal-overlay full-screen-modal wb-app" role="dialog" aria-modal="true" aria-label="选择世界书">
+      <div class="modal-window">
+        <header class="app-header"><button class="back-btn wb-text-action" id="cancel-world-book-selection-btn">取消</button><div class="title-container"><h1 class="title">选择世界书</h1></div><button class="action-btn wb-text-action" id="save-world-book-selection-btn">完成</button></header>
+        <main class="wb-selector-content">
+          <div id="wb-selector-breadcrumb"><button id="wb-selector-back-folder-btn" style="display:none">上一级</button><span id="wb-selector-current-folder-name">世界书</span></div>
+          <label class="wb-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="wb-selector-search" type="search" placeholder="搜索条目" aria-label="搜索世界书"></label>
+          <p class="wb-selection-count" id="wb-selector-count">已选 0 项</p>
+          <div id="world-book-selection-list"></div>
+        </main>
+        <div class="wb-bottom"><span id="wb-selector-bottom-count">已选 0 项</span><button class="wb-button wb-primary" id="wb-selector-confirm">确认选择</button></div>
+      </div>
     </div>
     <!-- Group Chat Creation Modal -->
     <div id="create-group-modal" class="modal-overlay">
@@ -2830,7 +2770,7 @@
 
 <!-- [3. 独立功能模块 (Plugins)] -->
 <script src="js/modules/sticker.js?v=20261023-chat-fixes-1"></script>   <!-- 表情包管理系统 -->
-<script src="js/modules/worldbook.js"></script> <!-- 世界书设定集 -->
+<script src="js/modules/worldbook.js?v=20261023-wb-redesign-1"></script> <!-- 世界书设定集 -->
 <script src="js/modules/peek.js?v=20261023-moments-aux-1"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
