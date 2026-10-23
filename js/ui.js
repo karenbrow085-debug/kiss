@@ -494,7 +494,13 @@ function kpRemoveLegacyMusicShortcut() {
     }
     return changed;
 }
+let homeRenderEvents = null;
 function setupHomeScreen() {
+    homeRenderEvents?.abort();
+    homeRenderEvents = new AbortController();
+    const homeRenderSignal = homeRenderEvents.signal;
+    window.KissWidgetRuntime?.reset();
+    if (typeof syncHomeWidgetStyles === 'function') syncHomeWidgetStyles();
     const removedLegacyMusic = kpRemoveLegacyMusicShortcut();
     const getIcon = (id) => db.customIcons[id] || defaultIcons[id].url;
     if (!db.insWidgetSettings) {
@@ -533,18 +539,18 @@ function setupHomeScreen() {
             const template = db.widgetTemplates.find(t => t.id === instance.templateId);
             if (template) {
                 // 修复：必须替换 {{id}} 占位符，否则 HTML 无法匹配注入的 CSS 选择器
-                let html = template.html.replace(/{{id}}/g, template.id);
+                let html = String(template.html || '').replace(/{{id}}/g, template.id);
                 // 替换变量
                 const vars = { ...template.defaultVars, ...instance.vars };
                 for (const [key, value] of Object.entries(vars)) {
-                    html = html.replace(new RegExp(`{{${key}}}`, 'g'), value);
+                    html = html.split('{{' + key + '}}').join(String(value ?? ''));
                 }
                 
                 // 收集 JS 代码
-                if (template.js) {
-                    let jsCode = template.js.replace(/{{id}}/g, template.id);
+                if (typeof template.js === 'string' && template.js) {
+                    let jsCode = template.js.split('updateClock_{{id}}').join('updateWidgetClock').replace(/{{id}}/g, template.id);
                     for (const [key, value] of Object.entries(vars)) {
-                        jsCode = jsCode.replace(new RegExp(`{{${key}}}`, 'g'), value);
+                        jsCode = jsCode.split('{{' + key + '}}').join(String(value ?? ''));
                     }
                     widgetScripts.push({ id: instance.id, code: jsCode });
                 }
@@ -728,7 +734,7 @@ function setupHomeScreen() {
             scriptEl.className = 'widget-dynamic-script';
             scriptEl.setAttribute('data-widget-id', scriptData.id);
             // 使用 IIFE 包装，避免变量污染全局作用域
-            scriptEl.textContent = `(function() { \n${scriptData.code}\n })();`;
+            scriptEl.textContent = `(function() { const {setInterval,clearInterval,setTimeout,clearTimeout,requestAnimationFrame,cancelAnimationFrame}=window.KissWidgetRuntime.scope(${JSON.stringify(scriptData.id)});\n${scriptData.code}\n })();`;
             document.body.appendChild(scriptEl);
         } catch (e) {
             console.error(`Error executing script for widget ${scriptData.id}:`, e);
@@ -743,7 +749,7 @@ function setupHomeScreen() {
         }
         // 否则阻止默认菜单弹出，确保顺利进入编辑模式
         e.preventDefault();
-    });
+    }, {signal:homeRenderSignal});
 
     // 监听滑动事件更新指示器
     const swiper = document.getElementById('home-screen-swiper');
@@ -843,14 +849,10 @@ function setupHomeScreen() {
             e.preventDefault();
             if (isHomeEditMode) return; // 编辑模式下禁止点击
             const target = icon.getAttribute('data-target');
-            if (target === 'world-book-screen') renderWorldBookList();
-            else if (target === 'customize-screen') renderCustomizeForm();
+            if (target === 'customize-screen') renderCustomizeForm();
             else if (target === 'tutorial-screen') renderTutorialContent();
-            else if (target === 'widget-market-screen') {
-                if (typeof renderWidgetMarket === 'function') renderWidgetMarket();
-                switchScreen(target);
-            }
-            else switchScreen(target);
+            else if (target === 'widget-market-screen' && typeof renderWidgetMarket === 'function') renderWidgetMarket();
+            switchScreen(target);
         });
     });
 
@@ -894,13 +896,13 @@ function setupHomeScreen() {
     if (closeWidgetAddModalBtn && widgetAddModal) {
         closeWidgetAddModalBtn.addEventListener('click', () => {
             widgetAddModal.classList.remove('visible');
-        });
+        }, {signal:homeRenderSignal});
         // 点击遮罩层关闭
         widgetAddModal.addEventListener('click', (e) => {
             if (e.target === widgetAddModal) {
                 widgetAddModal.classList.remove('visible');
             }
-        });
+        }, {signal:homeRenderSignal});
     }
 
     const finishEditBtn = document.getElementById('finish-edit-btn');
@@ -937,7 +939,7 @@ function setupHomeScreen() {
     const centralCircle = homeWidgetContainer?.querySelector('.central-circle');
     if (centralCircle) {
         centralCircle.addEventListener('click', () => {
-            if (isHomeEditMode) return;
+            if (isHomeEditMode || centralCircle.closest('[data-id^="custom-widget-"]')) return;
             const modal = document.getElementById('ins-widget-avatar-modal');
             const preview = document.getElementById('ins-widget-avatar-preview');
             const urlInput = document.getElementById('ins-widget-avatar-url-input');
@@ -985,7 +987,7 @@ function setupHomeScreen() {
                  }
             }
         }
-    }, true); 
+    }, {capture:true, signal:homeRenderSignal}); 
     
     const signatureWidget = document.getElementById('widget-signature');
     if (signatureWidget) {
@@ -1018,7 +1020,7 @@ function setupHomeScreen() {
         if (isHomeEditMode && !e.target.closest('.home-grid-layout > div')) {
             exitHomeEditMode();
         }
-    }, true); // 使用捕获阶段以确保最高优先级拦截
+    }, {capture:true, signal:homeRenderSignal}); // 使用捕获阶段以确保最高优先级拦截
 
     homeScreen.querySelectorAll('.satellite-emoji').forEach(span => {
         span.addEventListener('input', (e) => {
@@ -1294,19 +1296,25 @@ async function applyHomeScreenMode(mode) {
     await saveData();
 }
 
+const registeredCustomFonts = new Map();
 async function injectCustomFont(preset) {
     if (!preset || !preset.isCustom || !preset.fontFamily || !preset.id) return;
+    const existing = registeredCustomFonts.get(preset.id);
+    if (existing && existing.family === preset.fontFamily && document.fonts.has(existing.face)) return;
     try {
         const fontData = await dexieDB.customFonts.get(preset.id);
         if (fontData && fontData.file) {
-            const arrayBuffer = await fontData.file.arrayBuffer();
-            const fontFace = new FontFace(preset.fontFamily, arrayBuffer);
-            const loadedFace = await fontFace.load();
-            document.fonts.add(loadedFace);
-            console.log(`Custom font ${preset.fontFamily} injected successfully.`);
+            // Register the source without eagerly reading/parsing every saved font.
+            const url = URL.createObjectURL(fontData.file);
+            try {
+                const fontFace = new FontFace(preset.fontFamily, 'url(' + JSON.stringify(url) + ')', {display:'swap'});
+                document.fonts.add(fontFace);
+                if (existing) { document.fonts.delete(existing.face); URL.revokeObjectURL(existing.url); }
+                registeredCustomFonts.set(preset.id, { family:preset.fontFamily, face:fontFace, url });
+            } catch (error) { URL.revokeObjectURL(url); throw error; }
         }
     } catch (error) {
-        console.error(`Failed to inject custom font ${preset.fontFamily}:`, error);
+        console.error(`Failed to register custom font ${preset.fontFamily}:`, error);
     }
 }
 

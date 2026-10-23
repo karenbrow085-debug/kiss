@@ -55,6 +55,8 @@ const init = async () => {
     document.body.addEventListener('click', e => {
         const navLink = e.target.closest('.app-icon[data-target]');
         if (navLink) {
+            // Desktop icons already have their own navigation/render handler.
+            if (navLink.closest('#home-screen')) return;
             e.preventDefault();
             const target = navLink.getAttribute('data-target');
             if (target === 'music-screen' || target === 'diary-screen' || target === 'piggy-bank-screen') {
@@ -90,6 +92,7 @@ const init = async () => {
     // 初始化各个模块
     setupGlobalRescueGesture(); // 全局救援手势
     setupHomeScreen();
+    await new Promise(resolve => setTimeout(resolve, 0));
     if (typeof renderConsoleLogs === 'function') renderConsoleLogs();
     setupChatListScreen();
     setupContactsScreen();
@@ -98,12 +101,14 @@ const init = async () => {
     if (typeof setupStUnlock === 'function') setupStUnlock();
     if (typeof injectChatRoomHtml === 'function') injectChatRoomHtml();
     setupChatRoom();
+    await new Promise(resolve => setTimeout(resolve, 0));
     if (typeof setupAirDropPanelBtn === 'function') setupAirDropPanelBtn();
     if (typeof injectChatSettingsHtml === 'function') injectChatSettingsHtml();
     if (typeof injectGroupSettingsHtml === 'function') injectGroupSettingsHtml();
     setupChatSettings();
     if (typeof setupChatArchiveSystem === 'function') setupChatArchiveSystem();
     setupApiSettingsApp();
+    await new Promise(resolve => setTimeout(resolve, 0));
     setupWallpaperApp();
     await setupStickerSystem();
     setupPresetFeatures();
@@ -150,12 +155,12 @@ const init = async () => {
         window.GitHubMgr.init();
     }
 
-    // 自动尝试拉取模型列表
+    // Populate models after the magazine has left, away from the startup peak.
     if (window.fetchAndPopulateModels && db.apiSettings && db.apiSettings.url && db.apiSettings.key) {
-        // 稍微延迟一点，确保 API 设置 DOM 已加载
-        setTimeout(() => {
-            window.fetchAndPopulateModels(true);
-        }, 1000);
+        const refreshModels = () => setTimeout(() => window.fetchAndPopulateModels(false), 1500);
+        if (document.getElementById('kiss-magazine-start')) {
+            window.addEventListener('kiss:startup-complete', refreshModels, {once:true});
+        } else refreshModels();
     }
 
     // 检查并请求持久化存储 (抗系统清理)
