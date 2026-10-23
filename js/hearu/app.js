@@ -238,6 +238,7 @@ async function run(fn) {
     await fn();
   } catch (e) {
     if(e.code==="MUSIC_LOGIN_EXPIRED"){profileData=null;playlistData=[];feedData=null;await renderProfile();}
+    window.KissDiagnostics?.record({app:"hearu",feature:"运行",level:"error",phase:"error",title:"操作失败",detail:e.message,stack:e.stack});
     notify(e.message || "暂时无法完成，请重试");
   }
 }
@@ -412,6 +413,7 @@ function pickFavorite(song, index, target = room) {
   };
 }
 function renderSongThought() {
+  if(room?.song?.note)window.KissDiagnostics?.record({app:'hearu',feature:'AI 留言',phase:'cache',title:'读取已保存的选曲留言'});
   view = "thought";
   root.dataset.hearuView = "thought";
   root.scrollTop = 0;
@@ -952,7 +954,7 @@ async function retainedSourceSongs(key, force = false) {
   const target = room;
   const cacheKey = JSON.stringify([String(accountSnapshot()?.uid || 'guest'), String(key)]);
   target.sourceSongCache ||= {};
-  if (!force && target.sourceSongCache[cacheKey]) return structuredClone(target.sourceSongCache[cacheKey]);
+  if (!force && target.sourceSongCache[cacheKey]) {window.KissDiagnostics?.record({app:'hearu',feature:'歌单',phase:'cache',title:'读取已保存的歌单曲目'});return structuredClone(target.sourceSongCache[cacheKey]);}
   const data = await api('/source/' + encodeURIComponent(key) + '/songs');
   target.sourceSongCache[cacheKey] = structuredClone(data);
   await storeRoom(target);
@@ -2548,3 +2550,13 @@ function fitHearuThought(){
 }
 window.visualViewport?.addEventListener('resize',schedulePlayerFit);
 document.fonts?.addEventListener?.('loadingdone',schedulePlayerFit);
+
+// Diagnostic observers: time/progress ticks are deliberately excluded.
+if(window.KissDiagnostics){
+ const d=window.KissDiagnostics;
+ describeSong=d.wrap(describeSong,'hearu','AI 留言','生成选曲留言');
+ generateReply=d.wrap(generateReply,'hearu','聊天','生成聊天回复');
+ sources=d.wrap(sources,'hearu','歌单','读取歌单');
+ let previous='';
+ player.subscribe((s,kind)=>{if(kind==='time')return;const key=JSON.stringify([String(s.song?.songId||''),s.playing,s.loading,s.closed,s.error]);if(key===previous)return;previous=key;d.record({app:'hearu',feature:'播放',level:s.error?'error':'log',phase:s.error?'error':'end',title:s.error?'播放失败':s.closed?'播放器已关闭':s.loading?'正在准备播放':s.playing?'正在播放':'播放已暂停',detail:s.error||''});});
+}
