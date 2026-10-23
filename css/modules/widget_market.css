@@ -206,3 +206,9 @@
     font-size: 11px;
     color: #999;
 }
+
+/* Stable preview space: absolute sandbox content must not collapse its card. */
+.widget-preview-canvas{position:relative;width:100%;flex:none;overflow:hidden;min-height:100px}
+.widget-add-grid{min-height:0;grid-auto-rows:max-content}
+.widget-add-grid .widget-market-card{min-width:0;align-self:start;height:auto!important}
+.widget-preview-canvas .widget-true-scale-wrapper{flex:none}

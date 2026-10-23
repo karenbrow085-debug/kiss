@@ -1,0 +1,3 @@
+/* App text belongs to app gestures; native editing remains available in fields. */
+html,body,body *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+input,textarea,[contenteditable]:not([contenteditable="false"]),[contenteditable]:not([contenteditable="false"]) *{ -webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important }
