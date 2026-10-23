@@ -90,7 +90,27 @@ const ready = new Promise((resolve, reject) => {
 const characters = () => (typeof db !== "undefined" ? db.characters || [] : []);
 const character = (id) => characters().find((c) => String(c.id) === String(id));
 const name = (c) => c?.remarkName || c?.realName || "联系人";
+// Per-role, per-song notes survive refreshed playback metadata and removed queue items.
+function savedSongThought(target, song) {
+  const id = String(song?.songId || '');
+  if (!id || !target) return null;
+  target.songThoughts ||= {};
+  if (target.songThoughts[id]?.note) return target.songThoughts[id];
+  const candidates = [target.song, ...(target.queue || []), ...(target.libraries?.you || []), ...(target.libraries?.ta || []), ...(target.sharedPlaylist?.songs || []), song];
+  const previous = candidates.find(item => String(item?.songId) === id && typeof item.note === 'string' && item.note.trim());
+  if (!previous) return null;
+  return target.songThoughts[id] = { note: previous.note, favoriteLine: previous.favoriteLine || null };
+}
+function withSavedSongThought(target, song) {
+  return song ? { ...song, ...(savedSongThought(target, song) || {}) } : song;
+}
+function preserveSongThoughts(target) {
+  const lists = [target.queue || [], target.libraries?.you || [], target.libraries?.ta || [], target.sharedPlaylist?.songs || []];
+  if (target.song) target.song = withSavedSongThought(target, target.song);
+  for (const list of lists) for (const item of list) Object.assign(item, savedSongThought(target, item) || {});
+}
 function storeRoom(record) {
+  preserveSongThoughts(record);
   if(window.kissCleanupLocked)return Promise.resolve();
   roomsCache.set(record.id, record);
   if(record===room) player.queueChanged();
@@ -176,7 +196,7 @@ function editSharedPlaylist(){
 function rememberSong(target, song, by = "you") {
   target.libraries ||= { you: [], ta: [] };
   const list = (target.libraries[by] ||= []);
-  const item = { ...song, addedBy: by };
+  const item = withSavedSongThought(target, { ...song, addedBy: by });
   const existing = list.findIndex(
     (s) => String(s.songId) === String(song.songId),
   );
@@ -277,7 +297,7 @@ async function openRole(id) {
   room = record;
   listeningCursor=null;
   const activePlayer=player.getState();
-  if(activePlayer.song && !activePlayer.closed){room.song={...activePlayer.song};room.position=player.positionMs();room.lyrics=activePlayer.lyrics || [];}
+  if(activePlayer.song && !activePlayer.closed){room.song=withSavedSongThought(room,activePlayer.song);room.position=player.positionMs();room.lyrics=activePlayer.lyrics || [];}
   if (String(id)!=="__solo__") { room.listed=true; listedIds.add(String(id)); await persist(); }
   tab = room.tab || "listen";
   if (!player.getState().song && room.song) player.warm(room.song,room.position);
@@ -449,6 +469,8 @@ async function describeSong() {
       note: output.note.trim(),
       favoriteLine: pickFavorite(song, output.favoriteLineIndex, target),
     };
+    target.songThoughts ||= {};
+    target.songThoughts[songId] = { ...changes };
     Object.assign(target.song, changes);
     ensureLibraries(target);
     for (const list of [
@@ -843,7 +865,7 @@ player.subscribe((state, kind) => {
     state.song &&
     String(state.song.songId) === String(room.song?.songId)
   ) {
-    room.song = { ...room.song, ...state.song };
+    room.song = withSavedSongThought(room, { ...room.song, ...state.song });
     if (state.lyrics.length) {
       room.lyrics = state.lyrics;
       if (
@@ -881,7 +903,7 @@ async function playSong(s, task) {
   if (!room) throw Error("请先选择联系人");
   if (generations.get(roleId)?.kind === "thought") stopGeneration(roleId);
   if(task?.switchRecorded!==true)recordSongSwitch(room,s,player.getState().song || room.song,task?.turnId);
-  room.song = { ...s, addedBy: s.addedBy || "you" };
+  room.song = withSavedSongThought(room, { ...s, addedBy: s.addedBy || "you" });
   rememberSong(room, room.song, room.song.addedBy);
   room.position = 0;
   room.lyrics = [];
@@ -923,18 +945,39 @@ function search() {
     status();
   root.querySelector("#hu-query").focus();
 }
-async function sources() {
+let openedSourceKey = null;
+function sourceActions() { return '<div class="hu-source-actions"><button data-hu="source-append">全部加入</button><button data-hu="source-replace">用这份歌单播放</button><button data-hu="refresh-source">刷新歌曲</button></div>'; }
+async function retainedSourceSongs(key, force = false) {
+  await ensureRoom();
+  const target = room;
+  const cacheKey = JSON.stringify([String(accountSnapshot()?.uid || 'guest'), String(key)]);
+  target.sourceSongCache ||= {};
+  if (!force && target.sourceSongCache[cacheKey]) return structuredClone(target.sourceSongCache[cacheKey]);
+  const data = await api('/source/' + encodeURIComponent(key) + '/songs');
+  target.sourceSongCache[cacheKey] = structuredClone(data);
+  await storeRoom(target);
+  return data;
+}
+async function sources(force = false) {
+  await ensureRoom();
+  const target = room;
   view = "sources";
   root.dataset.hearuView = "sources";
   root.innerHTML =
     header("我的歌单", "FROM YOUR NETEASE LIBRARY") +
     '<main class="hu-body" id="hu-sources">正在读取…</main>' +
     status();
-  const r = await api("/sources");
-  if (view !== "sources") return;
+  const sourceAccount = String(accountSnapshot()?.uid || 'guest');
+  if (!target.sourceListCache || target.sourceListCache.account !== sourceAccount || force) {
+    const data = await api('/sources');
+    target.sourceListCache = {account:sourceAccount, data};
+    await storeRoom(target);
+  }
+  const r = target.sourceListCache.data;
+  if (target !== room || view !== "sources") return;
   const sourceList = [...(r.specials || []), ...(r.playlists || [])];
   root.querySelector("#hu-sources").innerHTML =
-    `<form id="hu-playlist-import" class="hu-playlist-import"><input id="hu-playlist-id" placeholder="粘贴网易云歌单链接或 ID" aria-label="歌单链接或 ID"><button>打开</button></form>` +
+    `<button data-hu="refresh-sources">刷新歌单</button><form id="hu-playlist-import" class="hu-playlist-import"><input id="hu-playlist-id" placeholder="粘贴网易云歌单链接或 ID" aria-label="歌单链接或 ID"><button>打开</button></form>` +
       sourceList
         .map(
           (s) =>
@@ -1699,17 +1742,26 @@ root.addEventListener("click", (e) => {
     if (b.dataset.source) {
       const key = b.dataset.source;
       notify("正在读取完整歌单…");
-      const r = await api("/source/" + encodeURIComponent(key) + "/songs");
+      const r = await retainedSourceSongs(key);
+      openedSourceKey = key;
       if (!["sources","profile","feed"].includes(view)) return;
       results = r.songs || [];
       view="sources";root.dataset.hearuView="sources";
       root.innerHTML=header("歌单","YOUR MUSIC COLLECTION")+'<main class="hu-body" id="hu-sources"></main>'+status();
       root.querySelector("#hu-sources").innerHTML =
-        `<div class="hu-source-actions"><button data-hu="source-append">全部加入</button><button data-hu="source-replace">用这份歌单播放</button></div>` +
+        sourceActions() +
         songRows(results);
       return;
     }
     switch (b.dataset.hu) {
+      case 'refresh-sources': await sources(true); break;
+      case 'refresh-source': {
+        if (!openedSourceKey) break;
+        const data = await retainedSourceSongs(openedSourceKey, true);
+        results = data.songs || [];
+        root.querySelector('#hu-sources').innerHTML = sourceActions() + songRows(results);
+        break;
+      }
       case "profile-settings": profileSettings(); break;
       case "player-menu": modal(`<div class="hu-modal-kicker">OUR FREQUENCY</div><h2>同频时刻。</h2><button class="hu-setting-row" data-hu="listening-journal"><span>一起听的记录</span></button><button class="hu-setting-row" data-hu="song-thought"><span>TA 的选曲留言</span></button>`); break;
       case "listening-journal": listeningJournal(); break;
@@ -2101,7 +2153,7 @@ function updateMini(el){const s=player.getState();const signature=JSON.stringify
 function decorate(){if(root.hidden)return;if(view!=='room')delete root.dataset.hearuTab;if(!root.querySelector('.hu-bottom')){const page=selectedPage();globalPage=page;const nav=document.createElement('div');nav.innerHTML=bottomHtml();root.append(nav.firstElementChild);if(!['listen','room','lyrics','thought'].includes(view)){const mini=document.createElement('div');mini.className='hu-mini';root.insertBefore(mini,root.querySelector('.hu-bottom'));updateMini(mini);}}}
 new MutationObserver(decorate).observe(root,{childList:true});
 function nextLocalSong(){if(!room || !room.queue.length)return null;if(room.repeat)return room.song;const i=room.queue.findIndex(s=>s.itemId ? s.itemId===room.song?.itemId : String(s.songId)===String(room.song?.songId));if(room.shuffle){const list=room.queue.filter(s=>String(s.songId)!==String(room.song?.songId));if(!list.length)return room.queue[0];room.shuffleNext ||= list[Math.floor(Math.random()*list.length)].songId;return list.find(s=>s.songId===room.shuffleNext)||list[0];}return room.queue[(i+1)%room.queue.length];}
-async function ensureRoom(){if(!room){const last=localStorage.getItem('hearu.lastRole.v2'),id=last && character(last) && listedIds.has(last)?last:'__solo__';room=await readRoom(id);roleId=id;const active=player.getState();if(active.song && !active.closed){room.song={...active.song};room.lyrics=active.lyrics;room.position=player.positionMs();}else if(room.song)player.warm(room.song,room.position);}return room;}
+async function ensureRoom(){if(!room){const last=localStorage.getItem('hearu.lastRole.v2'),id=last && character(last) && listedIds.has(last)?last:'__solo__';room=await readRoom(id);roleId=id;const active=player.getState();if(active.song && !active.closed){room.song=withSavedSongThought(room,active.song);room.lyrics=active.lyrics;room.position=player.positionMs();}else if(room.song)player.warm(room.song,room.position);}return room;}
 function liveListeningHtml(){return `<div class="hu-live-floating">${room.liveHidden?'<button class="hu-live-restore" data-hu="show-live">NOW LISTENING</button>':'<section class="hu-live-listening" aria-label="共听播放条"></section><button class="hu-live-hide" data-hu="hide-live" aria-label="隐藏播放条">×</button>'}</div>`;}
 function updateLiveListening(el){
   const s=player.getState(),song=s.song || room?.song,lines=s.lyrics?.length?s.lyrics:lyricsFor(),position=player.positionMs(),index=lines.findLastIndex(l=>l.timeMs<=position);
@@ -2486,6 +2538,7 @@ function fitHearuThought(){
  if(!body||!sheet||!body.clientHeight)return;
  const style=getComputedStyle(body);
  const available=body.clientHeight-(parseFloat(style.paddingTop)||0)-(parseFloat(style.paddingBottom)||0);
+ sheet.style.setProperty('--hu-thought-space', available + 'px');
  const natural=Math.max(sheet.offsetHeight,sheet.scrollHeight);
  if(available<=0||natural<=0)return;
  // Layout dimensions ignore transforms, so repeated fitting never compounds.
@@ -2496,3 +2549,17 @@ function fitHearuThought(){
 }
 window.visualViewport?.addEventListener('resize',schedulePlayerFit);
 document.fonts?.addEventListener?.('loadingdone',schedulePlayerFit);
+
+repairStyle.textContent += `
+#hearu-app .hu-thought-sheet{display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-height:var(--hu-thought-space,100%)}
+#hearu-app .hu-thought-sheet .hu-thought-heading h2{font-size:32px;margin:8px 0 18px}
+#hearu-app .hu-thought-sheet .hu-thought-track>img{width:64px;height:64px}
+#hearu-app .hu-thought-sheet .hu-thought-track strong{font-size:18px}
+#hearu-app .hu-thought-sheet .hu-thought-owner{margin:8px 0;font-size:12px}
+#hearu-app .hu-thought-sheet .hu-thought-owner>img{width:30px;height:30px}
+#hearu-app .hu-thought-sheet .hu-thought-note{margin:0}
+#hearu-app .hu-thought-sheet .hu-thought-note>p{font-size:22px;line-height:1.6;margin:10px 0 0}
+#hearu-app .hu-thought-sheet .hu-thought-quote strong{font-size:20px;line-height:1.6}
+#hearu-app .hu-thought-sheet .hu-thought-actions{padding:10px 0 0}
+#hearu-app .hu-thought-sheet .hu-thought-foot{margin:0;font-size:9px}
+`;
