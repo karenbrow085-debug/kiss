@@ -363,7 +363,7 @@ function populateApiSelect() {
     });
 }
 
-function saveCurrentApiAsPreset() {
+async function saveCurrentApiAsPreset() {
     const apiKeyEl = document.querySelector('#api-key');
     const apiUrlEl = document.querySelector('#api-url');
     const providerEl = document.querySelector('#api-provider');
@@ -380,7 +380,7 @@ function saveCurrentApiAsPreset() {
         temperature: tempSlider ? parseFloat(tempSlider.value) : 1.0
     };
     
-    let name = prompt('为该 API 预设填写名称（会覆盖同名预设）：');
+    let name = await window.KissArchiveUI.prompt('api', '为该 API 预设填写名称（会覆盖同名预设）：');
     if (!name) return;
     const presets = _getApiPresets();
     const idx = presets.findIndex(p => p.name === name);
@@ -460,8 +460,8 @@ function openApiManageModal() {
         const renameBtn = document.createElement('button');
         renameBtn.className = 'btn';
         renameBtn.textContent = '重命名';
-        renameBtn.onclick = function(){
-            const newName = prompt('输入新名称：', p.name);
+        renameBtn.onclick = async function(){
+            const newName = await window.KissArchiveUI.prompt('api', '输入新名称：', p.name);
             if (!newName) return;
             const all = _getApiPresets();
             all[idx].name = newName;
@@ -473,7 +473,7 @@ function openApiManageModal() {
         const delBtn = document.createElement('button');
         delBtn.className = 'btn';
         delBtn.textContent = '删除';
-        delBtn.onclick = function(){ if(!confirm('确定删除 "'+p.name+'" ?')) return; const all=_getApiPresets(); all.splice(idx,1); _saveApiPresets(all); openApiManageModal(); populateApiSelect(); };
+        delBtn.onclick = async function(){ if(!await window.KissArchiveUI.confirm('api', '确定删除 "'+p.name+'" ?')) return; const all=_getApiPresets(); all.splice(idx,1); _saveApiPresets(all); openApiManageModal(); populateApiSelect(); };
 
         btns.appendChild(applyBtn); btns.appendChild(renameBtn); btns.appendChild(delBtn);
 
@@ -499,7 +499,7 @@ function importApiPresets() {
         const f = e.target.files[0];
         if (!f) return;
         const r = new FileReader();
-        r.onload = function(){ try { const data = JSON.parse(r.result); if (Array.isArray(data)) { _saveApiPresets(data); populateApiSelect(); openApiManageModal(); } else alert('文件格式不正确'); } catch(e){ alert('导入失败：'+e.message); } };
+        r.onload = function(){ try { const data = JSON.parse(r.result); if (Array.isArray(data)) { _saveApiPresets(data); populateApiSelect(); openApiManageModal(); } else window.KissArchiveUI.alert('api', '文件格式不正确'); } catch(e){ window.KissArchiveUI.alert('api', '导入失败：'+e.message); } };
         r.readAsText(f);
     };
     inp.click();

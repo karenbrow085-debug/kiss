@@ -357,7 +357,7 @@ function renderTutorialContent() {
         const file = event.target.files[0];
         if (!file) return;
 
-        if(confirm('此操作将覆盖当前所有聊天记录和设置。此操作不可撤销。确定要继续吗？')){
+        if(await window.KissArchiveUI.confirm('tutorial', '此操作将覆盖当前所有聊天记录和设置。此操作不可撤销。确定要继续吗？')){
             try {
                 showToast('正在导入数据，请稍候...');
 
@@ -764,7 +764,7 @@ const GitHubMgr = {
     
     testUpload: async () => {
         GitHubMgr.saveConfig(); // 强制保存当前输入框的值
-        if(!GitHubMgr.config.token || !GitHubMgr.config.repo) return alert('请先填写 Token 和 仓库路径');
+        if(!GitHubMgr.config.token || !GitHubMgr.config.repo) return window.KissArchiveUI.alert('tutorial', '请先填写 Token 和 仓库路径');
         showToast('开始备份...');
         const btn = event.target;
         const originalText = btn.innerText;
@@ -880,19 +880,20 @@ const GitHubMgr = {
             const res = await fetch(url, { headers: { 'Authorization': `token ${GitHubMgr.config.token}` } });
             if(res.ok) {
                 const data = await res.json();
-                alert(`连接成功！\n仓库: ${data.full_name}\n私有: ${data.private}\n说明: 配置有效`);
+                window.KissArchiveUI.alert('tutorial', `连接成功！\n仓库: ${data.full_name}\n私有: ${data.private}\n说明: 配置有效`);
             } else {
-                alert('连接失败，请检查 Token 或 仓库路径');
+                window.KissArchiveUI.alert('tutorial', '连接失败，请检查 Token 或 仓库路径');
             }
-        } catch(e) { alert('网络错误: ' + e.message); }
+        } catch(e) { window.KissArchiveUI.alert('tutorial', '网络错误: ' + e.message); }
     },
     
     restoreLatest: async () => {
-        if(!GitHubMgr.config.token || !GitHubMgr.config.repo) return alert('请先在配置中填写 Token 和 仓库路径');
-        if(!confirm('⚠️ 警告：这将下载最新的自动备份并覆盖当前所有数据！\n此操作不可撤销！\n\n确定要继续吗？')) return;
+        const restoreButton = document.getElementById('gh-restore-btn');
+        if(!GitHubMgr.config.token || !GitHubMgr.config.repo) return window.KissArchiveUI.alert('tutorial', '请先在配置中填写 Token 和 仓库路径');
+        if(!await window.KissArchiveUI.confirm('tutorial', '⚠️ 警告：这将下载最新的自动备份并覆盖当前所有数据！\n此操作不可撤销！\n\n确定要继续吗？')) return;
 
         showToast('正在连接 GitHub...');
-        const btn = event.target;
+        const btn = restoreButton;
         const originalText = btn.innerText;
         btn.innerText = '恢复中...';
         btn.style.pointerEvents = 'none';
@@ -964,7 +965,7 @@ const GitHubMgr = {
 
         } catch(e) {
             console.error(e);
-            alert('恢复失败: ' + e.message);
+            window.KissArchiveUI.alert('tutorial', '恢复失败: ' + e.message);
             btn.innerText = originalText;
             btn.style.pointerEvents = 'auto';
         }
