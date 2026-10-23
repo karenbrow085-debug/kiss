@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 
 <head>
+    
     <meta charset="UTF-8">
+    <script src="js/modules/console.js?v=20261023-console-3"></script>
     <title>Kiss</title>
     <meta name="theme-color" content="#ffffff"/>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -57,7 +59,6 @@
     <link rel="stylesheet" href="css/modules/video_call.css">
     <link rel="stylesheet" href="css/modules/storage.css">
     <link rel="stylesheet" href="css/workshop.css">
-    <link rel="stylesheet" href="css/modules/console.css">
     <link rel="stylesheet" href="css/modules/community.css">
     <link rel="stylesheet" href="css/modules/reader.css">
 
@@ -84,6 +85,7 @@
 <link rel="stylesheet" href="css/modules/interaction.css?v=20261023-four-fixes-1">
 <script defer src="js/modules/interaction.js?v=20261023-four-fixes-1"></script>
     <link rel="stylesheet" href="css/modules/worldbook.css?v=20261023-wb-compact-2">
+    <link rel="stylesheet" href="css/modules/console.css?v=20261023-console-3">
 </head>
 
 <body>
@@ -1018,46 +1020,7 @@
         <header class="app-header"><button class="back-btn" data-target="home-screen">‹</button><div class="title-container"><h1 class="title">教程</h1></div><div class="placeholder"></div></header><main class="content" id="tutorial-content-area"></main>
     </div>
     
-    <div id="console-screen" class="screen">
-        <div class="edge-console-container">
-            <!-- Edge 风格标签栏 -->
-            <div class="edge-tab-bar">
-                <div class="edge-tab active">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                    开发者控制台
-                </div>
-                <div class="edge-window-controls">
-                    <button class="edge-control-btn close-btn back-btn" data-target="home-screen">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Edge 风格工具栏 -->
-            <div class="edge-toolbar">
-                <div class="edge-toolbar-left">
-                    <div class="console-filters">
-                        <button class="console-filter-btn active" data-filter="all">全部</button>
-                        <button class="console-filter-btn" data-filter="log">日志</button>
-                        <button class="console-filter-btn" data-filter="error">报错</button>
-                    </div>
-                </div>
-                <div class="edge-toolbar-right">
-                    <button class="edge-action-btn" id="console-theme-btn" title="切换主题">
-                        <svg class="icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                        <svg class="icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                    </button>
-                    <button class="edge-action-btn" id="console-clear-btn" title="清空日志">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        <span class="edge-btn-text">清空</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 日志内容区 -->
-            <div id="console-log-container"></div>
-        </div>
-    </div>
+    <div id="console-screen" class="screen"><div id="kc-root"></div></div>
     <div id="toast-notification" class="toast">
         <img class="toast-avatar" src="" alt="avatar">
         <div class="toast-content">
@@ -2793,7 +2756,6 @@
 <script src="js/modules/image-workshop/history.js"></script>
 <script src="js/modules/image-workshop/char.js"></script>
 <script src="js/workshop.js"></script> <!-- 绘图工坊模块 -->
-<script src="js/modules/console.js"></script> <!-- 控制台模块 -->
 <script src="js/modules/community.js"></script> <!-- 社区模块 -->
 <script src="js/modules/st_unlock.js"></script> <!-- 酒馆解锁模块 -->
 <script src="js/modules/reader_parser.js"></script> <!-- TXT解析模块 -->
@@ -2806,12 +2768,12 @@
 <script src="js/modules/voice-service.js?v=20261010-voice-worldbook-1"></script>
 <script src="js/modules/voice-script.js?v=20261010-voice-worldbook-1"></script>
 <script src="js/modules/voice-settings.js?v=20261023-book-scroll-1"></script>
-<script src="js/morrow/desktop.js?v=20261022-keepsake-envelope"></script>
+<script src="js/morrow/desktop.js?v=20261023-console-3"></script>
 <script src="js/main.js?v=20261023-startup-performance-1"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
 <script src="js/modules/app-data.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/kiss-tools.js?v=20261022-safe-backup-1"></script>
-<script type="module" src="js/hearu/app.js?v=20261023-thought-restore-1"></script>
-<script src="forum_app.js?v=20261022-dm-connected"></script>
+<script type="module" src="js/hearu/app.js?v=20261023-console-3"></script>
+<script src="forum_app.js?v=20261023-console-3"></script>
 <script src="js/mcp/icons.js?v=10-archive-ui"></script>
 <script src="js/mcp/view.js?v=20261014-app-api-1"></script>
 <script src="js/mcp/client.js?v=4"></script>

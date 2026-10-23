@@ -7884,4 +7884,11 @@ function monoDMRenderReplySpace(page){const footer=page.querySelector('.forum-dm
 function monoDMReplyRenderAvatarAlign(page){page.querySelectorAll('.forum-dm-message.other').forEach(row=>{const body=row.querySelector('.mono-dm-body'),translation=body?.querySelector('.mono-message-translation');row.style.setProperty('--mono-dm-avatar-offset',translation?Math.max(0,body.getBoundingClientRect().bottom-body.querySelector('.forum-dm-msg-bubble').getBoundingClientRect().bottom)+'px':'0px')})}
 Object.assign(ForumApp,{forumRenderChat,forumParseReply});
 
+// Central diagnostics observes metadata only; original prompts and results stay untouched.
+if(window.KissDiagnostics){const d=window.KissDiagnostics;
+ generateForumPosts=d.wrap(generateForumPosts,'mono','帖子生成','生成帖子');ForumApp.generateForumPosts=generateForumPosts;
+ forumGenerateFor=d.wrap(forumGenerateFor,'mono','私信','生成私信回复');
+ generateInteractionsForNewPost=d.wrap(generateInteractionsForNewPost,'mono','互动','生成帖子互动');
+ monoTranslatePost=d.wrap(monoTranslatePost,'mono','翻译','翻译帖子');ForumApp.monoTranslatePost=monoTranslatePost;
+}
 })();
