@@ -94,15 +94,33 @@ async function deleteSelectedWorldBooks(){
         exitWorldBookMultiSelectMode();showToast('已删除');
     }catch(e){showToast('删除失败：'+e.message);}finally{wbBusy=false;updateWorldBookSelectCount();}
 }
+function wbEditorFolderOptions(parentId){
+    const select=wbEl('world-book-category');select.replaceChildren();
+    const add=(id,label)=>{const o=document.createElement('option');o.value=wbKey(id);o.textContent=label;select.append(o);};
+    add(null,'世界书（根目录）');
+    const folders=db.worldBooks.filter(b=>b.type==='folder');
+    for(const f of folders){
+        const path=[f.name],seen=new Set([wbKey(f.id)]);let p=f.parentId;
+        while(p!=null){if(seen.has(wbKey(p)))break;seen.add(wbKey(p));const ancestor=wbFind(p);if(!ancestor||ancestor.type!=='folder')break;path.unshift(ancestor.name);p=ancestor.parentId;}
+        add(f.id,path.join(' / '));
+    }
+    select.value=parentId==null?'':wbKey(parentId);
+    if(select.selectedIndex<0){add(parentId,'原文件夹已不存在（请选择）');select.value=wbKey(parentId);}
+    wbUpdateEditorFolderLabel();
+}
+function wbUpdateEditorFolderLabel(){
+    const select=wbEl('world-book-category');
+    wbEl('wb-editor-folder').textContent=select.value===''?'世界书':wbFind(select.value)?.name||'请选择文件夹';
+}
 function wbOpenEditor(item=null){
     if(wbBusy)return;wbEditToken++;currentEditingWorldBookId=item?.id??null;
     wbEl('edit-world-book-form').reset();wbEl('world-book-id').value=item?.id??'';
-    wbEl('world-book-name').value=item?.name||'';wbEl('world-book-category').value=item?.category||'';wbEl('world-book-content').value=item?.content||'';
+    wbEl('world-book-name').value=item?.name||'';wbEl('world-book-content').value=item?.content||'';
     wbEl('world-book-depth').value=item?.depth??100;
     const p=['before','after','guidelines','limit_break'].includes(item?.position)?item.position:'before';
     document.querySelector(`input[name="world-book-position"][value="${p}"]`).checked=true;
     wbEl('edit-world-book-title').textContent=item?'编辑条目':'新建条目';
-    wbEl('wb-editor-folder').textContent=(item?(item.parentId!=null?wbFind(item.parentId)?.name:'世界书'):wbFolder().name)||'世界书';
+    wbEditorFolderOptions(item?item.parentId:wbFolder().id);
     wbUpdateCount();switchScreen('edit-world-book-screen');
 }
 function wbUpdateCount(){wbEl('wb-character-count').textContent=wbEl('world-book-content').value.length+' 字';}
@@ -112,7 +130,10 @@ async function wbSaveEditor(e){
     if(!name||!content)return showToast('名称和内容不能为空');if(!Number.isInteger(depth)||depth<1||depth>999)return showToast('注入深度须为 1–999');
     const item=currentEditingWorldBookId==null?null:wbFind(currentEditingWorldBookId);
     if(currentEditingWorldBookId!=null&&!item)return showToast('条目已不存在');
-    const changes={name,content,category:wbEl('world-book-category').value.trim(),position:document.querySelector('input[name="world-book-position"]:checked').value,depth,updatedAt:Date.now()};
+    const selectedFolder=wbEl('world-book-category').value;
+    const destination=selectedFolder===''?null:wbFind(selectedFolder);
+    if(selectedFolder!==''&&destination?.type!=='folder')return showToast('文件夹已不存在，请重新选择');
+    const changes={name,content,parentId:destination?.id??null,category:destination?.name||'',position:document.querySelector('input[name="world-book-position"]:checked').value,depth,updatedAt:Date.now()};
     const before=item?{...item}:null,created=item||{id:wbId(),type:'entry',parentId:wbFolder().id};
     wbBusy=true;document.querySelectorAll('#edit-world-book-form button[type="submit"],.wb-save-top').forEach(b=>b.disabled=true);
     try{Object.assign(created,changes);if(!item)db.worldBooks.push(created);await saveData();wbEditToken++;renderWorldBookList();switchScreen('world-book-screen');showToast('条目已保存');}
@@ -229,6 +250,7 @@ async function setupWorldBookApp(){
     const file=document.createElement('input');file.type='file';file.id='wb-file-import';file.accept='.txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document';file.hidden=true;screen.append(file);file.addEventListener('change',()=>{const target=wbImportTarget;wbImportTarget=null;wbImportFiles([...file.files],target);});
     wbEl('wb-search').addEventListener('input',renderWorldBookList);
     wbEl('world-book-content').addEventListener('input',wbUpdateCount);
+    wbEl('world-book-category').addEventListener('change',wbUpdateEditorFolderLabel);
     wbEl('edit-world-book-form').addEventListener('submit',wbSaveEditor);
     wbEl('wb-select-start').onclick=()=>enterWorldBookMultiSelectMode();
     wbEl('delete-selected-world-books-btn').addEventListener('click',deleteSelectedWorldBooks);
