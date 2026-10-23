@@ -160,7 +160,7 @@ function dialog(title,content){const el=document.createElement('div');el.classNa
 function chooseApps(){const d=dialog('按应用查看',`<div class="kc-app-dialog">${['all',...Object.keys(apps)].map(id=>`<button data-choose="${id}">${icon(apps[id]?.[1]||'grid')}<span>${e(apps[id]?.[0]||'全部应用')}</span><small>${logs.filter(r=>id==='all'||r.app===id).length}</small></button>`).join('')}</div>`);d.el.addEventListener('click',ev=>{const b=ev.target.closest('[data-choose]');if(!b)return;state.app=b.dataset.choose;state.view='app';state.feature=state.level='all';state.query='';state.limit=60;d.close();paint();});}
 function mount(){installHooks();hookToast();syncMcp();if(child)return;const screen=document.getElementById('console-screen');if(!screen)return;ui=document.getElementById('kc-root');if(!ui)return;
  ui.addEventListener('click',ev=>{const b=ev.target.closest('button');
- if(b?.hasAttribute('data-close')||b?.hasAttribute('data-back')&&state.view==='home'){ev.stopPropagation();if(typeof g.switchScreen==='function')g.switchScreen('home-screen');return;}
+ if(b?.hasAttribute('data-close')||b?.hasAttribute('data-back')&&state.view==='home'){ev.stopPropagation();if(typeof switchScreen==='function')switchScreen('home-screen');return;}
  if(b?.hasAttribute('data-back')){state.view=state.view==='detail'?(state.app==='all'?'home':'app'):'home';if(state.view==='home'){state.app='all';state.query='';state.feature=state.level='all';}paint();return;}
  if(b?.hasAttribute('data-apps'))return chooseApps();
  if(b?.dataset.app||b?.hasAttribute('data-all')){state.app=b.dataset.app||'all';state.view='app';state.feature=state.level='all';state.query='';state.limit=60;paint();return;}

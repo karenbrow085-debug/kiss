@@ -63,6 +63,12 @@ function generatePrivateSystemPrompt(character) {
         
         prompt += `14.隐藏指令(不显示给用户，但必须回复以触发状态变化):\n  - 接收礼物: [${character.realName}已接收礼物]\n  - 接收/退回转账: [${character.realName}接收${character.myName}的转账] 或 [${character.realName}退回${character.myName}的转账]\n  - 同意/拒绝代付: [${character.realName}同意了${character.myName}的代付请求] 或 [${character.realName}拒绝了${character.myName}的代付请求]\n`;
         
+        if (character.videoCallEnabled) {
+            prompt += `15.发起视频通话: [${character.realName}向${character.myName}发起了视频通话]\n`;
+            prompt += `16.发起语音通话: [${character.realName}向${character.myName}发起了语音通话]\n`;
+            prompt += `  - 根据当前对话和角色意愿，可主动使用以上指令邀请通话；只说“给你打电话”不会触发来电。无需每轮发起。\n`;
+        }
+        
         prompt += `</消息格式库>\n\n`;
         
         prompt += `<参考资料>\n`;
