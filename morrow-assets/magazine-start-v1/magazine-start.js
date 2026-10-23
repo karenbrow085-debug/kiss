@@ -94,7 +94,10 @@
   function animatePaper() {
     const width = book.clientWidth;
     const height = book.clientHeight;
-    const count = 40;
+    // Mobile WebViews can rasterize each face as a full viewport layer.
+    // Keep the curved turn while bounding duplicate page surfaces.
+    const mobile = window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const count = mobile || (navigator.deviceMemory && navigator.deviceMemory <= 4) ? 8 : 16;
     const stripWidth = width / count;
     const frontSource = turn.querySelector('.qm-front');
     const backSource = turn.querySelector('.qm-back');
