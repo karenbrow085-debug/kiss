@@ -2538,7 +2538,6 @@ function fitHearuThought(){
  if(!body||!sheet||!body.clientHeight)return;
  const style=getComputedStyle(body);
  const available=body.clientHeight-(parseFloat(style.paddingTop)||0)-(parseFloat(style.paddingBottom)||0);
- sheet.style.setProperty('--hu-thought-space', available + 'px');
  const natural=Math.max(sheet.offsetHeight,sheet.scrollHeight);
  if(available<=0||natural<=0)return;
  // Layout dimensions ignore transforms, so repeated fitting never compounds.
@@ -2549,17 +2548,3 @@ function fitHearuThought(){
 }
 window.visualViewport?.addEventListener('resize',schedulePlayerFit);
 document.fonts?.addEventListener?.('loadingdone',schedulePlayerFit);
-
-repairStyle.textContent += `
-#hearu-app .hu-thought-sheet{display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-height:var(--hu-thought-space,100%)}
-#hearu-app .hu-thought-sheet .hu-thought-heading h2{font-size:32px;margin:8px 0 18px}
-#hearu-app .hu-thought-sheet .hu-thought-track>img{width:64px;height:64px}
-#hearu-app .hu-thought-sheet .hu-thought-track strong{font-size:18px}
-#hearu-app .hu-thought-sheet .hu-thought-owner{margin:8px 0;font-size:12px}
-#hearu-app .hu-thought-sheet .hu-thought-owner>img{width:30px;height:30px}
-#hearu-app .hu-thought-sheet .hu-thought-note{margin:0}
-#hearu-app .hu-thought-sheet .hu-thought-note>p{font-size:22px;line-height:1.6;margin:10px 0 0}
-#hearu-app .hu-thought-sheet .hu-thought-quote strong{font-size:20px;line-height:1.6}
-#hearu-app .hu-thought-sheet .hu-thought-actions{padding:10px 0 0}
-#hearu-app .hu-thought-sheet .hu-thought-foot{margin:0;font-size:9px}
-`;
