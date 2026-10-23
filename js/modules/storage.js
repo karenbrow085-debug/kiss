@@ -12,6 +12,62 @@ const STORAGE_CATEGORIES = [
 ];
 
 let currentStorageSizes = {};
+
+// Browser image caches are disposable; persisted image messages are user data.
+function setupCleanImageCache() {
+    const button = document.getElementById('open-clean-cache-btn');
+    if (!button || button.dataset.cacheBound) return;
+    button.dataset.cacheBound = 'true';
+    button.addEventListener('click', () => {
+        const modal = document.getElementById('clean-image-cache-modal');
+        if (!modal || modal.dataset.cleaning === 'true') return;
+        modal.querySelector('.modal-window').innerHTML = `<h3>清理图片缓存</h3>
+            <p style="font-size:14px;line-height:1.6">仅清理浏览器中可重新下载的图片缓存，聊天图片、相册、表情包和备份会保留。之后查看图片可能需要重新联网。</p>
+            <p data-cache-status role="status"></p>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button type="button" class="btn btn-danger" data-cache-confirm style="flex:1">确认清理</button>
+              <button type="button" class="btn btn-neutral" data-cache-cancel style="flex:1">取消</button>
+            </div>`;
+        modal.classList.add('visible');
+        const confirmButton = modal.querySelector('[data-cache-confirm]');
+        const cancelButton = modal.querySelector('[data-cache-cancel]');
+        const status = modal.querySelector('[data-cache-status]');
+        cancelButton.onclick = () => modal.classList.remove('visible');
+        if (!('caches' in window)) {
+            status.textContent = '当前浏览器不支持读取图片缓存。';
+            confirmButton.disabled = true;
+        }
+        confirmButton.onclick = async () => {
+            if (modal.dataset.cleaning === 'true') return;
+            modal.dataset.cleaning = 'true';
+            confirmButton.disabled = cancelButton.disabled = true;
+            status.textContent = '正在清理图片缓存…';
+            let removed = 0, scanned = 0;
+            try {
+                for (const name of await caches.keys()) {
+                    const cache = await caches.open(name);
+                    for (const request of await cache.keys()) {
+                        const response = await cache.match(request);
+                        if (response && /^image\//i.test(response.headers.get('content-type') || '')) {
+                            if (await cache.delete(request)) removed++;
+                        }
+                        if (++scanned % 20 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+                status.textContent = removed ? `已清理 ${removed} 项图片缓存。` : '没有可清理的图片缓存。';
+                window.KissDiagnostics?.record({app:'data',feature:'图片缓存',title:'图片缓存清理完成',detail:`已清理 ${removed} 项；保留持久化图片数据。`});
+                cancelButton.textContent = '完成';
+            } catch (error) {
+                status.textContent = `清理未完成，已清理 ${removed} 项。${error.message}`;
+                console.error('图片缓存清理失败', error);
+                confirmButton.disabled = false;
+            } finally {
+                modal.dataset.cleaning = 'false';
+                cancelButton.disabled = false;
+            }
+        };
+    });
+}
 let selectedModules = {
     chats: true,
     contacts: true,

@@ -35,10 +35,20 @@ function safeObject(v,depth=0,seen=new WeakSet()){
   else try{out[key]=safeObject(v[key],depth+1,seen);}catch{out[key]='[无法读取]';}
  }return out;
 }
-function format(args){return args.map(v=>{if(typeof v!=='string')return JSON.stringify(safeObject(v));if(v.length>6000)return '[长文本日志已省略]';if(/(?:messages|system[_ ]?prompt|prompt|contents|api[_-]?key|authorization)\s*[\"':=]/i.test(v))return '[结构化请求或配置内容已隐藏]';try{if(/^[{[]/.test(v.trim()))return JSON.stringify(safeObject(JSON.parse(v)));}catch{}return redact(v,1200);}).join(' ').slice(0,2000);}
-function fromSource(s){
+function format(args){return args.map(v=>{if(v instanceof Error)return v.name+': '+redact(v.message);if(typeof v!=='string')return JSON.stringify(safeObject(v));if(v.length>6000)return '[长文本日志已省略]';if(/(?:messages|system[_ ]?prompt|prompt|contents|api[_-]?key|authorization)\s*[\"':=]/i.test(v))return '[结构化请求或配置内容已隐藏]';try{if(/^[{[]/.test(v.trim()))return JSON.stringify(safeObject(JSON.parse(v)));}catch{}return redact(v,1200);}).join(' ').slice(0,2000);}
+function classifySource(s){
  if(/\/hearu\//i.test(s))return 'hearu';if(/Morrow\.html|\/morrow\//i.test(s))return 'morrow';if(/forum_app|MONO|\[论坛\]/i.test(s))return 'mono';if(/\/mcp\/|KissMCP|\[MCP\]/i.test(s))return 'mcp';
  if(/voice-|voiceService|音色|语音API|fetchAndPopulateModels/i.test(s))return 'voice';if(/worldbook|wb[A-Z]|世界书/i.test(s))return 'worldbook';if(/widget|小组件|setupHomeScreen/i.test(s))return 'widgets';if(/backup|app-data|导入备份|备份/i.test(s))return 'data';if(/image-workshop|workshop|drawing|绘图|生图/i.test(s))return 'workshop';if(/peek|Moments|查手机|动态生成/i.test(s))return 'peek';if(/journal|日记/i.test(s))return 'journal';if(/ShopSystem|shop|商店/i.test(s))return 'shop';if(/status_history|statusPanel|状态面板/i.test(s))return 'status';if(/customize|settings_presets|个性化/i.test(s))return 'personalize';if(/chat_ai|\/chat\.|chat_features|chat_ops|chat_archives/i.test(s))return 'chat';return null;
+}
+// Attribute stacks to their nearest application frame, not a boot caller further down.
+function fromSource(s){
+ const lines=String(s||'').split('\n'),frames=lines.filter(line=>/\bat\s|@https?:/.test(line));
+ for(const line of frames){
+  if(/\/modules\/console\.js/.test(line))continue;
+  const app=classifySource(line);if(app)return app;
+  if(/\/js\/main\.js/.test(line))return 'system';
+ }
+ return classifySource(frames.length?lines[0]:String(s||''));
 }
 function activeApp(){
  if(child)return 'morrow';
@@ -80,8 +90,12 @@ function wrap(fn,app,feature,title,options={}){
  };Object.defineProperty(wrapped,'__kissDiagnostic',{value:true});return wrapped;
 }
 const api=g.KissDiagnostics={record,update,wrap,redact,installHooks,snapshot:()=>logs.map(publicRow),clear:()=>{logs=[];persist();changed();}};
-for(const level of ['log','warn','error'])console[level]=function(...args){try{const stack=new Error().stack||'',message=format(args),err=args.find(v=>v instanceof Error);record({app:infer(stack+' '+message),feature:featureOf(stack+' '+message),level,title:err?err.name+': '+err.message:message.split('\n')[0].slice(0,150),detail:message,stack:err?.stack||''});}catch{}return native[level](...args);};
-g.addEventListener('error',ev=>{if(ev.target!==g&&ev.target!==document){const tag=ev.target?.tagName;if(!['SCRIPT','LINK','IMG','AUDIO','VIDEO'].includes(tag))return;const src=ev.target.src||ev.target.href||'';record({app:infer(src),feature:'资源加载',level:'error',title:'资源加载失败',detail:redact(src,200)});return;}const err=ev.error;record({app:infer(err?.stack||ev.filename||''),feature:'脚本错误',level:'error',title:err?.name||'Error',detail:err?.message||ev.message,stack:err?.stack||'',endpoint:ev.filename});},true);
+for(const level of ['log','warn','error'])console[level]=function(...args){try{const stack=new Error().stack||'',message=format(args),err=args.find(v=>v instanceof Error);record({app:infer((err?.stack||stack)+' '+message),feature:featureOf((err?.stack||stack)+' '+message),level,title:err?err.name+': '+err.message:message.split('\n')[0].slice(0,150),detail:message,stack:err?.stack||''});}catch{}return native[level](...args);};
+g.addEventListener('error',ev=>{if(ev.target!==g&&ev.target!==document){const tag=ev.target?.tagName;if(!['SCRIPT','LINK','IMG','AUDIO','VIDEO'].includes(tag))return;const el=ev.target,attr=tag==='LINK'?'href':'src',raw=el.getAttribute(attr),chosen=el.currentSrc||'';
+ const hasSource=Boolean(raw?.trim()||chosen||el.getAttribute('srcset')?.trim());
+ const src=chosen||(raw?.trim()?el[attr]||raw:'');
+ const container=el.closest('.screen[id],#hearu-app,#forumPage'),where=[tag,el.id?'#'+el.id:'',container?'所在页面 #'+container.id:''].filter(Boolean).join(' · ');
+ record({app:infer(src||container?.id||''),feature:'资源加载',level:'error',title:hasSource?'资源加载失败 · '+tag:'资源地址为空 · '+tag,endpoint:src,detail:where+'\n'+(hasSource?(src?redact(src,200):'浏览器未提供所选资源地址'):'未设置有效地址；请检查该元素的资源配置')});return;}const err=ev.error;record({app:infer(err?.stack||ev.filename||''),feature:'脚本错误',level:'error',title:err?.name||'Error',detail:err?.message||ev.message,stack:err?.stack||'',endpoint:ev.filename});},true);
 g.addEventListener('unhandledrejection',ev=>{record({app:infer(ev.reason?.stack||''),feature:'异步任务',level:'error',title:'未处理的异步错误',detail:ev.reason instanceof Error?ev.reason.message:format([ev.reason]),stack:ev.reason?.stack||''});});
 if(g.fetch){const fetch=g.fetch;g.fetch=function(...args){
  const source=new Error().stack||'',input=args[0],method=args[1]?.method||input?.method||'GET';let endpoint='';try{const u=new URL(typeof input==='string'||input instanceof URL?String(input):input.url,location.href);if(!/^https?:$/.test(u.protocol))return Reflect.apply(fetch,this,args);endpoint=u.origin+u.pathname.replace(/\b\d{5,}\b/g,':id');}catch{return Reflect.apply(fetch,this,args);}
@@ -97,7 +111,7 @@ function installHooks(){
  const specs=[
  ['getAiReply','chat','聊天','生成回复'],['generateAiReply','chat','聊天','生成回复'],['fetchAiResponse','auto','模型请求','读取模型响应'],['getCallReply','chat','通话','生成通话回复'],['generateCallSummary','chat','通话','生成通话总结'],
  ['fetchAndPopulateModels','voice','模型列表','拉取模型列表'],['generateAndRenderPeekContent','peek','动态生成','生成手机动态'],['generateBatchPeekContent','peek','动态生成','批量生成手机动态'],['generatePeekMoments','peek','动态生成','生成动态'],
- ['wbImportFiles','worldbook','文件导入','导入文件'],['wbSaveEditor','worldbook','条目保存','保存条目'],['wbMoveTo','worldbook','移动','移动条目'],['wbNewFolder','worldbook','文件夹','新建文件夹'],
+ ['setupCleanImageCache','data','初始化','初始化图片缓存清理'],['wbImportFiles','worldbook','文件导入','导入文件'],['wbSaveEditor','worldbook','条目保存','保存条目'],['wbMoveTo','worldbook','移动','移动条目'],['wbNewFolder','worldbook','文件夹','新建文件夹'],
  ['renderWidgetAddModal','widgets','预览','读取组件预览'],['addWidgetToHome','widgets','添加组件','添加小组件'],['deleteWidgets','widgets','组件管理','删除组件'],['exportWidgets','widgets','导出','导出小组件'],
  ['kpImportGlobalCssFile','personalize','CSS 导入','导入 CSS 预设'],['kpApplyWallpaperURL','personalize','壁纸','应用 URL 壁纸'],['kpApplyWallpaperFile','personalize','壁纸','上传壁纸'],['applyGlobalCssPreset','personalize','CSS 预设','应用 CSS 预设'],['saveCurrentFontAsPreset','personalize','字体','保存字体预设'],
  ['executeImageGeneration','workshop','生图','生成图片'],['handleRegenerate','chat','重生成','重新生成回复'],['pauseAiGeneration','chat','生成控制','暂停生成'],['generateSharedReply','morrow','后台回信','共享回信检查'],['generateReply','morrow','后台回信','回信检查'],['mpAccelerate','morrow','加速','加速处理'],['mpBuy','morrow','道具','购买加速道具'],['mpStartGame','morrow','2048','打开游戏'],['mpClaimGame','morrow','2048','领取游戏奖励'],['generateCollectionImage','morrow','收藏生图','生成收藏图片'],['mnMaybeProactive','morrow','主动来信','主动来信检查']];
