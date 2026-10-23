@@ -21,7 +21,7 @@
     <link rel="preload" as="image" href="morrow-assets/magazine-start-v1/masthead.png">
     <link rel="preload" as="font" type="font/woff" crossorigin href="morrow-assets/magazine-start-v1/serif-regular.woff">
     <link rel="stylesheet" href="morrow-assets/magazine-start-v1/magazine-start.css?v=20261021-magazine-v3">
-    <script defer src="morrow-assets/magazine-start-v1/magazine-start.js?v=20261021-magazine-v3"></script>
+    <script defer src="morrow-assets/magazine-start-v1/magazine-start.js?v=20261023-startup-performance-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.8/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -2792,11 +2792,12 @@
 <!-- [1. 基础层] -->
 <script src="js/utils.js?v=20261023-aux-apps-1"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
 <script src="js/db.js?v=20261022-safe-backup-1"></script>
-<script src="js/modules/backup-safe.js?v=20261022-safe-backup-1"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
+<script src="js/modules/backup-safe.js?v=20261023-performance-1"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
 <!-- [2. 核心交互层] -->
 <script src="js/modules/kiss-tools-core.js?v=cleanup-speed-20261019-2"></script>
-<script src="js/ui.js?v=20261023-personalize-2"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
+<script src="js/modules/widget_runtime.js?v=20261023-widgets-1"></script>
+<script src="js/ui.js?v=20261023-startup-performance-1"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
 <script src="js/modules/chat_list.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/character_import.js"></script>
@@ -2833,7 +2834,7 @@
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
 <script src="js/modules/storage.js?v=20261022-safe-backup-1"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
-<script src="js/modules/widget_market.js"></script> <!-- 小组件市场 -->
+<script src="js/modules/widget_market.js?v=20261023-widgets-1"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js?v=20261022-safe-backup-1"></script>  <!-- 教程、更新日志、GitHub备份 -->
 <script src="js/modules/more_menu.js"></script> <!-- 更多菜单与状态栏管理 -->
 <script src="js/modules/search.js?v=20261022-safe-backup-1"></script> <!-- 聊天记录搜索模块 -->
@@ -2864,7 +2865,7 @@
 <script src="js/modules/voice-script.js?v=20261010-voice-worldbook-1"></script>
 <script src="js/modules/voice-settings.js?v=20261023-book-scroll-1"></script>
 <script src="js/morrow/desktop.js?v=20261022-keepsake-envelope"></script>
-<script src="js/main.js?v=20261022-safe-backup-1"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
+<script src="js/main.js?v=20261023-startup-performance-1"></script>     <!-- 主入口：初始化(init)、全局事件监听 -->
 <script src="js/modules/app-data.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/kiss-tools.js?v=20261022-safe-backup-1"></script>
 <script type="module" src="js/hearu/app.js?v=20261023-aux-apps-1"></script>
