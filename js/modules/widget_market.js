@@ -320,7 +320,7 @@ const extractedBuiltInTemplates = [
 #{{id}} .widget-time { color: #333; font-family: sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,0.1); position: absolute; left: 50%; transform: translateX(-50%); bottom: 5px; font-size: 25px; font-weight: 600; }
 #{{id}} .widget-date { color: #666; font-family: sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,0.1); position: absolute; width: 130px; text-align: center; bottom: 10px; left: 15%; font-size: 15px; }
 #{{id}} .widget-signature { color: #333; font-family: sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,0.1); position: absolute; left: 50%; transform: translateX(-50%); bottom: -25px; font-size: 14px; font-weight: 500; width: 90%; max-width: 300px; text-align: center; padding: 5px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }`,
-        js: `function updateClock_{{id}}() {
+        js: `function updateWidgetClock() {
     const now = new Date();
     const timeEl = document.getElementById('time-display-{{id}}');
     const dateEl = document.getElementById('date-display-{{id}}');
@@ -329,8 +329,8 @@ const extractedBuiltInTemplates = [
         dateEl.innerText = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
     }
 }
-setInterval(updateClock_{{id}}, 1000);
-updateClock_{{id}}();`,
+setInterval(updateWidgetClock, 1000);
+updateWidgetClock();`,
         defaultVars: {
             "centralImage": "https://i.postimg.cc/GtbTnxhP/o-o-1.jpg",
             "tlEmoji": "❤️", "tlText": "Love",
@@ -349,6 +349,13 @@ async function initBuiltInWidgets() {
     }
     
     let changed = false;
+    // Preserve custom edits; repair only the old invalid clock identifier.
+    for (const template of db.widgetTemplates) {
+        if (template && typeof template.js === 'string' && template.js.includes('updateClock_{{id}}')) {
+            template.js = template.js.split('updateClock_{{id}}').join('updateWidgetClock');
+            changed = true;
+        }
+    }
     
     // 注入提取的内置组件到“我的组件”
     extractedBuiltInTemplates.forEach(tpl => {
@@ -450,8 +457,8 @@ function renderWidgetAddModal() {
         if (currentSearch) {
             const searchLower = currentSearch.toLowerCase();
             filtered = filtered.filter(t => 
-                t.name.toLowerCase().includes(searchLower) || 
-                t.size.toLowerCase().includes(searchLower)
+                String(t.name || '').toLowerCase().includes(searchLower) || 
+                String(t.size || '').toLowerCase().includes(searchLower)
             );
         }
         
@@ -491,6 +498,7 @@ function renderWidgetAddModal() {
  * @param {Boolean} isTemplateLibrary 是否为基础模板库
  */
 function renderWidgetGallery(container, templates, isTemplateLibrary = false) {
+    templates = (Array.isArray(templates) ? templates : []).filter(t => t && typeof t === 'object');
     container.innerHTML = '';
     
     // 1. 如果是“我的组件”页面，在最顶部渲染固定的“新建”和“导入”操作区
@@ -612,9 +620,20 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
         container.innerHTML = '';
     }
 
-    templates.forEach(template => {
+    const validTemplates = (Array.isArray(templates) ? templates : []).filter(t => t && typeof t === 'object');
+    let cursor = 0;
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'widget-load-more';
+    more.style.cssText = 'flex:0 0 130px;min-height:44px;padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#555;font:inherit;cursor:pointer';
+    const appendBatch = () => {
+    more.remove();
+    const batch = validTemplates.slice(cursor, cursor + 12);
+    cursor += batch.length;
+    batch.forEach(template => {
         const card = document.createElement('div');
         card.className = 'widget-market-card';
+        if (isWidgetMultiSelectMode) card.classList.add('multi-select-mode');
         card.setAttribute('data-size', template.size); // 用于网格布局跨度
         
         if (isWidgetMultiSelectMode && selectedWidgets.has(template.id)) {
@@ -646,22 +665,6 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
         
         previewCanvas.style.aspectRatio = aspectRatio;
 
-        // 注入预览 HTML 和 CSS
-        // 修复：必须替换 {{id}} 占位符，否则 CSS 作用域会失效导致全局污染
-        let previewHtml = template.html.replace(/{{id}}/g, template.id);
-        for (const [key, value] of Object.entries(template.defaultVars)) {
-            previewHtml = previewHtml.replace(new RegExp(`{{${key}}}`, 'g'), value);
-        }
-
-        const styleId = `preview-style-${template.id}`;
-        if (!document.getElementById(styleId)) {
-            const style = document.createElement('style');
-            style.id = styleId;
-            // 修复：注入 CSS 时也必须替换 {{id}} 为真实的模板 ID
-            style.textContent = template.css.replace(/{{id}}/g, template.id);
-            document.head.appendChild(style);
-        }
-
         // 真实比例缩放包装器
         const scaleWrapper = document.createElement('div');
         scaleWrapper.className = 'widget-true-scale-wrapper';
@@ -676,17 +679,18 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
         const scale = Math.min(1, availableWidth / baseWidth);
         scaleWrapper.style.transform = `scale(${scale})`;
         
-        scaleWrapper.innerHTML = previewHtml;
         previewCanvas.appendChild(scaleWrapper);
+        KissWidgetRuntime.preview(scaleWrapper, template);
 
         // 信息区域
         const infoBox = document.createElement('div');
         infoBox.className = 'info-area';
         infoBox.innerHTML = `
-            <div class="widget-name">${template.name}</div>
+            <div class="widget-name"></div>
             <div class="widget-meta">${template.size} 布局</div>
         `;
 
+        infoBox.querySelector('.widget-name').textContent = template.name || '未命名组件';
         card.appendChild(previewCanvas);
         card.appendChild(infoBox);
         
@@ -853,6 +857,13 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
 
         container.appendChild(card);
     });
+    if (cursor < validTemplates.length) {
+        more.textContent = '加载更多（' + (validTemplates.length - cursor) + '）';
+        container.appendChild(more);
+    }
+    };
+    more.onclick = appendBatch;
+    appendBatch();
 }
 
 // 导出小组件
@@ -916,7 +927,7 @@ function openWidgetEditor(template = null) {
         htmlInput.value = template.html;
         cssInput.value = template.css;
         jsInput.value = template.js || '';
-        varsInput.value = JSON.stringify(template.defaultVars, null, 2);
+        varsInput.value = JSON.stringify(template.defaultVars || {}, null, 2);
     } else {
         title.innerText = '新建小组件';
         idInput.value = '';
@@ -1129,15 +1140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('导入成功');
                     renderWidgetMarket();
                     
-                    // 注入全局 CSS
-                    const styleId = `custom-widget-style-${template.id}`;
-                    let styleEl = document.getElementById(styleId);
-                    if (!styleEl) {
-                        styleEl = document.createElement('style');
-                        styleEl.id = styleId;
-                        document.head.appendChild(styleEl);
-                    }
-                    styleEl.textContent = template.css;
+                    syncHomeWidgetStyles();
 
                 } catch (error) {
                     console.error(error);
@@ -1183,7 +1186,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const instance = db.addedWidgets.find(w => w.id === instanceId);
         if (!instance) return;
 
-        const currentValue = instance.vars[varKey] || '';
+        const template = db.widgetTemplates?.find(t => t?.id === instance.templateId);
+        const currentValue = instance.vars?.[varKey] ?? template?.defaultVars?.[varKey] ?? '';
+        fileUpload.dataset.base64 = '';
 
         // 填充表单
         instanceIdInput.value = instanceId;
@@ -1260,6 +1265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const instance = db.addedWidgets.find(w => w.id === instanceId);
         if (instance) {
+            if (!instance.vars || typeof instance.vars !== 'object') instance.vars = {};
             instance.vars[varKey] = newValue;
             await saveData();
             showToast('修改已保存');
@@ -1271,20 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// 初始化时注入所有模板的 CSS
+// Desktop CSS is limited to installed templates. Market previews are isolated.
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (db.widgetTemplates) {
-            db.widgetTemplates.forEach(template => {
-                const styleId = `custom-widget-style-${template.id}`;
-                if (!document.getElementById(styleId)) {
-                    const style = document.createElement('style');
-                    style.id = styleId;
-                    // 修复：初始化注入时也必须替换 {{id}} 占位符
-                    style.textContent = template.css.replace(/{{id}}/g, template.id);
-                    document.head.appendChild(style);
-                }
-            });
-        }
-    }, 500); // 延迟等待 db 加载
+    setTimeout(syncHomeWidgetStyles, 500);
 });

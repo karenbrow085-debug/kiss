@@ -11,7 +11,7 @@ const assetRE = /data:[^,\s"'<>]{1,160};base64,[A-Za-z0-9+/=]+/g;
 const tokenRE = /phone-asset:[a-f0-9-]+/g;
 const mimeByURL=new Map();
 const cold = new WeakMap(), urls = new Map(), reverse = new Map(), pending = new WeakMap();
-let busy = false, serial = Promise.resolve();
+let busy = false, serial = Promise.resolve(), queuedSave = null;
 const knownAssets=new Set();
 const uid = () => crypto.randomUUID();
 const pause = () => new Promise(r => setTimeout(r, 0));
@@ -52,11 +52,26 @@ async function transform(value,decode=false) {
  for(const k of Object.keys(value)){assertKey(k);out[k]=await transform(value[k],decode);}
  return out;
 }
+// Reuse unchanged JSON history chunks instead of creating a second copy on every save.
+function isJsonHistory(value) {
+ if(value===null||typeof value==='string'||typeof value==='boolean')return true;
+ if(typeof value==='number')return Number.isFinite(value);
+ if(Array.isArray(value))return value.every(isJsonHistory);
+ if(value&&Object.getPrototypeOf(value)===Object.prototype)return Object.values(value).every(isJsonHistory);
+ return false;
+}
+async function historyPart(value) {
+ if(!isJsonHistory(value))return part(value,'history');
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)));
+ const id='history-'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+ if(!await table().get(id))await table().put({id,kind:'history',value});
+ return id;
+}
 async function packHistory(history) {
  if(object(history)&&history[H])return history;
  if(!Array.isArray(history))throw Error('聊天记录必须是数组');
  if(history.some(v=>typeof v==='string'))return history; // legacy chunk references
- const ids=[];for(let i=0;i<history.length;i+=50)ids.push(await part(await transform(history.slice(i,i+50)),'history'));
+ const ids=[];for(let i=0;i<history.length;i+=50)ids.push(await historyPart(await transform(history.slice(i,i+50))));
  return {[H]:ids,count:history.length,tail:await transform(history.slice(-8))};
 }
 async function* messages(ref) { for(const id of ref[H])for(const m of await get(id))yield m; }
@@ -297,14 +312,18 @@ async function selectPrepared(data,selected) {
 }
 async function save() {
  if(busy||global.kissCleanupLocked)return;
+ if(queuedSave)return queuedSave;
  const run=async()=>{
+  queuedSave=null;
   if(busy||global.kissCleanupLocked)return;
   if(typeof syncAllActiveArchives==='function')syncAllActiveArchives();
   // Pack each row separately. Cold histories remain references and never get overwritten by previews.
-  for(const key of CORE)for(const row of db[key]||[]){const packed=['characters','groups'].includes(key)?await diskChat(row):await compact(row);await dexieDB[key].put(packed);}
-  for(const key of globalSettingKeys)if(db[key]!==undefined)await dexieDB.globalSettings.put({key,value:await compact(db[key],key)});
+  let yieldedAt=performance.now();
+  const yieldToUI=async()=>{if(performance.now()-yieldedAt>8){await pause();yieldedAt=performance.now();}};
+  for(const key of CORE)for(const row of db[key]||[]){await yieldToUI();const packed=['characters','groups'].includes(key)?await diskChat(row):await compact(row);await dexieDB[key].put(packed);}
+  for(const key of globalSettingKeys)if(db[key]!==undefined){await yieldToUI();await dexieDB.globalSettings.put({key,value:await compact(db[key],key)});}
  };
- const job=serial.then(run);serial=job.catch(()=>{});return job;
+ const job=serial.then(async()=>{await pause();return run();});queuedSave=job;serial=job.catch(()=>{});return job;
 }
 async function loadRows(name) {
  const out=[];let last,started=false;
