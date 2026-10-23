@@ -1,319 +1,154 @@
-/* --- 世界书 (World Book) 样式 --- */
-
-#world-book-screen, 
-#edit-world-book-screen {
-    background-color: #fff;
-}
-
-#world-book-screen .content {
-    padding: 16px;
-    height: calc(100% - 44px - var(--safe-top));
-    overflow-y: auto;
-}
-
-/* 新建菜单样式 */
-.world-book-new-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    width: 140px;
-    z-index: 100;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-    border: 1px solid #eee;
-}
-
-.world-book-new-menu .menu-item {
-    padding: 12px 16px;
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
-}
-
-.world-book-new-menu .menu-item:last-child {
-    border-bottom: none;
-}
-
-.world-book-new-menu .menu-item:active {
-    background-color: #f0f0f0;
-}
-
-/* 网格视图 */
-.grid-view {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px 16px;
-}
-
-.grid-view .wb-item-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-}
-
-.grid-view .wb-item-card:active {
-    opacity: 0.7;
-}
-
-.grid-view .wb-icon-wrapper {
-    width: 64px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8f9fa;
-    border-radius: 16px;
-    transition: background 0.2s;
-}
-
-.grid-view .wb-item-card:active .wb-icon-wrapper {
-    background: #e9ecef;
-}
-
-.grid-view .wb-folder-icon {
-    color: #ffca28;
-    fill: #ffca28;
-}
-
-.grid-view .wb-entry-icon {
-    color: #42a5f5;
-    fill: #42a5f5;
-}
-
-.grid-view .wb-item-name {
-    font-size: 13px;
-    color: #333;
-    text-align: center;
-    word-break: break-all;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    width: 100%;
-}
-
-/* 列表视图 */
-.list-view {
-    display: flex;
-    flex-direction: column;
-    background-color: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #eee;
-}
-
-.list-view .wb-item-card {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    gap: 16px;
-    cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
-}
-
-.list-view .wb-item-card:last-child {
-    border-bottom: none;
-}
-
-.list-view .wb-item-card:active {
-    background-color: #f0f0f0;
-}
-
-.list-view .wb-icon-wrapper {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.list-view .wb-folder-icon {
-    color: #ffca28;
-    fill: #ffca28;
-}
-
-.list-view .wb-entry-icon {
-    color: #42a5f5;
-    fill: #42a5f5;
-}
-
-.list-view .wb-item-name {
-    font-size: 15px;
-    color: #333;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* 多选模式适配 */
-.wb-item-card.is-selecting {
-    position: relative;
-}
-
-.wb-item-card.selected .wb-icon-wrapper {
-    background: var(--primary-color) !important;
-}
-
-.wb-item-card.selected .wb-icon-wrapper svg {
-    color: white !important;
-    fill: white !important;
-}
-
-/* 世界书多选工具栏 */
-#world-book-multi-select-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    padding-bottom: 10px;
-    border-top: 1px solid #eee;
-    z-index: 20;
-    animation: slideUp 0.3s ease-out;
-}
-
-/* 世界书选择模态框 (全屏) */
-#world-book-selection-modal {
-    z-index: 300;
-}
-
-#journal-worldbook-selection-modal {
-    z-index: 201;
-}
-
-#journal-worldbook-selection-modal .modal-window {
-    width: 90%;
-    max-width: 380px;
-}
-
-#journal-worldbook-selection-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 40vh;
-    overflow-y: auto;
-}
-
-/* 全屏选择器列表项 */
-.wb-selector-row {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    background: #fff;
-    cursor: pointer;
-}
-
-.wb-selector-row:last-child {
-    border-bottom: none;
-}
-
-.wb-selector-row:active {
-    background-color: #f5f5f5;
-}
-
-.wb-selector-icon {
-    margin-right: 12px;
-    display: flex;
-    align-items: center;
-    color: #5a6b7c;
-}
-
-.wb-selector-name {
-    flex: 1;
-    font-size: 15px;
-    color: #333;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.wb-selector-arrow {
-    width: 8px;
-    height: 14px;
-    position: relative;
-}
-
-.wb-selector-arrow::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 8px;
-    height: 8px;
-    border-top: 2px solid #ccc;
-    border-right: 2px solid #ccc;
-    transform: translateY(-50%) rotate(45deg);
-}
-
-.wb-selector-checkbox {
-    appearance: none;
-    width: 22px;
-    height: 22px;
-    border: 1px solid #ccc;
-    border-radius: 50%;
-    outline: none;
-    cursor: pointer;
-    position: relative;
-    background: #fff;
-}
-
-.wb-selector-checkbox:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-.wb-selector-checkbox:checked::after {
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: 7px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-/* 已绑定世界书卡片 (旧样式已弃用，新样式在 js/settings.js 中内联定义) */
-.bound-wb-card {
-    display: none;
-}
-
-.world-book-select-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 5px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.world-book-select-item:last-child {
-    border-bottom: none;
-}
-
-.world-book-select-item input[type="checkbox"] {
-    margin-right: 15px;
-    width: 20px;
-    height: 20px;
-}
-
-.world-book-select-item label {
-    font-weight: 500;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-}
+/* KISS worldbook — compact tab folders. All rules stay inside worldbook surfaces. */
+.wb-app{--wb-ink:#171717;--wb-muted:#999;--wb-line:#e4e4e4;--wb-paper:#fff;--wb-soft:#f5f5f5;color:var(--wb-ink);background:var(--wb-paper);font-family:inherit}
+.wb-app *{box-sizing:border-box}
+.wb-app [hidden]{display:none!important}
+.wb-app button,.wb-app input,.wb-app textarea{font-family:inherit;font-size:inherit;letter-spacing:inherit}
+.wb-app button{color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.wb-app button:disabled{opacity:.38;cursor:default}
+.wb-app button:focus-visible,.wb-app input:focus-visible,.wb-app textarea:focus-visible,.wb-item-card:focus-visible{outline:2px solid #777;outline-offset:3px}
+#world-book-screen,#edit-world-book-screen{background:var(--wb-paper);min-height:0;position:relative;animation:none}
+.wb-app .app-header{display:flex;flex:none;align-items:center;justify-content:space-between;padding:7px 14px;padding-top:max(7px,env(safe-area-inset-top,0px));min-height:54px;background:var(--wb-paper);border:0;box-shadow:none;backdrop-filter:none;z-index:12;position:relative}
+.wb-app .app-header::after{content:'';position:absolute;bottom:0;left:16px;right:16px;height:1px;background:#888}
+.wb-app .app-header .title-container{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:50%;pointer-events:none}
+.wb-app .app-header .title{margin:0;font-size:18px;line-height:1.4;font-weight:650;letter-spacing:0;color:var(--wb-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-app .app-header .back-btn,.wb-app .app-header .action-btn{display:flex;align-items:center;justify-content:center;flex:none;width:32px;min-width:32px;height:36px;padding:0;border:0;background:none;color:var(--wb-ink);font-weight:400;font-size:29px}
+.wb-app .app-header .back-btn{font-size:36px;line-height:1}
+.wb-app .action-btn-group{display:flex;gap:4px;position:relative;margin-left:auto}
+.wb-app svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wb-app .app-header .wb-text-action{font-size:14px;width:auto;min-width:36px;font-weight:600}
+.wb-app .content{padding:14px 16px 12px;min-height:0;height:auto;overflow:auto;flex:1;overscroll-behavior:contain;text-align:left;scrollbar-width:thin}
+.wb-intro{display:flex;align-items:center;justify-content:space-between;margin:0 0 13px}
+.wb-intro h2{font-size:27px;line-height:1.25;font-weight:650;letter-spacing:1px;margin:0}
+.wb-intro h2 span{display:inline-block;margin-left:7px;font-size:26px;font-weight:400}
+.wb-intro>span{font-size:10px;line-height:1.3;text-align:right;letter-spacing:.5px}
+.wb-breadcrumb{font-size:12px;color:#666;margin:0 0 12px;line-height:1.5;overflow-wrap:anywhere}
+.wb-search{display:flex;align-items:center;gap:8px;background:var(--wb-soft);border:1px solid #d5d5d5;border-radius:22px;padding:7px 12px;min-height:36px;width:100%;margin:0 0 12px;overflow:hidden}
+.wb-search svg{width:17px;height:17px;color:#666}
+.wb-app .wb-search input{flex:1;min-width:0;width:100%;height:22px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:13px;color:var(--wb-ink);outline:none}
+.wb-app input::placeholder,.wb-app textarea::placeholder{color:#999;opacity:1}
+.wb-tabs{display:flex;gap:24px;align-items:center;border-bottom:1px solid #cfcfcf;margin:0 0 16px;min-height:32px;overflow-x:auto;scrollbar-width:none}
+.wb-tabs button{border:0;background:none;flex:none;position:relative;padding:0 0 10px;font-size:13px;color:#666;white-space:nowrap}
+.wb-tabs button.active{color:var(--wb-ink);font-weight:600}
+.wb-tabs:not(.wb-chips) button.active::after{content:'';position:absolute;bottom:0;left:0;width:24px;height:2px;background:var(--wb-ink)}
+.wb-tabs.wb-chips{border:0;gap:7px;margin-bottom:8px;padding-bottom:8px;min-height:38px}
+.wb-tabs.wb-chips button{border:1px solid #ddd;border-radius:18px;min-width:48px;padding:6px 13px;font-size:12px;color:var(--wb-ink)}
+.wb-tabs.wb-chips button.active{background:var(--wb-ink);color:#fff;border-color:var(--wb-ink)}
+#world-book-list-container.grid-view{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 12px}
+.wb-item-card{position:relative;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.grid-view .wb-folder-card{height:114px;display:flex;align-items:flex-end;padding:34px 11px 12px;background:none;border:0;border-radius:0;color:var(--wb-ink)}
+.wb-folder-shape{position:absolute;inset:0;width:100%!important;height:100%!important;z-index:0;pointer-events:none;stroke:var(--wb-ink)!important;stroke-width:1px!important;fill:var(--wb-paper)!important}
+.grid-view .wb-folder-card:first-child .wb-folder-shape{fill:var(--wb-ink)!important}
+.grid-view .wb-folder-card:first-child{color:var(--wb-paper)}
+.wb-item-index{flex:none;min-width:22px;font-size:11px;font-variant-numeric:tabular-nums;font-weight:400}
+.grid-view .wb-folder-card .wb-item-index{position:absolute;top:10px;left:11px;padding:1px 6px;border:1px solid currentColor;border-radius:6px;font-size:10px;line-height:1.25;z-index:1;min-width:0}
+.wb-item-copy{min-width:0;flex:1;position:relative}
+.wb-item-name{font-size:15px;font-weight:600;line-height:1.45;color:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-item-detail{font-size:11px;color:#999;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px}
+.grid-view .wb-folder-card .wb-item-name{font-size:18px;font-weight:550}
+.grid-view .wb-folder-card .wb-item-detail{font-size:12px;color:inherit;opacity:.8;margin-top:2px}
+.wb-app .wb-item-more{border:0;background:none;flex:none;padding:0;width:28px;height:32px;font-size:22px;letter-spacing:1px;line-height:1;color:inherit}
+.grid-view .wb-folder-card .wb-item-more{position:absolute;right:7px;top:18px;z-index:1;font-size:18px;opacity:.7}
+.wb-app .wb-item-check{display:none;width:20px;height:20px;flex:none;border:1px solid #999;border-radius:5px;background:var(--wb-paper);color:var(--wb-paper);padding:0;line-height:18px;font-size:13px}
+.wb-item-card.is-selecting .wb-item-check{display:block}
+.wb-item-card.selected .wb-item-check{background:var(--wb-ink);border-color:var(--wb-ink);color:var(--wb-paper)}
+.grid-view .wb-item-card.is-selecting .wb-item-check{position:absolute;right:10px;top:28px;z-index:2}
+.grid-view .wb-item-card.is-selecting .wb-item-more{display:none}
+.grid-view .wb-folder-card.selected .wb-folder-shape{stroke-width:2px!important}
+.list-view{display:flex;flex-direction:column;border:0;background:transparent;border-radius:0}
+.list-view .wb-item-card,.wb-recent-row{display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px dashed var(--wb-line);min-height:69px}
+.list-view .wb-folder-shape{display:none}
+.list-view .wb-item-index{padding-right:9px;border-right:1px solid var(--wb-line);color:#555}
+.list-view .wb-item-more{width:22px;font-size:19px}
+.list-view .wb-item-card.selected{background:var(--wb-soft)}
+.wb-item-position{border-radius:9px;background:var(--wb-soft);font-size:11px;line-height:1.3;padding:3px 6px;max-width:56px;white-space:nowrap;flex:none}
+.grid-view .wb-entry-card{display:flex;align-items:center;gap:8px;grid-column:1/-1;padding:12px 0;border-bottom:1px dashed var(--wb-line)}
+.grid-view .wb-entry-card .wb-item-index{color:#888}
+#wb-recent{margin-top:20px}
+#wb-recent h3{font-size:13px;font-weight:600;margin:0;padding:0 0 8px;border-bottom:1px solid var(--wb-line)}
+.wb-recent-row{gap:10px;min-height:51px;padding:8px 0;border-bottom-style:solid}
+.wb-recent-row .wb-item-name{font-size:13px}
+.wb-recent-row .wb-item-detail{font-size:10px;margin-top:1px}
+.wb-recent-row .wb-item-index{min-width:22px;display:flex;align-items:center}
+.wb-recent-row .wb-item-position{display:none}
+#wb-brand{display:flex;align-items:center;gap:14px;padding:18px 18px 0;justify-content:center;font-size:13px}
+#wb-brand i{height:1px;background:#aaa;flex:1}
+.wb-app .placeholder-text,.wb-empty{color:#999;font-size:13px;text-align:center;padding:24px 4px;margin:0;line-height:1.6}
+.wb-app .wb-bottom{position:relative;display:flex;align-items:center;gap:12px;flex:none;padding:10px 16px max(10px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--wb-line);background:var(--wb-paper);z-index:10;min-width:0}
+.wb-app .wb-bottom>span{font-size:12px;white-space:nowrap;flex:1}
+.wb-app .wb-button{border:1px solid var(--wb-ink);border-radius:7px;background:var(--wb-paper);color:var(--wb-ink);font-size:13px;line-height:1.4;min-height:37px;padding:8px 16px;font-weight:550;box-shadow:none}
+.wb-app .wb-primary{background:var(--wb-ink);color:var(--wb-paper);border-color:var(--wb-ink)}
+#wb-normal-bar .wb-button{flex:1}
+#world-book-multi-select-bar{position:relative;width:auto;backdrop-filter:none;animation:none}
+.world-book-new-menu{position:absolute;right:0;top:100%;margin-top:8px;background:var(--wb-paper);border:1px solid #bbb;border-radius:9px;overflow:hidden;width:174px;z-index:25;box-shadow:0 3px 8px #0000000d}
+.wb-app .world-book-new-menu .menu-item{display:block;width:100%;border:0;background:none;border-bottom:1px solid var(--wb-line);padding:13px 15px;text-align:left;font-size:13px}
+.wb-app .world-book-new-menu .menu-item:last-child{border-bottom:0}
+#edit-world-book-screen .content{padding-top:13px}
+.wb-app .wb-save-top{background:var(--wb-ink);color:var(--wb-paper);border:0;border-radius:18px;min-width:54px;height:29px;font-size:12px;font-weight:550;padding:4px 14px}
+.wb-editor-tools{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px}
+#wb-editor-folder{display:inline-block;font-size:12px;border-radius:14px;background:var(--wb-ink);color:var(--wb-paper);padding:7px 14px;max-width:45%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wb-app .wb-import-button{border:0;border-bottom:1px solid #aaa;background:none;font-size:11px;padding:6px 0;color:#777}
+#edit-world-book-form .form-group{margin:0 0 16px;padding:0;display:block}
+#edit-world-book-form .form-group>label,.wb-injection>label{display:block;font-size:13px;color:var(--wb-ink);font-weight:500;line-height:1.4;margin:0 0 8px}
+#edit-world-book-form input[type="text"],#world-book-depth{width:100%;background:var(--wb-paper);border:1px solid var(--wb-line);border-radius:9px;min-height:40px;padding:8px 12px;color:var(--wb-ink);font-size:14px;box-shadow:none}
+#edit-world-book-form #world-book-name{font-size:20px;line-height:1.4;min-height:46px}
+.wb-writing{position:relative;background:var(--wb-soft);border-radius:9px;padding:32px 13px 29px;margin-bottom:22px}
+.wb-writing>label{position:absolute;top:11px;right:13px;font-size:10px;font-weight:400;color:#999;margin:0}
+#edit-world-book-form #world-book-content{display:block;width:100%;min-height:175px;height:clamp(175px,28dvh,310px);resize:vertical;overflow:auto;border:0;box-shadow:none;background:transparent;color:var(--wb-ink);padding:0;font-size:14px;line-height:1.85;border-radius:0;margin:0;overscroll-behavior:contain}
+#wb-character-count{position:absolute;bottom:10px;right:13px;color:#999;font-size:10px}
+.wb-injection{border-top:1px solid #aaa;padding-top:17px}
+.wb-position-options{display:flex;gap:7px;margin-bottom:18px}
+.wb-position-options>label{position:relative;flex:1;min-width:0;font-size:12px;text-align:center;margin:0;cursor:pointer}
+.wb-position-options input{position:absolute;opacity:0;width:1px;height:1px}
+.wb-position-options span{display:flex;justify-content:center;align-items:center;border:1px solid #ddd;border-radius:18px;min-height:32px;padding:6px 4px;white-space:nowrap;line-height:1.3}
+.wb-position-options input:checked+span{color:var(--wb-paper);background:var(--wb-ink);border-color:var(--wb-ink)}
+.wb-position-options input:focus-visible+span{outline:2px solid #888}
+.wb-depth-row{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+#world-book-depth{width:45%;flex:none;min-height:36px}
+.wb-depth-row small{font-size:10px;line-height:1.65;color:#999}
+.wb-save-bottom{width:100%;margin:0 0 6px}
+#world-book-selection-modal{z-index:300;background:#0005;padding:0}
+#world-book-selection-modal .modal-window{display:flex;flex-direction:column;width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;padding:0;background:var(--wb-paper);box-shadow:none;overflow:hidden}
+.wb-selector-content{padding:15px 16px 0;overflow:auto;min-height:0;flex:1;overscroll-behavior:contain}
+#wb-selector-breadcrumb{display:flex;align-items:center;gap:12px;margin:0 0 13px;color:#777;font-size:12px;line-height:1.5}
+#wb-selector-back-folder-btn{background:none;border:0;font-size:11px;flex:none;padding:3px 0;color:inherit;text-decoration:underline}
+#wb-selector-current-folder-name{overflow-wrap:anywhere}
+.wb-selection-count{font-size:12px;line-height:1.4;margin:16px 0 10px}
+.wb-selector-row{display:flex;align-items:center;gap:10px;border-bottom:1px dashed var(--wb-line);min-height:69px;padding:12px 0;color:var(--wb-ink)}
+.wb-selector-row.selected{background:var(--wb-soft)}
+.wb-app .wb-selector-checkbox{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:none;margin:0;border:1px solid #999;border-radius:5px;background:var(--wb-paper);position:relative;cursor:pointer}
+.wb-app .wb-selector-checkbox:checked,.wb-app .wb-selector-checkbox:indeterminate{background:var(--wb-ink);border-color:var(--wb-ink)}
+.wb-selector-checkbox:checked::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid var(--wb-paper);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.wb-selector-checkbox:indeterminate::after{content:'';position:absolute;left:4px;right:4px;top:8px;height:1px;background:var(--wb-paper)}
+.wb-selector-index{font-size:11px;border-right:1px solid var(--wb-line);padding-right:9px;color:#555}
+.wb-app .wb-selector-copy{flex:1;min-width:0;border:0;background:none;padding:0;text-align:left}
+.wb-selector-copy strong{display:block;font-weight:550;font-size:15px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.5}
+.wb-selector-copy small{display:block;color:#999;font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.5;margin-top:3px}
+.wb-dialog-overlay{position:absolute;inset:0;z-index:420;display:flex;align-items:center;justify-content:center;padding:20px;background:#0005}
+.wb-dialog{background:var(--wb-paper);color:var(--wb-ink);border-radius:14px;max-width:380px;width:100%;max-height:85%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px #0001}
+.wb-dialog header{display:flex;align-items:center;justify-content:space-between;padding:17px 18px;border-bottom:1px solid var(--wb-line);gap:12px;flex:none}
+.wb-dialog h2{font-size:17px;margin:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-dialog-close{width:28px;height:28px;background:var(--wb-soft);border:0;border-radius:50%;font-size:21px;line-height:1}
+.wb-dialog-body{padding:17px 18px;overflow:auto;min-height:0;font-size:13px;line-height:1.8;overscroll-behavior:contain}
+.wb-dialog-body p{margin:0;color:#777}
+.wb-dialog footer{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--wb-line);padding:12px 18px;flex:none}
+.wb-dialog footer:empty{display:none}
+.wb-dialog-label{display:block;font-size:13px}
+.wb-dialog-input{display:block;width:100%;border:1px solid #ddd;border-radius:7px;padding:10px;margin-top:9px;background:var(--wb-paper);color:var(--wb-ink)}
+.wb-move-path{font-size:12px;margin:0 0 10px;color:#999}
+.wb-app .wb-move-row,.wb-app .wb-menu-row{display:block;border:0;border-bottom:1px solid var(--wb-line);width:100%;text-align:left;padding:13px 0;background:none;font-size:14px}
+.wb-move-list{max-height:42dvh;overflow:auto;overscroll-behavior:contain}
+/* Other worldbook binding panels keep their existing structure. */
+.world-book-select-item{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #eee}
+.world-book-select-item label{flex:1;font-size:14px}
+.world-book-select-item input{accent-color:#171717;width:18px;height:18px}
+.category-arrow,.wb-selector-arrow{display:none!important}
+@media(max-width:350px){.wb-app .content,.wb-selector-content{padding-left:13px;padding-right:13px}.grid-view .wb-folder-card{height:103px}.grid-view .wb-folder-card .wb-item-name{font-size:16px}.list-view .wb-item-card,.wb-selector-row{gap:7px}.wb-tabs{gap:20px}.wb-tabs.wb-chips{gap:5px}.wb-tabs.wb-chips button{padding:6px 10px;min-width:41px}.wb-app .wb-bottom{gap:8px}.wb-app .wb-button{padding:8px 12px}}
+@media(prefers-reduced-motion:reduce){.wb-app *{animation:none!important;scroll-behavior:auto!important}}
+#world-book-list-container.grid-view .wb-entry-card{grid-column:auto;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:114px;border:1px solid var(--wb-line);border-radius:9px;padding:12px;justify-content:flex-end}
+.grid-view .wb-entry-card .wb-item-copy{width:100%;flex:none}
+.grid-view .wb-entry-card .wb-item-index{position:absolute;top:10px;left:12px}
+.grid-view .wb-entry-card .wb-item-position{font-size:10px;max-width:100%}
+.grid-view .wb-entry-card .wb-item-more{position:absolute;right:7px;top:7px}
+.grid-view .wb-entry-card.is-selecting .wb-item-check{top:10px}
+.wb-app .wb-item-more{overflow:hidden;display:flex;align-items:center;justify-content:center;min-width:0;letter-spacing:0}
+.wb-app .wb-item-more svg{width:18px;height:18px;stroke:none;fill:currentColor;max-width:100%}
