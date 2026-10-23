@@ -152,3 +152,34 @@
 .grid-view .wb-entry-card.is-selecting .wb-item-check{top:10px}
 .wb-app .wb-item-more{overflow:hidden;display:flex;align-items:center;justify-content:center;min-width:0;letter-spacing:0}
 .wb-app .wb-item-more svg{width:18px;height:18px;stroke:none;fill:currentColor;max-width:100%}
+/* Entry editor: fixed single-page shell; only the text area scrolls. */
+#edit-world-book-screen .content{display:flex;flex-direction:column;overflow:hidden;min-height:0;padding:10px 16px max(10px,env(safe-area-inset-bottom,0px))}
+#edit-world-book-form{display:flex;flex-direction:column;flex:1;min-height:0;gap:0;margin:0}
+#edit-world-book-form>*{flex-shrink:0}
+#edit-world-book-form .wb-editor-tools{margin-bottom:10px;min-height:28px}
+#edit-world-book-form .form-group{margin:0 0 10px}
+#edit-world-book-form .form-group>label{margin-bottom:5px;font-size:12px}
+#edit-world-book-form input[type="text"]{min-height:36px;padding:6px 11px}
+#edit-world-book-form #world-book-name{min-height:40px;font-size:18px}
+#edit-world-book-form #world-book-category{display:block;width:100%;height:37px;min-height:37px;max-width:100%;border:1px solid var(--wb-line);border-radius:9px;padding:6px 11px;background:var(--wb-paper);color:var(--wb-ink);font-family:inherit;font-size:16px;box-shadow:none;overflow:hidden;text-overflow:ellipsis}
+#edit-world-book-form .wb-writing{display:flex;flex-direction:column;flex:1 1 0;min-height:65px;margin:0 0 12px;padding:28px 12px 24px}
+#edit-world-book-form #world-book-content{flex:1 1 0;width:100%;height:0;min-height:0;resize:none;overflow:auto;line-height:1.7;overscroll-behavior:contain;font-size:16px}
+#edit-world-book-form .wb-injection{padding-top:11px}
+#edit-world-book-form .wb-injection>label{font-size:12px;margin-bottom:6px}
+#edit-world-book-form .wb-position-options{margin-bottom:11px}
+#edit-world-book-form .wb-position-options span{min-height:30px;padding:5px 4px}
+#edit-world-book-form .wb-depth-row{margin-bottom:11px;gap:10px}
+#edit-world-book-form #world-book-depth{min-height:34px;height:34px;padding:5px 11px;font-size:16px}
+#edit-world-book-form .wb-save-bottom{margin:0;min-height:36px}
+@media(max-height:620px){
+ #edit-world-book-screen .content{padding-top:8px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+ #edit-world-book-form .wb-editor-tools{margin-bottom:6px}
+ #edit-world-book-form .form-group{margin-bottom:7px}
+ #edit-world-book-form .form-group>label{margin-bottom:4px}
+ #edit-world-book-form #world-book-name{height:35px;min-height:35px;font-size:17px}
+ #edit-world-book-form #world-book-category{height:34px;min-height:34px}
+ #edit-world-book-form .wb-writing{min-height:60px;margin-bottom:8px;padding-top:24px;padding-bottom:22px}
+ #edit-world-book-form .wb-injection{padding-top:8px}
+ #edit-world-book-form .wb-position-options{margin-bottom:8px}
+ #edit-world-book-form .wb-depth-row{margin-bottom:8px}
+}
