@@ -4,7 +4,7 @@
 <head>
     
     <meta charset="UTF-8">
-    <script src="js/modules/console.js?v=20261023-console-3"></script>
+    <script src="js/modules/console.js?v=20261023-resource-fix-1"></script>
     <title>Kiss</title>
     <meta name="theme-color" content="#ffffff"/>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -250,26 +250,26 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16">
                     <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
                 </svg>
-                <img class="nav-icon-img" src="" alt="icon">
+                <img class="nav-icon-img" alt="icon">
             </button>
             <button class="nav-item active" title="聊天" data-target="chat-list-screen" data-nav-id="1">
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" class="bi bi-chat-fill" viewBox="0 0 16 16">
                     <path d="M8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9.06 9.06 0 0 0 8 15z"/>
                 </svg>
-                <img class="nav-icon-img" src="" alt="icon">
+                <img class="nav-icon-img" alt="icon">
                 <span class="nav-badge" id="nav-chat-badge" style="display: none;">0</span>
             </button>
             <button class="nav-item" title="电话" data-target="phone-screen" data-nav-id="2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" class="bi bi-telephone-fill" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 0 0 .178.643l2.457 2.457a.678.678 0 0 0 .644.178l2.189-.547a1.745 1.745 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 0 1-7.01-4.42 18.634 18.634 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511z"/>
                 </svg>
-                <img class="nav-icon-img" src="" alt="icon">
+                <img class="nav-icon-img" alt="icon">
             </button>
             <button class="nav-item" title="更多" data-target="more-screen" data-nav-id="3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" class="bi bi-three-dots" viewBox="0 0 16 16">
                     <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
                 </svg>
-                <img class="nav-icon-img" src="" alt="icon">
+                <img class="nav-icon-img" alt="icon">
             </button>
         </nav>
     <div id="chat-room-screen" class="screen"></div> <!-- 这里是 chat-room-screen 的结束标签 -->
@@ -1022,7 +1022,7 @@
     
     <div id="console-screen" class="screen"><div id="kc-root"></div></div>
     <div id="toast-notification" class="toast">
-        <img class="toast-avatar" src="" alt="avatar">
+        <img class="toast-avatar" alt="avatar">
         <div class="toast-content">
             <div class="toast-name"></div>
             <div class="toast-message"></div>
@@ -1048,7 +1048,7 @@
     <div id="profile-card-modal" class="modal-overlay">
         <div class="modal-window">
             <div class="pc-header">
-                <img src="" class="pc-avatar" id="pc-avatar">
+                <img class="pc-avatar" id="pc-avatar">
             </div>
             <div class="pc-content">
                 <div class="pc-name" id="pc-name">Character Name</div>
@@ -1444,7 +1444,7 @@
             <form id="edit-group-member-form">
                 <input type="hidden" id="editing-member-id">
                 <div class="avatar-setting" style="justify-content: center;">
-                    <img src="" alt="成员头像" id="edit-member-avatar-preview" class="avatar-preview"
+                    <img alt="成员头像" id="edit-member-avatar-preview" class="avatar-preview"
                          style="cursor: pointer;">
                     <input type="file" id="edit-member-avatar-upload" accept="image/*" style="display:none;">
                 </div>
@@ -1786,10 +1786,10 @@
         </header>
         <main class="content moments-content" id="moments-content-area" style="padding: 0;">
             <div class="moments-cover-area">
-                <img src="" alt="Cover" class="moments-cover-img" id="moments-cover-img">
+                <img alt="Cover" class="moments-cover-img" id="moments-cover-img">
                 <div class="moments-user-info">
                     <span class="moments-user-name" id="moments-user-name">Name</span>
-                    <img src="" alt="Avatar" class="moments-user-avatar" id="moments-user-avatar">
+                    <img alt="Avatar" class="moments-user-avatar" id="moments-user-avatar">
                 </div>
                 <div class="moments-user-signature" id="moments-user-signature"></div>
             </div>
@@ -2087,7 +2087,7 @@
     <!-- Full Image Viewer Modal -->
     <div id="full-image-modal" class="modal-overlay" style="z-index: 20000; background: rgba(0,0,0,0.95);">
         <div class="modal-window" style="background: transparent; box-shadow: none; width: 100%; height: 100%; max-width: none; padding: 0; display: flex; align-items: center; justify-content: center; position: relative;">
-            <img id="full-image-view" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease;">
+            <img id="full-image-view" style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease;">
             <button id="close-full-image-btn" style="position: absolute; top: 40px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);">×</button>
         </div>
     </div>
@@ -2129,7 +2129,7 @@
 
                 <div id="airdrop-result-area" style="display: none; flex-direction: column; gap: 15px; margin-top: 10px;">
                     <div style="width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #f0f0f0; cursor: pointer;" id="airdrop-preview-container">
-                        <img id="airdrop-preview-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img id="airdrop-preview-img" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                     <div style="display: flex; justify-content: space-around; align-items: center;">
                         <button id="airdrop-save-btn" class="icon-btn-simple" style="color: #007AFF; display: flex; flex-direction: column; align-items: center; gap: 5px;" title="保存">
@@ -2695,7 +2695,7 @@
 -->
 
 <!-- [1. 基础层] -->
-<script src="js/utils.js?v=20261023-aux-apps-1"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
+<script src="js/utils.js?v=20261023-resource-fix-1"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
 <script src="js/db.js?v=20261022-safe-backup-1"></script>
 <script src="js/modules/backup-safe.js?v=20261023-performance-1"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
@@ -2737,7 +2737,7 @@
 <script src="js/modules/peek.js?v=20261023-moments-aux-1"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
-<script src="js/modules/storage.js?v=20261022-safe-backup-1"></script>   <!-- 存储空间分析图表 -->
+<script src="js/modules/storage.js?v=20261023-resource-fix-1"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
 <script src="js/modules/widget_market.js?v=20261023-widgets-1"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js?v=20261022-safe-backup-1"></script>  <!-- 教程、更新日志、GitHub备份 -->
