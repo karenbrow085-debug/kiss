@@ -903,7 +903,7 @@ function openImageViewer(src) {
     // 简单的关闭逻辑
     const closeModal = () => {
         modal.classList.remove('visible');
-        setTimeout(() => { img.src = ''; }, 300); // 动画结束后清空
+        setTimeout(() => { img.removeAttribute('src'); }, 300); // 动画结束后清空
     };
     
     if (closeBtn) closeBtn.onclick = closeModal;
