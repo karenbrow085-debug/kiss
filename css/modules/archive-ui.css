@@ -329,3 +329,172 @@
 .au-recent-tag{font:8px ui-monospace,SFMono-Regular,monospace;letter-spacing:.4px;color:#666;font-weight:400}
 .wb-app .au-clover{fill:currentColor!important;stroke:none!important}
 #console-screen .au-live-label>span,#gh-help-overlay code{font-family:var(--font-family,inherit)!important}
+/* Reference correction — exact component structure and individual artwork. */
+#api-settings-screen .au-connection-mark svg.au-usb{width:85px;height:27px;transform:none;flex:none;stroke-width:1.1}
+#api-settings-screen .au-connection-mark{height:36px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#api-provider){flex-direction:column;align-items:stretch}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#api-provider) .kkt-item-control{width:100%!important;max-width:100%!important;flex:none!important}
+.au-panel-plug{display:flex;align-items:center;gap:10px;margin-left:auto}
+.au-panel-plug svg{width:21px;height:21px;stroke-width:1.8;transform:rotate(-8deg)}
+.au-panel-plug i{display:block;width:47px;height:11px;background:repeating-linear-gradient(120deg,#ccc 0 5px,transparent 5px 9px)}
+#api-settings-screen .au-window-title small{margin-left:4px;margin-right:auto;font-size:8px}
+#api-settings-screen #kv-chat-panel .au-api-advanced{border:0;border-top:1px solid #ddd;border-radius:0;background:white;margin:0;padding:0}
+#api-settings-screen .au-api-advanced>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;padding:10px 12px;margin:0;border:0;min-height:55px;color:#181818}
+#api-settings-screen .au-api-advanced>summary::-webkit-details-marker,#api-settings-screen .au-preset-drawer>summary::-webkit-details-marker{display:none}
+#api-settings-screen .au-api-advanced>summary>svg{width:29px;height:31px;padding:5px;border:1px solid #ddd;border-radius:5px;flex:none}
+#api-settings-screen .au-api-advanced>summary>span{flex:1;min-width:0}
+#api-settings-screen .au-api-advanced>summary strong{display:block;font-size:13px}
+#api-settings-screen .au-api-advanced>summary small{display:block;font-size:10px;color:#888;margin-top:3px}
+#api-settings-screen .au-api-advanced>summary>b{font:24px sans-serif;font-weight:400;transition:transform .15s}
+#api-settings-screen .au-api-advanced[open]>summary>b{transform:rotate(90deg)}
+#api-settings-screen .au-api-advanced-body{border-top:1px solid #ccc;padding:0 0 4px;background:#fafafa}
+#api-settings-screen #kv-chat-panel .au-api-advanced-body .au-secondary-drawer{box-shadow:none;margin:10px 8px 5px;border:1px solid #888;border-radius:5px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#time-perception-switch) .kkt-item-icon{display:flex;width:30px;height:31px;padding:5px;border:1px solid #ddd;border-radius:5px;background:#fff;align-items:center;justify-content:center;flex:none;margin-right:3px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#time-perception-switch) .kkt-item-icon svg{height:21px;width:21px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#time-perception-switch){flex-direction:row;gap:8px;align-items:center;border-top:1px solid #ddd;min-height:55px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#time-perception-switch) .kkt-item-control{width:auto;max-width:none;flex:none}
+#api-settings-screen .au-api-save-strip{display:flex;justify-content:flex-end;padding:0 3px 10px}
+#api-settings-screen #save-btn.au-api-save-button{margin:0!important;min-height:32px;width:auto!important;padding:6px 16px!important;font-size:12px}
+#api-settings-screen .au-api-presets>.kkt-item{padding:10px 12px!important;display:flex;flex-direction:row!important;flex-wrap:wrap;gap:8px!important}
+#api-settings-screen .au-preset-caption{flex:1;min-width:80px}
+#api-settings-screen .au-preset-caption strong{display:block;font-size:13px}
+#api-settings-screen .au-preset-caption small{display:block;font-size:10px;line-height:1.6;color:#888;margin-top:3px}
+#api-settings-screen .au-preset-picker{max-width:60%;min-width:0;flex:1.2;margin:0!important;gap:5px!important}
+#api-settings-screen .au-preset-picker select{min-width:0;max-width:100%;font-size:12px!important;border-color:#777!important;border-radius:4px!important;min-height:34px;padding:6px!important;background:#fafafa!important}
+#api-settings-screen #api-apply-preset{padding:6px!important;font-size:11px;min-height:32px}
+#api-settings-screen .au-preset-drawer{width:100%;border:0;border-top:1px solid #ddd;padding:0;margin:2px 0 0}
+#api-settings-screen .au-preset-drawer>summary{display:flex;align-items:center;justify-content:space-between;list-style:none;padding:7px 0;font-size:11px;color:#777;cursor:pointer}
+#api-settings-screen .au-preset-drawer>summary span{font-size:19px;line-height:1}
+#api-settings-screen .au-preset-drawer[open]>summary span{transform:rotate(90deg)}
+#api-settings-screen .au-preset-drawer>div:first-of-type{display:none!important}
+#api-settings-screen .au-preset-drawer>div{margin:5px 0!important}
+#api-settings-screen .au-preset-drawer button{font-size:12px!important;padding:7px!important;min-height:32px!important}
+#api-settings-screen .au-main-key-control{position:relative}
+#api-settings-screen #api-key{padding-right:39px!important}
+#api-settings-screen .au-show-api-key{position:absolute;right:5px;top:50%;transform:translateY(-50%);height:29px;width:29px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;padding:5px;color:#181818;cursor:pointer}
+#api-settings-screen .au-show-api-key svg{width:20px;height:20px;display:block}
+/* Manual: solid chapter glyphs, true disk silhouette and cut-corner cloud label. */
+#tutorial-screen .app-header .title-container{position:static;left:auto;transform:none;flex:1;text-align:left;margin-left:7px}
+#tutorial-screen .app-header .placeholder{display:none}
+#tutorial-screen .app-header .title{font-size:18px!important;text-align:left}
+#tutorial-screen .app-header{border-bottom:0;justify-content:flex-start;gap:0}
+#tutorial-screen .app-header .back-btn{width:24px;min-width:24px}
+.au-manual-hero{min-height:135px;margin:0 0 10px;gap:8px;align-items:center}
+.au-manual-hero>div:first-child{min-width:0;flex:1}
+.au-manual-hero h2{font-size:29px;letter-spacing:1px;margin-bottom:5px}
+.au-manual-hero>div>small{display:block;border-bottom:1px solid #999;padding-bottom:7px;font-size:9px;letter-spacing:1.7px}
+.au-manual-hero p{font-size:11px;line-height:1.55;margin-top:9px;max-width:175px}
+.au-manual-art{height:134px;width:177px;padding-right:118px;justify-content:flex-start;padding-top:27px}
+.au-manual-art>svg:first-child{width:48px;height:42px}
+.au-manual-art>small{font-size:7px;letter-spacing:1px;border:0!important;padding:0!important}
+.au-manual-art .au-floppy{width:113px;height:130px;top:0;right:0;fill:initial;stroke:none}
+#tutorial-screen .tutorial-header{min-height:42px;padding:8px 13px;font-size:15px;gap:15px}
+.au-chapter-icon{width:26px}
+.au-chapter-icon svg{width:25px;height:25px;stroke-width:1.7}
+#tutorial-screen .tutorial-header::after{font-size:23px}
+.au-backup-section{padding:10px;margin-top:11px}
+.au-backup-section h3{font-size:16px;padding-bottom:7px;border-bottom:1px solid #ccc;margin-bottom:10px}
+#tutorial-screen .au-backup-actions :is(button,label){min-height:47px;justify-content:flex-start;padding:9px 11px!important;font-size:14px;gap:10px;position:relative}
+.au-action-icon svg{width:27px;height:27px}
+#tutorial-screen .au-backup-actions :is(button,label)::after{content:'›';position:absolute;right:9px;top:50%;transform:translateY(-50%);font:23px sans-serif}
+#tutorial-screen .au-backup-actions :is(button,label){padding-right:24px!important}
+#tutorial-screen .au-section-label{font-size:16px!important;padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
+#tutorial-screen .au-section-label::after{content:'REMINDER';font:7px ui-monospace,SFMono-Regular,monospace;color:#888;letter-spacing:.6px}
+#tutorial-screen .au-reminder>.btn-white>div{min-height:39px;padding:8px 0}
+#tutorial-screen .au-cloud{border-radius:3px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,0 100%);padding:0 11px 8px}
+#tutorial-screen .au-cloud::before{content:'';position:absolute;right:-6px;top:7px;width:23px;height:1px;background:#181818;transform:rotate(45deg);pointer-events:none}
+.au-cloud-heading strong{font-size:16px}
+.au-github-brand{font-size:15px;gap:6px}
+.au-github-brand svg{width:24px;height:24px}
+.au-cloud-heading>small{font-size:7px}
+#tutorial-screen #gh-collapse-header .toggle-icon{display:none}
+#tutorial-screen #gh-collapse-header::after{content:'+';font-size:23px;line-height:1;color:#181818}
+#tutorial-screen .au-cloud:has(#gh-config-area[style*="display: block"]) #gh-collapse-header::after{content:'−'}
+#tutorial-screen .au-cloud-heading{padding:10px 0}
+#tutorial-screen #gh-collapse-header span{font-size:14px}
+#tutorial-screen .au-cloud>.btn-white>div:has(>.switch){font-size:14px}
+.au-disk-stamp{color:#181818;gap:8px}
+.au-disk-stamp .au-barcode{width:43px;height:16px}
+/* Log terminal: horizontal application cells and working window controls. */
+#console-screen .kc-header>button:first-child{width:44px;height:44px}
+#console-screen .kc-header>button:first-child:has(svg path[d^="M4 6"]){width:44px;height:44px}
+#console-screen .kc-header h1{font-size:21px}
+#console-screen .kc-header small{font-size:11px}
+#console-screen .kc-summary{padding:11px 12px 12px;min-height:100px;margin-bottom:15px}
+#console-screen .kc-session>span{display:none}
+#console-screen .kc-session{justify-content:flex-end;margin-bottom:7px}
+#console-screen .kc-metrics strong{font-size:29px}
+#console-screen .kc-metrics small{font-size:12px}
+#console-screen .kc-section h3{font-size:16px;margin-bottom:10px}
+#console-screen .kc-section h3>button{font-size:12px}
+#console-screen .kc-app-card{flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;min-height:68px;padding:10px 8px}
+#console-screen .kc-app-card>.kc-app-icon{width:24px;height:28px;flex:none}
+#console-screen .kc-app-card>.kc-app-icon svg{width:25px;height:25px;stroke-width:1.6}
+#console-screen .kc-app-card>span:last-child{min-width:0;flex:1;width:auto}
+#console-screen .kc-app-card strong{font-size:12px;line-height:1.4;white-space:nowrap}
+#console-screen .kc-app-card small{font-size:8px;margin-top:4px}
+#console-screen .kc-log strong{font-size:13px}
+#console-screen .kc-log p{font-size:11px}
+#console-screen .kc-log-meta{font-size:10px}
+#console-screen .au-log-title{padding:5px 6px;min-height:29px;gap:7px;font-size:9px}
+.au-log-title>span{flex:1}
+.au-log-window-controls{display:flex;align-items:center;gap:5px;flex:none}
+#console-screen .au-log-window-controls button{height:21px;width:21px;border:1px solid #888;border-radius:2px;background:linear-gradient(#fafafa,#e5e5e5);padding:0;color:#181818;font:17px sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#console-screen .au-log-reopen{display:none;border:1px solid #777;background:white;color:#181818;border-radius:3px;padding:10px;margin:9px auto;font-size:12px;cursor:pointer}
+#console-screen .kc-timeline[data-au-window="min"]>.kc-log,#console-screen .kc-timeline[data-au-window="closed"]>.kc-log{display:none}
+#console-screen .kc-timeline[data-au-window="min"],#console-screen .kc-timeline[data-au-window="closed"]{flex:none!important}
+#console-screen .kc-timeline[data-au-window="closed"]>.au-log-title{display:none}
+#console-screen .kc-timeline[data-au-window="closed"]>.au-log-reopen{display:block}
+#console-screen #kc-root[data-au-max="true"] .kc-content>.kc-section:has(.kc-apps),#console-screen #kc-root[data-au-max="true"] .kc-content>.kc-summary,#console-screen #kc-root[data-au-max="true"] .au-live-label{display:none}
+#console-screen .kc-footer{border:1px solid #555;border-radius:4px;margin:0 14px max(9px,env(safe-area-inset-bottom,0px));padding:7px 10px;min-height:44px}
+/* Project folders: the four distinct reference cover designs. */
+.grid-view .wb-folder-card[data-au-art="3"] .wb-item-index{display:none}
+.grid-view .wb-folder-card .au-folder-label{border:0;opacity:1;bottom:11px;padding-top:0;gap:10px}
+.au-folder-label>span{flex:1;min-width:0;display:block;position:relative;padding-top:6px}
+.au-folder-label>span>i{display:block;height:1px;background:currentColor;opacity:.55;position:absolute;top:0;left:0;width:100%}
+.au-folder-label>span small{font-size:6px;max-width:none;display:block;line-height:1.35;letter-spacing:.5px}
+.au-folder-label>span small::after{content:'';display:block;position:absolute;right:0;bottom:2px;width:55%;height:1px;background:currentColor;opacity:.55}
+.au-folder-label>span small:not(:only-child){white-space:nowrap}
+.wb-folder-card[data-au-art="0"] .au-folder-label>b{height:16px;width:35px;align-self:center}
+.wb-folder-card[data-au-art="1"] .au-folder-label>b{width:25px;height:9px;background:repeating-linear-gradient(115deg,currentColor 0 1.5px,transparent 1.5px 5px);align-self:flex-end}
+.wb-folder-card[data-au-art="2"] .au-folder-label>b{display:flex;gap:2px;width:29px;height:6px;background:none;align-self:flex-end}
+.au-folder-label>b>em{display:block;width:5px;height:5px;background:currentColor;flex:none}
+.au-folder-label>b>em:last-child{background:none;border:1px solid currentColor}
+.wb-folder-card[data-au-art="3"] .au-folder-label>b{width:23px;height:10px;background:linear-gradient(120deg,transparent 0 16%,#111 16% 45%,transparent 45% 53%,#bbb 53% 82%,transparent 82%);align-self:flex-end}
+.au-folder-art>i{position:absolute;inset:0;border:1px dashed #bbb;font:35px Georgia,serif;letter-spacing:-3px;display:flex;align-items:center;justify-content:center;padding:0}
+.au-folder-art>em{position:absolute;width:3px;height:3px;border:1px solid #555;background:#fff}
+.au-folder-art>em:nth-of-type(1){left:-1px;top:-1px}.au-folder-art>em:nth-of-type(2){right:-1px;top:-1px}.au-folder-art>em:nth-of-type(3){left:-1px;bottom:-1px}.au-folder-art>em:nth-of-type(4){right:-1px;bottom:-1px}
+#wb-recent{position:relative;border:0;background:transparent;border-radius:0;padding-top:4px;isolation:isolate}
+.au-recent-frame{position:absolute;inset:0;z-index:-1;pointer-events:none;color:#444}
+.au-recent-frame svg{display:block;width:100%!important;height:100%!important;fill:none;stroke-width:1}
+#wb-recent>h3{margin-top:0;background:#f1f1f1;clip-path:polygon(0 6px,6px 0,28% 0,calc(28% + 7px) 6px,100% 6px,100% 100%,0 100%);padding-top:12px}
+.au-recent-tag{font-size:8px}
+@media(max-width:360px){
+ .au-manual-hero{min-height:121px;gap:6px}.au-manual-hero h2{font-size:25px}.au-manual-hero p{font-size:10px;max-width:140px}.au-manual-art{width:148px;height:121px;padding-right:100px;padding-top:25px}.au-manual-art .au-floppy{width:99px;height:117px}.au-manual-art>svg:first-child{width:39px;height:34px}
+ #console-screen .kc-app-card{padding:8px 5px;gap:5px;min-height:65px}#console-screen .kc-app-card strong{font-size:10px}#console-screen .kc-app-card>.kc-app-icon{width:19px}#console-screen .kc-app-card>.kc-app-icon svg{width:21px;height:21px}#console-screen .kc-app-card small{font-size:7px}
+ #tutorial-screen .au-backup-actions :is(button,label){font-size:12px;gap:7px}.au-action-icon svg{width:24px;height:24px}
+ #api-settings-screen .au-preset-picker{max-width:66%}
+}
+/* Final reference spacing: keep the illustrations, compact the controls. */
+#tutorial-screen .app-header .title-container{align-items:flex-start}
+#tutorial-screen .au-manual-hero{min-height:130px;margin-bottom:10px}
+#tutorial-screen .tutorial-header{min-height:39px;padding-top:6px;padding-bottom:6px}
+#tutorial-screen .au-backup-actions :is(button,label){min-height:43px!important}
+#tutorial-screen .au-cloud-actions button{min-height:31px!important;padding-top:6px!important;padding-bottom:6px!important}
+#tutorial-screen .au-cloud{padding-bottom:7px!important}
+#api-settings-screen #kv-chat-panel .kkt-item{padding-top:7px!important;padding-bottom:7px!important;gap:5px}
+#api-settings-screen #kv-chat-panel .kkt-item-control :is(input:not([type=checkbox]),select){min-height:32px;padding-top:6px!important;padding-bottom:6px!important}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#api-model){padding-top:6px!important;padding-bottom:7px!important}
+#api-settings-screen .au-api-advanced>summary{min-height:46px;padding-top:7px;padding-bottom:7px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#time-perception-switch){min-height:46px}
+#api-settings-screen #kv-chat-panel .kkt-item:has(#time-perception-switch) svg{color:#181818;stroke:#181818}
+#api-settings-screen .kv-hero{margin-bottom:10px}
+#api-settings-screen #kv-chat-panel .au-api-presets>.kkt-item{padding-top:7px!important;padding-bottom:5px!important}
+#api-settings-screen #kv-chat-panel{gap:0}
+#api-settings-screen #api-form{margin:0;padding-bottom:0}
+#api-settings-screen #kv-chat-panel .au-api-presets{margin-top:0!important}
+#api-settings-screen.kv-api-screen .app-header{min-height:42px;padding-top:4px;padding-bottom:4px}
+#api-settings-screen.kv-api-screen.kv-android .app-header{min-height:calc(42px + clamp(4px,env(safe-area-inset-top,0px),12px));padding-top:calc(4px + clamp(4px,env(safe-area-inset-top,0px),12px));padding-bottom:4px}
+#api-settings-screen .app-header .title-container{visibility:hidden}
+#api-settings-screen .au-connection-mark{height:28px}
+#api-settings-screen .au-preset-drawer>summary{padding-top:4px;padding-bottom:4px}
