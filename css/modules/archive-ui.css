@@ -615,3 +615,9 @@
 
 #console-screen [data-stat="error"] small{color:var(--kc-error)}
 #console-screen [data-stat="warn"] small{color:var(--kc-warn)}
+
+/* Connection title ornament matches the approved reference. ONLINE is artwork, not a connection test. */
+#api-settings-screen .au-api-connection>.au-window-title{gap:11px;align-items:center;min-height:29px;padding-top:4px;padding-bottom:4px;overflow:hidden}
+#api-settings-screen .au-api-connection>.au-window-title>small{display:block;font:8px ui-monospace,SFMono-Regular,monospace;letter-spacing:1px;color:white;white-space:nowrap;opacity:1}
+#api-settings-screen .au-api-connection .au-panel-plug{align-self:stretch;height:25px;width:86px;margin-left:auto;color:#eee}
+#api-settings-screen .au-api-connection .au-connection-emblem{width:86px;height:25px;align-self:flex-end}

@@ -349,3 +349,21 @@
 #widget-market-screen{min-height:0;max-height:100%}
 #widget-market-screen #widget-multi-select-bar .btn{border-radius:4px;box-shadow:none;border:1px solid #444;background:#fff;color:#171717}
 #widget-market-screen #widget-multi-select-bar .btn-primary{background:#171717;color:#fff}
+
+/* Consistent large previews; only the explicit list toggle uses compact rows. */
+#widget-market-screen .widget-card-actions,
+#widget-market-screen .ws-list-view .widget-card-actions{position:static;inset:auto;grid-column:1/-1;min-width:0;max-width:100%;margin:0;border:0;border-top:1px solid #ddd;border-radius:0;box-shadow:none;padding:7px;gap:5px;background:#f8f8f8}
+#widget-market-screen .widget-card-actions .widget-card-btn{width:100%;min-width:0;min-height:34px;white-space:normal;overflow-wrap:anywhere;line-height:1.4;padding:7px 9px;font:inherit;font-size:12px;border:1px solid #ccc;border-radius:3px;background:white;color:#171717;box-shadow:none;margin:0!important}
+#widget-market-screen .widget-card-actions .danger{color:#ac3030}
+#widget-market-screen .info-area{flex-wrap:nowrap;gap:5px}
+#widget-market-screen .widget-name{flex:1;min-width:0}
+#widget-market-screen .widget-meta,#widget-market-screen .ws-card-tools{flex-shrink:0}
+#widget-market-screen .ws-card-tools .ws-more{min-width:24px;min-height:28px}
+#widget-market-screen .ws-list-view .widget-preview-canvas{max-height:none}
+#widget-market-screen .ws-list-view .ws-card.active{row-gap:7px}
+#widget-add-list .widget-preview-canvas>.ws-favorite{position:absolute;right:7px;top:7px;z-index:3;display:flex;align-items:center;justify-content:center;width:25px;height:25px;padding:4px;min-height:0;border:1px solid #bbb;border-radius:50%;background:#fffffff0;box-shadow:none}
+#widget-add-list .widget-preview-canvas>.ws-favorite svg{width:15px;height:15px}
+#widget-add-modal .ws-picker-collections{display:flex;align-items:center;gap:14px;padding:10px 0 6px;min-height:34px}
+#widget-add-modal .ws-picker-collections button{border:0;background:none;box-shadow:none;padding:0;font:inherit;font-size:12px;color:#999;white-space:nowrap}
+#widget-add-modal .ws-picker-collections button.selected{font-size:15px;font-weight:650;color:#171717}
+@media(max-width:360px){.ws-collection-heading{flex-wrap:wrap;row-gap:5px}.ws-collections{flex-basis:55%}.ws-count{margin-left:auto}.ws-view-options{gap:10px}#widget-market-screen .info-area{padding-left:7px;padding-right:5px}#widget-market-screen .widget-meta{padding:1px 3px;font-size:8px}}
