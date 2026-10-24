@@ -447,11 +447,21 @@ function renderWidgetAddModal() {
 
     let currentFilter = 'all';
     let currentSearch = '';
+    let currentCollection = 'all';
+    let collectionTabs = document.getElementById('ws-picker-collections');
+    if(!collectionTabs){
+        collectionTabs=document.createElement('nav');collectionTabs.id='ws-picker-collections';collectionTabs.className='ws-picker-collections';collectionTabs.setAttribute('aria-label','组件收藏分组');
+        for(const [id,label] of [['favorites','我的收藏'],['all','全部组件']]){const button=document.createElement('button');button.type='button';button.dataset.collection=id;button.textContent=label;collectionTabs.append(button);}
+        categoryTabs?.after(collectionTabs);
+    }
     if(searchInput)searchInput.value='';
     categoryTabs?.querySelectorAll('.category-tab').forEach(t=>t.classList.toggle('active',t.dataset.size==='all'));
 
     const updateList = () => {
+        const scrollTop=listContainer.scrollTop;
         let filtered = db.widgetTemplates || [];
+        if(currentCollection==='favorites')filtered=filtered.filter(t=>t.kissFavorite===true);
+        collectionTabs?.querySelectorAll('button').forEach(b=>{b.classList.toggle('selected',b.dataset.collection===currentCollection);b.setAttribute('aria-pressed',String(b.dataset.collection===currentCollection));});
         
         if (currentFilter !== 'all') {
             filtered = filtered.filter(t => t.size === currentFilter);
@@ -466,7 +476,12 @@ function renderWidgetAddModal() {
         }
         
         renderWidgetList(listContainer, widgetStudioOrder(filtered,true), true);
+        if(!filtered.length){const empty=document.createElement('div');empty.className='ws-empty';empty.textContent=currentCollection==='favorites'?'还没有收藏，轻点组件右上角的星标即可收藏。':'没有找到对应组件';listContainer.append(empty);}
+        listContainer.scrollTop=scrollTop;
     };
+
+    listContainer.widgetStudioRefresh=updateList;
+    if(collectionTabs)collectionTabs.onclick=e=>{const button=e.target.closest('button[data-collection]');if(!button)return;currentCollection=button.dataset.collection;listContainer.scrollTop=0;updateList();};
 
     // 绑定搜索
     if (searchInput) {
@@ -505,7 +520,7 @@ const widgetStudioPendingFavorites=new Set();
 const wsIcon=(body)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+body+'</svg>';
 const wsGlyph={star:'<path d="m12 2 3 6 7 1-5 5 1 8-6-4-6 4 1-8-5-5 7-1Z"/>',grid:'<path d="M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3z"/>',list:'<path d="M7 5h14M7 12h14M7 19h14M3 5h1m-1 7h1m-1 7h1"/>',plus:'<path d="M12 4v16M4 12h16"/>',import:'<path d="M4 3v18h16V3M12 2v12m-5-5 5 5 5-5"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>'};
 function widgetStudioRefreshCollections(){
- for(const id of ['widget-my-content','widget-templates-content'])document.getElementById(id)?.widgetStudioRefresh?.();
+ for(const id of ['widget-my-content','widget-templates-content','widget-add-list'])document.getElementById(id)?.widgetStudioRefresh?.();
 }
 async function toggleWidgetFavorite(template,button){
  if(widgetStudioPendingFavorites.has(template.id))return;
@@ -591,8 +606,6 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
         if (isWidgetMultiSelectMode) card.classList.add('multi-select-mode');
         card.dataset.templateId=template.id;
         card.classList.add('ws-card');
-        const isCompact=!isModal&&(template.size==='1x1'||(template.size==='4x2'&&template!==validTemplates.find(t=>t.size==='4x2'))||(template.size==='2x2'&&validTemplates.filter(t=>t.size==='2x2').indexOf(template)>1));
-        if(isCompact)card.classList.add('ws-compact-card');
         card.setAttribute('data-size', template.size); // 用于网格布局跨度
         
         if (isWidgetMultiSelectMode && selectedWidgets.has(template.id)) {
@@ -652,7 +665,7 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
         infoBox.querySelector('.widget-name').textContent = String(template.name || '未命名组件').replace(/\s*[（(](?:1x1|2x2|4x2|4x4)[）)]$/i,'');
         infoBox.querySelector('.widget-meta').textContent=String(template.size||'2x2').replace('x','×');
         const cardTools=document.createElement('div');cardTools.className='ws-card-tools';
-        if(!isModal&&!isTemplateLibrary){const favorite=document.createElement('button');favorite.type='button';favorite.className='ws-favorite';favorite.setAttribute('aria-label',template.kissFavorite===true?'取消收藏':'收藏组件');favorite.setAttribute('aria-pressed',String(template.kissFavorite===true));favorite.innerHTML=wsIcon(wsGlyph.star);favorite.onclick=e=>{e.stopPropagation();if(!isWidgetMultiSelectMode)toggleWidgetFavorite(template,favorite)};previewCanvas.append(favorite);}
+        if(!isTemplateLibrary){const favorite=document.createElement('button');favorite.type='button';favorite.className='ws-favorite';favorite.setAttribute('aria-label',template.kissFavorite===true?'取消收藏':'收藏组件');favorite.setAttribute('aria-pressed',String(template.kissFavorite===true));favorite.innerHTML=wsIcon(wsGlyph.star);favorite.onclick=e=>{e.stopPropagation();if(!isWidgetMultiSelectMode)toggleWidgetFavorite(template,favorite)};previewCanvas.append(favorite);}
         const menu=document.createElement('button');menu.type='button';menu.className=isModal?'ws-add-mark':'ws-more';menu.setAttribute('aria-label',isModal?'添加到桌面':'组件操作');menu.textContent=isModal?'○':'···';if(isModal&&(db.addedWidgets||[]).some(w=>w.templateId===template.id)){menu.textContent='✓';menu.classList.add('is-added');menu.setAttribute('aria-label','已添加过，再添加一个');}cardTools.append(menu);infoBox.append(cardTools);
         if(!isModal){const index=document.createElement('small');index.className='ws-card-index';index.textContent=String(validTemplates.filter(t=>t.size!=='1x1').indexOf(template)+1).padStart(2,'0');previewCanvas.append(index);}
         card.appendChild(previewCanvas);
