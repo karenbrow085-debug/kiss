@@ -54,7 +54,7 @@
     <link rel="stylesheet" href="css/modules/monitor.css">
     <link rel="stylesheet" href="css/modules/tutorial.css?v=20261023-chat-fixes-1">
     <link rel="stylesheet" href="css/modules/shop.css">
-    <link rel="stylesheet" href="css/modules/widget_market.css?v=20261023-four-fixes-1">
+    <link rel="stylesheet" href="css/modules/widget_market.css?v=20261024-studio-1">
     <link rel="stylesheet" href="css/modules/cot_settings.css">
     <link rel="stylesheet" href="css/modules/video_call.css">
     <link rel="stylesheet" href="css/modules/storage.css">
@@ -625,16 +625,16 @@
     <div id="widget-market-screen" class="screen">
         <header class="app-header">
             <button class="back-btn" data-target="home-screen">‹</button>
-            <div class="workshop-tabs" style="display: flex; gap: 10px; flex: 1; justify-content: center;">
-                <button class="workshop-tab active" id="widget-tab-my" style="background: none; border: none; font-size: 16px; font-weight: bold; color: var(--primary-color); padding: 5px 10px; border-bottom: 2px solid var(--primary-color);">我的组件</button>
-                <button class="workshop-tab" id="widget-tab-templates" style="background: none; border: none; font-size: 16px; font-weight: bold; color: #999; padding: 5px 10px; border-bottom: 2px solid transparent;">基础模板</button>
-            </div>
+            <div class="title-container"><h1 class="title">小组件</h1></div>
             <div class="action-btn-group">
                 <button class="action-btn" id="widget-multi-select-btn" title="多选管理" style="font-size: 14px; width: auto; padding: 0 8px;">管理</button>
                 <button class="action-btn" id="widget-cancel-multi-select-btn" title="取消" style="display: none; font-size: 14px; width: auto; padding: 0 8px;">取消</button>
             </div>
         </header>
-        <main class="content" style="background: #f5f5f5; padding: 0;">
+        <main class="content ws-studio-main"><section class="ws-studio-hero"><div><h2>组件工作台</h2><small>WIDGET STUDIO / kiss</small></div><div class="ws-studio-art"><svg viewBox="0 0 174 122" fill="none" aria-hidden="true"><path d="M8 8h112v109H8Z" stroke="#888" stroke-dasharray="2 2"/><path d="M5 5h6v6H5zm112 0h6v6h-6zM5 114h6v6H5zm112 0h6v6h-6z" fill="white" stroke="#181818"/><path d="M19 19h43v42H19zm50 0h40v42H69zM19 68h43v38H19zm50 0h40v38H69z" fill="#f6f6f6" stroke="#bbb"/><path d="M40 58V36m0 9-9-7m9 1 9-8" stroke="#888"/><circle cx="40" cy="30" r="7" fill="#999"/><path d="M28 30h24m-12-12v24" stroke="#999" stroke-width="3"/><path d="M89 29q-1 12-11 12 10 0 11 12 1-12 11-12-10 0-11-12Z" fill="#181818"/><path d="M20 98q0-8 7-8 1-11 10-10 7-8 14 2 10-1 10 16" fill="#ddd"/><ellipse cx="89" cy="87" rx="8" ry="20" transform="rotate(45 89 87)" stroke="#999"/><g transform="rotate(43 123 91)"><rect x="116" y="56" width="14" height="72" fill="white" stroke="#181818"/><path d="M116 61h5m-5 5h3m-3 5h5m-5 5h3m-3 5h5m-5 5h3m-3 5h5m-5 5h3m-3 5h5m-5 5h3m-3 5h5m-5 5h3m-3 5h5" stroke="#777"/></g><path d="m113 43 18 10-10 2-3 11Z" fill="#181818"/><text x="138" y="24" font-size="5" font-family="monospace" fill="#777">IDEAS</text><text x="138" y="33" font-size="5" font-family="monospace" fill="#777">IN SMALL</text><text x="138" y="42" font-size="5" font-family="monospace" fill="#777">PIECES</text></svg></div></section><div class="workshop-tabs ws-workshop-tabs">
+                <button class="workshop-tab active" id="widget-tab-my">我的组件</button>
+                <button class="workshop-tab" id="widget-tab-templates">基础模板</button>
+            </div>
             <div id="widget-my-content" class="widget-tab-content active" style="padding: 15px; height: 100%; overflow-y: auto;">
                 <!-- JS populated with Gallery -->
             </div>
@@ -644,6 +644,7 @@
             <input type="file" id="widget-import-input" accept=".json" style="display: none;">
         </main>
         
+        <footer class="ws-studio-footer"><b>▦</b><span id="ws-studio-total">WIDGETS</span><i class="ws-footer-ticks" aria-hidden="true"></i><i class="ws-footer-rule"></i><strong>kiss</strong></footer>
         <!-- 多选操作栏 -->
         <div id="widget-multi-select-bar" style="display: none; position: absolute; bottom: 0; left: 0; right: 0; background: #fff; padding: 10px 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; justify-content: space-between; align-items: center;">
             <span id="widget-select-count" style="font-size: 14px; color: #666;">已选 0 项</span>
@@ -2370,26 +2371,27 @@
             <div class="bottom-sheet-handle"></div>
             <div class="bottom-sheet-header">
                 <div class="header-top">
-                    <h3 class="title">添加小组件</h3>
+                    <div class="ws-picker-heading"><h3 class="title">添加小组件</h3><small>WIDGET LIBRARY / 01</small></div><div class="ws-picker-art"><svg viewBox="0 0 170 94" fill="none" aria-hidden="true"><path d="M8 17V6h11m132 0h11v11M8 76v11h11m132 0h11V76M2 47h12m-6-6v12m148-6h12m-6-6v12" stroke="#181818"/><g transform="rotate(-8 57 45)"><rect x="26" y="16" width="64" height="58" rx="9" fill="#f9f9f9" stroke="#181818"/><rect x="31" y="22" width="54" height="45" rx="5" fill="#dedede"/><circle cx="47" cy="35" r="6" fill="#aaa"/><path d="m32 60 15-15 11 9 12-17 14 23v7H32Z" fill="#999"/></g><rect x="68" y="30" width="56" height="49" rx="9" fill="white" stroke="#181818"/><path d="M78 43h20m-20 9h35m-35 9h27" stroke="#888"/><g transform="rotate(12 131 61)"><rect x="111" y="40" width="47" height="43" rx="8" fill="#fafafa" stroke="#181818"/><text x="118" y="66" fill="#181818" stroke="none" font-size="12" font-family="monospace">12:08</text></g><path d="m102 72 13 13-8-1-3 8Z" fill="#181818"/></svg></div>
                     <button id="close-widget-add-modal-btn" class="close-btn">✕</button>
                 </div>
                 <div class="search-bar-container">
                     <div class="search-input-wrapper">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" id="widget-add-search-input" placeholder="搜索组件名称...">
+                        <input type="text" id="widget-add-search-input" placeholder="搜索组件名称">
                     </div>
                 </div>
                 <div class="category-tabs" id="widget-add-category-tabs">
                     <div class="category-tab active" data-size="all">全部</div>
-                    <div class="category-tab" data-size="1x1">1x1</div>
-                    <div class="category-tab" data-size="2x2">2x2</div>
-                    <div class="category-tab" data-size="4x2">4x2</div>
-                    <div class="category-tab" data-size="4x4">4x4</div>
+                    <div class="category-tab" data-size="1x1">1×1</div>
+                    <div class="category-tab" data-size="2x2">2×2</div>
+                    <div class="category-tab" data-size="4x2">4×2</div>
+                    <div class="category-tab" data-size="4x4">4×4</div>
                 </div>
             </div>
             <div id="widget-add-list" class="widget-add-grid">
                 <!-- JS populated -->
             </div>
+        <footer class="ws-picker-footer"><span>▦</span><span>轻点组件，添加到桌面</span><small>kiss / WIDGETS</small><i class="ws-barcode"></i></footer>
         </div>
     </div>
 
@@ -2702,7 +2704,7 @@
 
 <!-- [2. 核心交互层] -->
 <script src="js/modules/kiss-tools-core.js?v=cleanup-speed-20261019-2"></script>
-<script src="js/modules/widget_runtime.js?v=20261023-four-fixes-1"></script>
+<script src="js/modules/widget_runtime.js?v=20261024-studio-1"></script>
 <script src="js/ui.js?v=20261023-startup-performance-1"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
 <script src="js/modules/chat_list.js?v=20261022-safe-backup-1"></script>
@@ -2740,7 +2742,7 @@
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
 <script src="js/modules/storage.js?v=20261023-resource-fix-1"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
-<script src="js/modules/widget_market.js?v=20261023-widgets-1"></script> <!-- 小组件市场 -->
+<script src="js/modules/widget_market.js?v=20261024-studio-1"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js?v=20261024-archive-1"></script>  <!-- 教程、更新日志、GitHub备份 -->
 <script src="js/modules/more_menu.js"></script> <!-- 更多菜单与状态栏管理 -->
 <script src="js/modules/search.js?v=20261022-safe-backup-1"></script> <!-- 聊天记录搜索模块 -->
@@ -2782,6 +2784,6 @@
 <script src="js/mcp/model.js?v=10-archive-ui"></script>
 <script src="js/mcp/requests.js?v=7-request-cards"></script>
 <script src="js/mcp/app.js?v=20261014-mcp-side-api-2"></script>
-<script src="js/modules/archive-ui.js?v=20261024-profile-stable-1"></script>
+<script src="js/modules/archive-ui.js?v=20261024-studio-1"></script>
 </body>
 </html>
