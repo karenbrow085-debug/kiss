@@ -651,26 +651,23 @@ function filterHistoryForAI(chat, historySlice, ignoreContextDisabled = false) {
     return filteredHistory;
 }
 
-function isSecondaryApiSelected(featureKey) {
+function getSecondaryApiForFeature(featureKey) {
     const secondary = db.apiSettings && db.apiSettings.secondary;
-    return Boolean(secondary && secondary.enabled && secondary.routes && secondary.routes[featureKey]);
+    if (!secondary) return null;
+    if (Array.isArray(secondary.profiles)) {
+        return secondary.profiles.find(p => p && p.enabled && p.routes && p.routes[featureKey]) || null;
+    }
+    return secondary.enabled && secondary.routes && secondary.routes[featureKey] ? secondary : null;
 }
-
+function isSecondaryApiSelected(featureKey) {
+    return Boolean(getSecondaryApiForFeature(featureKey));
+}
 function resolveAuxiliaryApiConfig(featureKey, fallbackConfig = null) {
     const primaryConfig = fallbackConfig || (db.apiSettings || {});
-    const secondary = db.apiSettings && db.apiSettings.secondary;
-    const shouldUseSecondary = isSecondaryApiSelected(featureKey);
-
-    if (!shouldUseSecondary) return primaryConfig;
-
-    return {
-        ...primaryConfig,
-        provider: secondary.provider || 'newapi',
-        url: secondary.url || '',
-        key: secondary.key || '',
-        model: secondary.model || '',
-        apiRouteSource: 'secondary'
-    };
+    const secondary = getSecondaryApiForFeature(featureKey);
+    if (!secondary) return primaryConfig;
+    return {...primaryConfig, provider: secondary.provider || 'newapi', url: secondary.url || '',
+        key: secondary.key || '', model: secondary.model || '', apiRouteSource: 'secondary', apiRouteProfileId: secondary.id || ''};
 }
 
 function resolveWorkshopLlmApiConfig() {
