@@ -43,7 +43,7 @@ window.KissWidgetRuntime = (() => {
         const item = previews.get(node);
         if (!item || frames.has(node) || !node.isConnected || !node.getClientRects().length) return;
         // Bound decoded pictures and browsing contexts on low-memory phones.
-        while (frames.size >= 3) unload(frames.keys().next().value);
+        while (frames.size >= 5) unload(frames.keys().next().value);
         const frame = document.createElement('iframe');
         frame.title = '小组件预览'; frame.setAttribute('sandbox', ''); frame.tabIndex = -1;
         frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;background:transparent';
@@ -71,7 +71,7 @@ window.KissWidgetRuntime = (() => {
             const shownHeight = canvas.clientWidth * height / width;
             canvas.style.setProperty('height', shownHeight + 'px', 'important');
             canvas.style.setProperty('min-height', shownHeight + 'px', 'important');
-            node.style.cssText += ';position:absolute;left:50%;top:50%;transform-origin:center;transform:translate(-50%,-50%) scale(' + Math.min(1, canvas.clientWidth / width) + ')';
+            node.style.cssText += ';position:absolute;left:50%;top:50%;transform-origin:center;transform:translate(-50%,-50%) scale(' + (canvas.clientWidth / width) + ')';
         };
         node.style.position = 'relative';
         const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;

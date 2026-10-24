@@ -425,6 +425,7 @@ async function initBuiltInWidgets() {
 
 function renderWidgetMarket() {
     initBuiltInWidgets().then(() => {
+        const total=document.getElementById('ws-studio-total');if(total)total.textContent=(db.widgetTemplates||[]).length+' WIDGETS';
         const myContainer = document.getElementById('widget-my-content');
         const templatesContainer = document.getElementById('widget-templates-content');
         
@@ -446,6 +447,8 @@ function renderWidgetAddModal() {
 
     let currentFilter = 'all';
     let currentSearch = '';
+    if(searchInput)searchInput.value='';
+    categoryTabs?.querySelectorAll('.category-tab').forEach(t=>t.classList.toggle('active',t.dataset.size==='all'));
 
     const updateList = () => {
         let filtered = db.widgetTemplates || [];
@@ -462,7 +465,7 @@ function renderWidgetAddModal() {
             );
         }
         
-        renderWidgetList(listContainer, filtered, true);
+        renderWidgetList(listContainer, widgetStudioOrder(filtered,true), true);
     };
 
     // 绑定搜索
@@ -497,101 +500,53 @@ function renderWidgetAddModal() {
  * @param {Array} templates 模板数组
  * @param {Boolean} isTemplateLibrary 是否为基础模板库
  */
+const widgetStudioState={my:{query:'',collection:'all',layout:'grid'},basic:{query:'',collection:'all',layout:'grid'}};
+const widgetStudioPendingFavorites=new Set();
+const wsIcon=(body)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+body+'</svg>';
+const wsGlyph={star:'<path d="m12 2 3 6 7 1-5 5 1 8-6-4-6 4 1-8-5-5 7-1Z"/>',grid:'<path d="M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3z"/>',list:'<path d="M7 5h14M7 12h14M7 19h14M3 5h1m-1 7h1m-1 7h1"/>',plus:'<path d="M12 4v16M4 12h16"/>',import:'<path d="M4 3v18h16V3M12 2v12m-5-5 5 5 5-5"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>'};
+function widgetStudioRefreshCollections(){
+ for(const id of ['widget-my-content','widget-templates-content'])document.getElementById(id)?.widgetStudioRefresh?.();
+}
+async function toggleWidgetFavorite(template,button){
+ if(widgetStudioPendingFavorites.has(template.id))return;
+ const previous=template.kissFavorite===true;widgetStudioPendingFavorites.add(template.id);button.disabled=true;
+ template.kissFavorite=!previous;
+ try{await saveData();widgetStudioRefreshCollections();window.KissDiagnostics?.record({app:'widgets',feature:'组件收藏',phase:'end',title:template.kissFavorite?'已收藏组件':'已取消收藏',detail:'尺寸：'+template.size});}
+ catch(error){template.kissFavorite=previous;showToast('收藏保存失败，请重试');}
+ finally{widgetStudioPendingFavorites.delete(template.id);button.disabled=false;}
+}
+function widgetStudioOrder(templates,modal=false){
+ const rank=t=>modal?({'builtin-ins-2x2':0,'builtin-polaroid-2x2':1,'builtin-top-panel-4x2':2}[t.id]??3):t.size==='1x1'?0:({'builtin-ins-2x2':1,'builtin-polaroid-2x2':2,'builtin-top-panel-4x2':3}[t.id]??4);
+ return templates.map((t,i)=>({t,i})).sort((a,b)=>rank(a.t)-rank(b.t)||a.i-b.i).map(x=>x.t);
+}
 function renderWidgetGallery(container, templates, isTemplateLibrary = false) {
-    templates = (Array.isArray(templates) ? templates : []).filter(t => t && typeof t === 'object');
-    container.innerHTML = '';
-    
-    // 1. 如果是“我的组件”页面，在最顶部渲染固定的“新建”和“导入”操作区
-    if (!isTemplateLibrary) {
-        const actionSection = document.createElement('div');
-        actionSection.className = 'widget-market-actions-section';
-        actionSection.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;';
-        
-        // 1. 新建卡片
-        const createCard = document.createElement('div');
-        createCard.className = 'widget-market-card widget-create-card';
-        createCard.style.cssText = 'cursor: pointer; border: 2px dashed #ddd; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; min-height: 90px;';
-        createCard.innerHTML = `
-            <div class="widget-create-icon" style="background: rgba(0, 123, 255, 0.1); color: var(--primary-color); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </div>
-            <div style="font-size: 12px; font-weight: bold; color: #666; margin-top: 8px;">新建组件</div>
-        `;
-        createCard.onclick = () => openWidgetEditor();
-        actionSection.appendChild(createCard);
-
-        // 2. 导入卡片
-        const importCard = document.createElement('div');
-        importCard.className = 'widget-market-card widget-create-card';
-        importCard.style.cssText = 'cursor: pointer; border: 2px dashed #ddd; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; min-height: 90px;';
-        importCard.innerHTML = `
-            <div class="widget-create-icon" style="background: rgba(76, 175, 80, 0.1); color: #4CAF50; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </div>
-            <div style="font-size: 12px; font-weight: bold; color: #666; margin-top: 8px;">导入组件</div>
-        `;
-        importCard.onclick = () => document.getElementById('widget-import-input').click();
-        actionSection.appendChild(importCard);
-        
-        container.appendChild(actionSection);
-    }
-
-    // 2. 渲染尺寸导航
-    const nav = document.createElement('div');
-    nav.className = 'widget-size-nav';
-    const sizes = [
-        { id: 'all', name: '全部' },
-        { id: '1x1', name: '1x1' },
-        { id: '2x2', name: '2x2' },
-        { id: '4x2', name: '4x2' },
-        { id: '4x4', name: '4x4' }
-    ];
-    
-    sizes.forEach(size => {
-        const item = document.createElement('div');
-        item.className = `size-nav-item ${currentWidgetSizeFilter === size.id ? 'active' : ''}`;
-        item.innerText = size.name;
-        item.onclick = () => {
-            currentWidgetSizeFilter = size.id;
-            renderWidgetGallery(container, templates, isTemplateLibrary);
-        };
-        nav.appendChild(item);
-    });
-    container.appendChild(nav);
-
-    // 3. 过滤数据
-    let filteredTemplates = templates;
-    if (currentWidgetSizeFilter !== 'all') {
-        filteredTemplates = templates.filter(t => t.size === currentWidgetSizeFilter);
-    }
-
-    if (filteredTemplates.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.cssText = 'text-align: center; padding: 60px 20px; color: #999;';
-        empty.innerHTML = `
-            <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
-            <p>该尺寸下暂无组件</p>
-        `;
-        container.appendChild(empty);
-        return;
-    }
-
-    // 4. 按尺寸分组渲染 (仅在 "全部" 模式下显示分组标题)
-    if (currentWidgetSizeFilter === 'all') {
-        const sizeGroups = ['1x1', '2x2', '4x2', '4x4'];
-        sizeGroups.forEach((size, index) => {
-            const groupTemplates = filteredTemplates.filter(t => t.size === size);
-            if (groupTemplates.length > 0) {
-                renderGallerySection(container, `${size} 尺寸`, groupTemplates, isTemplateLibrary, false);
-            }
-        });
-    } else {
-        // 特定尺寸模式：直接渲染网格
-        const grid = document.createElement('div');
-        grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px;';
-        renderWidgetList(grid, filteredTemplates, false, isTemplateLibrary, false);
-        container.appendChild(grid);
-    }
+ templates=(Array.isArray(templates)?templates:[]).filter(t=>t&&typeof t==='object');
+ const state=widgetStudioState[isTemplateLibrary?'basic':'my'];container.replaceChildren();
+ const make=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n};
+ if(!isTemplateLibrary){const tools=make('div','widget-market-actions-section ws-tools');
+  for(const [label,glyph,action] of [['新建组件','plus',()=>openWidgetEditor()],['导入组件','import',()=>document.getElementById('widget-import-input').click()]]){const button=make('button','ws-tool');button.type='button';button.innerHTML=wsIcon(wsGlyph[glyph]);button.append(document.createTextNode(label));button.onclick=action;tools.append(button);}container.append(tools);
+ }
+ const search=make('label','ws-search');search.innerHTML=wsIcon(wsGlyph.search);const input=make('input','','');input.type='search';input.placeholder=isTemplateLibrary?'搜索基础模板':'搜索我的组件';input.setAttribute('aria-label',input.placeholder);input.value=state.query;search.append(input);container.append(search);
+ const nav=make('nav','widget-size-nav');nav.setAttribute('aria-label','按组件尺寸筛选');
+ for(const size of ['all','1x1','2x2','4x2','4x4']){const button=make('button','size-nav-item'+(currentWidgetSizeFilter===size?' active':''),size==='all'?'全部':size.replace('x','×'));button.type='button';button.dataset.size=size;button.onclick=()=>{currentWidgetSizeFilter=size;nav.querySelectorAll('button').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-pressed',String(b===button))});draw()};button.setAttribute('aria-pressed',String(currentWidgetSizeFilter===size));nav.append(button);}container.append(nav);
+ const heading=make('div','ws-collection-heading'),tabs=make('div','ws-collections'),counter=make('small','ws-count');
+ if(!isTemplateLibrary){for(const [id,title]of [['favorites','我的收藏'],['all','全部组件']]){const button=make('button','ws-collection-tab',title);button.type='button';button.dataset.collection=id;button.onclick=()=>{state.collection=id;draw()};tabs.append(button);}}else tabs.append(make('h3','','基础模板'));
+ const view=make('div','ws-view-options');for(const mode of ['grid','list']){const button=make('button','');button.type='button';button.innerHTML=wsIcon(wsGlyph[mode]);button.dataset.layout=mode;button.setAttribute('aria-label',mode==='grid'?'网格视图':'列表视图');button.onclick=()=>{state.layout=mode;draw()};view.append(button);}heading.append(tabs,counter,view);container.append(heading);
+ const results=make('div','ws-results');container.append(results);
+ function draw(){
+  const top=container.scrollTop,query=state.query.trim().toLowerCase();let rows=isTemplateLibrary?templates:(db.widgetTemplates||[]).filter(t=>t&&typeof t==='object');
+  if(!isTemplateLibrary&&state.collection==='favorites')rows=rows.filter(t=>t.kissFavorite===true);
+  if(currentWidgetSizeFilter!=='all')rows=rows.filter(t=>t.size===currentWidgetSizeFilter);
+  if(query)rows=rows.filter(t=>String(t.name||'').toLowerCase().includes(query)||String(t.size||'').includes(query));
+  counter.textContent=rows.length+' 个'+(!isTemplateLibrary&&state.collection==='favorites'?'收藏':'组件');
+  tabs.querySelectorAll('button').forEach(b=>{b.classList.toggle('selected',b.dataset.collection===state.collection);b.setAttribute('aria-pressed',String(b.dataset.collection===state.collection));});
+  view.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.layout===state.layout)));
+  results.className='ws-results'+(state.layout==='list'?' ws-list-view':'');
+  renderWidgetList(results,widgetStudioOrder(rows),false,isTemplateLibrary,false);
+  if(!rows.length){const empty=make('div','ws-empty',!isTemplateLibrary&&state.collection==='favorites'?'还没有收藏，轻点组件上的星标即可收藏。':'没有找到对应组件');if(!isTemplateLibrary&&state.collection==='favorites'){const all=make('button','','查看全部组件');all.type='button';all.onclick=()=>{state.collection='all';draw()};empty.append(all);}results.append(empty);}
+  container.scrollTop=top;
+ }
+ container.widgetStudioRefresh=draw;input.oninput=()=>{state.query=input.value;draw()};draw();
 }
 
 function renderGallerySection(container, title, templates, isTemplateLibrary, prependSpecialCards = false) {
@@ -634,6 +589,10 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
         const card = document.createElement('div');
         card.className = 'widget-market-card';
         if (isWidgetMultiSelectMode) card.classList.add('multi-select-mode');
+        card.dataset.templateId=template.id;
+        card.classList.add('ws-card');
+        const isCompact=!isModal&&(template.size==='1x1'||(template.size==='4x2'&&template!==validTemplates.find(t=>t.size==='4x2'))||(template.size==='2x2'&&validTemplates.filter(t=>t.size==='2x2').indexOf(template)>1));
+        if(isCompact)card.classList.add('ws-compact-card');
         card.setAttribute('data-size', template.size); // 用于网格布局跨度
         
         if (isWidgetMultiSelectMode && selectedWidgets.has(template.id)) {
@@ -690,7 +649,12 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
             <div class="widget-meta">${template.size} 布局</div>
         `;
 
-        infoBox.querySelector('.widget-name').textContent = template.name || '未命名组件';
+        infoBox.querySelector('.widget-name').textContent = String(template.name || '未命名组件').replace(/\s*[（(](?:1x1|2x2|4x2|4x4)[）)]$/i,'');
+        infoBox.querySelector('.widget-meta').textContent=String(template.size||'2x2').replace('x','×');
+        const cardTools=document.createElement('div');cardTools.className='ws-card-tools';
+        if(!isModal&&!isTemplateLibrary){const favorite=document.createElement('button');favorite.type='button';favorite.className='ws-favorite';favorite.setAttribute('aria-label',template.kissFavorite===true?'取消收藏':'收藏组件');favorite.setAttribute('aria-pressed',String(template.kissFavorite===true));favorite.innerHTML=wsIcon(wsGlyph.star);favorite.onclick=e=>{e.stopPropagation();if(!isWidgetMultiSelectMode)toggleWidgetFavorite(template,favorite)};previewCanvas.append(favorite);}
+        const menu=document.createElement('button');menu.type='button';menu.className=isModal?'ws-add-mark':'ws-more';menu.setAttribute('aria-label',isModal?'添加到桌面':'组件操作');menu.textContent=isModal?'○':'···';if(isModal&&(db.addedWidgets||[]).some(w=>w.templateId===template.id)){menu.textContent='✓';menu.classList.add('is-added');menu.setAttribute('aria-label','已添加过，再添加一个');}cardTools.append(menu);infoBox.append(cardTools);
+        if(!isModal){const index=document.createElement('small');index.className='ws-card-index';index.textContent=String(validTemplates.filter(t=>t.size!=='1x1').indexOf(template)+1).padStart(2,'0');previewCanvas.append(index);}
         card.appendChild(previewCanvas);
         card.appendChild(infoBox);
         
@@ -806,10 +770,11 @@ function renderWidgetList(container, templates, isModal = false, isTemplateLibra
             }
         };
 
+        menu.onclick=e=>{if(!isModal&&!isWidgetMultiSelectMode){e.stopPropagation();activateCard(card)}};
         // 点击卡片执行操作
         card.onclick = async (e) => {
             // 如果点击的是按钮，由按钮自身的逻辑处理（包含防误触）
-            if (e.target.closest('.widget-card-btn')) return;
+            if (e.target.closest('.widget-card-btn,.ws-favorite')) return;
 
             if (isWidgetMultiSelectMode && !isModal && !isTemplateLibrary) {
                 if (selectedWidgets.has(template.id)) {
@@ -1004,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cancelMultiSelectBtn.style.display = 'block';
             multiSelectBar.style.display = 'flex';
             
-            document.querySelectorAll('#widget-market-list .widget-market-card').forEach(card => {
+            document.querySelectorAll('#widget-market-screen .widget-market-card').forEach(card => {
                 card.classList.add('multi-select-mode');
             });
             updateWidgetMultiSelectBar();
@@ -1019,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
             multiSelectBtn.style.display = 'block';
             multiSelectBar.style.display = 'none';
             
-            document.querySelectorAll('#widget-market-list .widget-market-card').forEach(card => {
+            document.querySelectorAll('#widget-market-screen .widget-market-card').forEach(card => {
                 card.classList.remove('multi-select-mode', 'selected');
             });
         });
@@ -1084,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const existingIndex = db.widgetTemplates.findIndex(t => t.id === id);
             if (existingIndex >= 0) {
-                db.widgetTemplates[existingIndex] = template;
+                db.widgetTemplates[existingIndex] = {...db.widgetTemplates[existingIndex],...template};
             } else {
                 db.widgetTemplates.push(template);
             }
@@ -1128,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const existingIndex = db.widgetTemplates.findIndex(t => t.id === template.id);
                     if (existingIndex >= 0) {
                         if (confirm('已存在同名模板，是否覆盖？')) {
-                            db.widgetTemplates[existingIndex] = template;
+                            db.widgetTemplates[existingIndex] = {...db.widgetTemplates[existingIndex],...template};
                         } else {
                             return;
                         }
