@@ -162,12 +162,8 @@ function setupApiSettingsApp() {
             return showToast('该 API 站点已被屏蔽，无法保存！');
         }
         const secondary = readSecondaryApiSettings();
-        if (secondary.enabled && (!secondary.url || !secondary.key || !secondary.model)) {
-            return showToast('请完整填写副 API 地址、密钥和模型！');
-        }
-        if (secondary.enabled && BLOCKED_API_DOMAINS.some(domain => secondary.url.includes(domain))) {
-            return showToast('副 API 站点已被屏蔽，无法保存！');
-        }
+        const secondaryError = secondaryApiValidation(secondary);
+        if (secondaryError) return showToast(secondaryError);
         db.apiSettings = {
             ...(db.apiSettings || {}),
             provider: n.value,
@@ -204,117 +200,97 @@ function getDefaultSecondaryApiRoutes() {
     };
 }
 
-function readSecondaryApiSettings() {
-    const enabledEl = document.getElementById('secondary-api-enabled');
-    const providerEl = document.getElementById('secondary-api-provider');
-    const urlEl = document.getElementById('secondary-api-url');
-    const keyEl = document.getElementById('secondary-api-key');
-    const modelEl = document.getElementById('secondary-api-model');
-    const routes = getDefaultSecondaryApiRoutes();
-
-    document.querySelectorAll('[data-secondary-route]').forEach(input => {
-        routes[input.dataset.secondaryRoute] = input.checked;
-    });
-
-    return {
-        enabled: Boolean(enabledEl && enabledEl.checked),
-        provider: providerEl ? providerEl.value : 'newapi',
-        url: urlEl ? urlEl.value.trim().replace(/\/$/, '') : '',
-        key: keyEl ? keyEl.value.trim() : '',
-        model: modelEl ? modelEl.value : '',
-        routes
-    };
+let secondaryApiEditor = null;
+function normalizeSecondaryApiProfile(value, index = 0) {
+    const p = value && typeof value === 'object' ? value : {};
+    return {id: String(p.id || ('secondary_' + index)), name: String(p.name || ('副 API ' + (index + 1))),
+        enabled: Boolean(p.enabled), provider: String(p.provider || 'newapi'), url: String(p.url || ''),
+        key: String(p.key || ''), model: String(p.model || ''), routes: {...getDefaultSecondaryApiRoutes(), ...(p.routes || {})}};
 }
-
-function setupSecondaryApiSettings() {
-    const enabledEl = document.getElementById('secondary-api-enabled');
-    const panel = document.getElementById('secondary-api-panel');
-    const providerEl = document.getElementById('secondary-api-provider');
-    const urlEl = document.getElementById('secondary-api-url');
-    const keyEl = document.getElementById('secondary-api-key');
-    const modelEl = document.getElementById('secondary-api-model');
-    const fetchBtn = document.getElementById('secondary-fetch-models-btn');
-    if (!enabledEl || !panel || !providerEl || !urlEl || !keyEl || !modelEl || !fetchBtn) return;
-
-    const secondary = (db.apiSettings && db.apiSettings.secondary) || {};
-    const providerUrls = {
-        newapi: '',
-        deepseek: 'https://api.deepseek.com',
-        claude: 'https://api.anthropic.com',
-        gemini: 'https://generativelanguage.googleapis.com'
-    };
-
-    enabledEl.checked = Boolean(secondary.enabled);
-    providerEl.value = secondary.provider || 'newapi';
-    urlEl.value = secondary.url || '';
-    keyEl.value = secondary.key || '';
-    if (secondary.model) {
-        modelEl.innerHTML = '';
-        const savedModelOption = document.createElement('option');
-        savedModelOption.value = secondary.model;
-        savedModelOption.textContent = secondary.model;
-        modelEl.appendChild(savedModelOption);
+function readSecondaryApiSettings() {
+    if (secondaryApiEditor) return secondaryApiEditor.read();
+    const saved = db.apiSettings?.secondary || {};
+    return {...saved};
+}
+function secondaryApiValidation(secondary) {
+    const profiles = Array.isArray(secondary.profiles) ? secondary.profiles : [secondary];
+    for (const p of profiles) {
+        if (!p.enabled) continue;
+        if (!p.url || !p.key || !p.model) return '请完整填写「' + (p.name || '副 API') + '」的地址、密钥和模型';
+        if (BLOCKED_API_DOMAINS.some(domain => p.url.includes(domain))) return '「' + (p.name || '副 API') + '」的站点已被屏蔽，无法保存';
     }
-    const savedRoutes = { ...getDefaultSecondaryApiRoutes(), ...(secondary.routes || {}) };
-    document.querySelectorAll('[data-secondary-route]').forEach(input => {
-        input.checked = Boolean(savedRoutes[input.dataset.secondaryRoute]);
+    return '';
+}
+function setupSecondaryApiSettings() {
+    if (secondaryApiEditor) return;
+    const $ = id => document.getElementById(id);
+    const enabledEl = $('secondary-api-enabled'), panel = $('secondary-api-panel'), providerEl = $('secondary-api-provider'),
+        urlEl = $('secondary-api-url'), keyEl = $('secondary-api-key'), modelEl = $('secondary-api-model'), fetchBtn = $('secondary-fetch-models-btn');
+    if (!enabledEl || !panel || !providerEl || !urlEl || !keyEl || !modelEl || !fetchBtn) return;
+    const group = enabledEl.closest('.kkt-group');group.classList.add('sa-manager');
+    const saved = db.apiSettings?.secondary || {}, source = Array.isArray(saved.profiles) ? saved.profiles : [saved];
+    let profiles = source.map(normalizeSecondaryApiProfile), activeId = String(saved.activeId || profiles[0]?.id || ''), saving = false;
+    // Old backups migrate in memory only. Data is written only by an explicit save.
+    const seenIds = new Set();profiles.forEach((p,i)=>{if(seenIds.has(p.id))p.id='secondary_migrated_'+i;seenIds.add(p.id)});
+    const assigned = new Set();profiles.forEach(p=>Object.keys(p.routes).forEach(k=>{if(p.routes[k]){if(assigned.has(k))p.routes[k]=false;else assigned.add(k)}}));
+    if (!profiles.some(p=>p.id===activeId)) activeId=profiles[0]?.id || '';
+    const models = new Map(), requests = new Map();
+    const make = (tag, cls, text) => {const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el};
+    const head=make('div','sa-manager-heading');head.innerHTML='<span class="sa-stack-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="15" height="7" rx="2"/><path d="M6 13h15v7H6zM6 6h2m1 10h2"/></svg></span><span><strong>副 API 分流</strong><small>MULTI CONNECTION</small></span>';
+    const toolbar=make('div','sa-profile-toolbar'), picker=make('select','');picker.id='secondary-api-profile-select';picker.setAttribute('aria-label','选择要编辑的副 API，不影响其他配置启用');
+    const add=make('button','sa-add','＋');add.type='button';add.setAttribute('aria-label','新增副 API 配置');
+    const del=make('button','sa-delete');del.type='button';del.setAttribute('aria-label','删除当前副 API 配置');del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></svg>';
+    toolbar.append(picker,add,del);const overview=make('div','sa-profiles-overview');overview.setAttribute('aria-label','同时存在的副 API 配置');const editCaption=make('div','sa-edit-caption','编辑配置');
+    const naming=make('label','sa-name-row');naming.append(make('span','','配置名称'));const name=make('input','');name.type='text';name.maxLength=40;name.placeholder='给这套配置取个名字';name.setAttribute('aria-label','副 API 配置名称');naming.append(name);
+    group.prepend(head,overview,editCaption,toolbar,naming);
+    const enableRow=enabledEl.closest('.kkt-item');enableRow.classList.add('sa-enable-row');enableRow.querySelector('.kkt-item-title').textContent='启用此配置';enableRow.querySelector('.kkt-item-subtitle').textContent='只接管这套配置勾选的功能';
+    const routeInputs=[...group.querySelectorAll('[data-secondary-route]')];
+    const routeItem=routeInputs[0]?.closest('.kkt-item');
+    const routeInfo={callReply:['通话回复','404 · 通话对话'],callSummary:['通话总结','404 · 通话结束后的总结'],journal:['回忆日记','日记 · 自动与手动生成'],peek:['偷看手机','查手机 · 内容生成'],shop:['商城生成','商城 · 商品与文字'],batteryReminder:['低电量提醒','桌面 · 角色提醒'],peekMoments:['查手机动态','查手机 · 动态生成'],mono:['MONO','帖子、私信与文字生成'],hearu:['HearU','聊天、选歌与总结'],morrow:['MORROW','AI 回信'],mcp:['MCP','工具判断与试聊'],workshopText:['工坊文字处理','阅读插图提示；生图使用工坊配置']};
+    const routeHead=make('div','sa-routes-heading');routeHead.append(make('strong','','调用功能'));const count=make('small','');count.setAttribute('aria-live','polite');routeHead.append(count);
+    const list=make('div','sa-route-list');list.tabIndex=0;list.setAttribute('role','group');list.setAttribute('aria-label','为当前副 API 分配功能，可上下滚动');
+    const owners=new Map();
+    for(const input of routeInputs){const key=input.dataset.secondaryRoute, info=routeInfo[key]||[key,''];const row=make('label','sa-route-option');const text=make('span','sa-route-text');text.append(make('strong','',info[0]),make('small','',info[1]));const owner=make('small','sa-route-owner');owners.set(key,owner);row.append(input,text,owner);list.append(row);}
+    if(routeItem){routeItem.className='kkt-item sa-routes-item';routeItem.removeAttribute('style');routeItem.replaceChildren(routeHead,list,make('p','sa-route-note','每项功能分配给一套副 API；未分配时沿用原配置。'));}
+    const footer=make('div','sa-footer');const save=make('button','sa-save','保存副 API');save.type='button';footer.append(make('small','','所有已启用配置同时生效'),save);group.append(footer);
+    const current=()=>profiles.find(p=>p.id===activeId);
+    const capture=()=>{const p=current();if(!p)return;p.name=name.value.trim()||p.name;p.enabled=enabledEl.checked;p.provider=providerEl.value;p.url=urlEl.value.trim().replace(/\/$/,'');p.key=keyEl.value.trim();p.model=modelEl.value;routeInputs.forEach(input=>p.routes[input.dataset.secondaryRoute]=input.checked);};
+    function renderLabels(){
+        picker.replaceChildren(...profiles.map((p,i)=>new Option(String(i+1).padStart(2,'0')+' · '+p.name,p.id)));if(!profiles.length)picker.append(new Option('暂无配置，点击 ＋ 新增',''));picker.value=activeId;
+        const p=current(),n=p?Object.values(p.routes).filter(Boolean).length:0;count.textContent='已选 '+n+' / '+routeInputs.length;const summary=document.querySelector('[data-secondary-summary]');const label=profiles.length+' 套配置 · '+profiles.filter(p=>p.enabled).length+' 套已启用';if(summary&&summary.textContent!==label)summary.textContent=label;
+        overview.replaceChildren(...profiles.map(profile=>{const card=make('div','sa-overview-card');card.dataset.profileId=profile.id;card.dataset.editing=String(profile.id===activeId);const text=make('button','sa-profile-edit');text.type='button';text.setAttribute('aria-label','编辑 '+profile.name);const names=Object.keys(profile.routes).filter(k=>profile.routes[k]).map(k=>routeInfo[k]?.[0]||k);text.append(make('strong','',profile.name),make('small','',names.join(' · ')||'尚未分配功能'));text.addEventListener('click',()=>{capture();activeId=profile.id;render()});const power=make('button','sa-profile-power',profile.enabled?'已启用':'未启用');power.type='button';power.setAttribute('aria-pressed',String(profile.enabled));power.setAttribute('aria-label',(profile.enabled?'停用 ':'启用 ')+profile.name);power.addEventListener('click',()=>{capture();profile.enabled=!profile.enabled;if(profile.id===activeId){enabledEl.checked=profile.enabled;panel.style.display=profile.enabled?'block':'none';}renderLabels()});card.append(text,power);return card;}));
+        if(!profiles.length)overview.append(make('p','sa-empty','点击 ＋ 添加副 API，可同时启用多套。'));
+        routeInputs.forEach(input=>{const owner=profiles.find(p=>p.id!==activeId&&p.routes[input.dataset.secondaryRoute]);const badge=owners.get(input.dataset.secondaryRoute);badge.textContent=owner?owner.name+(owner.enabled?'':' · 停用'):'';badge.hidden=!owner;});
+    }
+    function render(){
+        const p=current();group.dataset.empty=p?'false':'true';del.disabled=!p;naming.hidden=!p;enableRow.hidden=!p;footer.hidden=false;picker.disabled=!p;
+        panel.style.display=p?.enabled?'block':'none';name.value=p?.name||'';enabledEl.checked=Boolean(p?.enabled);providerEl.value=p?.provider||'newapi';urlEl.value=p?.url||'';keyEl.value=p?.key||'';keyEl.type='password';
+        const search=$('secondary-api-model-search');if(search)search.value='';
+        const choices=[...(models.get(activeId)||[])];if(p?.model&&!choices.includes(p.model))choices.unshift(p.model);modelEl.replaceChildren(...choices.map(m=>new Option(m,m)));if(!choices.length)modelEl.append(new Option('请拉取模型',''));modelEl.value=p?.model||modelEl.options[0]?.value||'';
+        routeInputs.forEach(input=>input.checked=Boolean(p?.routes[input.dataset.secondaryRoute]));fetchBtn.disabled=requests.has(activeId);fetchBtn.classList.toggle('loading',fetchBtn.disabled);renderLabels();
+    }
+    picker.addEventListener('change',()=>{capture();activeId=picker.value;render()});
+    add.addEventListener('click',()=>{capture();const id=typeof crypto.randomUUID==='function'?'secondary_'+crypto.randomUUID():'secondary_'+Date.now()+'_'+Math.random().toString(36).slice(2);let i=1;while(profiles.some(p=>p.name==='副 API '+i))i++;const p=normalizeSecondaryApiProfile({id,name:'副 API '+i});profiles.push(p);activeId=id;render();name.focus()});
+    del.addEventListener('click',async()=>{const p=current();if(!p)return;const id=p.id;const ok=await window.KissArchiveUI.confirm('api','删除「'+p.name+'」？其负责的功能会恢复原配置，保存后生效。');if(!ok)return;profiles=profiles.filter(p=>p.id!==id);models.delete(id);if(activeId===id)activeId=profiles[0]?.id||'';render()});
+    name.addEventListener('input',()=>{const p=current();if(p&&name.value.trim()){p.name=name.value.trim();renderLabels()}});
+    enabledEl.addEventListener('change',()=>{capture();panel.style.display=enabledEl.checked?'block':'none';renderLabels()});
+    const providerUrls={newapi:'',deepseek:'https://api.deepseek.com',claude:'https://api.anthropic.com',gemini:'https://generativelanguage.googleapis.com'};
+    providerEl.addEventListener('change',()=>{capture();const p=current();if(!p)return;p.url=providerUrls[p.provider]||'';p.model='';models.delete(p.id);render()});
+    for(const field of [urlEl,keyEl,modelEl])field.addEventListener('change',capture);
+    routeInputs.forEach(input=>input.addEventListener('change',()=>{capture();if(input.checked){let moved=false;profiles.forEach(p=>{if(p.id!==activeId&&p.routes[input.dataset.secondaryRoute]){p.routes[input.dataset.secondaryRoute]=false;moved=true}});if(moved)showToast('已改由当前配置负责，保存后生效');}renderLabels()}));
+    secondaryApiEditor={read(){capture();const list=profiles.map(p=>({...p,routes:{...p.routes}}));const selected=current()||{enabled:false,provider:'newapi',url:'',key:'',model:'',routes:getDefaultSecondaryApiRoutes()};return {...selected,version:2,activeId,profiles:list};}};
+    save.addEventListener('click',async()=>{if(saving)return;const secondary=readSecondaryApiSettings(),error=secondaryApiValidation(secondary);if(error)return showToast(error);saving=true;save.disabled=true;const previous=db.apiSettings;const next={...(previous||{}),secondary};db.apiSettings=next;try{await saveData();window.dispatchEvent(new CustomEvent('api-presets-updated'));window.KissDiagnostics?.record({app:'voice',feature:'副 API 分流',phase:'end',title:'副 API 配置已保存',detail:'配置数：'+secondary.profiles.length});showToast('副 API 配置已保存');}catch(error){if(db.apiSettings===next)db.apiSettings=previous;showToast('保存失败，请重试');}finally{saving=false;save.disabled=false}});
+    fetchBtn.addEventListener('click',async()=>{
+        capture();const p=current();if(!p||requests.has(p.id))return;const {id,provider,url,key}=p;
+        if(!url||!key)return showToast('请先填写副 API 地址和密钥！');if(BLOCKED_API_DOMAINS.some(domain=>url.includes(domain)))return showToast('副 API 站点已被屏蔽，无法使用！');
+        const request={provider,url,key};requests.set(id,request);renderLabels();fetchBtn.disabled=true;fetchBtn.classList.add('loading');
+        try{const endpoint=provider==='gemini'?url+'/v1beta/models?key='+getRandomValue(key):url+'/v1/models';const response=await fetch(endpoint,{method:'GET',headers:provider==='gemini'?{}:{Authorization:'Bearer '+key}});if(!response.ok){const error=new Error('网络响应错误: '+response.status);error.response=response;throw error;}
+            const data=await response.json(),values=(provider==='gemini'?(data.models||[]).map(item=>String(item.name||'').replace('models/','')):(data.data||[]).map(item=>item.id)).filter(m=>typeof m==='string'&&m);
+            if(activeId===id)capture();const target=profiles.find(p=>p.id===id);if(!target||target.provider!==provider||target.url!==url||target.key!==key)return;
+            models.set(id,[...new Set(values)]);if(!values.includes(target.model))target.model=values[0]||'';if(activeId===id)render();showToast(values.length?'副 API 模型列表拉取成功！':'未找到任何模型');
+        }catch(error){if(activeId===id)showApiError(error);}finally{if(requests.get(id)===request)requests.delete(id);if(activeId===id){fetchBtn.disabled=false;fetchBtn.classList.remove('loading')}}
     });
-
-    const updatePanelState = () => {
-        panel.style.display = enabledEl.checked ? 'block' : 'none';
-    };
-    updatePanelState();
-
-    if (enabledEl.dataset.listenerBound === 'true') return;
-    enabledEl.dataset.listenerBound = 'true';
-    enabledEl.addEventListener('change', updatePanelState);
-    providerEl.addEventListener('change', () => {
-        urlEl.value = providerUrls[providerEl.value] || '';
-        modelEl.innerHTML = '<option value="">请重新拉取模型</option>';
-    });
-    fetchBtn.addEventListener('click', async () => {
-        let apiUrl = urlEl.value.trim().replace(/\/$/, '');
-        const apiKey = keyEl.value.trim();
-        const provider = providerEl.value;
-        if (!apiUrl || !apiKey) return showToast('请先填写副 API 地址和密钥！');
-        if (BLOCKED_API_DOMAINS.some(domain => apiUrl.includes(domain))) {
-            return showToast('副 API 站点已被屏蔽，无法使用！');
-        }
-
-        const endpoint = provider === 'gemini'
-            ? `${apiUrl}/v1beta/models?key=${getRandomValue(apiKey)}`
-            : `${apiUrl}/v1/models`;
-        fetchBtn.disabled = true;
-        fetchBtn.classList.add('loading');
-        try {
-            const headers = provider === 'gemini' ? {} : { Authorization: `Bearer ${apiKey}` };
-            const response = await fetch(endpoint, { method: 'GET', headers });
-            if (!response.ok) {
-                const error = new Error(`网络响应错误: ${response.status}`);
-                error.response = response;
-                throw error;
-            }
-            const data = await response.json();
-            const models = provider === 'gemini'
-                ? (data.models || []).map(item => item.name.replace('models/', ''))
-                : (data.data || []).map(item => item.id);
-            modelEl.innerHTML = '';
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model;
-                option.textContent = model;
-                modelEl.appendChild(option);
-            });
-            if (!models.length) modelEl.innerHTML = '<option value="">未找到任何模型</option>';
-            showToast(models.length ? '副 API 模型列表拉取成功！' : '未找到任何模型');
-        } catch (error) {
-            showApiError(error);
-            modelEl.innerHTML = '<option value="">拉取失败</option>';
-        } finally {
-            fetchBtn.disabled = false;
-            fetchBtn.classList.remove('loading');
-        }
-    });
+    render();
 }
 
 // --- 预设管理 ---

@@ -47,7 +47,7 @@ function api() {
   apiDrawers(form);
   const key=$('api-key');if(key&&!key.parentElement.querySelector('.au-show-api-key')){mark(key.parentElement,'au-main-key-control');const eye=node('button','au-show-api-key',svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>'));eye.type='button';eye.setAttribute('aria-label','显示密钥');eye.addEventListener('click',()=>{const show=key.type==='password';key.type=show?'text':'password';eye.setAttribute('aria-label',show?'隐藏密钥':'显示密钥');eye.setAttribute('aria-pressed',String(show));});key.parentElement.append(eye);}
 
-  const connection=$('api-provider')?.closest('.kkt-group');mark(connection,'au-api-connection');windowTitle(connection,'连接配置','API');if(connection&&!connection.querySelector('.au-panel-plug'))connection.querySelector('.au-window-title')?.append(node('span','au-panel-plug',icon('plug')+'<i></i>'));
+  const connection=$('api-provider')?.closest('.kkt-group');mark(connection,'au-api-connection');windowTitle(connection,'连接配置','API');if(connection&&!connection.querySelector('.au-panel-plug'))connection.querySelector('.au-window-title')?.append(node('span','au-panel-plug',svg('<path d="M3 23v-9q0-3 3-3h5V7h10v8H11v-4M14 7V3m4 4V3M21 9h2m-2 4h2"/>')+'<i></i>'));
   const model=$('api-model')?.closest('.kkt-group');mark(model,'au-api-model');
   const modelRow=$('fetch-models-btn')?.closest('.kkt-item');mark(modelRow,'au-model-header');
   mark($('secondary-api-provider')?.closest('.kkt-group'),'au-secondary-connection');
@@ -68,8 +68,10 @@ function apiDrawers(form){
  const body=node('div','au-api-advanced-body');details.append(summary,body);
  // Time perception stays in the model panel; all remaining advanced controls collapse.
  model.append(time);for(const child of [...original.children])body.append(child);original.remove();
- if(secondary){secondary.classList.add('au-secondary-drawer');body.append(secondary);}
+ 
  model.append(details);
+ if(secondary){mark(secondary,'au-secondary-drawer');const routes=node('details','au-secondary-section');routes.id='au-secondary-section';routes.innerHTML='<summary>'+svg('<rect x="3" y="3" width="15" height="7" rx="2"/><path d="M6 13h15v7H6zM6 6h2m1 10h2"/>')+'<span><strong>副 API 分流</strong><small data-secondary-summary>多套配置 · 分配调用功能</small></span><b aria-hidden="true">›</b></summary>';routes.append(secondary);model.append(routes);}
+
  const save=$('save-btn');if(save){save.setAttribute('form','api-form');save.classList.add('au-api-save-button');}
  const presets=$('api-preset-select')?.closest('.kkt-group');if(presets&&!presets.querySelector('.au-preset-drawer')){
   const item=presets.querySelector('.kkt-item');if(item){const all=[...item.children],selectRow=$('api-preset-select').parentElement;
@@ -100,6 +102,8 @@ function tutorial(){
  if(cloud&&!cloud.classList.contains('au-cloud')){
   mark(cloud,'au-cloud');const heading=cloud.firstElementChild;
   heading.className='au-cloud-heading';heading.replaceChildren(node('strong','', '云端备份'),node('span','au-github-brand',icon('github')+'<b>GitHub</b>'),node('small','','CLOUD BACKUP'));
+  const frame=node('div','au-cloud-frame','<svg aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>');cloud.prepend(frame);
+  if(typeof ResizeObserver==='function'){let last='';const resize=new ResizeObserver(()=>{const w=Math.round(cloud.clientWidth),h=Math.round(cloud.clientHeight),key=w+','+h;if(!w||!h||key===last)return;last=key;const svg=frame.firstElementChild;svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.firstElementChild.setAttribute('d','M1 1H'+(w-18)+'L'+(w-1)+' 18V'+(h-2)+'Q'+(w-1)+' '+(h-1)+' '+(w-3)+' '+(h-1)+'H3Q1 '+(h-1)+' 1 '+(h-3)+'Z');});resize.observe(cloud);}
   const footer=node('div','au-disk-stamp','<span class="au-barcode" aria-hidden="true"></span><small>GITHUB<br>BACKUP</small>');cloud.append(footer);
   const caption=$('gh-collapse-header').querySelector('span');if(caption)caption.textContent='配置参数';
   mark($('gh-backup-btn')?.parentElement,'au-cloud-actions');
@@ -128,7 +132,7 @@ function consoleView(){
 }
 function worldbook(){
  const screen=$('world-book-screen');if(!screen)return;mark(screen,'au-worldbook');
- const intro=$('wb-home-heading');if(intro&&!intro.dataset.auMarked){intro.dataset.auMarked='true';const h=intro.querySelector('h2');if(h)h.innerHTML='设定档案 <span aria-hidden="true">'+svg('<path d="M12 11 7 6Q10 4 12 1q2 3 5 5Z"/><path d="M12 11 7 6Q10 4 12 1q2 3 5 5Z" transform="rotate(90 12 12)"/><path d="M12 11 7 6Q10 4 12 1q2 3 5 5Z" transform="rotate(180 12 12)"/><path d="M12 11 7 6Q10 4 12 1q2 3 5 5Z" transform="rotate(270 12 12)"/>','au-clover','currentColor')+'</span>';const tag=intro.querySelector(':scope > span');if(tag)tag.innerHTML='WORLD BOOK<br>/ LIBRARY';}
+ const intro=$('wb-home-heading');if(intro&&!intro.dataset.auMarked){intro.dataset.auMarked='true';const h=intro.querySelector('h2');if(h)h.innerHTML='设定档案 <span aria-hidden="true">'+svg('<path d="M11 11Q8 12 5 8L1 5 6 1l5 5q2 3 0 5Z"/><path d="M11 11Q8 12 5 8L1 5 6 1l5 5q2 3 0 5Z" transform="rotate(90 12 12)"/><path d="M11 11Q8 12 5 8L1 5 6 1l5 5q2 3 0 5Z" transform="rotate(180 12 12)"/><path d="M11 11Q8 12 5 8L1 5 6 1l5 5q2 3 0 5Z" transform="rotate(270 12 12)"/>','au-clover','currentColor')+'</span>';const tag=intro.querySelector(':scope > span');if(tag)tag.innerHTML='WORLD BOOK<br>/ LIBRARY';}
  for(const card of screen.querySelectorAll('.wb-folder-card')){
   if(card.querySelector('.au-folder-art'))continue;
   const name=card.querySelector('.wb-item-name')?.textContent||'',id=card.dataset.id||name;
