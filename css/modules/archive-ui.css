@@ -592,3 +592,26 @@
 .sa-edit-caption::after{content:' / EDIT';font:8px ui-monospace,monospace;color:#aaa}
 #api-settings-screen .sa-profile-toolbar{padding-top:5px}
 .sa-empty{font-size:11px;color:#888;line-height:1.6;margin:4px 0 8px}
+
+/* Connection emblem is a single complete vector, without clipped stripe edges. */
+#api-settings-screen .au-panel-plug{width:88px;height:28px;display:flex;align-items:center;justify-content:flex-end;flex:none;overflow:visible}
+#api-settings-screen .au-panel-plug .au-connection-emblem{display:block;width:88px;height:28px;max-width:none;padding:0;overflow:visible;transform:none}
+/* Keep warning/error states unmistakable in the monochrome console. */
+#console-screen{--kc-error:#d3343e;--kc-warn:#b96a00}
+#console-screen [data-stat="error"] strong{color:var(--kc-error)!important}
+#console-screen [data-stat="warn"] strong{color:var(--kc-warn)!important}
+#console-screen .kc-log.error{background:#fff4f4;box-shadow:inset 3px 0 var(--kc-error)}
+#console-screen .kc-log.warn{background:#fff8ec;box-shadow:inset 3px 0 var(--kc-warn)}
+#console-screen .kc-log.error::before{background:#fde6e7;color:var(--kc-error)}
+#console-screen .kc-log.warn::before{background:#ffedcc;color:var(--kc-warn)}
+#console-screen .kc-log.error strong,#console-screen .kc-metadata dd.error{color:var(--kc-error)!important}
+#console-screen .kc-log.warn strong,#console-screen .kc-metadata dd.warn{color:var(--kc-warn)!important}
+#console-screen .kc-message.error{background:#fff0f1;border-color:#edbac0;color:#9f2531}
+#console-screen .kc-message.warn{background:#fff5e3;border-color:#e4c58f;color:#8d5000}
+#console-screen .kc-message.error>svg,#console-screen .kc-message.error small{color:var(--kc-error)!important}
+#console-screen .kc-message.warn>svg,#console-screen .kc-message.warn small{color:var(--kc-warn)!important}
+#console-screen .kc-tabs button[data-level="error"].selected{color:var(--kc-error);border-color:#e5adb3;background:#fff0f1}
+#console-screen .kc-tabs button[data-level="warn"].selected{color:var(--kc-warn);border-color:#ddbf87;background:#fff4df}
+
+#console-screen [data-stat="error"] small{color:var(--kc-error)}
+#console-screen [data-stat="warn"] small{color:var(--kc-warn)}
