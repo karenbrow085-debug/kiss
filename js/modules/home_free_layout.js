@@ -38,6 +38,10 @@
   const cw=widths[0]||((grid.clientWidth-left-(parseFloat(css.paddingRight)||0)-cg*3)/4),rh=heights[0]||70;
   return {left:rect.left+(left-grid.scrollLeft)*scaleX,top:rect.top+(top-grid.scrollTop)*scaleY,cw:cw*scaleX,rh:rh*scaleY,cg:cg*scaleX,rg:rg*scaleY,heights:heights.map(h=>h*scaleY),widths:widths.map(w=>w*scaleX)};
  }
+ // Resolve pointer cells and spans from actual CSS track sizes, including variable row heights.
+ function trackAt(offset,tracks,gap,fallback){if(offset<0)return 0;let edge=0;for(let i=0;i<tracks.length;i++){edge+=(tracks[i]||fallback);if(offset<edge+gap/2)return i+1;edge+=gap;}return tracks.length+1;}
+ function trackOffset(start,tracks,gap,fallback){if(start<1)return (start-1)*(fallback+gap);let out=0;for(let i=0;i<start-1;i++)out+=(tracks[i]||fallback)+gap;return out;}
+ function trackSpan(start,count,tracks,gap,fallback){let out=Math.max(0,count-1)*gap;for(let i=0;i<count;i++)out+=tracks[start-1+i]||fallback;return out;}
  function capture(){
   const positions={};
   document.querySelectorAll('#home-screen .home-grid-layout').forEach(grid=>{const g=geometry(grid);for(const el of grid.querySelectorAll(':scope > [data-id]')){const r=el.getBoundingClientRect();let row=1,y=g.top;
@@ -119,9 +123,10 @@
   function addPage(){const pi=swiper.children.length,page=document.createElement('div');page.className='home-screen-page';page.innerHTML='<div class="home-grid-layout home-free-grid edit-mode" id="home-grid-layout-'+(pi+1)+'" style="min-height:500px"></div>';swiper.append(page);const dot=document.createElement('span');dot.className='dot';screen.querySelector('.page-indicator')?.append(dot);}
   function begin(e){
    const item=e.target.closest('.home-grid-layout > [data-id]');if(!item)return;
-   const rect=item.getBoundingClientRect(),ghost=item.cloneNode(true),marker=document.createElement('div'),g=geometry(item.parentElement);
+   item.classList.add('home-free-source');
+   const rect=item.getBoundingClientRect(),ghost=item.cloneNode(true),marker=document.createElement('div'),g=geometry(item.parentElement);ghost.classList.remove('home-free-source');
    ghost.removeAttribute('id');ghost.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));ghost.classList.add('home-free-ghost');Object.assign(ghost.style,{width:rect.width+'px',height:rect.height+'px',left:rect.left+'px',top:rect.top+'px'});marker.className='home-free-target';document.body.append(marker,ghost);item.classList.add('home-free-source');
-   drag={item,ghost,marker,id:item.dataset.id,pointer:e.pointerId,s:size(item),x:e.clientX,y:e.clientY,dx:e.clientX-rect.left,dy:e.clientY-rect.top,grabCol:Math.floor((e.clientX-rect.left)/(g.cw+g.cg)),grabRow:Math.floor((e.clientY-rect.top)/(g.rh+g.rg)),target:null,valid:false,moved:false,cache:new Map(),lastMarker:""};
+   drag={item,ghost,marker,id:item.dataset.id,pointer:e.pointerId,s:size(item),x:e.clientX,y:e.clientY,dx:e.clientX-rect.left,dy:e.clientY-rect.top,grabCol:trackAt(e.clientX-g.left,g.widths,g.cg,g.cw)-db.homeFreePositions[item.dataset.id].col,grabRow:trackAt(e.clientY-g.top,g.heights,g.rg,g.rh)-db.homeFreePositions[item.dataset.id].row,target:null,valid:false,moved:false,cache:new Map(),lastMarker:""};
    swiper.style.scrollSnapType='none';swiper.style.scrollBehavior='auto';if(swiper.children.length<100)addPage();
    edgeTimer=setInterval(()=>{if(!drag?.moved)return;const now=Date.now(),r=swiper.getBoundingClientRect(),activePage=swiper.children[Math.round(swiper.scrollLeft/swiper.clientWidth)];if(activePage&&drag.y>=r.top&&drag.y<=r.bottom){const step=drag.y<r.top+24?-12:drag.y>r.bottom-24?12:0;if(step){activePage.scrollTop+=step;locate();}}if(now-lastFlip<650)return;const current=Math.round(swiper.scrollLeft/swiper.clientWidth),delta=drag.x<r.left+28?-1:drag.x>r.right-28?1:0,next=current+delta;if(delta&&next>=0&&next<swiper.children.length){swiper.scrollLeft=next*swiper.clientWidth;lastFlip=now;locate();}},80);
    locate();
@@ -131,10 +136,10 @@
    const page=swiper.children[pi],cacheKey=[swiper.scrollLeft,page.scrollTop,grid.clientWidth,innerHeight].join(':');
    let cached=drag.cache.get(pi);
    if(!cached||cached.key!==cacheKey){const occupied=empty();for(const el of grid.querySelectorAll(':scope > [data-id]'))if(el!==drag.item){const q=db.homeFreePositions[el.dataset.id],s=size(el);if(valid(q,s))occupy(occupied,q,s);}cached={key:cacheKey,g:geometry(grid),occupied,r:grid.getBoundingClientRect(),viewport:swiper.getBoundingClientRect()};drag.cache.set(pi,cached);}
-   const {g,occupied,r,viewport}=cached,p={row:Math.floor((drag.y-g.top+g.rg/2)/(g.rh+g.rg))+1-drag.grabRow,col:Math.floor((drag.x-g.left+g.cg/2)/(g.cw+g.cg))+1-drag.grabCol};
+   const {g,occupied,r,viewport}=cached,p={row:trackAt(drag.y-g.top,g.heights,g.rg,g.rh)-drag.grabRow,col:trackAt(drag.x-g.left,g.widths,g.cg,g.cw)-drag.grabCol};
    drag.valid=drag.y>=viewport.top&&drag.y<=viewport.bottom&&drag.x>=r.left&&drag.x<=r.right&&drag.y>=r.top&&drag.y<=r.bottom&&fits(occupied,p,drag.s);drag.target={pi,...p};
    const markerKey=[pi,p.row,p.col,drag.valid,cacheKey].join(':');if(drag.lastMarker===markerKey)return;drag.lastMarker=markerKey;
-   drag.marker.classList.toggle('invalid',!drag.valid);Object.assign(drag.marker.style,{left:(g.left+(p.col-1)*(g.cw+g.cg))+'px',top:(g.top+(p.row-1)*(g.rh+g.rg))+'px',width:(drag.s.cols*g.cw+(drag.s.cols-1)*g.cg)+'px',height:(drag.s.rows*g.rh+(drag.s.rows-1)*g.rg)+'px'});
+   drag.marker.classList.toggle('invalid',!drag.valid);Object.assign(drag.marker.style,{left:(g.left+trackOffset(p.col,g.widths,g.cg,g.cw))+'px',top:(g.top+trackOffset(p.row,g.heights,g.rg,g.rh))+'px',width:trackSpan(p.col,drag.s.cols,g.widths,g.cg,g.cw)+'px',height:trackSpan(p.row,drag.s.rows,g.heights,g.rg,g.rh)+'px'});
   }
   screen.addEventListener('pointerdown',e=>{
    if(busy||e.isPrimary===false||e.button>0||!e.target.closest('.home-grid-layout > [data-id]')||e.target.closest('.delete-widget-btn,input,textarea,select,[contenteditable=true]'))return;
