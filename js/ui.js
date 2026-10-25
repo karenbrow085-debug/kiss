@@ -573,6 +573,9 @@ function setupHomeScreen() {
     // 确保所有项目都在 allItems 中，并处理新添加的项目
     const allItemIds = [...Object.keys(allItems).filter(id => !['app-mono', 'app-mcp', 'app-morrow'].includes(id)), 'app-mono', 'app-mcp', 'app-morrow'];
     
+    if (window.KissHomeFree?.enabled()) {
+        window.KissHomeFree.normalize(allItems, allItemIds);
+    } else {
     // 数据结构迁移与初始化
     if (!db.homeLayoutPages) {
         const order = db.homeLayoutOrder || ['app-chat', 'app-api', 'app-wallpaper', 'app-worldbook', 'app-customize', 'app-tutorial', 'app-console', 'app-widget-market', 'app-placeholder'];
@@ -680,6 +683,8 @@ function setupHomeScreen() {
     
     if (pagesChanged || hasNewItems || removedLegacyMusic) { db.homeLayoutOrder = db.homeLayoutPages.flat(); saveData(); }
 
+    }
+
     // 生成 HTML
     let swiperHtml = '';
     let indicatorHtml = '';
@@ -724,6 +729,7 @@ function setupHomeScreen() {
 
     
     homeScreen.innerHTML = homeScreenHTML;
+    window.KissHomeFree?.decorate(homeRenderSignal);
 
     // 执行收集到的小组件 JS 代码
     // 先清理旧的脚本标签
@@ -995,6 +1001,7 @@ function setupHomeScreen() {
     }
 
     homeScreen.addEventListener('click', (e) => {
+        if(e.target.closest('#home-layout-mode-btn'))return;
         // 编辑模式下的点击拦截逻辑
         if (isHomeEditMode) {
             // 检查点击的是否是网格内的小组件或应用图标
@@ -1037,8 +1044,11 @@ function setupHomeScreen() {
         });
     });
 
-    // 初始化 SortableJS
-    initHomeSortables();
+    // Free placement owns dragging only while enabled; automatic ordering stays unchanged.
+    if (window.KissHomeFree?.enabled()) {
+        homeSortables.forEach(sortable => sortable.destroy());homeSortables=[];
+        window.KissHomeFree.bind(homeRenderSignal);
+    } else initHomeSortables();
 }
 
 let lastPageFlipTime = 0;
@@ -1226,6 +1236,7 @@ function enterHomeEditMode() {
 }
 
 function exitHomeEditMode() {
+    window.KissHomeFree?.cancelDrag();
     isHomeEditMode = false;
     const gridLayouts = document.querySelectorAll('.home-grid-layout');
     
