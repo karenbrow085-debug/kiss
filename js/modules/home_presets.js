@@ -3,7 +3,7 @@
     'use strict';
     const FORMAT = 'uwu-1900-home-presets';
     const KEYS = ['homePresets', 'activeHomePresetId', 'homePresetUndo'];
-    const HOME_KEYS = ['homeLayoutPages', 'homeLayoutOrder', 'addedWidgets',
+    const HOME_KEYS = ['homeLayoutMode', 'homeFreePositions', 'homeLayoutPages', 'homeLayoutOrder', 'addedWidgets',
         'wallpaper', 'homeScreenMode', 'customIcons', 'homeSignature',
         'insWidgetSettings', 'homeWidgetSettings'];
     KEYS.forEach(key => { if (!globalSettingKeys.includes(key)) globalSettingKeys.push(key); });
@@ -55,13 +55,23 @@
             assert(templateIds.has(widget.templateId) && object(widget.vars), '小组件模板或内容缺失');
             assert(ids.includes(widget.id), '小组件没有对应的主页位置');
         });
-        const apps = new Set(['app-chat', 'app-api', 'app-wallpaper', 'app-worldbook', 'app-customize', 'app-tutorial', 'app-console', 'app-widget-market', 'app-reader', 'app-placeholder', 'app-mono', 'app-mcp']);
+        const apps = new Set(['app-chat', 'app-api', 'app-wallpaper', 'app-worldbook', 'app-customize', 'app-tutorial', 'app-console', 'app-widget-market', 'app-reader', 'app-placeholder', 'app-mono', 'app-mcp', 'app-morrow']);
         assert(ids.every(id => apps.has(id) || widgetIds.has(id)), '文件包含当前版本不支持的主页项目');
         assert(typeof source.wallpaper === 'string' && ['day', 'night'].includes(source.homeScreenMode), '壁纸或日夜模式不正确');
         assert(object(source.customIcons) && Object.values(source.customIcons).every(value => typeof value === 'string'), '图标图片数据不正确');
         assert(typeof source.homeSignature === 'string' && object(source.insWidgetSettings) && object(source.homeWidgetSettings), '主页文字或内置组件数据不正确');
         const result = {};
         HOME_KEYS.forEach(key => { if (source[key] !== undefined) result[key] = clone(source[key]); });
+        result.homeLayoutMode = source.homeLayoutMode === 'free' ? 'free' : 'auto';
+        result.homeFreePositions = {};
+        if(source.homeFreePositions !== undefined){
+            assert(object(source.homeFreePositions),'自由排版位置数据不正确');
+            for(const [id,pos] of Object.entries(source.homeFreePositions)){
+                if(!ids.includes(id))continue;
+                assert(object(pos)&&Number.isInteger(pos.row)&&Number.isInteger(pos.col)&&pos.row>=1&&pos.row<=6&&pos.col>=1&&pos.col<=4,'自由排版位置数据不正确');
+                result.homeFreePositions[id]={row:pos.row,col:pos.col};
+            }
+        }
         result.homeLayoutOrder = ids.slice();
         result.widgetTemplates = clone(source.widgetTemplates);
         return result;
