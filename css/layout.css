@@ -738,9 +738,9 @@
 }
 
 /* Free desktop placement is scoped; original automatic grid and item classes remain. */
-#home-screen .home-grid-layout.home-free-grid{grid-template-rows:repeat(6,70px);grid-auto-flow:row;position:relative;align-content:start}
-#home-screen .home-grid-layout.home-free-grid.edit-mode{background-image:radial-gradient(circle,#8885 1px,transparent 1px);background-size:calc((100% - 15px)/4) 85px}
-#home-screen .home-free-grid.edit-mode>[data-id]{animation:none;touch-action:none}
+#home-screen .home-grid-layout.home-free-grid{grid-template-rows:repeat(6,minmax(70px,auto));grid-auto-flow:row;position:relative;align-content:start}
+
+#home-screen .home-free-grid.edit-mode>[data-id]{touch-action:none}
 #home-screen #home-layout-mode-btn{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;border:1px solid #aaa;border-radius:12px;padding:7px 10px;min-height:49px;min-width:76px;font:inherit;font-size:11px;background:#fffffff0;color:#171717;box-shadow:none;cursor:pointer}
 #home-screen #home-layout-mode-btn[aria-pressed=true]{background:#171717;color:#fff;border-color:#171717}
 #home-screen .dock-edit{gap:22px;align-items:center}
@@ -754,18 +754,18 @@
 #home-screen .home-free-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 #home-screen .home-free-grid>[data-id]{min-width:0}
 
-/* One compact edit toolbar: identical geometry, icon weight and label baseline. */
-#home-screen .dock-edit{position:relative;left:auto;top:auto;height:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(310px,calc(100% - 36px));margin:0 auto;padding:5px;gap:5px;border:1px solid #dedede;border-radius:21px;background:#fffffff5;box-shadow:0 4px 16px #0000000a;backdrop-filter:none}
+
+/* Three matching circular controls, with no enclosing panel. */
+#home-screen .dock-edit{position:relative;left:auto;top:auto;height:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(272px,calc(100% - 44px));margin:0 auto;padding:2px 0;gap:12px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none}
 #home-screen .dock-edit[style*="display: flex"]{display:grid!important}
-#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn){position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-width:0;height:58px;min-height:58px;margin:0;padding:6px 2px;border:0;border-radius:15px;background:transparent;color:#333;text-decoration:none;box-shadow:none;transform:none;font-family:inherit;cursor:pointer;transition:background-color .12s}
-#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn)>svg{width:22px;height:22px;flex:none}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn){position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-width:0;height:72px;min-height:72px;margin:0;padding:0;border:0;border-radius:0;background:none;color:#252525;text-decoration:none;box-shadow:none;transform:none;font-family:inherit;cursor:pointer}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn)>svg{width:46px;height:46px;padding:11px;box-sizing:border-box;flex:none;border:1px solid #d3d3d3;border-radius:50%;background:#fffffff2;box-shadow:0 2px 8px #00000008;transition:background-color .12s,transform .12s}
 #home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn)>span{font:500 11px/1.2 var(--font-family);color:inherit;white-space:nowrap}
-#home-screen .dock-edit #home-layout-mode-btn[aria-pressed=true]{background:#ededed;color:#111}
-#home-screen .dock-edit #home-layout-mode-btn i{position:absolute;top:9px;right:15px;width:4px;height:4px;border-radius:50%;background:#aaa}
-#home-screen .dock-edit #home-layout-mode-btn[aria-pressed=true] i{background:#111}
-#home-screen .dock-edit #finish-edit-btn{background:#171717;color:#fff}
-#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn):active{background:#dedede}
-#home-screen .dock-edit #finish-edit-btn:active{background:#333}
-#home-screen .home-grid-layout.edit-mode>[data-id]{animation:none;touch-action:none}
+#home-screen .dock-edit #home-layout-mode-btn[aria-pressed=true]{background:none;color:#252525}
+#home-screen .dock-edit #home-layout-mode-btn[aria-pressed=true]>svg{background:#252525;border-color:#252525;color:#fff}
+#home-screen .dock-edit #home-layout-mode-btn i{display:none}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn):active>svg{transform:scale(.94)}
+#home-screen .home-grid-layout.edit-mode>[data-id]{animation:jiggle .3s infinite;touch-action:none;transform-origin:center}
+#home-screen .home-grid-layout.edit-mode>.home-free-source{animation:none;transform:none}
 .home-free-ghost{will-change:transform}
-@media(prefers-reduced-motion:reduce){#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn){transition:none}}
+@media(prefers-reduced-motion:reduce){#home-screen .home-grid-layout.edit-mode>[data-id]{animation:none}#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn)>svg{transition:none}}
