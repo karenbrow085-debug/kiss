@@ -919,21 +919,11 @@ function setupHomeScreen() {
         });
     }
 
-    // 绑定删除小组件按钮
+    // Remove only the selected widget. Other widgets keep their DOM and running state.
     homeScreen.querySelectorAll('.delete-widget-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const instanceId = btn.getAttribute('data-id');
-            if (confirm('确定要删除这个小组件吗？')) {
-                db.addedWidgets = db.addedWidgets.filter(w => w.id !== instanceId);
-                // 从分页数据中删除
-                if (db.homeLayoutPages) {
-                    db.homeLayoutPages = db.homeLayoutPages.map(page => page.filter(id => id !== instanceId));
-                }
-                db.homeLayoutOrder = db.homeLayoutOrder.filter(id => id !== instanceId);
-                await saveData();
-                setupHomeScreen();
-            }
+            if(window.KissHomeFree?.removeWidget){await window.KissHomeFree.removeWidget(btn.getAttribute('data-id'));return;}
         });
     });
 
@@ -1001,6 +991,7 @@ function setupHomeScreen() {
     }
 
     homeScreen.addEventListener('click', (e) => {
+        if(window.KissHomeFree?.consumeClick(e))return;
         if(e.target.closest('#home-layout-mode-btn'))return;
         // 编辑模式下的点击拦截逻辑
         if (isHomeEditMode) {
@@ -1171,6 +1162,14 @@ function initHomeSortables() {
                 newPages = newPages.filter(page => page.length > 0);
                 if (newPages.length === 0) newPages = [[]]; // 至少保留一页
                 
+                if(window.KissHomeFree?.commitAutoOrder){
+                    const page=swiper?Math.round(swiper.scrollLeft/swiper.clientWidth):0;
+                    window.removeEventListener('mousemove', handleGlobalDrag);
+                    window.removeEventListener('touchmove', handleGlobalDrag);
+                    if(edgeFlipInterval){clearInterval(edgeFlipInterval);edgeFlipInterval=null;}
+                    currentDragX=0;if(swiper)swiper.style.scrollSnapType='x mandatory';
+                    await window.KissHomeFree.commitAutoOrder(newPages,page);return;
+                }
                 db.homeLayoutPages = newPages;
                 
                 // 同时更新旧的扁平化 order 以保持兼容性
