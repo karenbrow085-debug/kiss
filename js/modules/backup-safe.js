@@ -325,6 +325,18 @@ async function save() {
  };
  const job=serial.then(async()=>{await pause();return run();});queuedSave=job;serial=job.catch(()=>{});return job;
 }
+// Desktop interactions share the existing write queue but never traverse chat tables.
+function saveHomeSettings(keys) {
+ const allowed=new Set(['homeLayoutMode','homeFreePositions','homeLayoutPages','homeLayoutOrder','addedWidgets']);
+ const wanted=[...new Set(keys)].filter(key=>allowed.has(key));
+ const job=serial.then(async()=>{
+  if(busy||global.kissCleanupLocked)throw Error('数据正在整理，请稍后再试');
+  const rows=[];
+  for(const key of wanted)if(db[key]!==undefined)rows.push({key,value:await compact(db[key],key)});
+  await dexieDB.transaction('rw',dexieDB.globalSettings,()=>dexieDB.globalSettings.bulkPut(rows));
+ });
+ serial=job.catch(()=>{});return job;
+}
 async function loadRows(name) {
  const out=[];let last,started=false;
  for(;;){let row;
@@ -455,5 +467,5 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);

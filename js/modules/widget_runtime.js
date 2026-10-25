@@ -10,6 +10,7 @@ window.KissWidgetRuntime = (() => {
         for (const scope of scopes.values()) scope.dispose();
         scopes.clear();
     }
+    function release(id) { scopes.get(id)?.dispose(); scopes.delete(id); }
     function scope(id) {
         scopes.get(id)?.dispose();
         const intervals = new Set(), timeouts = new Set(), rafs = new Set();
@@ -85,7 +86,7 @@ window.KissWidgetRuntime = (() => {
         if (!observer) native.setTimeout(() => load(node), 0);
     }
     window.addEventListener('pagehide', reset);
-    return { reset, scope, preview, fill, prune };
+    return { reset, release, scope, preview, fill, prune };
 })();
 
 function syncHomeWidgetStyles() {
