@@ -753,3 +753,19 @@
 #home-screen .home-screen-page:has(>.home-free-grid){overflow-y:auto;overscroll-behavior-y:contain}
 #home-screen .home-free-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 #home-screen .home-free-grid>[data-id]{min-width:0}
+
+/* One compact edit toolbar: identical geometry, icon weight and label baseline. */
+#home-screen .dock-edit{position:relative;left:auto;top:auto;height:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(310px,calc(100% - 36px));margin:0 auto;padding:5px;gap:5px;border:1px solid #dedede;border-radius:21px;background:#fffffff5;box-shadow:0 4px 16px #0000000a;backdrop-filter:none}
+#home-screen .dock-edit[style*="display: flex"]{display:grid!important}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn){position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-width:0;height:58px;min-height:58px;margin:0;padding:6px 2px;border:0;border-radius:15px;background:transparent;color:#333;text-decoration:none;box-shadow:none;transform:none;font-family:inherit;cursor:pointer;transition:background-color .12s}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn)>svg{width:22px;height:22px;flex:none}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn)>span{font:500 11px/1.2 var(--font-family);color:inherit;white-space:nowrap}
+#home-screen .dock-edit #home-layout-mode-btn[aria-pressed=true]{background:#ededed;color:#111}
+#home-screen .dock-edit #home-layout-mode-btn i{position:absolute;top:9px;right:15px;width:4px;height:4px;border-radius:50%;background:#aaa}
+#home-screen .dock-edit #home-layout-mode-btn[aria-pressed=true] i{background:#111}
+#home-screen .dock-edit #finish-edit-btn{background:#171717;color:#fff}
+#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn):active{background:#dedede}
+#home-screen .dock-edit #finish-edit-btn:active{background:#333}
+#home-screen .home-grid-layout.edit-mode>[data-id]{animation:none;touch-action:none}
+.home-free-ghost{will-change:transform}
+@media(prefers-reduced-motion:reduce){#home-screen .dock-edit :is(.app-icon,#home-layout-mode-btn){transition:none}}
