@@ -15,6 +15,7 @@ if ('serviceWorker' in navigator) {
 
 const init = async () => {
     await loadData();
+    if (typeof window.KissPagesUI?.clearLegacyDynamics === 'function') await window.KissPagesUI.clearLegacyDynamics();
     if (typeof ensureAllChatArchives === 'function') {
         const archivesMigrated = ensureAllChatArchives();
         if (archivesMigrated) await saveData();
