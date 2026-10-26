@@ -215,14 +215,6 @@
 @media(prefers-reduced-motion:reduce){.ku-music.is-playing .ku-wave{animation:none}}
 
 
-/* Compact four-button glass dock, following the outlined reference. */
-.ku-mode.ku-nav-active #global-bottom-nav{box-sizing:border-box;width:min(380px,calc(100% - 26px));height:49px;min-height:49px;bottom:calc(13px + env(safe-area-inset-bottom,0px));padding:4px 13px;gap:0;border:1px solid #dce0e780;border-radius:28px;background:rgba(255,255,255,.79);box-shadow:0 4px 14px #26374a06,inset 0 1px 0 #fff;backdrop-filter:blur(18px) saturate(115%);-webkit-backdrop-filter:blur(18px) saturate(115%)}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item{height:38px;padding:7px;flex:1;border-radius:0;color:#1e222d;box-shadow:none;background:transparent}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item.active{color:#098fff;background:transparent;box-shadow:none}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item.active:after{display:none}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item>svg:not(.ku-nav-icon){display:none}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item>.ku-nav-icon{width:24px;height:24px;fill:none;display:block}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item.ku-custom-nav>.ku-nav-icon{display:none}
 .ku-menu-copy{white-space:pre-wrap}
 .ku-photos>img{display:block;width:100%;height:100%;aspect-ratio:.92;object-fit:cover;border-radius:6px;min-width:0}
 .ku-photos .ku-scene-0{background-position:0 0}.ku-photos .ku-scene-1{background-position:50% 0}.ku-photos .ku-scene-2{background-position:100% 0}
@@ -235,7 +227,47 @@
 .ku-post-images[data-image-count="1"] img,.ku-post-images[data-image-count="1"] .ku-image-placeholder{aspect-ratio:1.8}
 .ku-image-placeholder{display:flex;align-items:center;justify-content:center;background:#f1f4f7;color:#b4bdc9}
 [data-image-fields]{display:grid;gap:10px}
-/* Other original screens retain their own navigation icons. */
-.ku-mode #global-bottom-nav>.nav-item>.ku-nav-icon{display:none}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item>.ku-nav-icon{display:block}
-.ku-mode.ku-nav-active #global-bottom-nav>.nav-item.ku-custom-nav>.ku-nav-icon{display:none}
+
+/* Reference action row: rounded outlines, balanced labels and a muted filled heart. */
+.ku-post-actions{color:#657086;margin-top:8px;gap:8px}
+.ku-post-actions>button,.ku-post-actions>.ku-views{gap:5px;min-height:28px;font-size:calc(11px * var(--app-font-scale,1));font-weight:400;align-items:center}
+.ku-post-actions .ku-icon{width:18px;height:18px;flex:0 0 18px;stroke-width:1.55;fill:none}
+.ku-post-actions .is-liked .ku-icon{fill:#535d77;stroke:#535d77;color:#535d77}
+.ku-post-actions .is-saved .ku-icon{fill:#e8f2fc;stroke:#087bff;color:#087bff}
+.ku-post-actions>button:last-child{margin-left:0}
+.ku-comments:not(.ku-thread-comments){background:#f2f4f8;border-radius:12px;padding:5px 7px}
+.ku-comments:not(.ku-thread-comments) .ku-comment{gap:7px;align-items:center}
+.ku-comments:not(.ku-thread-comments) .ku-comment>div{display:flex;align-items:center;gap:6px;min-width:0}
+.ku-comments:not(.ku-thread-comments) .ku-comment strong{flex-shrink:0;margin-right:0;font-weight:600}
+.ku-comments:not(.ku-thread-comments) .ku-comment>div>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ku-comments:not(.ku-thread-comments) .ku-comment time{font-size:calc(9px * var(--app-font-scale,1));color:#9199a9}
+.ku-reply-likes{gap:4px;color:#657086;font-size:calc(10px * var(--app-font-scale,1));white-space:nowrap;flex-shrink:0}
+.ku-reply-likes .ku-icon{width:15px;height:15px;stroke-width:1.55}
+
+.ku-friend-tabs .ku-friend-sort{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:calc(10px * var(--app-font-scale,1));white-space:nowrap}
+.ku-friend-sort .ku-icon{width:12px;height:12px}
+.ku-sort-help{font-size:11px;color:#8b93a1;line-height:1.5;margin:0 0 8px}
+.ku-sort-list{max-height:280px;overflow:auto;overscroll-behavior:contain}
+.ku-sort-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #edf0f4}
+.ku-sort-row .ku-avatar{width:28px;height:28px;object-fit:cover;border-radius:50%}
+.ku-sort-row>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#313b4b}
+.ku-mode .ku-sort-row button{border:1px solid #e2e7ee;border-radius:8px;background:#f7f9fb;color:#59697d;padding:5px 7px;font-size:11px}
+.ku-sort-row button:disabled{opacity:.3;cursor:default}
+
+.ku-comment-swipe{position:relative;overflow:hidden;border-radius:9px;touch-action:pan-y}
+.ku-comment-swipe+.ku-comment-swipe{margin-top:9px}
+.ku-comment-track{position:relative;z-index:1;background:#fff;transform:translateX(0);transition:transform .2s ease;min-height:38px;display:flex;align-items:center}
+.ku-comment-track>.ku-comment{width:100%;box-sizing:border-box}
+.ku-comment-swipe.is-open>.ku-comment-track{transform:translateX(-58px)}
+.ku-comment-swipe.is-dragging>.ku-comment-track{transition:none}
+.ku-view .ku-comment-delete,.ku-mode .ku-sheet .ku-comment-delete{position:absolute;inset:0 0 0 auto;width:58px;display:flex;align-items:center;justify-content:center;background:#cf4b53;color:#fff;border:0;border-radius:0;font-size:11px;font-weight:400;padding:0;cursor:pointer}
+.ku-comment-delete:disabled{opacity:.55;cursor:wait}
+.ku-comments:not(.ku-thread-comments) .ku-comment-track{background:#f2f4f8}
+.ku-own-note-swipe{margin-top:5px;background:#f2f4f8;border-radius:12px}
+.ku-own-note-swipe .ku-comment-track{background:#f2f4f8}
+.ku-own-note-swipe .ku-own-note{width:100%;box-sizing:border-box;margin-top:0}
+.ku-sheet-comments .ku-comment-swipe{margin-bottom:10px}
+.ku-sheet-comments .ku-comment-track>.ku-comment{margin-bottom:0;padding:4px 0}
+@media(prefers-reduced-motion:reduce){.ku-comment-track{transition:none}}
+
+.ku-comment-swipe:focus-within>.ku-comment-track{transform:translateX(-58px)}
