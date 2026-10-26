@@ -50,6 +50,29 @@ function setupCustomizeApp() {
             showToast('图标已重置');
         }
 
+        if (target.closest('#clear-global-css-btn')) {
+            const button = target.closest('#clear-global-css-btn');
+            const textarea = document.getElementById('global-beautification-css');
+            const previous = db.globalCss || '';
+            const draft = textarea?.value || '';
+            button.disabled = true;
+            db.globalCss = '';
+            try {
+                await saveData();
+                applyGlobalCss('');
+                if (textarea) textarea.value = '';
+                const select = document.getElementById('global-css-preset-select');
+                if (select) select.value = '';
+                showToast('当前全局美化已清除，保存的预设仍保留');
+            } catch (error) {
+                db.globalCss = previous;
+                applyGlobalCss(previous);
+                if (textarea) textarea.value = draft;
+                showToast('清除失败，请重试');
+            } finally { button.disabled = false; }
+            return;
+        }
+
         if (target.matches('#apply-global-css-now-btn')) {
             const textarea = document.getElementById('global-beautification-css');
             const newCss = textarea.value;
@@ -446,7 +469,7 @@ function renderCustomizeForm() {
                 <div class="form-group" style="margin-top: 15px; margin-bottom: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <label for="global-beautification-css" style="font-weight: bold; font-size: 14px; color: var(--primary-color); margin-bottom: 0;">CSS代码</label>
-                        <button type="button" id="apply-global-css-now-btn" class="btn btn-primary btn-small" style="width:auto;">立即应用</button>
+                        <div style="display:flex;gap:8px;align-items:center;"><button type="button" id="clear-global-css-btn" class="btn btn-small" style="width:auto;">清除</button><button type="button" id="apply-global-css-now-btn" class="btn btn-primary btn-small" style="width:auto;">立即应用</button></div>
                     </div>
                     <textarea id="global-beautification-css" class="form-group" rows="8" placeholder="在此输入CSS代码..." style="width:100%; border:1px solid #eee; border-radius:8px; padding:10px; font-family: monospace; font-size: 12px;"></textarea>
                     <div class="kp-css-import-row">
