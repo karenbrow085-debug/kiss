@@ -19,8 +19,8 @@ const PATHS = {
  cog:'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0', views:'M4 20v-6M9 20V4M14 20v-9M19 20V7', repeat:'M5 3v13a3 3 0 0 0 3 3h6M1 7l4-4 4 4M19 21V8a3 3 0 0 0-3-3h-6M15 17l4 4 4-4', play:'m9 5 11 7-11 7Z', book:'M7 2.5h10a1 1 0 0 1 1 1V22l-6-4-6 4V3.5a1 1 0 0 1 1-1Z', reply:'m8 4-5 5 5 5M3 9h11a7 7 0 0 1 7 7v4', edit:'m16 3 5 5-12 12-6 1 1-6ZM14 5l5 5'
 };
 function icon(name, cls='') { return `<svg class="ku-icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PATHS[name]||PATHS.panel}"/></svg>`; }
-const check = '<span class="ku-check" aria-label="プロフィール">✓</span>';
-const button=(label,action,cls='')=>{const key=action.split(':')[0];const names={home:'ホームに戻る',profile:'プロフィールを見る',details:'投稿を開く',like:'いいね',translation:'翻訳',chat:'トークを開く',customize:'表示設定',self:'自分のプロフィール',postmenu:'投稿のメニュー',bookmark:'保存',share:'共有',comment:'コメント',audio:'再生',musicedit:'音楽を設定'};return `<button type="button" class="${cls}" data-ku="${E(action)}"${names[key]?` aria-label="${names[key]}"`:''}>${label}</button>`;};
+const check = '<svg class="ku-check" viewBox="0 0 24 24" role="img" aria-label="认证"><path fill="#078bfa" d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.76 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.76 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.77 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m7.4 12.1 3 3 6.2-6.5" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const button=(label,action,cls='')=>{const key=action.split(':')[0];const names={home:'ホームに戻る',profile:'プロフィールを見る',details:'投稿を開く',like:'いいね',translation:'翻訳',chat:'トークを開く',customize:'表示設定',self:'自分のプロフィール',postmenu:'投稿のメニュー',bookmark:'保存',share:'共有',comment:'コメント',audio:'再生',musicedit:'设置音乐',menuedit:'编辑菜单页文案和图片'};return `<button type="button" class="${cls}" data-ku="${E(action)}"${names[key]?` aria-label="${names[key]}"`:''}>${label}</button>`;};
 const people = () => typeof db !== 'undefined' ? db.characters||[] : [];
 const groups = () => typeof db !== 'undefined' ? db.groups||[] : [];
 const nameOf = c => c?.remarkName || c?.realName || c?.name || '…';
@@ -30,6 +30,7 @@ const when=t=>{const d=new Date(t);if(Number.isNaN(+d))return '';const pad=n=>St
 let frame=0, currentTab='all', feedLimit=40, folderPage=0, folderSignature='', folderBusyUntil=0;
 const postData=new Map();
 let playingAudio=null;
+const translatedPosts=new Set();
 const selfViewedAt=Date.now();
 const DEFAULT_SELF_TEXT='今日は少し遠回りをして、家に帰った。\n\n街の灯りがひとつずつ、夕暮れに滲んでいく。言えなかった言葉だけが、まだ胸の奥で揺れている。\n\n何でもない今日を、忘れないように。';
 const DEFAULT_SELF_TRANSLATION='今天绕了一点远路，回到家。\n\n街灯一盏盏亮起，在暮色里晕开。那些没能说出口的话，还在心底轻轻摇晃。\n\n把平凡的今天留下，好让自己记得。';
@@ -43,12 +44,12 @@ function folderMarkup(tabs) {
  const signature=JSON.stringify(items.map(x=>x.label));
  if(signature!==folderSignature){folderPage=Math.floor(Math.max(0,items.findIndex(x=>x.active))/3);folderSignature=signature;}
  const count=Math.max(1,Math.ceil(items.length/3));folderPage=Math.min(folderPage,count-1);
- const defaults=['日常','グループ','ノート'];
+ const defaults=['日々','グループ','ノート'];
  let pages='';
  for(let page=0;page<count;page++){
   const group=items.slice(page*3,page*3+3), selected=group.findIndex(x=>x.active);
   const content=group.map(x=>button(E(x.label),'folder:'+x.index,'ku-folder'+(x.active?' active':''))).join('');
-  const fillers=Array.from({length:3-group.length},(_,i)=>`<span class="ku-folder-placeholder" aria-hidden="true">${defaults.filter(l=>!group.some(x=>x.label===l))[i]||'日常'}</span>`).join('');
+  const fillers=Array.from({length:3-group.length},(_,i)=>`<span class="ku-folder-placeholder" aria-hidden="true">${defaults.filter(l=>!group.some(x=>x.label===l))[i]||'日々'}</span>`).join('');
   pages+=`<div class="ku-folder-page" aria-hidden="${page!==folderPage}" ${page!==folderPage?'inert':''}><span class="ku-folder-selection" style="transform:translateX(${Math.max(0,selected)*100}%);opacity:${selected<0?0:1}"></span>${content}${fillers}</div>`;
  }
  return `<div class="ku-folders"><div class="ku-folder-items" tabindex="0" role="group" aria-label="フォルダー。左右にスワイプして切り替え" data-pages="${count}"><div class="ku-folder-track" style="transform:translateX(-${folderPage*100}%)">${pages}</div></div>${button('＋ 新規','new-folder','ku-new-folder')}</div>`;
@@ -80,7 +81,16 @@ for(const [key,title,list] of sections){if(!list.length)continue;html+=`<section
 if(!rows.length)html+='<div class="ku-empty">まだトークがありません。</div>';
 root.innerHTML=html+'</div>';retainFolders(root,oldFolders);$('.ku-chat-scroll',root).scrollTop=chatScroll;}
 function menuPersona(){const d=typeof db!=='undefined'?db:{};let p=(d.myPersonaPresets||[]).find(p=>p.id===d.activePersonaId)||(d.myPersonaPresets||[])[0];return {name:p?.name||people()[0]?.myName||'User',avatar:p?.avatar||people()[0]?.myAvatar||$('#more-my-avatar')?.getAttribute('src')};}
-function renderMenu(){const root=rootFor(IDS[2]);if(!root)return;const p=menuPersona();const tools=[['panel','状态栏','status-bar'],['loops','思维链','cot-settings'],['calendar','日历','calendar'],['star','收藏','star'],['palette','绘图工坊','drawing-workshop']];root.innerHTML=header('メニュー','menu')+`<div class="ku-menu-scroll"><div class="ku-menu-profile">${button(avatar(p.avatar),'profile','ku-profile-link')}<div><strong>${E(p.name)} ${check}</strong><p>わたしの記録</p><p>日々を、少しずつ。</p></div></div><p class="ku-menu-copy">好きなものを集めて、<br>何でもない日を、特別に。</p><div class="ku-photos" aria-label="日々の風景"><span role="img" aria-label="グラスとイヤホン"></span><span role="img" aria-label="静かな海"></span><span role="img" aria-label="雨と白い花"></span></div><p class="ku-photo-caption">${icon('heart')}何気ない日を、残しておく。</p>${button(`${icon('search')}<span>トーク履歴を検索</span>`,'search','ku-search')}<div class="ku-tools">${tools.map(([i,l,a])=>button(`${icon(i)}<span>${l}</span>${icon('arrow','ku-chevron')}`,'tool:'+a,'ku-tool')).join('')}</div><p class="ku-menu-foot">何気ない日々を、大切に。</p></div>`;}
+function menuSettings(){return activeSelfPersona()?.kissMenuCard||db.kissMenuCard||{};}
+function renderMenu(){const root=rootFor(IDS[2]);if(!root)return;const p=menuPersona(),d=menuSettings();const tools=[['panel','状态栏','status-bar'],['loops','思维链','cot-settings'],['calendar','日历','calendar'],['star','收藏','star'],['palette','绘图工坊','drawing-workshop']];root.innerHTML=header('メニュー','menu')+`<div class="ku-menu-scroll"><div class="ku-menu-profile">${button(avatar(d.avatar||p.avatar),'menuedit','ku-profile-link')}<div><strong>${E(p.name)} ${check}</strong><p>${E(d.subtitle??'わたしの記録')}</p><p>${E(d.description??'日々を、少しずつ。')}</p></div></div><p class="ku-menu-copy">${E(d.text??'好きなものを集めて、\n何でもない日を、特別に。')}</p><div class="ku-photos" aria-label="日々の風景">${[0,1,2].map(i=>d.images?.[i]?`<img src="${safeURL(d.images[i])}" alt="日々の風景 ${i+1}" loading="lazy">`:`<span class="ku-scene-${i}" role="img" aria-label="日々の風景 ${i+1}"></span>`).join('')}</div><p class="ku-photo-caption">${icon('heart')}${E(d.caption??'何気ない日を、残しておく。')}</p>${button(`${icon('search')}<span>トーク履歴を検索</span>`,'search','ku-search')}<div class="ku-tools">${tools.map(([i,l,a])=>button(`${icon(i)}<span>${l}</span>${icon('arrow','ku-chevron')}`,'tool:'+a,'ku-tool')).join('')}</div><p class="ku-menu-foot">${E(d.footer??'何気ない日々を、大切に。')}</p></div>`;}
+function editMenu(){
+ const owner=activeSelfPersona()||db,d=menuSettings();
+ const fields=[['avatar','本页头像链接（留空使用资料头像）'],['subtitle','名字下第一行'],['description','名字下第二行'],['caption','图片下方文案'],['footer','底部文案']];
+ const overlay=openSheet('菜单页展示设置',`<form class="ku-display-form">${fields.map(([key,label])=>`<label>${label}<input name="${key}" value="${E(d[key]??({subtitle:'わたしの記録',description:'日々を、少しずつ。',caption:'何気ない日を、残しておく。',footer:'何気ない日々を、大切に。'}[key]||''))}" maxlength="${key==='avatar'?2000:300}"></label>`).join('')}<label>图片上方正文<textarea name="text" rows="3" maxlength="2000">${E(d.text??'好きなものを集めて、\n何でもない日を、特別に。')}</textarea></label><fieldset class="ku-field-group"><legend>三张图片（留空使用原风景图）</legend>${[0,1,2].map(i=>`<label>图片 ${i+1} 链接<input name="menu_image_${i}" value="${E(d.images?.[i]||'')}" maxlength="2000" inputmode="url"></label>`).join('')}</fieldset><button type="submit">保存</button><button type="button" data-original-profile>编辑原始个人资料</button></form>`);
+ $('[data-original-profile]',overlay).onclick=()=>{closeSheet();openSelfProfile();};
+ $('form',overlay).onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',overlay);b.disabled=true;const f=new FormData(e.currentTarget),previous=owner.kissMenuCard,next={...d,images:[0,1,2].map(i=>String(f.get('menu_image_'+i)||'').trim())};for(const key of [...fields.map(x=>x[0]),'text'])next[key]=String(f.get(key)||'').trim();owner.kissMenuCard=next;try{await saveData();closeSheet();renderMenu();}catch{owner.kissMenuCard=previous;b.disabled=false;showToast('保存失败，请重试。');}};
+}
+
 function moments() {
  return people().flatMap(c=>{
   const posts=Array.isArray(c.moments)?c.moments:[];
@@ -96,8 +106,8 @@ function metaFor(c,m) {
  const display=c.kissFriendsDisplay||{};
  return {handle:m.handle||c.handle||c.username||display.handle||'',device:m.device||m.sourceDevice||display.device||'',location:m.location||display.location||''};
 }
-const CARD_LAYOUTS=[['auto','自動'],['text','スタンダード'],['music','音楽'],['quote','引用'],['thread','返信スレッド'],['photo','写真'],['note','便箋']];
-const COUNT_FIELDS=[['comments','コメント'],['reposts','リポスト'],['likes','いいね'],['views','閲覧']];
+const CARD_LAYOUTS=[['auto','自动'],['text','标准正文'],['music','音乐'],['quote','引用'],['thread','回复串'],['photo','图文'],['note','便笺']];
+const COUNT_FIELDS=[['comments','评论数'],['reposts','转发数'],['likes','点赞数'],['views','浏览数']];
 function musicFor(m){const v=m.music||m.song||m.sharedMusic;return v&&typeof v==='object'?v:null;}
 function musicFromConfig(d,cover){return d?.music?.enabled===false?null:{...(d?.music||{}),title:d?.music?.title||'',artist:d?.music?.artist||'',cover:d?.music?.cover||cover||'',url:d?.music?.url||'',empty:!d?.music?.title};}
 function countLabel(d,key,actual){const value=String(d?.counts?.[key]??'').trim();if(/^\d+(?:\.\d+)?(?:[kKmMwW]|万)?$/.test(value))return E(value);const n=Number(actual)||0;return n>=1000?(n/1000).toFixed(1).replace(/\.0$/,'')+'k':String(n);}
@@ -105,7 +115,7 @@ function cardLayout(entry,index){
  if(entry.self)return 'text';const {c,m}=entry,d=c.kissFriendsDisplay||{};
  if(CARD_LAYOUTS.some(([id])=>id===d.layout)&&d.layout!=='auto')return d.layout==='music'&&d.music?.enabled===false?'text':d.layout;
  if(d.music?.enabled!==false&&(musicFor(m)||d.music?.title))return 'music';
- if(m.images?.length||d.image)return 'photo';if(m.comments?.length>1)return 'thread';if(m.quote||m.quotedContent)return 'quote';
+ if(m.images?.length||d.images?.some(Boolean)||d.image)return 'photo';if(m.comments?.length>1)return 'thread';if(m.quote||m.quotedContent)return 'quote';
  // An ordered rhythm, unchanged by repeated renders; every style shares one type and color system.
  const auto=['music','quote','thread','photo','note','text'][(Math.max(1,index)-1)%6];
  return auto==='music'&&d.music?.enabled===false?'text':auto;
@@ -114,14 +124,17 @@ function renderMusic(m,key){const song=musicFor(m);if(!song)return '';
  const cover=song.cover||song.picUrl||song.albumCover;
  const playable=/^https?:|^blob:/i.test(song.url||song.audioUrl||song.src||'');
  const playing=playingAudio?.dataset.key===key&&!playingAudio.paused;
- return `<div class="ku-music${playing?' is-playing':''}">${cover?`<img src="${safeURL(cover)}" alt="" loading="lazy">`:`<span class="ku-music-disc">♪</span>`}<div><strong>${E(song.title||song.name||'今日の一曲')}</strong><small>${E(song.artist||song.singer||(song.empty?'音楽を選ぶ':''))}</small></div><svg class="ku-wave" viewBox="0 0 65 30" aria-hidden="true"><path d="M3 12v6m5-12v18m5-21v24m5-18v12m5-15v18m5-24v30m5-25v20m5-17v14m5-20v26m5-20v14m5-11v8m5-7v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${button(playing?'<span class="ku-pause">Ⅱ</span>':icon(song.empty?'add':'play'),(playable?'audio:':'musicedit:')+key,'ku-play'+(song.empty?' ku-music-add':''))}</div>`;
+ return `<div class="ku-music${playing?' is-playing':''}">${cover?`<img src="${safeURL(cover)}" alt="" loading="lazy">`:`<span class="ku-music-disc">♪</span>`}<div><strong>${E(song.title||song.name||'今日の一曲')}</strong><small>${E(song.artist||song.singer||(song.empty?'音楽を選ぶ':''))}</small></div><svg class="ku-wave" viewBox="0 0 65 30" aria-hidden="true"><path d="M3 12v6m5-12v18m5-21v24m5-18v12m5-15v18m5-24v30m5-25v20m5-17v14m5-20v26m5-20v14m5-11v8m5-7v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${button(playing?'<span class="ku-pause">Ⅱ</span>':icon('play'),(playable?'audio:':'musicedit:')+key,'ku-play')}</div>`;
 }
 function extraDisplayFields(d,own=false){
  const attr=(key)=>own?`data-own-field="${key}"`:`name="${key}"`;
- return `<fieldset class="ku-field-group"><legend>音楽</legend><label class="ku-checkbox-row"><input type="checkbox" ${attr('music_enabled')} ${d.music?.enabled!==false?'checked':''}>音楽バーを表示</label>${[['title','曲名'],['artist','アーティスト'],['cover','ジャケット URL'],['url','音源 URL']].map(([key,label])=>`<label>${label}<input ${attr('music_'+key)} value="${E(d.music?.[key]||'')}" maxlength="${['url','cover'].includes(key)?2000:150}" ${['url','cover'].includes(key)?'inputmode="url"':''}></label>`).join('')}</fieldset><fieldset class="ku-field-group"><legend>表示する数字</legend>${COUNT_FIELDS.map(([key,label])=>`<label>${label}<input ${attr('count_'+key)} value="${E(d.counts?.[key]??'')}" maxlength="16" placeholder="空欄は実数 / 128 / 2.1k"></label>`).join('')}</fieldset>${own?'':`<label>カードのスタイル<select name="layout">${CARD_LAYOUTS.map(([id,label])=>`<option value="${id}" ${(d.layout||'auto')===id?'selected':''}>${label}</option>`).join('')}</select></label><label>写真 URL<input name="image" value="${E(d.image||'')}" maxlength="2000" inputmode="url"></label><label>カードの補足<input name="caption" value="${E(d.caption||'')}" maxlength="300"></label>`}`;
+ return `<fieldset class="ku-field-group"><legend>音乐设置</legend><label class="ku-checkbox-row"><input type="checkbox" ${attr('music_enabled')} ${d.music?.enabled!==false?'checked':''}>显示音乐栏</label>${[['title','歌名'],['artist','歌手'],['cover','封面图片链接'],['url','可播放的音频直链']].map(([key,label])=>`<label>${label}<input ${attr('music_'+key)} value="${E(d.music?.[key]||'')}" maxlength="${['url','cover'].includes(key)?2000:150}" ${['url','cover'].includes(key)?'inputmode="url"':''}></label>`).join('')}</fieldset><fieldset class="ku-field-group"><legend>自定义显示数字</legend>${COUNT_FIELDS.map(([key,label])=>`<label>${label}<input ${attr('count_'+key)} value="${E(d.counts?.[key]??'')}" maxlength="16" placeholder="留空显示实际数量 / 128 / 2.1k"></label>`).join('')}</fieldset>${own?'':`<label>卡片样式<select name="layout">${CARD_LAYOUTS.map(([id,label])=>`<option value="${id}" ${(d.layout||'auto')===id?'selected':''}>${label}</option>`).join('')}</select></label>${photoFields(d)}<label>卡片补充文字<input name="caption" value="${E(d.caption||'')}" maxlength="300"></label>`}`;
 }
+function photoFields(d){const n=Math.max(1,Math.min(4,Number(d.imageCount)||(d.images?.length)||3));return `<fieldset class="ku-field-group"><legend>图文配图</legend><label>图片数量<select name="imageCount">${[1,2,3,4].map(i=>`<option value="${i}" ${i===n?'selected':''}>${i} 张</option>`).join('')}</select></label><div data-image-fields>${Array.from({length:n},(_,i)=>`<label>图片 ${i+1} 链接<input name="image_${i}" value="${E(d.images?.[i]||(i===0?d.image:'')||'')}" maxlength="2000" inputmode="url"></label>`).join('')}</div></fieldset>`;}
 function updateDisplayValue(d,key,value){
- if(key.startsWith('music_')){d.music={...(d.music||{}),[key.slice(6)]:value};}
+ if(key.startsWith('image_')){d.images=[...(d.images||[])];d.images[Number(key.slice(6))]=String(value).trim();}
+ else if(key==='imageCount')d.imageCount=Number(value);
+ else if(key.startsWith('music_')){d.music={...(d.music||{}),[key.slice(6)]:value};}
  else if(key.startsWith('count_')){d.counts={...(d.counts||{}),[key.slice(6)]:String(value).trim()};}
  else d[key]=value;
 }
@@ -144,14 +157,16 @@ function postMarkup(entry,index) {
  const handle=meta.handle||nameOf(c).replace(/\s+/g,'');
  const source=`<span> · </span><span class="ku-blue">${E(meta.device||'Kiss')}</span><span>から</span>`;
  const place=icon('pin')+`<span>${meta.location?E(meta.location)+' · ':''}友だちに公開</span>`;
- const textHTML=text?E(text).split(/\n{2,}/).map(p=>`<span class="ku-paragraph">${p}</span>`).join(''):'<span class="ku-unwritten">まだ投稿がありません。</span>';
- const translation=m.translation||m.translatedContent||d.translation;
+ const displayTranslation=translatedPosts.has(key);
+ const textHTML=(displayTranslation?String(d.translation||m.translation||m.translatedContent||text):text)?E(displayTranslation?String(d.translation||m.translation||m.translatedContent||text):text).split(/\n{2,}/).map(p=>`<span class="ku-paragraph">${p}</span>`).join(''):'<span class="ku-unwritten">まだ投稿がありません。</span>';
  const views=Number(m.views||m.viewCount)||0,reposts=Array.isArray(m.reposts)?m.reposts.length:Number(m.repostCount)||0;
- const pictures=Array.isArray(m.images)?m.images:[];
- const image=d.image||(!pictures.length&&layout==='photo'?c.avatar:'');
- const imageHTML=pictures.length?`<div class="ku-post-images">${pictures.map(src=>`<img src="${safeURL(typeof src==='string'?src:src.url)}" alt="投稿の写真" loading="lazy">`).join('')}</div>`:image&&layout==='photo'?`<div class="ku-feature-image"><img src="${safeURL(image)}" alt="${d.image?'写真':'プロフィール写真'}" loading="lazy"></div>`:'';
+ const actualPictures=Array.isArray(m.images)?m.images.map(x=>typeof x==='string'?x:x.url):[];
+ const configuredPictures=d.images?.some(Boolean)?d.images:d.image?[d.image]:null;
+ const pictures=layout==='photo'?(configuredPictures||actualPictures.length&&actualPictures||[]):actualPictures;
+ const imageCount=layout==='photo'?Math.max(1,Math.min(4,Number(d.imageCount)||pictures.length||3)):Math.min(4,pictures.length);
+ const imageHTML=imageCount?`<div class="ku-post-images" data-image-count="${imageCount}">${Array.from({length:imageCount},(_,i)=>{const src=pictures[i];return src?`<img src="${safeURL(src)}" alt="投稿の写真 ${i+1}" loading="lazy">`:`<span class="ku-image-placeholder" aria-label="未设置图片">${icon('panel')}</span>`;}).join('')}</div>`:'';
  const replyPrompt=thread&&!comments.length?`<div class="ku-thread-comments ku-reply-prompt">${avatar(c.myAvatar)}${button('言葉を残す…','comment:'+key)}</div>`:'';
- return `<article class="ku-post ku-layout-${layout}${self?' ku-own-post':''}${thread?' ku-thread-post':''}${quote?' ku-quote-post':''}" data-post="${E(key)}"><div class="ku-post-top">${button(avatar(c.avatar),self?'self':'profile:'+c.id,'ku-post-avatar')}<div class="ku-byline"><div class="ku-name-line"><strong>${E(title)} ${check}</strong><span class="ku-handle">@${E(String(handle).replace(/^@/,''))}</span></div><div class="ku-post-meta"><time>${E(stamp)}</time>${source}</div><div class="ku-post-place">${place}</div></div>${button('···',self?'self':'postmenu:'+key,'ku-dots')}</div><div class="ku-post-body"><div class="ku-content-layout">${imageHTML}<div class="ku-content-copy"><p class="ku-post-text">${textHTML}</p>${d.caption?`<p class="ku-card-caption">${E(d.caption)}</p>`:''}</div></div>${m.imageDescription?`<p class="ku-image-description">${E(m.imageDescription)}</p>`:''}${text?button('翻訳を表示','translation:'+key,'ku-text-link'):''}<div class="ku-translation" hidden>${E(translation||'保存された翻訳はありません。')}</div>${renderMusic(m,key)}<div class="ku-post-actions">${button(icon('comment')+`<span>${countLabel(d,'comments',comments.length)}</span>`,'comment:'+key)}${button(icon('repeat')+`<span>${countLabel(d,'reposts',reposts)}</span>`,'share:'+key)}${button(icon('heart')+`<span>${countLabel(d,'likes',likes.length)}</span>`,'like:'+key,likes.includes(c.myName||'我')?'is-liked':'')}<span class="ku-views" aria-label="閲覧数">${icon('views')}<span>${countLabel(d,'views',views)}</span></span>${button(icon('book'),'bookmark:'+key,saved?'is-saved':'')}</div></div>${self&&ownNote?`<div class="ku-own-note ku-comments">${avatar(c.avatar)}<strong>${E(c.realName)} ${check}</strong><span>${E(ownNote)}</span><time>${E(when(m.timestamp))}</time></div>`:''}${comments.length?`<div class="${thread?'ku-thread-comments':'ku-comments'}">${comments.slice(0,thread?3:1).map(x=>commentMarkup(c,x,thread)).join('')}</div>`:replyPrompt}</article>`;
+ return `<article class="ku-post ku-layout-${layout}${self?' ku-own-post':''}${thread?' ku-thread-post':''}${quote?' ku-quote-post':''}" data-post="${E(key)}"><div class="ku-post-top">${button(avatar(c.avatar),self?'self':'profile:'+c.id,'ku-post-avatar')}<div class="ku-byline"><div class="ku-name-line"><strong>${E(title)} ${check}</strong><span class="ku-handle">@${E(String(handle).replace(/^@/,''))}</span></div><div class="ku-post-meta"><time>${E(stamp)}</time>${source}</div><div class="ku-post-place">${place}</div></div>${button('···',self?'self':'postmenu:'+key,'ku-dots')}</div><div class="ku-post-body"><div class="ku-content-layout">${imageHTML}<div class="ku-content-copy"><p class="ku-post-text">${textHTML}</p>${d.caption?`<p class="ku-card-caption">${E(d.caption)}</p>`:''}</div></div>${m.imageDescription?`<p class="ku-image-description">${E(m.imageDescription)}</p>`:''}${text?button(displayTranslation?'原文を表示':'翻訳を表示','translation:'+key,'ku-text-link'):''}${renderMusic(m,key)}<div class="ku-post-actions">${button(icon('comment')+`<span>${countLabel(d,'comments',comments.length)}</span>`,'comment:'+key)}${button(icon('repeat')+`<span>${countLabel(d,'reposts',reposts)}</span>`,'share:'+key)}${button(icon('heart')+`<span>${countLabel(d,'likes',likes.length)}</span>`,'like:'+key,likes.includes(c.myName||'我')?'is-liked':'')}<span class="ku-views" aria-label="閲覧数">${icon('views')}<span>${countLabel(d,'views',views)}</span></span>${button(icon('book'),'bookmark:'+key,saved?'is-saved':'')}</div></div>${self&&ownNote?`<div class="ku-own-note ku-comments">${avatar(c.avatar)}<strong>${E(c.realName)} ${check}</strong><span>${E(ownNote)}</span><time>${E(when(m.timestamp))}</time></div>`:''}${comments.length?`<div class="${thread?'ku-thread-comments':'ku-comments'}">${comments.slice(0,thread?3:1).map(x=>commentMarkup(c,x,thread)).join('')}</div>`:replyPrompt}</article>`;
 }
 function activeSelfPersona(){
  const d=typeof db==='undefined'?{}:db;
@@ -188,7 +203,7 @@ function renderSelfCardEditor(index){
   input.closest('.mp-input-group').insertAdjacentElement('afterend',editor);
  }
  const d=p.kissFriendsCard||{};
- editor.innerHTML=`<summary>Friends カード</summary><div class="ku-profile-card-fields"><label>表示ID<input data-own-field="handle" value="${E(d.handle||p.handle||'my.days')}" maxlength="80"></label><label>端末<input data-own-field="device" value="${E(d.device||ownCardDevice())}" maxlength="80"></label><label>場所<input data-own-field="location" value="${E(d.location||'')}" maxlength="80"></label><label>カードの文章<textarea data-own-field="text" rows="5" maxlength="5000">${E(typeof d.text==='string'?d.text:DEFAULT_SELF_TEXT)}</textarea></label><label>翻訳<textarea data-own-field="translation" rows="3" maxlength="5000">${E(d.translation||(typeof d.text==='string'?'':DEFAULT_SELF_TRANSLATION))}</textarea></label><label>下のひとこと<input data-own-field="note" value="${E(d.note||'何気ない日々を、大切に。')}" maxlength="200"></label>${extraDisplayFields(d,true)}</div>`;
+ editor.innerHTML=`<summary>好友页展示卡片</summary><div class="ku-profile-card-fields"><label>显示账号<input data-own-field="handle" value="${E(d.handle||p.handle||'my.days')}" maxlength="80"></label><label>设备型号<input data-own-field="device" value="${E(d.device||ownCardDevice())}" maxlength="80"></label><label>发布地点<input data-own-field="location" value="${E(d.location||'')}" maxlength="80"></label><label>卡片正文<textarea data-own-field="text" rows="5" maxlength="5000">${E(typeof d.text==='string'?d.text:DEFAULT_SELF_TEXT)}</textarea></label><label>翻译内容<textarea data-own-field="translation" rows="3" maxlength="5000">${E(d.translation||(typeof d.text==='string'?'':DEFAULT_SELF_TRANSLATION))}</textarea></label><label>底部留言<input data-own-field="note" value="${E(d.note||'何気ない日々を、大切に。')}" maxlength="200"></label>${extraDisplayFields(d,true)}</div>`;
  editor.oninput=e=>{const key=e.target.dataset.ownField;if(!key)return;if(!p.kissFriendsCard)p.kissFriendsCard={};updateDisplayValue(p.kissFriendsCard,key,e.target.type==='checkbox'?e.target.checked:e.target.value);p.kissFriendsCard.updatedAt=Date.now();};
 }
 function renderFriends(){
@@ -202,49 +217,52 @@ function renderFriends(){
 }
 function openSheet(title,html){
  closeSheet();const overlay=document.createElement('div');overlay.className='ku-sheet-overlay';
- overlay.innerHTML=`<section class="ku-sheet" role="dialog" aria-modal="true" aria-label="${E(title)}"><header><strong>${E(title)}</strong><button type="button" data-close aria-label="閉じる">×</button></header>${html}</section>`;
+ overlay.innerHTML=`<section class="ku-sheet" role="dialog" aria-modal="true" aria-label="${E(title)}"><header><strong>${E(title)}</strong><button type="button" data-close aria-label="关闭">×</button></header>${html}</section>`;
  const focus=document.activeElement;overlay._previousFocus=focus;document.body.appendChild(overlay);
  overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-close]'))closeSheet();});
- overlay.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Tab'){const nodes=[...overlay.querySelectorAll('button,input,textarea')].filter(x=>!x.disabled);const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+ overlay.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Tab'){const nodes=[...overlay.querySelectorAll('button,input,textarea,select')].filter(x=>!x.disabled);const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
  overlay.querySelector('button')?.focus();return overlay;
 }
 function closeSheet(){const el=$('.ku-sheet-overlay');if(el){el._previousFocus?.focus();el.remove();}}
 function editDisplay(c){
  const d=c.kissFriendsDisplay||{};
- const overlay=openSheet('カードの表示',`<form class="ku-display-form"><label>ユーザー名<input name="handle" maxlength="80" value="${E(d.handle||c.handle||c.username||'')}" placeholder="@name"></label><label>端末<input name="device" maxlength="80" value="${E(d.device||'')}" placeholder="iPhone 17 Pro"></label><label>場所<input name="location" maxlength="80" value="${E(d.location||'')}" placeholder="Tokyo"></label>${extraDisplayFields(d)}<button type="submit">保存</button></form>`);
- $('form',overlay).addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f);b.disabled=true;const previous=c.kissFriendsDisplay;const values=new FormData(f);const next={...d,music:{...(d.music||{})},counts:{...(d.counts||{})}};
- for(const [key,value] of values)updateDisplayValue(next,key,String(value).trim());next.music.enabled=f.elements.music_enabled.checked;
+ const existingImages=(c.moments||[]).find(m=>m.images?.length)?.images||[];const imageDraft={...d,images:[...(d.images||existingImages.map(x=>typeof x==='string'?x:x.url))],imageCount:d.imageCount||d.images?.length||existingImages.length||3};
+ const overlay=openSheet('卡片显示设置',`<form class="ku-display-form"><label>显示账号<input name="handle" maxlength="80" value="${E(d.handle||c.handle||c.username||'')}" placeholder="@name"></label><label>设备型号<input name="device" maxlength="80" value="${E(d.device||'')}" placeholder="iPhone 17 Pro"></label><label>发布地点<input name="location" maxlength="80" value="${E(d.location||'')}" placeholder="Tokyo"></label>${extraDisplayFields(imageDraft)}<label>翻译内容<textarea name="translation" rows="3" maxlength="5000">${E(d.translation||'')}</textarea></label><button type="submit">保存</button></form>`);
+ const photoSelect=$('[name=imageCount]',overlay);photoSelect.onchange=()=>{for(const input of overlay.querySelectorAll('[name^=image_]'))updateDisplayValue(imageDraft,input.name,input.value);imageDraft.imageCount=Number(photoSelect.value);$('[data-image-fields]',overlay).innerHTML=new DOMParser().parseFromString(photoFields(imageDraft),'text/html').querySelector('[data-image-fields]').innerHTML;};
+ $('form',overlay).addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f);b.disabled=true;const previous=c.kissFriendsDisplay;const values=new FormData(f);const next={...d,images:[...imageDraft.images],music:{...(d.music||{})},counts:{...(d.counts||{})}};
+ for(const [key,value] of values)updateDisplayValue(next,key,String(value).trim());next.music.enabled=f.elements.music_enabled.checked;next.images=next.images.slice(0,next.imageCount);delete next.image;
  next.updatedAt=Date.now();c.kissFriendsDisplay=next;
- try{await saveData();closeSheet();renderFriends();}catch{c.kissFriendsDisplay=previous;b.disabled=false;showToast('保存できませんでした。');}});
+ try{await saveData();closeSheet();renderFriends();}catch{c.kissFriendsDisplay=previous;b.disabled=false;showToast('保存失败，请重试。');}});
 }
-function postMenu(entry){const {c,m,status}=entry;const sheet=openSheet(nameOf(c),`<div class="ku-sheet-menu"><button type="button" data-profile>プロフィール</button><button type="button" data-chat>トークを開く</button><button type="button" data-display>表示情報を編集</button>${status?'':'<button type="button" data-post>投稿を開く</button>'}</div>`);
+function postMenu(entry){const {c,m,status}=entry;const sheet=openSheet(nameOf(c),`<div class="ku-sheet-menu"><button type="button" data-profile>查看资料</button><button type="button" data-chat>打开聊天</button><button type="button" data-display>编辑卡片显示</button>${status?'':'<button type="button" data-post>查看动态</button>'}</div>`);
  $('[data-profile]',sheet).onclick=()=>{closeSheet();openProfileCard(c.id);};$('[data-chat]',sheet).onclick=()=>{closeSheet();openChat(c.id,'private');};$('[data-display]',sheet).onclick=()=>editDisplay(c);if(!status)$('[data-post]',sheet).onclick=()=>{closeSheet();details(c.id,m.id);};
 }
-function statusComments(entry){const {c,m}=entry;const overlay=openSheet('コメント',`<div class="ku-sheet-comments">${(c.kissStatusComments||[]).map(x=>commentMarkup(c,x,true)).join('')||'<p class="ku-muted">まだコメントはありません。</p>'}</div><form class="ku-comment-form"><textarea name="text" rows="2" maxlength="2000" aria-label="コメント" placeholder="言葉を残す…" required></textarea><button type="submit">送信</button></form>`);
- $('form',overlay).addEventListener('submit',async e=>{e.preventDefault();const text=String(new FormData(e.currentTarget).get('text')).trim();if(!text)return;const old=c.kissStatusComments||[];c.kissStatusComments=[...old,{id:'reply_'+Date.now(),author:c.myName||menuPersona().name,content:text,timestamp:Date.now()}];const btn=$('button[type=submit]',overlay);btn.disabled=true;try{await saveData();closeSheet();renderFriends();}catch{c.kissStatusComments=old;btn.disabled=false;showToast('保存できませんでした。');}});
+function statusComments(entry){const {c,m}=entry;const overlay=openSheet('评论',`<div class="ku-sheet-comments">${(c.kissStatusComments||[]).map(x=>commentMarkup(c,x,true)).join('')||'<p class="ku-muted">还没有评论。</p>'}</div><form class="ku-comment-form"><textarea name="text" rows="2" maxlength="2000" aria-label="评论内容" placeholder="写下评论…" required></textarea><button type="submit">发送</button></form>`);
+ $('form',overlay).addEventListener('submit',async e=>{e.preventDefault();const text=String(new FormData(e.currentTarget).get('text')).trim();if(!text)return;const old=c.kissStatusComments||[];c.kissStatusComments=[...old,{id:'reply_'+Date.now(),author:c.myName||menuPersona().name,content:text,timestamp:Date.now()}];const btn=$('button[type=submit]',overlay);btn.disabled=true;try{await saveData();closeSheet();renderFriends();}catch{c.kissStatusComments=old;btn.disabled=false;showToast('保存失败，请重试。');}});
 }
 async function postAction(action,entry,b){
  if(!entry)return;const {c,m,status}=entry;
  if(action==='musicedit'){if(entry.self){openSelfProfile();setTimeout(()=>{if(!document.getElementById('my-profile-screen')?.classList.contains('active'))return;const editor=document.getElementById('ku-profile-card-editor');if(editor){editor.open=true;editor.querySelector('[data-own-field=music_title]')?.focus();}},100);}else editDisplay(c);return;}
  if(action==='postmenu')return postMenu(entry);
  if(action==='comment')return status?statusComments(entry):details(c.id,m.id);
- if(action==='bookmark'){const old=c.kissFriendsSaved||[],id=String(m.id);c.kissFriendsSaved=old.includes(id)?old.filter(x=>x!==id):[...old,id];try{await saveData();renderFriends();}catch{c.kissFriendsSaved=old;showToast('保存できませんでした。');}return;}
+ if(action==='bookmark'){const old=c.kissFriendsSaved||[],id=String(m.id);c.kissFriendsSaved=old.includes(id)?old.filter(x=>x!==id):[...old,id];try{await saveData();renderFriends();}catch{c.kissFriendsSaved=old;showToast('保存失败，请重试。');}return;}
  if(action==='like'){
-  if(!status){currentChatId=c.id;currentChatType='private';try{await toggleMomentLike(m.id);renderFriends();}catch{showToast('保存できませんでした。');}return;}
-  const name=c.myName||'我',old=c.kissStatusLikes||[];c.kissStatusLikes=old.includes(name)?old.filter(x=>x!==name):[...old,name];try{await saveData();renderFriends();}catch{c.kissStatusLikes=old;showToast('保存できませんでした。');}return;
+  if(!status){currentChatId=c.id;currentChatType='private';try{await toggleMomentLike(m.id);renderFriends();}catch{showToast('保存失败，请重试。');}return;}
+  const name=c.myName||'我',old=c.kissStatusLikes||[];c.kissStatusLikes=old.includes(name)?old.filter(x=>x!==name):[...old,name];try{await saveData();renderFriends();}catch{c.kissStatusLikes=old;showToast('保存失败，请重试。');}return;
  }
- if(action==='share'){try{await navigator.clipboard.writeText(String(m.content||''));showToast('投稿をコピーしました。');}catch{showToast('コピーできませんでした。');}return;}
+ if(action==='share'){try{await navigator.clipboard.writeText(String(m.content||''));showToast('已复制动态内容。');}catch{showToast('复制失败，请重试。');}return;}
  if(action==='audio'){
   const song=entry.renderedMusic||musicFor(m),url=song?.url||song?.audioUrl||song?.src;
-  if(!/^https?:|^blob:/i.test(url||'')){showToast('音源 URL を設定してください。');return;}
+  if(!/^https?:|^blob:/i.test(url||'')){showToast('请先设置可播放的音频直链。');return;}
   const same=playingAudio?.dataset.key===postKey(c,m)&&!playingAudio.paused;stopMusic();if(same)return;
   const audio=new Audio(url);playingAudio=audio;audio.dataset.key=postKey(c,m);audio.onended=()=>{if(playingAudio===audio)stopMusic();};
-  try{await audio.play();if(playingAudio!==audio){audio.pause();return;}b.innerHTML='<span class="ku-pause">Ⅱ</span>';b.setAttribute('aria-label','一時停止');b.closest('.ku-music')?.classList.add('is-playing');}catch{if(playingAudio===audio){stopMusic();showToast('再生できませんでした。');}}return;
+  try{await audio.play();if(playingAudio!==audio){audio.pause();return;}b.innerHTML='<span class="ku-pause">Ⅱ</span>';b.setAttribute('aria-label','一時停止');b.closest('.ku-music')?.classList.add('is-playing');}catch{if(playingAudio===audio){stopMusic();showToast('播放失败，请检查音频链接是否可以直接播放。');}}return;
  }
 }
 function onContext(e){const row=e.target.closest('[data-ku^="chat:"]');if(!row)return;e.preventDefault();const [,id,type='private']=row.dataset.ku.split(':');handleChatListLongPress(id,type,e.clientX,e.clientY);}
 function onClick(e){const b=e.target.closest('[data-ku]');if(!b)return;const [action,id,extra]=b.dataset.ku.split(':');
 if(['postmenu','comment','bookmark','share','like','audio','musicedit'].includes(action)){postAction(action,postData.get(id+':'+extra),b);return;}
+if(action==='menuedit'){editMenu();return;}
 if(action==='self'){openSelfProfile();return;}
 if(action==='customize'){renderCustomizeForm();switchScreen('customize-screen');return;}
 if(action==='home')switchScreen('home-screen');
@@ -261,10 +279,14 @@ else if(action==='tool')document.querySelector(`.menu-grid .menu-item[data-actio
 else if(action==='tab'){currentTab=id;feedLimit=40;renderFriends();}
 else if(action==='more-feed'){feedLimit+=40;renderFriends();}
 else if(action==='details')details(id,extra);
-else if(action==='translation'){const text=$('.ku-translation',b.parentElement);text.hidden=!text.hidden;b.textContent=text.hidden?'翻訳を表示':'翻訳を隠す';}
+else if(action==='translation'){const key=id+':'+extra,entry=postData.get(key);if(!entry)return;const d=entry.self?entry.owner?.kissFriendsCard:entry.c.kissFriendsDisplay;const translation=d?.translation||entry.m.translation||entry.m.translatedContent;if(!translation){showToast('尚未设置翻译内容，可在卡片显示设置中填写。');return;}translatedPosts.has(key)?translatedPosts.delete(key):translatedPosts.add(key);renderFriends();}
 }
-function restore(){stopMusic();document.getElementById('ku-profile-card-editor')?.remove();document.documentElement.classList.remove('ku-mode','ku-nav-active');for(const id of IDS){const screen=document.getElementById(id);if(screen?.classList.contains('ku-mounted'))screen.classList.remove('ku-mounted');$('.ku-view',screen||document)?.remove();}closeSheet();}
-function sync(){frame=0;if(externalCss()){restore();return;}document.documentElement.classList.add('ku-mode');const active=IDS.find(id=>document.getElementById(id)?.classList.contains('active'));document.documentElement.classList.toggle('ku-nav-active',!!active);if(active!==IDS[1]&&playingAudio)stopMusic();if(!active)return;try{if(active===IDS[0])renderChats();else if(active===IDS[1])renderFriends();else renderMenu();}catch(error){console.error('[KISS pages]',error);restore();}}
+function prepareNav(){
+ const drawings=['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 22v-3a8 8 0 0 1 16 0v3Z','M21 11.5a9 9 0 0 1-9 8.5 10 10 0 0 1-4-.8L3 22l1.5-5A8 8 0 0 1 3 11.5a9 9 0 0 1 18 0Z','M6.5 3 3.7 4.6c-2.2 2.2 1 8.3 5.1 12.4s10.2 7.3 12.4 5.1l1.2-2.8-5.1-3.6-2.4 2.3a17 17 0 0 1-8.9-8.9l2.3-2.4Z',''];
+ document.querySelectorAll('#global-bottom-nav>.nav-item').forEach((b,i)=>{if(!$('.ku-nav-icon',b))b.insertAdjacentHTML('beforeend',`<svg class="ku-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${i===3?'<circle cx="4" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="20" cy="12" r="1.8" fill="currentColor" stroke="none"/>':`<path d="${drawings[i]}"/>`}</svg>`);b.classList.toggle('ku-custom-nav',!!$('.nav-icon-img',b)?.getAttribute('src'));});
+}
+function restore(){stopMusic();document.querySelectorAll('.ku-nav-icon').forEach(x=>x.remove());document.querySelectorAll('.ku-custom-nav').forEach(x=>x.classList.remove('ku-custom-nav'));document.getElementById('ku-profile-card-editor')?.remove();document.documentElement.classList.remove('ku-mode','ku-nav-active');for(const id of IDS){const screen=document.getElementById(id);if(screen?.classList.contains('ku-mounted'))screen.classList.remove('ku-mounted');$('.ku-view',screen||document)?.remove();}closeSheet();}
+function sync(){frame=0;if(externalCss()){restore();return;}document.documentElement.classList.add('ku-mode');const active=IDS.find(id=>document.getElementById(id)?.classList.contains('active'));document.documentElement.classList.toggle('ku-nav-active',!!active);if(active!==IDS[1]&&playingAudio)stopMusic();if(!active)return;prepareNav();try{if(active===IDS[0])renderChats();else if(active===IDS[1])renderFriends();else renderMenu();}catch(error){console.error('[KISS pages]',error);restore();}}
 function schedule(){if(!frame)frame=requestAnimationFrame(sync);}
 // Wrap renderers only; never reparent, replace or rename legacy elements.
 for(const key of ['renderChatList','renderChatFolders','renderContactList','renderMyProfile','renderMoreScreen','applyGlobalCss']){const old=window[key];if(typeof old!=='function')continue;window[key]=function(...args){const r=old.apply(this,args);if(key==='applyGlobalCss'&&externalCss())restore();schedule();return r;};}
