@@ -254,20 +254,25 @@
 .ku-mode .ku-sort-row button{border:1px solid #e2e7ee;border-radius:8px;background:#f7f9fb;color:#59697d;padding:5px 7px;font-size:11px}
 .ku-sort-row button:disabled{opacity:.3;cursor:default}
 
-.ku-comment-swipe{position:relative;overflow:hidden;border-radius:9px;touch-action:pan-y}
+/* Closed rows completely hide the delete control: no border/pseudo-element can peek out. */
+.ku-comment-swipe{position:relative;overflow:hidden;isolation:isolate;border-radius:9px;touch-action:pan-y;background:transparent}
 .ku-comment-swipe+.ku-comment-swipe{margin-top:9px}
-.ku-comment-track{position:relative;z-index:1;background:#fff;transform:translateX(0);transition:transform .2s ease;min-height:38px;display:flex;align-items:center}
+.ku-comment-track{position:relative;z-index:1;background:#fff;box-sizing:border-box;width:100%;transform:translateX(0);transition:transform .2s ease;min-height:38px;display:flex;align-items:center}
 .ku-comment-track>.ku-comment{width:100%;box-sizing:border-box}
-.ku-comment-swipe.is-open>.ku-comment-track{transform:translateX(-58px)}
+.ku-comment-swipe.is-open>.ku-comment-track{transform:translateX(-68px)}
 .ku-comment-swipe.is-dragging>.ku-comment-track{transition:none}
-.ku-view .ku-comment-delete,.ku-mode .ku-sheet .ku-comment-delete{position:absolute;inset:0 0 0 auto;width:58px;display:flex;align-items:center;justify-content:center;background:#cf4b53;color:#fff;border:0;border-radius:0;font-size:11px;font-weight:400;padding:0;cursor:pointer}
-.ku-comment-delete:disabled{opacity:.55;cursor:wait}
+.ku-view .ku-comment-delete,.ku-mode .ku-sheet .ku-comment-delete{position:absolute;inset:auto 2px auto auto;top:50%;transform:translateY(-50%);width:58px;height:30px;display:flex;gap:4px;align-items:center;justify-content:center;background:#fff0f1;color:#b94b58;border:0;border-radius:9px;font-family:inherit;font-size:10px;font-weight:500;padding:0;box-shadow:none;outline:none;background-image:none;visibility:hidden;opacity:0;pointer-events:none;cursor:pointer;transition:opacity .15s ease}
+.ku-comment-swipe.is-open>.ku-comment-delete,.ku-comment-swipe.is-dragging>.ku-comment-delete{visibility:visible;opacity:1;pointer-events:auto}
+.ku-comment-delete::before,.ku-comment-delete::after{content:none;display:none}
+.ku-comment-delete .ku-icon{width:13px;height:13px;stroke-width:1.65;fill:none}
+.ku-comment-delete:disabled{opacity:.5;cursor:wait}
 .ku-comments:not(.ku-thread-comments) .ku-comment-track{background:#f2f4f8}
 .ku-own-note-swipe{margin-top:5px;background:#f2f4f8;border-radius:12px}
 .ku-own-note-swipe .ku-comment-track{background:#f2f4f8}
 .ku-own-note-swipe .ku-own-note{width:100%;box-sizing:border-box;margin-top:0}
 .ku-sheet-comments .ku-comment-swipe{margin-bottom:10px}
 .ku-sheet-comments .ku-comment-track>.ku-comment{margin-bottom:0;padding:4px 0}
-@media(prefers-reduced-motion:reduce){.ku-comment-track{transition:none}}
-
-.ku-comment-swipe:focus-within>.ku-comment-track{transform:translateX(-58px)}
+.ku-comment-swipe:focus-visible{outline:1px solid #aacbe8;outline-offset:2px}
+.ku-post-actions .ku-repeat,.ku-view .ku-repeat{fill:currentColor;stroke:none}
+.ku-mode .ku-profile-card-fields select{width:100%;box-sizing:border-box;font:inherit;font-size:13px;color:#273246;border:1px solid #e5e9ef;border-radius:8px;background:#f8fafc;padding:9px}
+@media(prefers-reduced-motion:reduce){.ku-comment-track,.ku-comment-delete{transition:none}}
