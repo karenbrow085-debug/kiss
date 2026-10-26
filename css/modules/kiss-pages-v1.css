@@ -183,3 +183,36 @@
 .ku-mode .ku-profile-card-fields{display:grid;gap:10px;padding-top:13px}
 .ku-mode .ku-profile-card-fields label{display:grid;gap:5px;font-size:11px;color:#818b9d}
 .ku-mode .ku-profile-card-fields input,.ku-mode .ku-profile-card-fields textarea{font:inherit;font-size:13px;font-weight:400;color:#273246;background:#f8fafc;border:1px solid #e5e9ef;border-radius:8px;width:100%;padding:9px;resize:vertical;box-sizing:border-box}
+/* The action geometry and compact distribution match MONO v8. */
+.ku-post-actions{display:flex;justify-content:space-between;gap:5px;width:100%;box-sizing:border-box;color:#707b89}
+.ku-post-actions>button,.ku-post-actions>.ku-views{flex:0 0 auto;gap:3px;font-size:calc(10px * var(--app-font-scale,1));white-space:nowrap;font-weight:400;min-height:25px;min-width:0}
+.ku-post-actions svg{width:17px;height:17px;flex:0 0 17px;stroke-width:1.65;stroke-linejoin:round;stroke-linecap:round}
+.ku-post-actions span>span,.ku-post-actions button>span{max-width:46px;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.ku-post-actions .is-liked .ku-icon{fill:#525e72;color:#525e72}
+.ku-layout-text .ku-post-body{margin-left:0}
+.ku-layout-music .ku-music{margin-top:8px}
+.ku-layout-thread .ku-post-text{margin-top:2px}
+.ku-layout-note .ku-post-body{margin-left:66px}
+.ku-layout-note .ku-post-text{margin-top:2px;padding:7px 10px;border-left:2px solid #a8cee8;background:linear-gradient(90deg,#f3f7fb,#fff);border-radius:0 9px 9px 0;font-size:calc(12px * var(--app-font-scale,1));line-height:1.6}
+.ku-layout-photo .ku-content-layout{display:grid;grid-template-columns:minmax(0,1fr) 86px;gap:11px;align-items:start;margin-top:7px}
+.ku-layout-photo .ku-content-copy{grid-column:1;grid-row:1;min-width:0}
+.ku-layout-photo .ku-content-copy .ku-post-text{margin-top:0}
+.ku-layout-photo .ku-feature-image,.ku-layout-photo .ku-post-images{grid-column:2;grid-row:1;margin:0;border-radius:9px;overflow:hidden;width:86px;max-height:110px}
+.ku-layout-photo .ku-feature-image img{width:86px;height:100px;object-fit:cover;display:block}
+.ku-layout-photo .ku-post-images{display:grid;grid-template-columns:1fr;gap:3px}
+.ku-layout-photo .ku-post-images img{width:86px;height:100px;object-fit:cover;display:block}
+.ku-card-caption{font-size:calc(11px * var(--app-font-scale,1));font-weight:400;line-height:1.5;color:#8994a7;margin:5px 0 3px;white-space:pre-wrap}
+.ku-reply-prompt{display:flex;align-items:center;gap:12px;padding:3px 0 0 9px}
+.ku-reply-prompt .ku-avatar{width:32px;height:32px;margin-right:12px;border:1.2px solid #168aff;padding:1px;background:white}
+.ku-reply-prompt>button{flex:1;border-radius:12px;background:#f4f6f9;color:#99a2b2;font-size:calc(10px * var(--app-font-scale,1));padding:9px 10px;text-align:left}
+.ku-play .ku-pause{font-size:15px;color:#273246;line-height:1}
+.ku-music.is-playing .ku-wave{animation:ku-wave-breathe .8s ease-in-out infinite alternate}
+@keyframes ku-wave-breathe{from{opacity:.45;transform:scaleY(.7)}to{opacity:1;transform:scaleY(1)}}
+.ku-field-group{border:0;border-top:1px solid #e7ebf0;margin:4px 0;padding:11px 0 0;display:grid;gap:9px;min-width:0}
+.ku-field-group legend{font:inherit;font-size:12px;font-weight:500;color:#647187;padding:0 6px 0 0}
+.ku-field-group .ku-checkbox-row{display:flex;align-items:center;gap:7px;font-size:11px}
+.ku-field-group .ku-checkbox-row input{width:15px;height:15px;accent-color:#2c638a;flex:0 0 15px;padding:0}
+.ku-mode .ku-display-form select{width:100%;font:inherit;color:#344155;background:#fafbfd;border:1px solid #e4e8ef;padding:9px;border-radius:9px}
+@media(prefers-reduced-motion:reduce){.ku-music.is-playing .ku-wave{animation:none}}
+
+.ku-play.ku-music-add .ku-icon{fill:none;stroke-width:1.65}
