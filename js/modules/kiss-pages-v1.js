@@ -9,18 +9,18 @@ const safeURL = s => /^(https?:|data:image\/|blob:|assets\/)/i.test(String(s||''
 const PATHS = {
  back:'M15 4 7 12l8 8', add:'M12 5v14M5 12h14', search:'M21 21l-5-5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0',
  down:'m6 9 6 6 6-6', arrow:'m9 5 7 7-7 7', star:'m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4L12 17.5l-5.7 3.1 1.1-6.4-4.6-4.5 6.4-.9Z',
- heart:'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
- comment:'M21 11.5a8.5 8.5 0 0 1-9 8.5 10 10 0 0 1-4-.8L3 22l1.5-5A8.5 8.5 0 1 1 21 11.5Z',
+ heart:'M12 21 3.4 12.6C.6 9.8 1.9 4 6.5 4c2.5 0 4.3 1.5 5.5 3 1.2-1.5 3-3 5.5-3 4.6 0 5.9 5.8 3.1 8.6Z',
+ comment:'M21 11.5c0 4.2-3.6 7.5-8.6 7.5H10l-4 3v-4.1C3.5 16.5 2 14.3 2 11.5 2 7.2 6.1 4 11.5 4S21 7.2 21 11.5Z',
  panel:'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM7 8h10M7 12h7',
  loops:'M14 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0ZM22 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0',
  calendar:'M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2ZM7 2v5M17 2v5M3 9h18M7 13h1M12 13h1M17 13h1M7 17h1M12 17h1',
  palette:'M12 2a10 10 0 1 0 0 20h1a2 2 0 0 0 1.5-3.4 1.7 1.7 0 0 1 1.2-2.9H18a4 4 0 0 0 4-4A10 10 0 0 0 12 2ZM7 8h.01M12 6h.01M17 8h.01M6 13h.01',
  pin:'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
- cog:'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0', views:'M4 15v6M9 9v12M14 3v18M19 12v9', repeat:'m4 8 4-4 4 4M8 4v13a3 3 0 0 0 3 3h2M20 16l-4 4-4-4M16 20V7a3 3 0 0 0-3-3h-2', play:'m9 5 11 7-11 7Z', book:'M6 3h12v19l-6-4-6 4Z', reply:'m8 4-5 5 5 5M3 9h11a7 7 0 0 1 7 7v4', edit:'m16 3 5 5-12 12-6 1 1-6ZM14 5l5 5'
+ cog:'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0', views:'M4 20v-6M9 20V4M14 20v-9M19 20V7', repeat:'M5 3v13a3 3 0 0 0 3 3h6M1 7l4-4 4 4M19 21V8a3 3 0 0 0-3-3h-6M15 17l4 4 4-4', play:'m9 5 11 7-11 7Z', book:'M7 2.5h10a1 1 0 0 1 1 1V22l-6-4-6 4V3.5a1 1 0 0 1 1-1Z', reply:'m8 4-5 5 5 5M3 9h11a7 7 0 0 1 7 7v4', edit:'m16 3 5 5-12 12-6 1 1-6ZM14 5l5 5'
 };
 function icon(name, cls='') { return `<svg class="ku-icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PATHS[name]||PATHS.panel}"/></svg>`; }
 const check = '<span class="ku-check" aria-label="プロフィール">✓</span>';
-const button=(label,action,cls='')=>{const key=action.split(':')[0];const names={home:'ホームに戻る',profile:'プロフィールを見る',details:'投稿を開く',like:'いいね',translation:'翻訳',chat:'トークを開く',customize:'表示設定',self:'自分のプロフィール',postmenu:'投稿のメニュー',bookmark:'保存',share:'共有',comment:'コメント',audio:'再生'};return `<button type="button" class="${cls}" data-ku="${E(action)}"${names[key]?` aria-label="${names[key]}"`:''}>${label}</button>`;};
+const button=(label,action,cls='')=>{const key=action.split(':')[0];const names={home:'ホームに戻る',profile:'プロフィールを見る',details:'投稿を開く',like:'いいね',translation:'翻訳',chat:'トークを開く',customize:'表示設定',self:'自分のプロフィール',postmenu:'投稿のメニュー',bookmark:'保存',share:'共有',comment:'コメント',audio:'再生',musicedit:'音楽を設定'};return `<button type="button" class="${cls}" data-ku="${E(action)}"${names[key]?` aria-label="${names[key]}"`:''}>${label}</button>`;};
 const people = () => typeof db !== 'undefined' ? db.characters||[] : [];
 const groups = () => typeof db !== 'undefined' ? db.groups||[] : [];
 const nameOf = c => c?.remarkName || c?.realName || c?.name || '…';
@@ -96,28 +96,62 @@ function metaFor(c,m) {
  const display=c.kissFriendsDisplay||{};
  return {handle:m.handle||c.handle||c.username||display.handle||'',device:m.device||m.sourceDevice||display.device||'',location:m.location||display.location||''};
 }
+const CARD_LAYOUTS=[['auto','自動'],['text','スタンダード'],['music','音楽'],['quote','引用'],['thread','返信スレッド'],['photo','写真'],['note','便箋']];
+const COUNT_FIELDS=[['comments','コメント'],['reposts','リポスト'],['likes','いいね'],['views','閲覧']];
 function musicFor(m){const v=m.music||m.song||m.sharedMusic;return v&&typeof v==='object'?v:null;}
+function musicFromConfig(d,cover){return d?.music?.enabled===false?null:{...(d?.music||{}),title:d?.music?.title||'',artist:d?.music?.artist||'',cover:d?.music?.cover||cover||'',url:d?.music?.url||'',empty:!d?.music?.title};}
+function countLabel(d,key,actual){const value=String(d?.counts?.[key]??'').trim();if(/^\d+(?:\.\d+)?(?:[kKmMwW]|万)?$/.test(value))return E(value);const n=Number(actual)||0;return n>=1000?(n/1000).toFixed(1).replace(/\.0$/,'')+'k':String(n);}
+function cardLayout(entry,index){
+ if(entry.self)return 'text';const {c,m}=entry,d=c.kissFriendsDisplay||{};
+ if(CARD_LAYOUTS.some(([id])=>id===d.layout)&&d.layout!=='auto')return d.layout==='music'&&d.music?.enabled===false?'text':d.layout;
+ if(d.music?.enabled!==false&&(musicFor(m)||d.music?.title))return 'music';
+ if(m.images?.length||d.image)return 'photo';if(m.comments?.length>1)return 'thread';if(m.quote||m.quotedContent)return 'quote';
+ // An ordered rhythm, unchanged by repeated renders; every style shares one type and color system.
+ const auto=['music','quote','thread','photo','note','text'][(Math.max(1,index)-1)%6];
+ return auto==='music'&&d.music?.enabled===false?'text':auto;
+}
 function renderMusic(m,key){const song=musicFor(m);if(!song)return '';
  const cover=song.cover||song.picUrl||song.albumCover;
- return `<div class="ku-music">${cover?`<img src="${safeURL(cover)}" alt="" loading="lazy">`:`<span class="ku-music-disc">♪</span>`}<div><strong>${E(song.title||song.name||'音楽')}</strong><small>${E(song.artist||song.singer||'')}</small></div><svg class="ku-wave" viewBox="0 0 65 30" aria-hidden="true"><path d="M3 12v6m5-12v18m5-21v24m5-18v12m5-15v18m5-24v30m5-25v20m5-17v14m5-20v26m5-20v14m5-11v8m5-7v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${button(icon('play'),'audio:'+key,'ku-play')}</div>`;
+ const playable=/^https?:|^blob:/i.test(song.url||song.audioUrl||song.src||'');
+ const playing=playingAudio?.dataset.key===key&&!playingAudio.paused;
+ return `<div class="ku-music${playing?' is-playing':''}">${cover?`<img src="${safeURL(cover)}" alt="" loading="lazy">`:`<span class="ku-music-disc">♪</span>`}<div><strong>${E(song.title||song.name||'今日の一曲')}</strong><small>${E(song.artist||song.singer||(song.empty?'音楽を選ぶ':''))}</small></div><svg class="ku-wave" viewBox="0 0 65 30" aria-hidden="true"><path d="M3 12v6m5-12v18m5-21v24m5-18v12m5-15v18m5-24v30m5-25v20m5-17v14m5-20v26m5-20v14m5-11v8m5-7v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${button(playing?'<span class="ku-pause">Ⅱ</span>':icon(song.empty?'add':'play'),(playable?'audio:':'musicedit:')+key,'ku-play'+(song.empty?' ku-music-add':''))}</div>`;
 }
+function extraDisplayFields(d,own=false){
+ const attr=(key)=>own?`data-own-field="${key}"`:`name="${key}"`;
+ return `<fieldset class="ku-field-group"><legend>音楽</legend><label class="ku-checkbox-row"><input type="checkbox" ${attr('music_enabled')} ${d.music?.enabled!==false?'checked':''}>音楽バーを表示</label>${[['title','曲名'],['artist','アーティスト'],['cover','ジャケット URL'],['url','音源 URL']].map(([key,label])=>`<label>${label}<input ${attr('music_'+key)} value="${E(d.music?.[key]||'')}" maxlength="${['url','cover'].includes(key)?2000:150}" ${['url','cover'].includes(key)?'inputmode="url"':''}></label>`).join('')}</fieldset><fieldset class="ku-field-group"><legend>表示する数字</legend>${COUNT_FIELDS.map(([key,label])=>`<label>${label}<input ${attr('count_'+key)} value="${E(d.counts?.[key]??'')}" maxlength="16" placeholder="空欄は実数 / 128 / 2.1k"></label>`).join('')}</fieldset>${own?'':`<label>カードのスタイル<select name="layout">${CARD_LAYOUTS.map(([id,label])=>`<option value="${id}" ${(d.layout||'auto')===id?'selected':''}>${label}</option>`).join('')}</select></label><label>写真 URL<input name="image" value="${E(d.image||'')}" maxlength="2000" inputmode="url"></label><label>カードの補足<input name="caption" value="${E(d.caption||'')}" maxlength="300"></label>`}`;
+}
+function updateDisplayValue(d,key,value){
+ if(key.startsWith('music_')){d.music={...(d.music||{}),[key.slice(6)]:value};}
+ else if(key.startsWith('count_')){d.counts={...(d.counts||{}),[key.slice(6)]:String(value).trim()};}
+ else d[key]=value;
+}
+function stopMusic(){if(playingAudio){playingAudio.pause();playingAudio=null;}for(const row of document.querySelectorAll('.ku-music.is-playing')){row.classList.remove('is-playing');const b=row.querySelector('.ku-play');if(b){b.innerHTML=icon('play');b.setAttribute('aria-label','再生');}}}
 function commentMarkup(c,x,thread=false){const a=people().find(p=>[p.realName,p.remarkName].includes(x.author));return `<div class="ku-comment">${avatar(a?.avatar||c.myAvatar)}<div><strong>${E(x.author)} ${check}</strong><span>${x.replyTo?E(x.replyTo)+'への返信 · ':''}${E(x.content)}</span>${thread?`<time>${E(when(x.timestamp))}</time>`:''}</div>${!thread&&x.timestamp?`<time>${E(when(x.timestamp))}</time>`:''}${typeof x.likes==='number'?`<span class="ku-reply-likes">${icon('heart')}${x.likes}</span>`:''}</div>`;}
 function postMarkup(entry,index) {
- const {c,m,status,self=false}=entry,key=postKey(c,m);postData.set(key,entry);
+ const {c,status,self=false}=entry,key=postKey(c,entry.m),d=self?(entry.owner?.kissFriendsCard||{}):(c.kissFriendsDisplay||{});
+ const layout=cardLayout(entry,index),configured=musicFromConfig(d,c.avatar);
+ const m={...entry.m};
+ if(d.music?.enabled===false){delete m.music;delete m.song;delete m.sharedMusic;}
+ else if((d.music?.title||d.music?.url)&&configured)m.music=configured;
+ if(!musicFor(m)&&(layout==='music'||self)&&configured)m.music=configured;
+ entry.renderedMusic=musicFor(m);postData.set(key,entry);
  const meta=metaFor(c,m),comments=Array.isArray(m.comments)?m.comments:[],likes=Array.isArray(m.likes)?m.likes:[];
- const song=musicFor(m),thread=!self&&!!song,quote=!self&&(!!(m.quote||m.quotedContent)||index%3===2);
+ const thread=!self&&(layout==='music'||layout==='thread'),quote=!self&&layout==='quote';
  const saved=(c.kissFriendsSaved||[]).includes(String(m.id));
- const stamp=m.timestamp?when(m.timestamp):'ひとこと';
- const ownNote=self?(entry.owner?.kissFriendsCard?.note||'何気ない日々を、大切に。'):'';
- const text=String(m.content||'');
- const title=String(m.author||nameOf(c));
- const source=meta.device?`<span> · </span><span class="ku-blue">${E(meta.device)}</span><span>から</span>`:'';
- const place=meta.location?`${icon('pin')}<span>${E(meta.location)} · 友だちに公開</span>`:'';
+ const stamp=m.timestamp?when(m.timestamp):when(selfViewedAt).slice(0,5)+' · ひとこと';
+ const ownNote=self?(d.note||'何気ない日々を、大切に。'):'';
+ const text=String(m.content||''),title=String(m.author||nameOf(c));
+ const handle=meta.handle||nameOf(c).replace(/\s+/g,'');
+ const source=`<span> · </span><span class="ku-blue">${E(meta.device||'Kiss')}</span><span>から</span>`;
+ const place=icon('pin')+`<span>${meta.location?E(meta.location)+' · ':''}友だちに公開</span>`;
  const textHTML=text?E(text).split(/\n{2,}/).map(p=>`<span class="ku-paragraph">${p}</span>`).join(''):'<span class="ku-unwritten">まだ投稿がありません。</span>';
- const translation=m.translation||m.translatedContent;
- const views=Number(m.views||m.viewCount)||0;
- const reposts=Array.isArray(m.reposts)?m.reposts.length:Number(m.repostCount)||0;
- return `<article class="ku-post${self?' ku-own-post':''}${thread?' ku-thread-post':''}${quote?' ku-quote-post':''}" data-post="${E(key)}"><div class="ku-post-top">${button(avatar(c.avatar),self?'self':'profile:'+c.id,'ku-post-avatar')}<div class="ku-byline"><div class="ku-name-line"><strong>${E(title)} ${check}</strong>${meta.handle?`<span class="ku-handle">@${E(String(meta.handle).replace(/^@/,''))}</span>`:''}</div><div class="ku-post-meta"><time>${E(stamp)}</time>${source}</div><div class="ku-post-place">${place||(self?icon('pin'):'')+'<span>友だちに公開</span>'}</div></div>${button('···',self?'self':'postmenu:'+key,'ku-dots')}</div><div class="ku-post-body"><p class="ku-post-text">${textHTML}</p>${Array.isArray(m.images)&&m.images.length?`<div class="ku-post-images">${m.images.map(src=>`<img src="${safeURL(typeof src==='string'?src:src.url)}" alt="投稿の写真" loading="lazy">`).join('')}</div>`:''}${m.imageDescription?`<p class="ku-image-description">${E(m.imageDescription)}</p>`:''}${text?button('翻訳を表示','translation:'+key,'ku-text-link'):''}<div class="ku-translation" hidden>${E(translation||'保存された翻訳はありません。')}</div>${renderMusic(m,key)}<div class="ku-post-actions">${button(icon('comment')+`<span>${comments.length}</span>`,'comment:'+key)}${button(icon('repeat')+`<span>${reposts}</span>`,'share:'+key)}${button(icon('heart')+`<span>${likes.length}</span>`,'like:'+key,likes.includes(c.myName||'我')?'is-liked':'')}<span class="ku-views" aria-label="閲覧数">${icon('views')}<span>${views>=1000?(views/1000).toFixed(1)+'k':views}</span></span>${button(icon('book'),'bookmark:'+key,saved?'is-saved':'')}</div></div>${self&&ownNote?`<div class="ku-own-note ku-comments">${avatar(c.avatar)}<strong>${E(c.realName)} ${check}</strong><span>${E(ownNote)}</span><time>${E(when(m.timestamp))}</time></div>`:''}${comments.length?`<div class="${thread?'ku-thread-comments':'ku-comments'}">${comments.slice(0,thread?3:1).map(x=>commentMarkup(c,x,thread)).join('')}</div>`:''}</article>`;
+ const translation=m.translation||m.translatedContent||d.translation;
+ const views=Number(m.views||m.viewCount)||0,reposts=Array.isArray(m.reposts)?m.reposts.length:Number(m.repostCount)||0;
+ const pictures=Array.isArray(m.images)?m.images:[];
+ const image=d.image||(!pictures.length&&layout==='photo'?c.avatar:'');
+ const imageHTML=pictures.length?`<div class="ku-post-images">${pictures.map(src=>`<img src="${safeURL(typeof src==='string'?src:src.url)}" alt="投稿の写真" loading="lazy">`).join('')}</div>`:image&&layout==='photo'?`<div class="ku-feature-image"><img src="${safeURL(image)}" alt="${d.image?'写真':'プロフィール写真'}" loading="lazy"></div>`:'';
+ const replyPrompt=thread&&!comments.length?`<div class="ku-thread-comments ku-reply-prompt">${avatar(c.myAvatar)}${button('言葉を残す…','comment:'+key)}</div>`:'';
+ return `<article class="ku-post ku-layout-${layout}${self?' ku-own-post':''}${thread?' ku-thread-post':''}${quote?' ku-quote-post':''}" data-post="${E(key)}"><div class="ku-post-top">${button(avatar(c.avatar),self?'self':'profile:'+c.id,'ku-post-avatar')}<div class="ku-byline"><div class="ku-name-line"><strong>${E(title)} ${check}</strong><span class="ku-handle">@${E(String(handle).replace(/^@/,''))}</span></div><div class="ku-post-meta"><time>${E(stamp)}</time>${source}</div><div class="ku-post-place">${place}</div></div>${button('···',self?'self':'postmenu:'+key,'ku-dots')}</div><div class="ku-post-body"><div class="ku-content-layout">${imageHTML}<div class="ku-content-copy"><p class="ku-post-text">${textHTML}</p>${d.caption?`<p class="ku-card-caption">${E(d.caption)}</p>`:''}</div></div>${m.imageDescription?`<p class="ku-image-description">${E(m.imageDescription)}</p>`:''}${text?button('翻訳を表示','translation:'+key,'ku-text-link'):''}<div class="ku-translation" hidden>${E(translation||'保存された翻訳はありません。')}</div>${renderMusic(m,key)}<div class="ku-post-actions">${button(icon('comment')+`<span>${countLabel(d,'comments',comments.length)}</span>`,'comment:'+key)}${button(icon('repeat')+`<span>${countLabel(d,'reposts',reposts)}</span>`,'share:'+key)}${button(icon('heart')+`<span>${countLabel(d,'likes',likes.length)}</span>`,'like:'+key,likes.includes(c.myName||'我')?'is-liked':'')}<span class="ku-views" aria-label="閲覧数">${icon('views')}<span>${countLabel(d,'views',views)}</span></span>${button(icon('book'),'bookmark:'+key,saved?'is-saved':'')}</div></div>${self&&ownNote?`<div class="ku-own-note ku-comments">${avatar(c.avatar)}<strong>${E(c.realName)} ${check}</strong><span>${E(ownNote)}</span><time>${E(when(m.timestamp))}</time></div>`:''}${comments.length?`<div class="${thread?'ku-thread-comments':'ku-comments'}">${comments.slice(0,thread?3:1).map(x=>commentMarkup(c,x,thread)).join('')}</div>`:replyPrompt}</article>`;
 }
 function activeSelfPersona(){
  const d=typeof db==='undefined'?{}:db;
@@ -154,8 +188,8 @@ function renderSelfCardEditor(index){
   input.closest('.mp-input-group').insertAdjacentElement('afterend',editor);
  }
  const d=p.kissFriendsCard||{};
- editor.innerHTML=`<summary>Friends カード</summary><div class="ku-profile-card-fields"><label>表示ID<input data-own-field="handle" value="${E(d.handle||p.handle||'my.days')}" maxlength="80"></label><label>端末<input data-own-field="device" value="${E(d.device||ownCardDevice())}" maxlength="80"></label><label>場所<input data-own-field="location" value="${E(d.location||'')}" maxlength="80"></label><label>カードの文章<textarea data-own-field="text" rows="5" maxlength="5000">${E(typeof d.text==='string'?d.text:DEFAULT_SELF_TEXT)}</textarea></label><label>翻訳<textarea data-own-field="translation" rows="3" maxlength="5000">${E(d.translation||(typeof d.text==='string'?'':DEFAULT_SELF_TRANSLATION))}</textarea></label><label>下のひとこと<input data-own-field="note" value="${E(d.note||'何気ない日々を、大切に。')}" maxlength="200"></label></div>`;
- editor.oninput=e=>{const key=e.target.dataset.ownField;if(!key)return;if(!p.kissFriendsCard)p.kissFriendsCard={};p.kissFriendsCard[key]=e.target.value;p.kissFriendsCard.updatedAt=Date.now();};
+ editor.innerHTML=`<summary>Friends カード</summary><div class="ku-profile-card-fields"><label>表示ID<input data-own-field="handle" value="${E(d.handle||p.handle||'my.days')}" maxlength="80"></label><label>端末<input data-own-field="device" value="${E(d.device||ownCardDevice())}" maxlength="80"></label><label>場所<input data-own-field="location" value="${E(d.location||'')}" maxlength="80"></label><label>カードの文章<textarea data-own-field="text" rows="5" maxlength="5000">${E(typeof d.text==='string'?d.text:DEFAULT_SELF_TEXT)}</textarea></label><label>翻訳<textarea data-own-field="translation" rows="3" maxlength="5000">${E(d.translation||(typeof d.text==='string'?'':DEFAULT_SELF_TRANSLATION))}</textarea></label><label>下のひとこと<input data-own-field="note" value="${E(d.note||'何気ない日々を、大切に。')}" maxlength="200"></label>${extraDisplayFields(d,true)}</div>`;
+ editor.oninput=e=>{const key=e.target.dataset.ownField;if(!key)return;if(!p.kissFriendsCard)p.kissFriendsCard={};updateDisplayValue(p.kissFriendsCard,key,e.target.type==='checkbox'?e.target.checked:e.target.value);p.kissFriendsCard.updatedAt=Date.now();};
 }
 function renderFriends(){
  const root=rootFor(IDS[1]);if(!root)return;
@@ -177,8 +211,11 @@ function openSheet(title,html){
 function closeSheet(){const el=$('.ku-sheet-overlay');if(el){el._previousFocus?.focus();el.remove();}}
 function editDisplay(c){
  const d=c.kissFriendsDisplay||{};
- const overlay=openSheet('表示情報',`<form class="ku-display-form"><label>ユーザー名<input name="handle" maxlength="80" value="${E(d.handle||c.handle||c.username||'')}" placeholder="@name"></label><label>端末<input name="device" maxlength="80" value="${E(d.device||'')}" placeholder="iPhone 17 Pro"></label><label>場所<input name="location" maxlength="80" value="${E(d.location||'')}" placeholder="Tokyo"></label><button type="submit">保存</button></form>`);
- $('form',overlay).addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f);b.disabled=true;const previous=c.kissFriendsDisplay;const values=new FormData(f);c.kissFriendsDisplay={handle:String(values.get('handle')).trim(),device:String(values.get('device')).trim(),location:String(values.get('location')).trim()};try{await saveData();closeSheet();renderFriends();}catch{c.kissFriendsDisplay=previous;b.disabled=false;showToast('保存できませんでした。');}});
+ const overlay=openSheet('カードの表示',`<form class="ku-display-form"><label>ユーザー名<input name="handle" maxlength="80" value="${E(d.handle||c.handle||c.username||'')}" placeholder="@name"></label><label>端末<input name="device" maxlength="80" value="${E(d.device||'')}" placeholder="iPhone 17 Pro"></label><label>場所<input name="location" maxlength="80" value="${E(d.location||'')}" placeholder="Tokyo"></label>${extraDisplayFields(d)}<button type="submit">保存</button></form>`);
+ $('form',overlay).addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f);b.disabled=true;const previous=c.kissFriendsDisplay;const values=new FormData(f);const next={...d,music:{...(d.music||{})},counts:{...(d.counts||{})}};
+ for(const [key,value] of values)updateDisplayValue(next,key,String(value).trim());next.music.enabled=f.elements.music_enabled.checked;
+ next.updatedAt=Date.now();c.kissFriendsDisplay=next;
+ try{await saveData();closeSheet();renderFriends();}catch{c.kissFriendsDisplay=previous;b.disabled=false;showToast('保存できませんでした。');}});
 }
 function postMenu(entry){const {c,m,status}=entry;const sheet=openSheet(nameOf(c),`<div class="ku-sheet-menu"><button type="button" data-profile>プロフィール</button><button type="button" data-chat>トークを開く</button><button type="button" data-display>表示情報を編集</button>${status?'':'<button type="button" data-post>投稿を開く</button>'}</div>`);
  $('[data-profile]',sheet).onclick=()=>{closeSheet();openProfileCard(c.id);};$('[data-chat]',sheet).onclick=()=>{closeSheet();openChat(c.id,'private');};$('[data-display]',sheet).onclick=()=>editDisplay(c);if(!status)$('[data-post]',sheet).onclick=()=>{closeSheet();details(c.id,m.id);};
@@ -188,6 +225,7 @@ function statusComments(entry){const {c,m}=entry;const overlay=openSheet('コメ
 }
 async function postAction(action,entry,b){
  if(!entry)return;const {c,m,status}=entry;
+ if(action==='musicedit'){if(entry.self){openSelfProfile();setTimeout(()=>{if(!document.getElementById('my-profile-screen')?.classList.contains('active'))return;const editor=document.getElementById('ku-profile-card-editor');if(editor){editor.open=true;editor.querySelector('[data-own-field=music_title]')?.focus();}},100);}else editDisplay(c);return;}
  if(action==='postmenu')return postMenu(entry);
  if(action==='comment')return status?statusComments(entry):details(c.id,m.id);
  if(action==='bookmark'){const old=c.kissFriendsSaved||[],id=String(m.id);c.kissFriendsSaved=old.includes(id)?old.filter(x=>x!==id):[...old,id];try{await saveData();renderFriends();}catch{c.kissFriendsSaved=old;showToast('保存できませんでした。');}return;}
@@ -197,15 +235,16 @@ async function postAction(action,entry,b){
  }
  if(action==='share'){try{await navigator.clipboard.writeText(String(m.content||''));showToast('投稿をコピーしました。');}catch{showToast('コピーできませんでした。');}return;}
  if(action==='audio'){
-  const song=musicFor(m),url=song?.url||song?.audioUrl||song?.src;
-  if(!/^https?:|^blob:/i.test(url||'')){showToast('再生できる音源がありません。');return;}
-  if(playingAudio){const same=playingAudio.dataset.key===postKey(c,m);playingAudio.pause();playingAudio=null;if(same){b.setAttribute('aria-label','再生');return;}}
-  playingAudio=new Audio(url);playingAudio.dataset.key=postKey(c,m);try{await playingAudio.play();b.setAttribute('aria-label','一時停止');}catch{showToast('再生できませんでした。');}return;
+  const song=entry.renderedMusic||musicFor(m),url=song?.url||song?.audioUrl||song?.src;
+  if(!/^https?:|^blob:/i.test(url||'')){showToast('音源 URL を設定してください。');return;}
+  const same=playingAudio?.dataset.key===postKey(c,m)&&!playingAudio.paused;stopMusic();if(same)return;
+  const audio=new Audio(url);playingAudio=audio;audio.dataset.key=postKey(c,m);audio.onended=()=>{if(playingAudio===audio)stopMusic();};
+  try{await audio.play();if(playingAudio!==audio){audio.pause();return;}b.innerHTML='<span class="ku-pause">Ⅱ</span>';b.setAttribute('aria-label','一時停止');b.closest('.ku-music')?.classList.add('is-playing');}catch{if(playingAudio===audio){stopMusic();showToast('再生できませんでした。');}}return;
  }
 }
 function onContext(e){const row=e.target.closest('[data-ku^="chat:"]');if(!row)return;e.preventDefault();const [,id,type='private']=row.dataset.ku.split(':');handleChatListLongPress(id,type,e.clientX,e.clientY);}
 function onClick(e){const b=e.target.closest('[data-ku]');if(!b)return;const [action,id,extra]=b.dataset.ku.split(':');
-if(['postmenu','comment','bookmark','share','like','audio'].includes(action)){postAction(action,postData.get(id+':'+extra),b);return;}
+if(['postmenu','comment','bookmark','share','like','audio','musicedit'].includes(action)){postAction(action,postData.get(id+':'+extra),b);return;}
 if(action==='self'){openSelfProfile();return;}
 if(action==='customize'){renderCustomizeForm();switchScreen('customize-screen');return;}
 if(action==='home')switchScreen('home-screen');
@@ -224,8 +263,8 @@ else if(action==='more-feed'){feedLimit+=40;renderFriends();}
 else if(action==='details')details(id,extra);
 else if(action==='translation'){const text=$('.ku-translation',b.parentElement);text.hidden=!text.hidden;b.textContent=text.hidden?'翻訳を表示':'翻訳を隠す';}
 }
-function restore(){document.getElementById('ku-profile-card-editor')?.remove();document.documentElement.classList.remove('ku-mode','ku-nav-active');for(const id of IDS){const screen=document.getElementById(id);if(screen?.classList.contains('ku-mounted'))screen.classList.remove('ku-mounted');$('.ku-view',screen||document)?.remove();}closeSheet();}
-function sync(){frame=0;if(externalCss()){restore();return;}document.documentElement.classList.add('ku-mode');const active=IDS.find(id=>document.getElementById(id)?.classList.contains('active'));document.documentElement.classList.toggle('ku-nav-active',!!active);if(!active)return;try{if(active===IDS[0])renderChats();else if(active===IDS[1])renderFriends();else renderMenu();}catch(error){console.error('[KISS pages]',error);restore();}}
+function restore(){stopMusic();document.getElementById('ku-profile-card-editor')?.remove();document.documentElement.classList.remove('ku-mode','ku-nav-active');for(const id of IDS){const screen=document.getElementById(id);if(screen?.classList.contains('ku-mounted'))screen.classList.remove('ku-mounted');$('.ku-view',screen||document)?.remove();}closeSheet();}
+function sync(){frame=0;if(externalCss()){restore();return;}document.documentElement.classList.add('ku-mode');const active=IDS.find(id=>document.getElementById(id)?.classList.contains('active'));document.documentElement.classList.toggle('ku-nav-active',!!active);if(active!==IDS[1]&&playingAudio)stopMusic();if(!active)return;try{if(active===IDS[0])renderChats();else if(active===IDS[1])renderFriends();else renderMenu();}catch(error){console.error('[KISS pages]',error);restore();}}
 function schedule(){if(!frame)frame=requestAnimationFrame(sync);}
 // Wrap renderers only; never reparent, replace or rename legacy elements.
 for(const key of ['renderChatList','renderChatFolders','renderContactList','renderMyProfile','renderMoreScreen','applyGlobalCss']){const old=window[key];if(typeof old!=='function')continue;window[key]=function(...args){const r=old.apply(this,args);if(key==='applyGlobalCss'&&externalCss())restore();schedule();return r;};}
