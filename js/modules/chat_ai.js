@@ -817,6 +817,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             if (momentPostWithImageMatch) {
                 isMomentAction = true;
                 const author = momentPostWithImageMatch[1].trim();
+                if(window.KissMoments?.isForeignActor(chat,author))continue;
                 const imageDesc = momentPostWithImageMatch[2].trim();
                 const momentContent = momentPostWithImageMatch[3].trim();
                 
@@ -844,6 +845,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             else if (momentPostMatch && !momentPostWithImageMatch) { // 确保不重复匹配
                 isMomentAction = true;
                 const author = momentPostMatch[1].trim();
+                if(window.KissMoments?.isForeignActor(chat,author))continue;
                 const momentContent = momentPostMatch[2].trim();
                 
                 if (!chat.moments) chat.moments = [];
@@ -873,41 +875,10 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                 const momentSnippet = momentCommentMatch[3] ? momentCommentMatch[3].trim() : null;
                 const commentContent = momentCommentMatch[4].trim();
 
-                if (chat.moments && chat.moments.length > 0) {
-                    let targetMoment = null;
-                    if (momentSnippet) {
-                        targetMoment = chat.moments.find(m => m.content.includes(momentSnippet));
-                    }
-                    if (!targetMoment) {
-                        targetMoment = chat.moments.sort((a, b) => b.timestamp - a.timestamp)[0];
-                    }
-
-                    if (targetMoment) {
-                        if (!targetMoment.comments) targetMoment.comments = [];
-                        const newComment = {
-                            id: `comment_${Date.now()}`,
-                            author: commenter,
-                            content: commentContent,
-                            timestamp: Date.now()
-                        };
-                        const isReplyToComment = content.includes('回复了') && content.includes('下的评论');
-                        if (isReplyToComment || (commentedOn !== chat.realName && commentedOn !== '自己')) {
-                             newComment.replyTo = commentedOn;
-                        }
-                        targetMoment.comments.push(newComment);
-                        if (commentedOn === chat.myName || commentedOn === '你') {
-                            const notificationMsg = {
-                                id: `msg_${Date.now()}_${Math.random()}`,
-                                role: 'system',
-                                content: `[system-display:您在${chat.realName}的动态下的评论被回复了]`,
-                                timestamp: Date.now(),
-                                isContextDisabled: true
-                            };
-                            chat.history.push(notificationMsg);
-                            addMessageBubble(notificationMsg, targetChatId, targetChatType);
-                        }
-                    }
+                if (window.KissMoments) {
+                    window.KissMoments.consumeComment(chat,commenter,commentedOn,momentSnippet,commentContent,content.includes('回复了'));
                 }
+
             }
             else if (momentSignatureMatch) {
                 isMomentAction = true;
@@ -925,7 +896,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                     role: 'assistant',
                     content: content,
                     timestamp: Date.now(),
-                    isContextDisabled: false
+                    isContextDisabled: true
                 };
                 chat.history.push(originalCmdMsg);
                 addMessageBubble(originalCmdMsg, targetChatId, targetChatType);
@@ -935,6 +906,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         }
         
         fullResponse = remainingMessages.map(item => item.content).join('\n');
+        window.KissMoments?.changed();
         // --- 朋友圈指令解析结束 ---
 
         // --- 红包结算逻辑 ---

@@ -2385,8 +2385,8 @@ async function generateBatchPeekContent(appTypes) {
 
 // Explicit generation stays independent of the 404 conversation request.
 const peekMomentJobs = new Set();
-async function generatePeekMoments(button) {
-    const char = db.characters.find(c => c.id === currentChatId);
+async function generatePeekMoments(button, characterId = currentChatId) {
+    const char = db.characters.find(c => String(c.id) === String(characterId));
     if (!char || peekMomentJobs.has(char.id)) return;
     const apiConfig = resolveAuxiliaryApiConfig('peekMoments');
     if (!apiConfig.url || !apiConfig.key || !apiConfig.model) return showToast('请先配置当前使用的 API 地址、密钥与模型');
@@ -2426,7 +2426,9 @@ async function generatePeekMoments(button) {
         try { await saveData(); }
         catch (error) { if (char.moments === next) char.moments = prior; throw error; }
         if (currentChatId === char.id) renderMomentsScreen();
+        window.KissMoments?.changed();
         showToast('已生成 '+additions.length+' 条新动态');
+        return additions;
     } catch (error) { showApiError(error); }
     finally {
         peekMomentJobs.delete(char.id);
