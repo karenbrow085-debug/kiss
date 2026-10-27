@@ -4685,3 +4685,25 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 .phone-screen .forum-dm-chat.mono-dm-grouped .other:not(.mono-dm-group-end) .mono-dm-body>.forum-dm-msg-bubble{border-bottom-left-radius:4px!important;}
 .phone-screen .forum-dm-chat.mono-dm-grouped .mine:not(.mono-dm-group-start) .mono-dm-body>.forum-dm-msg-bubble{border-top-right-radius:4px!important;}
 .phone-screen .forum-dm-chat.mono-dm-grouped .mine:not(.mono-dm-group-end) .mono-dm-body>.forum-dm-msg-bubble{border-bottom-right-radius:4px!important;}
+
+/* Two-line post previews; details and actual comments keep their complete text. */
+#forumPage .mono-x-post>.mono-x-post-body>.mono-x-text,
+#forumPage .mono-x-post .mono-quote-text,
+#forumPage .mono-x-post .mt-thread-item p{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2;overflow:hidden!important;text-overflow:ellipsis;max-height:none;white-space:pre-wrap;overflow-wrap:anywhere}
+#forumPage .mono-x-detail-text,#forumPage .mono-x-detail-post .mono-quote-text{display:block!important;-webkit-line-clamp:unset!important;line-clamp:unset;overflow:visible!important;max-height:none!important;white-space:pre-wrap}
+.mono-account-check{display:inline-block!important;vertical-align:-2px;color:#288ff5!important;width:14px!important;height:14px!important;min-width:14px;flex:0 0 14px;margin-left:4px;overflow:visible}
+.mono-x-header>.mono-account-check{margin-left:0;margin-right:2px}.mono-x-detail-author b>.mono-account-check{vertical-align:-2px}.forum-ins-name>.mono-account-check{width:16px!important;height:16px!important;margin-left:6px}
+.mono-verification-setting{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;gap:14px;padding:15px 2px;border-top:1px solid #edf0f3;color:#20262d;text-align:left}
+.mono-verification-setting>span{min-width:0;flex:1}.mono-verification-setting b{display:block;font-size:13px;font-weight:550}.mono-verification-setting small{display:block;font-size:10px;color:#939da9;margin-top:4px;line-height:1.5}
+.mono-verification-setting input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:0 0 37px;width:37px;height:22px;margin:0;padding:0!important;border:0!important;border-radius:20px;background:#d8dfe7;position:relative;cursor:pointer;transition:background .15s}
+.mono-verification-setting input:before{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:white;box-shadow:0 1px 3px #0001;transition:transform .15s}.mono-verification-setting input:checked{background:#6d9ecb}.mono-verification-setting input:checked:before{transform:translateX(15px)}.mono-verification-setting input:focus-visible{outline:2px solid #7eb9ee;outline-offset:3px}
+/* Each segment ends at its own last avatar; no leftover vertical strokes. */
+#forumPage .mono-reply-tree:before,#forumPage .mono-reply-tree .mono-x-comment:before,#forumPage .mono-reply-tree .mono-x-comment:after{display:none!important;content:none!important}
+#forumPage .mono-reply-tree{position:relative;border-bottom:1px solid #edf0f2!important;background:white}
+#forumPage .mono-thread-row{position:relative}
+#forumPage .mono-thread-row.has-previous:before{content:'';position:absolute;left:32px;top:0;height:35px;width:1.5px;background:#d3dce5;z-index:1;pointer-events:none}
+#forumPage .mono-thread-row.has-next:after{content:'';position:absolute;left:32px;top:56px;bottom:0;width:1.5px;background:#d3dce5;z-index:1;pointer-events:none}
+#forumPage .mono-reply-tree .mono-x-comment{background:transparent!important;border:0!important;min-height:0!important;position:relative;padding:14px 12px!important}
+#forumPage .mono-reply-tree .mono-x-avatar-button{position:relative;z-index:2;width:42px;height:42px;border-radius:50%;background:white;flex:0 0 42px}
+#forumPage .mono-reply-tree .mono-x-post-body{position:relative;z-index:2}.mono-reply-target{display:block;color:#6f96ba;font-size:11px;line-height:1.5;margin:3px 0 2px}
+#forumPage .mono-reply-tree .mono-x-text{display:block!important;-webkit-line-clamp:unset!important;overflow:visible!important;max-height:none!important}
