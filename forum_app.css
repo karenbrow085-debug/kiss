@@ -4708,10 +4708,8 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-reply-tree .mono-x-post-body{position:relative;z-index:2}
 #forumPage .mono-reply-tree .mono-x-text{display:block!important;-webkit-line-clamp:unset!important;overflow:visible!important;max-height:none!important}
 .mono-round-budget .forum-setting-row small{display:block;font-size:10px;color:#9aa2ad;margin-top:4px}.mono-round-budget input[type=number]{width:58px;text-align:center;padding:7px 5px;border:1px solid #e8ecf1;border-radius:8px;background:#f8f9fb;color:#26313d;font-size:13px}
-/* MONO detail follows the supplied ともだち card reference. */
-#forumPage #forumDetailOverlay.mono-tomodachi-detail{background:#f6f7f9!important}
-#forumPage .mono-tomodachi-detail #forumDetailContent{padding:12px 9px 100px!important;background:#f6f7f9!important;box-sizing:border-box}
-#forumPage .mono-friend-detail-card{margin:0!important;padding:14px!important;background:#fff;border:0!important;border-radius:17px;box-shadow:none}
+/* MONO: post content only. Original white page and comment rows remain. */
+#forumPage .mono-friend-detail-card{padding:18px 16px 12px!important;margin:0!important;background:white!important;border-radius:0!important;border:0!important;box-shadow:none!important}
 #forumPage .mono-friend-detail-card .mono-x-detail-author{display:flex;align-items:flex-start;gap:12px;margin:0 0 12px!important;min-height:56px}
 #forumPage .mono-friend-detail-card .mono-x-detail-author>.mono-x-avatar-button{align-self:flex-start!important;width:56px!important;height:56px!important;flex:0 0 56px!important;box-sizing:border-box;padding:4px!important;border-radius:50%!important;background:white!important;border:1.4px solid #3288dd!important;overflow:hidden}
 #forumPage .mono-friend-detail-card .mono-x-detail-author>.mono-x-avatar-button img{display:block;width:100%!important;height:100%!important;object-fit:cover;border-radius:50%!important}
@@ -4727,16 +4725,23 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-friend-detail-card .mono-x-more{width:18px!important;flex:0 0 18px;margin-top:4px;color:#828b99}
 #forumPage .mono-friend-detail-card .mono-x-follow{font-size:10px!important;line-height:1.2;padding:5px 8px!important;min-width:38px;margin-top:4px;flex:0 0 auto;background:#f1f4f8!important;color:#697689!important;border:0}
 #forumPage .mono-friend-detail-card>.mono-x-detail-text{display:block!important;width:100%!important;font-size:14px!important;font-weight:450!important;line-height:1.75!important;letter-spacing:0!important;margin:8px 0 12px!important;padding:0!important;white-space:pre-wrap;overflow-wrap:anywhere}
-#forumPage .mono-friend-detail-card>.mono-x-images,#forumPage .mono-friend-detail-card>.mt-card,#forumPage .mono-friend-detail-card>.mono-x-quote{margin:10px 0!important;width:100%!important;max-width:100%!important;border-radius:12px}
+#forumPage .mono-friend-detail-card>.mono-x-images,#forumPage .mono-friend-detail-card>.mt-card,#forumPage .mono-friend-detail-card>.mono-x-quote{margin:10px 0!important;width:100%!important;max-width:100%!important;border-radius:8px}
 #forumPage .mono-friend-detail-card>.mono-post-translate{margin:7px 0 10px!important;color:#4f95ba}
 #forumPage .mono-friend-detail-card>.mono-x-time{margin:10px 0 4px!important;font-size:10px!important;color:#9ba3af;line-height:1.5}
 #forumPage .mono-friend-detail-card>.mono-x-actions{margin:12px 0 0!important;width:100%!important;max-width:100%!important;padding:4px 0!important;border:0!important;gap:9px!important;color:#798391}
 #forumPage .mono-friend-detail-card>.mono-x-actions button{font-size:11px!important;color:#798391!important}#forumPage .mono-friend-detail-card>.mono-x-actions svg{width:21px!important;height:21px!important;stroke-width:1.55!important}
-#forumPage .mono-tomodachi-detail .mono-x-reply-nav{background:transparent;border:0;padding:17px 8px 12px}
-#forumPage .mono-tomodachi-detail .mono-reply-tree{background:white!important;border:0!important;border-radius:16px;margin:0 0 9px;overflow:hidden}
-#forumPage .mono-tomodachi-detail .mono-reply-tree .mono-x-comment{padding:14px 12px!important}
-#forumPage .mono-tomodachi-detail .mono-reply-tree .mono-x-avatar-button{box-sizing:border-box;border-radius:50%!important;border:1.2px solid #3288dd!important;padding:3px!important;overflow:hidden;background:white!important}
-#forumPage .mono-tomodachi-detail .mono-reply-tree .mono-x-avatar{width:100%!important;height:100%!important;border-radius:50%!important;object-fit:cover}
-#forumPage .mono-tomodachi-detail .mono-reply-tree .mono-x-text{font-size:13px!important;font-weight:400!important;line-height:1.7!important}
-#forumPage .mono-tomodachi-detail .mono-reply-tree .mono-x-header b{font-size:12px!important;font-weight:600!important}
-@media(max-width:350px){#forumPage .mono-friend-detail-card .mono-x-detail-author{gap:8px}#forumPage .mono-friend-detail-card .mono-x-detail-author>.mono-x-avatar-button{width:48px!important;height:48px!important;flex-basis:48px!important}#forumPage .mono-friend-detail-card .mono-detail-name-line{gap:2px 5px}}
+
+#forumPage .mono-friend-detail-card>.mt-card{margin:12px 0!important}
+#forumPage .mono-friend-detail-card .mt-music{border:0;border-radius:10px;background:#f2f4f7}
+#forumPage .mono-friend-detail-card .mt-music-main{padding:10px;gap:11px}
+#forumPage .mono-friend-detail-card .mt-music-main>img{width:54px;height:54px;border-radius:7px}
+#forumPage .mono-friend-detail-card .mt-music-brand{margin-bottom:2px}
+#forumPage .mono-friend-detail-card .mt-wave{height:22px;max-width:130px;color:#8697ab}
+#forumPage .mono-friend-detail-card .mt-music-play{background:#e7ebf0!important;color:#26313e!important;width:32px;height:32px}
+#forumPage .mono-friend-detail-card .mt-music-open{background:transparent!important;padding:0 10px 9px!important;color:#6795b7!important}
+#forumPage .mono-friend-detail-card .mt-poll{padding:12px;border:1px solid #e8ecf1;border-radius:9px}
+#forumPage .mono-friend-detail-card .mt-poll strong{font-size:14px;font-weight:550}
+#forumPage .mono-friend-detail-card .mt-poll-result{border-radius:6px;padding:9px 10px}
+#forumPage .mono-friend-detail-card .mt-voice,#forumPage .mono-friend-detail-card .mt-link,#forumPage .mono-friend-detail-card .mt-location{border-radius:9px;box-shadow:none}
+#forumPage .mono-friend-detail-card .mt-card p{font-size:13px;font-weight:400;line-height:1.65}
+#forumPage .mono-friend-detail-card .mt-card strong{font-size:14px;font-weight:550}
