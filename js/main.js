@@ -15,7 +15,7 @@ if ('serviceWorker' in navigator) {
 
 const init = async () => {
     await loadData();
-    if (typeof window.KissPagesUI?.clearLegacyDynamics === 'function') await window.KissPagesUI.clearLegacyDynamics();
+    // Moments now keeps the original role posts; never clear them during startup.
     if (typeof ensureAllChatArchives === 'function') {
         const archivesMigrated = ensureAllChatArchives();
         if (archivesMigrated) await saveData();

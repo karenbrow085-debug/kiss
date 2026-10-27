@@ -69,6 +69,8 @@ function setupAirDropPanelBtn() {
 
 // 屏幕切换
 const switchScreen = (targetId) => {
+    if(targetId === 'phone-screen' && window.KissMoments){window.KissMoments.open();return;}
+    if(targetId === 'moments-screen' && window.KissMoments){window.KissMoments.openProfile(currentChatId);return;}
     if (targetId === 'wallpaper-screen') {
         targetId = 'customize-screen';
         renderCustomizeForm();
@@ -107,12 +109,12 @@ const switchScreen = (targetId) => {
     // 控制全局底栏显示与状态
     const globalNav = document.getElementById('global-bottom-nav');
     if (globalNav) {
-        if (targetId === 'chat-list-screen' || targetId === 'contacts-screen' || targetId === 'more-screen' || targetId === 'phone-screen') {
+        if (targetId === 'chat-list-screen' || targetId === 'contacts-screen' || targetId === 'more-screen' || targetId === 'phone-screen' || targetId.startsWith('kiss-moments-')) {
             globalNav.style.display = 'flex';
             // 更新选中状态
             const navItems = globalNav.querySelectorAll('.nav-item');
             navItems.forEach(item => {
-                if (item.getAttribute('data-target') === targetId) {
+                if (item.getAttribute('data-target') === (targetId.startsWith('kiss-moments-') ? 'phone-screen' : targetId)) {
                     item.classList.add('active');
                 } else {
                     item.classList.remove('active');
