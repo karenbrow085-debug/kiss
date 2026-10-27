@@ -562,6 +562,12 @@ function musicCardHtml(card, by = "user") {
   if(!hasLyrics)return `<button class="hu-music-card hu-c-card" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}">${track}${meta}</button>`;
   return `<div class="hu-music-card hu-c-card with-lyrics"><button class="hu-card-play" data-card-play="${esc(song.songId)}" aria-label="播放${esc(song.title)}">${track}</button><span class="hu-c-sender">${esc(sender)}</span>${song.note?`<div class="hu-c-lyric-note">${esc(song.note)}</div>`:''}<div class="hu-card-lines"><span class="hu-card-quote">“</span>${card.lines.map(l=>`<button class="hu-card-verse" data-hu="card-line" data-card-line="${esc(song.songId)}:${Number(l.timeMs)||0}" aria-label="播放这句歌词"><span>${esc(l.text)}</span>${l.trans?`<small>${esc(l.trans)}</small>`:''}</button>`).join('')}</div><div class="hu-c-words-footer"><span>HEARU / WORDS</span><time>${format(card.lines[0].timeMs)}</time></div></div>`;
 }
+let momentsShareSelection=null;
+function showSongShareMenu(song){
+  if(!song)throw Error("先选一首歌");
+  momentsShareSelection=structuredClone(song);
+  modal(`<h2>分享歌曲</h2><div class="hu-modal-actions"><button data-hu="share-picked-chat">发给 TA</button><button data-hu="share-picked-moments">分享到朋友圈</button>${roleId&&roleId!=="__solo__"?'<button data-hu="share-picked-role">让 TA 分享到朋友圈</button>':''}</div>`);
+}
 async function shareSong(
   song,
   lines = [],
@@ -1686,7 +1692,7 @@ root.addEventListener("click", (e) => {
       await persist();
       return renderRoom();
     }
-    if (b.dataset.share !== undefined) { if(!room || roleId==="__solo__")return pickRecipient(results[Number(b.dataset.share)]); return shareSong(results[Number(b.dataset.share)]); }
+    if (b.dataset.share !== undefined) { if(window.KissMoments)return showSongShareMenu(results[Number(b.dataset.share)]); if(!room || roleId==="__solo__")return pickRecipient(results[Number(b.dataset.share)]); return shareSong(results[Number(b.dataset.share)]); }
     if (b.dataset.cardLine) {const [id,at]=b.dataset.cardLine.split(":");const song=room.messages.find(m=>String(m.card?.song.songId)===id)?.card.song;if(song){await playSong(song);player.seek(Number(at));}return;}
     if (b.dataset.snapshot !== undefined) { const snap=room.messages[Number(b.dataset.snapshot)]?.listening;if(snap){await playSong(snap.song);player.seek(snap.positionMs);}return; }
     if (b.dataset.cardPlay) {
@@ -1870,7 +1876,22 @@ root.addEventListener("click", (e) => {
           notify("当前 HearU 聊天已清空");
         }
         break;
+      case "share-picked-moments":
+        closeModal();
+        window.KissMoments?.shareSong(momentsShareSelection);
+        break;
+      case "share-picked-role":
+        if (!roleId || roleId === "__solo__") throw Error("请先打开角色的一起听");
+        closeModal();
+        window.KissMoments?.shareSong(momentsShareSelection,roleId);
+        break;
+      case "share-picked-chat":
+        closeModal();
+        if(!room||roleId==="__solo__"){pickRecipient(momentsShareSelection);break;}
+        await shareSong(momentsShareSelection);
+        break;
       case "share-current":
+        if(window.KissMoments){showSongShareMenu(room.song);break;}
         if(roleId==="__solo__"){pickRecipient(room.song);break;}
         await shareSong(room.song);
         break;
@@ -2336,7 +2357,7 @@ root.addEventListener('change',e=>run(async()=>{
 }));
 root.addEventListener('input',e=>{if(e.target.closest('#hu-shared-form') && e.target.name==='cover'){delete e.target.dataset.localImage;root.querySelector('#hu-shared-cover-preview').src=safeImageUrl(e.target.value);}if(e.target.closest('#hu-profile-form') && ['avatar','banner'].includes(e.target.name)){delete e.target.dataset.localImage;const preview=root.querySelector(`[data-preview="${e.target.name}"]`);if(preview)preview.src=safeImageUrl(e.target.value);}});
 root.addEventListener('click',e=>{if(e.target.classList.contains('hu-modal'))closeModal();});
-window.HearU={open:(id)=>run(()=>open(id))};
+window.HearU={open:(id)=>run(()=>open(id)),playFromMoments:async(song,id)=>{await open(id||"__solo__");await ensureRoom();await playSong(song);}};
 
 function listeningSnapshot(){const s=player.getState();if(!s.song || s.closed)return null;const line=s.lyrics[player.currentLineIndex()];return {song:{...s.song,lyrics:undefined},positionMs:player.positionMs(),playing:s.playing,line:line?.text || '',at:Date.now()};}
 
