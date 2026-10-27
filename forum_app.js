@@ -66,6 +66,10 @@ function forumParseArray(raw,keys=['posts','comments','messages','data','results
   throw Error('模型返回的数据缺少帖子或评论列表，请重试');
 }
 async function fetch(url,options={}) {
+  const roundBudget=options.monoRoundBudget;
+  if(roundBudget){options={...options};delete options.monoRoundBudget;}
+  const replyScope=options.monoReplyProtocol;
+  if(replyScope){options={...options};delete options.monoReplyProtocol;}
   const postTypeScope=options.monoPostTypes;
   if(postTypeScope){options={...options};delete options.monoPostTypes;}
   const feedScope=options.monoFeedScope;
@@ -76,6 +80,8 @@ async function fetch(url,options={}) {
   let geminiAdapter=false;
   try {
     let body;try{body=typeof options.body==='string'?JSON.parse(options.body):null;}catch{}
+    if(roundBudget&&body?.messages)body.messages=[...body.messages,{role:'system',content:'【本轮数量上限】本次只返回最多'+socialRoundLimit(roundBudget)+'条帖子；若先前模板建议数量超过此上限，按本上限执行。只调整数量，不改变人设或内容规则。'}];
+    if(replyScope&&body?.messages)body.messages=[...body.messages,{role:'system',content:socialReplyProtocol}];
     if(postTypeScope&&body?.messages)body.messages=[...body.messages,{role:'system',content:await monoTypeProtocol(postTypeScope)}];
     if(body?.messages||body?.contents){if(!forumSettings.monoPrimaryAccountId){monoAccountsMenu();throw Error('请先在账号管理中选择主号码');}const supplement=feedScope?monoFeedRuntimeContext():monoRuntimeContext();if(monoIsSecondary()&&forumSettings.userIdentity){const secret=forumSettings.userIdentity,redact=text=>{if(typeof text!=='string')return text;for(const label of ['- 身份：','接收者身份：','【用户身份】'])text=text.replace(label+secret,label+'未公开');return text;};if(body.messages)body.messages=body.messages.map(m=>({...m,content:redact(m.content)}));if(body.systemInstruction?.parts)body.systemInstruction.parts=body.systemInstruction.parts.map(p=>({...p,text:redact(p.text)}));}if(body.messages){const firstSystem=body.messages.findIndex(m=>m.role==='system');body.messages=firstSystem>=0?body.messages.map((m,i)=>i===firstSystem?{...m,content:String(m.content||'')+supplement}:m):[{role:'system',content:supplement},...body.messages];}else {body.systemInstruction ||= {parts:[]};body.systemInstruction.parts.push({text:supplement});}options={...options,body:JSON.stringify(body)};}
     if(body?.messages&&String(url).includes(':generateContent')) {
@@ -292,7 +298,7 @@ function mapAndResolveComments(newComments, post) {
       const auth = item.auth;
       return {
         id: baseId + idx + 1,
-        monoReplyHints:{batch:socialBatchId,tempIdx:c.tempIdx??item.idx+1,originalId:c.id??null,replyTo:c.replyTo??null,replyToId:c.replyToId??c.replyId??null,replyToName:c.replyToName||c.replyToHandle||''},
+        monoReplyHints:{batch:socialBatchId,tempIdx:c.tempIdx??item.idx+1,originalId:c.id??null,replyTo:c.replyTo??null,replyToId:c.replyToId??c.replyId??null,replyToName:c.replyToName||c.replyToHandle||'',declaredPost:c.replyKind==='post'},
         tempIdx: Number.isSafeInteger(Number(c.tempIdx)) && Number(c.tempIdx)>0 ? Number(c.tempIdx) : item.idx + 1,
         authorType: auth.type,
         authorId: auth.id,
@@ -2603,6 +2609,7 @@ ${participants.length > 0
     messages.push({ role: "user", content: userContent });
 
     const response = await fetch(forumApiEndpoint(apiConfig), {
+      monoReplyProtocol:true,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2863,14 +2870,12 @@ async function generateForumPosts(requestedTab) {
  const refreshBtn=document.querySelector('.forum-refresh-btn');refreshBtn?.classList.add('spinning');
  try{
   const actors=monoFeedActors(tab),roles=actors.filter(a=>a.type==='ai'),npcs=actors.filter(a=>a.type==='npc');
-  const jobs=roles.map(a=>({actors:[a],count:1,random:false}));
-  if(tab==='recommend')jobs.splice(2); // At most two un-followed roles; NPCs keep their separate request.
-  if(npcs.length||tab==='recommend')jobs.unshift({actors:npcs,count:tab==='recommend'?8:Math.min(10,Math.max(1,npcs.length)),random:tab==='recommend'});
+  const jobs=socialFeedJobs(roles,npcs,tab,socialRoundLimit(monoAutoUpdating?'auto':'manual'));
   if(!jobs.length)return showToast('没有可生成动态的关注账号；用户账号的帖子由本人发布');
   const posts=[];let failures=0;
   for(const job of jobs){
    try{
-    const response=await fetch(forumApiEndpoint(apiConfig),{monoFeedScope:true,monoPostTypes:{owners:job.actors.filter(a=>a.type==='ai').map(a=>a.id)},method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiConfig.key}`},body:JSON.stringify({model:apiConfig.model||'gpt-3.5-turbo',messages:[{role:'system',content:monoFeedPrompt(job,tab)}],temperature:1})});
+    const response=await fetch(forumApiEndpoint(apiConfig),{monoReplyProtocol:true,monoFeedScope:true,monoPostTypes:{owners:job.actors.filter(a=>a.type==='ai').map(a=>a.id)},method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiConfig.key}`},body:JSON.stringify({model:apiConfig.model||'gpt-3.5-turbo',messages:[{role:'system',content:monoFeedPrompt(job,tab)}],temperature:1})});
     if(!response.ok)throw Error('API请求失败: '+response.status);
     const data=await response.json();if(data.error)throw Error(data.error.message||'API错误');
     const rows=forumParseArray(data.choices?.[0]?.message?.content||'',['posts','data','results']);
@@ -2884,7 +2889,7 @@ async function generateForumPosts(requestedTab) {
      const record={...row,authorType:resolved.type,authorId:resolved.id,authorName:resolved.name,handle:actor?.handle||row.handle};
      if(monoIsFollowed(record)!==(tab==='following'))continue;
      if(monoRepeatedPost(record,[...forumPosts,...posts]))continue;
-     if(actor?.type==='ai'&&posts.some(p=>p.authorType==='ai'&&String(p.authorId)===String(actor.id)))continue;
+     
      posts.push({...record,monoResolvedAuthor:resolved,monoJob:job});
      if(posts.filter(p=>p.monoJob===job).length>=job.count)break;
     }
@@ -3147,6 +3152,7 @@ JSON格式模板：
 ]`;
 
     const response = await fetch(forumApiEndpoint(apiConfig), {
+      monoReplyProtocol:true,
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiConfig.key}` },
       body: JSON.stringify({
@@ -4395,6 +4401,7 @@ ${relationships.join("\n")}`;
 
     // 4. 调用 API
     const response = await fetch(forumApiEndpoint(apiConfig), {
+      monoReplyProtocol:true,monoRoundBudget:monoAutoUpdating?'auto':'manual',
       monoPostTypes:true,
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiConfig.key}` },
@@ -4442,7 +4449,7 @@ ${relationships.join("\n")}`;
       // 方案A: 标准解析
       const jsonMatch = /[\[{]/.test(forumCleanStructured(content));
       if (jsonMatch) {
-        posts = forumParseArray(content,['posts','data','results']);
+        posts = forumParseArray(content,['posts','data','results']).slice(0,socialRoundLimit(monoAutoUpdating?'auto':'manual'));
       } else {
         throw new Error("无标准数组");
       }
@@ -5071,6 +5078,7 @@ JSON 格式模板：
 请只返回 JSON，不要包含 Markdown 代码块标记或其他文字。`;
 
     const response = await fetch(forumApiEndpoint(apiConfig), {
+      monoReplyProtocol:true,monoRoundBudget:monoAutoUpdating?'auto':'manual',
       monoPostTypes:{ownerId:userInfo.type==='ai'?userInfo.id:null},
       monoFeedScope:true,
       method: "POST",
@@ -5097,7 +5105,7 @@ JSON 格式模板：
     const jsonMatch = /[\[{]/.test(forumCleanStructured(content));
 
     if (jsonMatch) {
-      const newPosts = forumParseArray(content,['posts','data','results']);
+      const newPosts = forumParseArray(content,['posts','data','results']).slice(0,socialRoundLimit(monoAutoUpdating?'auto':'manual'));
       
       let addedCount=0;
       newPosts.forEach((postData, idx) => {
@@ -8094,11 +8102,12 @@ const socialPublicProfile=monoRenderPublicAccount;monoRenderPublicAccount=functi
 function socialNorm(v){return String(v??'').normalize('NFKC').trim().replace(/^[@＠]/,'').toLowerCase();}
 function socialMention(c){const text=String(c.monoOriginalContent||c.content||'');const m=text.match(/^\s*(?:回复\s*[@＠]?([^：:\s]{1,60})\s*[：:]|[@＠]([\p{L}\p{N}_.-]+)(?:\s|[：:，,]))/u);return m?(m[1]||m[2]):'';}
 function socialParent(c,all){
- const at=all.indexOf(c),previous=all.filter((x,i)=>x!==c&&(Number(x.timestamp||0)<Number(c.timestamp||0)||Number(x.timestamp||0)===Number(c.timestamp||0)&&i<at)),hint=c.monoReplyHints||{},lookup=new Map(all.filter(x=>x!==c).map(x=>[String(x.id),x]));
- const named=hint.replyToName||c.replyToName||socialMention(c),match=x=>!named||[x.authorName,x.handle,x.authorHandle].some(v=>socialNorm(v)===socialNorm(named));
- for(const key of [c.replyTo,c.replyId,c.replyToId,hint.replyToId]){if(key!=null&&lookup.has(String(key))){const parent=lookup.get(String(key));if(match(parent))return parent;}}
- const raw=hint.replyTo;
- if(raw!=null){const batch=all.filter(x=>x!==c&&x.monoReplyHints&&String(x.monoReplyHints.batch)===String(hint.batch)&&[x.monoReplyHints.tempIdx,x.monoReplyHints.originalId].some(v=>v!=null&&String(v)===String(raw))&&Number(x.timestamp||0)<=Number(c.timestamp||0)&&match(x));if(batch.length===1)return batch[0];if(lookup.has(String(raw))&&match(lookup.get(String(raw))))return lookup.get(String(raw));}
+ const at=all.indexOf(c),previous=all.slice(0,at),hint=c.monoReplyHints||{},named=hint.replyToName||c.replyToName||socialMention(c),match=x=>!named||[x.authorName,x.handle,x.authorHandle].some(v=>socialNorm(v)===socialNorm(named));
+ const actual=id=>previous.find(x=>String(x.id)===String(id)&&match(x)),raw=hint.replyTo;
+ // Batch indices and physical IDs never share a namespace, even after filtering.
+ if(hint.replyToId!=null){const found=previous.find(x=>String(x.id)===String(hint.replyToId)&&x.monoReplyHints?.batch!==hint.batch&&match(x));if(found)return found;}
+ if(raw!=null){const local=previous.filter(x=>x.monoReplyHints&&x.monoReplyHints.batch===hint.batch&&[x.monoReplyHints.tempIdx,x.monoReplyHints.originalId].some(v=>v!=null&&String(v)===String(raw))&&match(x));if(local.length===1)return local[0];}
+ for(const id of [c.replyTo,c.replyId,c.replyToId]){if(id!=null){const found=actual(id);if(found)return found;}}
  const name=named||(typeof raw==='string'&&!/^\d+$/.test(raw)?raw:typeof c.replyTo==='string'&&!/^\d+$/.test(c.replyTo)?c.replyTo:'');if(name){const candidates=previous.filter(x=>[x.authorName,x.handle,x.authorHandle].some(v=>socialNorm(v)===socialNorm(name)));if(candidates.length)return candidates.at(-1);}
  const text=String(c.content||''),quote=text.match(/[“「"]([^”」"]{6,160})[”」"]/);if(quote){const candidates=previous.filter(x=>String(x.content||'').includes(quote[1]));if(candidates.length===1)return candidates[0];}
  return null;
@@ -8113,5 +8122,22 @@ monoCommentThreads=function(p){const g=socialReplyGraph(p),visited=new Set();for
  return sections.join('')||'<p class="mono-x-empty">还没有回复</p>';
 };
 Object.assign(ForumApp,{monoProfileMenu,monoOtherMenu,openProfileEditor,saveProfileChanges,renderForumPostItem,renderForumPostDetail,renderForumProfile,renderOtherUserProfile,monoRenderPublicAccount,monoCommentRow,monoXQuote,monoCommentThreads,mapAndResolveComments,socialVerified,socialSetVerified,socialHolder,socialParent,socialReplyGraph});
+
+// Only relation metadata is added to existing generation prompts.
+const socialReplyProtocol=`【新增：评论回复关系协议】原有角色设定、世界观、语言、风格与帖子类型保持原要求。逐条检查评论到底在对谁说话；接上一条的梗、反驳/赞同某人的话、向某位评论者提问或回答他，都属于回复评论，必须写目标，不能当作独立楼层。每条评论增加tempIdx（本次comments数组从1开始的序号）和replyKind（post或comment）。回复本批次的某条评论：replyKind=comment，replyTo=目标tempIdx，同时replyToName=对方昵称；回复已有[ID]评论：replyToId=真实ID，同时replyToName=对方昵称。独立评论帖子：replyKind=post，replyTo/replyToId/replyToName均为null。目标只允许指向更早的评论，不能指向自己。用目标ID区分同一个人发的多句话；不要只靠排列顺序。返回前核对语义和关系字段一致，正文仍只写说话内容，不加回复前缀。不改变原有JSON外层结构。`;
+function socialRoundLimit(kind){const n=Number(forumSettings.monoRoundLimits?.[kind]);return Number.isFinite(n)&&n>=1?Math.min(50,Math.max(1,Math.round(n))):10;}
+function socialFeedJobs(roles,npcs,tab,limit){const chosen=tab==='recommend'?roles.slice(0,Math.min(2,Math.max(0,limit-1))):roles.slice(0,limit),jobs=chosen.map(a=>({actors:[a],count:1,random:false}));let remaining=limit-jobs.length;if(remaining&&(npcs.length||tab==='recommend'))jobs.unshift({actors:npcs,count:remaining,random:tab==='recommend'});else if(remaining&&jobs.length){for(let i=0;i<remaining;i++)jobs[i%jobs.length].count++;}return jobs;}
+function socialBudgetFields(){return `<section class="forum-section mono-round-budget"><div class="forum-section-title">每轮发帖数量</div>${[['manual','手动刷新'],['auto','自动更新']].map(([key,label])=>`<label class="forum-setting-row"><span>${label}<small>每轮最多生成</small></span><span class="mono-setting-value"><input type="number" min="1" max="50" step="1" data-round-limit="${key}" aria-label="${label}帖子数量上限" value="${socialRoundLimit(key)}"> 条</span></label>`).join('')}<p class="mono-note">适用于推荐、关注、话题刷新及角色定时发帖，一轮总量 1–50 条；过滤重复或生成失败时可能少于上限。</p></section>`;}
+function socialBindBudget(root){for(const field of root.querySelectorAll('[data-round-limit]'))field.onchange=async()=>{const key=field.dataset.roundLimit,old=forumSettings.monoRoundLimits?.[key];forumSettings.monoRoundLimits||={};forumSettings.monoRoundLimits[key]=Math.max(1,Math.min(50,Math.round(Number(field.value)||1)));field.value=forumSettings.monoRoundLimits[key];try{await localforage.setItem('forumSettings',forumSettings);}catch(e){if(old===undefined)delete forumSettings.monoRoundLimits[key];else forumSettings.monoRoundLimits[key]=old;field.value=socialRoundLimit(key);showToast('数量设置保存失败');}};}
+const socialSettings=renderForumSettings;renderForumSettings=function(...args){socialSettings(...args);const root=document.getElementById('forumSettingsContent');if(!root||monoContactOpen)return;const anchor=root.querySelector('.mono-clean-refresh');if(anchor)anchor.insertAdjacentHTML('afterend',socialBudgetFields());else root.insertAdjacentHTML('beforeend',socialBudgetFields());socialBindBudget(root);};
+const socialAutoSettings=monoAutoFeedSettings;monoAutoFeedSettings=function(...args){socialAutoSettings(...args);const root=document.querySelector('#forumAuxSheet main');if(root){root.insertAdjacentHTML('beforeend',socialBudgetFields());socialBindBudget(root);}};
+function socialDetailMeta(p){const d=new Date(p.timestamp||Date.now()),pad=n=>String(n).padStart(2,'0');return `${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}${p.monoDevice?' · <span>'+escapeForumHtml(p.monoDevice)+'</span>':''}`;}
+const socialCardDetail=renderForumPostDetail;renderForumPostDetail=function(...args){socialCardDetail(...args);const p=forumPosts.find(p=>String(p.id)===String(currentForumPostId)),host=document.querySelector('.mono-x-detail-post');if(!p||!host)return;host.classList.add('mono-friend-detail-card');const author=host.querySelector('.mono-x-detail-author>div');if(author){const handle=author.querySelector('small');if(handle)handle.classList.add('mono-detail-handle');author.insertAdjacentHTML('beforeend','<small class="mono-detail-date">'+socialDetailMeta(p)+'</small>');}if(p.monoLocation)host.querySelector('.mono-x-detail-text')?.insertAdjacentHTML('afterend','<div class="mono-detail-location">'+mtIcon('location')+escapeForumHtml(p.monoLocation)+'</div>');const stats=host.querySelector('.mono-x-time');if(stats)stats.innerHTML='<b>'+monoCount(p.views||0)+'</b> 次浏览';void socialRepairReplies(p);};
+// Legacy comments without relation metadata receive one scoped relation-only audit.
+const socialReplyAudits=new Map();
+function socialReplySignature(p){return JSON.stringify((p.comments||[]).map(c=>[c.id,c.authorName,c.handle,c.content]));}
+function socialApplyRelations(p,rows){const all=p.comments||[],used=new Set(),changes=[];for(const row of rows){const child=all.find(c=>String(c.id)===String(row.id));if(!child||used.has(child)||row.confidence!=='high')continue;used.add(child);if(socialParent(child,all))continue;const parent=all.find(c=>String(c.id)===String(row.replyToId));if(!parent||all.indexOf(parent)>=all.indexOf(child)||parent===child)continue;changes.push({child,parent,oldTo:child.replyTo,oldName:child.replyToName});child.replyTo=parent.id;child.replyToName=parent.authorName;child.monoRelationAudit=true;}return changes;}
+async function socialRepairReplies(p){const all=p.comments||[],signature=socialReplySignature(p),account=monoActiveAccount;if(all.length<2||p.monoReplyAuditSignature===signature||socialReplyAudits.has(p))return;const graph=socialReplyGraph(p);if(!graph.roots.some(c=>all.indexOf(c)>0))return;const config=getActiveApiConfig();if(!config?.url||!config?.key)return;socialReplyAudits.set(p,true);try{const response=await fetch(forumApiEndpoint(config),{monoFeedScope:true,method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+config.key},body:JSON.stringify({model:config.model||'gpt-3.5-turbo',temperature:0,messages:[{role:'system',content:'你只校对MONO评论回复关系，不生成或改写帖子与评论。依据给出的上下文，识别哪些话明确在回答/反驳/接某位评论者的话。只有语义高度确定时返回该条id和更早目标的replyToId，confidence固定为high。不把单纯讨论同一帖子话题当成互相回复，不按相邻位置强行连接；不确定就省略。已有明确目标不更改。只返回JSON数组[{"id":评论ID,"replyToId":更早评论ID,"confidence":"high"}]。'},{role:'user',content:JSON.stringify({post:String(p.monoOriginalContent||p.content||''),comments:all.map(c=>({id:c.id,author:c.authorName,handle:c.handle,content:c.monoOriginalContent||c.content,replyTo:socialParent(c,all)?.id||null}))})}]})});if(!response.ok)return;const data=await response.json(),rows=forumParseArray(data.choices?.[0]?.message?.content||'[]',['relations','data']);if(account!==monoActiveAccount||!forumPosts.includes(p)||socialReplySignature(p)!==signature)return;const changes=socialApplyRelations(p,rows),old=p.monoReplyAuditSignature;p.monoReplyAuditSignature=signature;try{await localforage.setItem('forumPosts',forumPosts);}catch(e){p.monoReplyAuditSignature=old;for(const {child,oldTo,oldName}of changes){child.replyTo=oldTo;child.replyToName=oldName;delete child.monoRelationAudit;}throw e;}if(changes.length&&String(currentForumPostId)===String(p.id))renderForumPostDetail();}catch(e){console.warn('[MONO] 回复关系暂未核对');}finally{socialReplyAudits.delete(p);}}
+Object.assign(ForumApp,{renderForumSettings,monoAutoFeedSettings,renderForumPostDetail,socialRoundLimit,socialFeedJobs,socialApplyRelations,socialRepairReplies});
 
 })();
