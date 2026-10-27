@@ -13,7 +13,7 @@ function offset(c,now=new Date()){const p=parts(c,now);return Math.round((Date.U
 const minute=s=>{if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(s)))return NaN;const [h,m]=s.split(':').map(Number);return h*60+m;};
 function inside(n,start,end){const a=minute(start),b=minute(end);if(!Number.isFinite(a)||!Number.isFinite(b))return false;return a===b||a<b?(a===b||n>=a&&n<b):(n>=a||n<b);}
 function isQuiet(c,kind='chat',now=new Date()){const config=kind==='moments'?c?.momentsSettings:c?.autoReply;if(!config?.quietEnabled)return false;const n=parts(c,now).minutes;return (config.quietPeriods||[]).some(p=>inside(n,p.start,p.end));}
-function canPost(c,now=new Date()){const s=c?.momentsSettings||{};return inside(parts(c,now).minutes,s.start||'09:00',s.end||'22:00')&&!isQuiet(c,'moments',now);}
+function canPost(c,now=new Date()){const s=c?.momentsSettings||{};return (s.periodLimits?.length?s.periodLimits.some(p=>inside(parts(c,now).minutes,p.start,p.end)):inside(parts(c,now).minutes,s.start||'09:00',s.end||'22:00'))&&!isQuiet(c,'moments',now);}
 function diff(c,now=new Date()){const minutes=offset(c,now)-offset(user(),now);if(minutes===0)return '与我同时区';const hours=Math.abs(minutes)/60;return `比我${minutes>0?'快':'慢'} ${Number(hours.toFixed(2))} 小时`;}
 function context(c,now=new Date()){const u=user();if(!c?.timeZone&&!u.timeZone)return '';return `
 <角色时区>角色所在地时区：${zone(c)||'跟随用户设备'}；角色当地时间：${local(c,now)}；用户所在地时区：${u.timeZone||'跟随设备'}；用户当地时间：${local(u,now)}；用户设备当地时间：${local(null,now)}；${diff(c,now)}。必须读取这一时差，安排角色的生活、朋友圈与主动消息时以角色当地时间为准，不把用户的早晚当作角色的早晚。夏令时以所在地当前规则自动换算。以上为时间背景，不需要向用户复述。其他未注明时区的设备时间不能覆盖此角色时区。</角色时区>

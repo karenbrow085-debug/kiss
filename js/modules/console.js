@@ -1,4 +1,4 @@
-/* KISS console: bounded, redacted diagnostics; no request/response bodies are read. */
+/* KISS console: bounded local diagnostics, actual API payloads with credential redaction. */
 (function(g){
 'use strict';
 if(g.KissDiagnostics)return;
@@ -12,7 +12,7 @@ let logs=[],sequence=0,timer=0,saveTimer=0,ui=null,state={view:'home',app:'all',
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function secrets(){const out=[];try{const d=typeof db!=='undefined'?db:g.db||{};const main=d.apiSettings||{};for(const a of [main,main.secondary,...(main.secondary?.profiles||[]),d.secondaryApiSettings,...Object.values(d.apiPresets||{}).map(p=>p?.data||p),...Object.values(d.voiceSettings?.profiles||{})]){const key=a?.key||a?.apiKey;if(key)out.push(String(key));}}catch{}return [...new Set(out)].filter(s=>s.length>5).slice(0,200);}
 function redact(value,max=1600){
- let s=String(value??'');if(s.length>max*3)s=s.slice(0,max*3);if(/"(?:messages|prompt|system_prompt|history|contents)"\s*:/.test(s))return '[结构化请求或响应内容已隐藏]';
+ let s=String(value??'');if(s.length>max*3)s=s.slice(0,max*3);
  for(const key of secrets())s=s.split(key).join('[已隐藏]');
  s=s.replace(/data:[^\s"']+/gi,'[数据已隐藏]').replace(/blob:https?:\/\/[^\s"']+/gi,'[本地资源]')
  .replace(/\bBearer\s+[^\s"',}]+/gi,'Bearer [已隐藏]').replace(/\bsk-[\w-]{6,}/g,'[密钥已隐藏]')
@@ -23,19 +23,19 @@ function redact(value,max=1600){
 function safeObject(v,depth=0,seen=new WeakSet()){
  if(v instanceof Error)return {name:v.name,message:redact(v.message),stack:redact(v.stack,3000)};
  if(v==null||typeof v==='boolean'||typeof v==='number')return v;
- if(typeof v==='string')return redact(v,800);
+ if(typeof v==='string')return redact(v,120000);
  if(typeof v!=='object')return '['+typeof v+']';
  if(seen.has(v))return '[循环引用]';seen.add(v);
- if(depth>2)return '[对象]';
+ if(depth>10)return '[深层对象省略]';
  if(v instanceof Element)return '['+v.tagName.toLowerCase()+']';
  if(v instanceof Blob)return {type:v.type,size:v.size};
  const out=Array.isArray(v)?[]:{};
- for(const key of Object.keys(v).slice(0,12)){
-  if(/key|token|authorization|password|cookie|secret|messages|prompt|content|text|history|body|result|arguments|persona|description|lyrics|letter|translation|avatar|image|audio/i.test(key))out[key]='[已隐藏]';
+ for(const key of Object.keys(v).slice(0,300)){
+  if(/^(?:api[_-]?key|api[_-]?token|authorization|password|cookie|secret|client[_-]?secret|access[_-]?token|refresh[_-]?token|token|key)$/i.test(key))out[key]='[已隐藏]';
   else try{out[key]=safeObject(v[key],depth+1,seen);}catch{out[key]='[无法读取]';}
  }return out;
 }
-function format(args){return args.map(v=>{if(v instanceof Error)return v.name+': '+redact(v.message);if(typeof v!=='string')return JSON.stringify(safeObject(v));if(v.length>6000)return '[长文本日志已省略]';if(/(?:messages|system[_ ]?prompt|prompt|contents|api[_-]?key|authorization)\s*[\"':=]/i.test(v))return '[结构化请求或配置内容已隐藏]';try{if(/^[{[]/.test(v.trim()))return JSON.stringify(safeObject(JSON.parse(v)));}catch{}return redact(v,1200);}).join(' ').slice(0,2000);}
+function format(args){return args.map(v=>{if(v instanceof Error)return v.name+': '+redact(v.message,120000);if(typeof v!=='string')return JSON.stringify(safeObject(v),null,2);try{if(/^[{[]/.test(v.trim()))return JSON.stringify(safeObject(JSON.parse(v)),null,2);}catch{}return redact(v,120000);}).join(' ').slice(0,128000);}
 function classifySource(s){
  if(/\/hearu\//i.test(s))return 'hearu';if(/Morrow\.html|\/morrow\//i.test(s))return 'morrow';if(/forum_app|MONO|\[论坛\]/i.test(s))return 'mono';if(/\/mcp\/|KissMCP|\[MCP\]/i.test(s))return 'mcp';
  if(/voice-|voiceService|音色|语音API|fetchAndPopulateModels/i.test(s))return 'voice';if(/worldbook|wb[A-Z]|世界书/i.test(s))return 'worldbook';if(/widget|小组件|setupHomeScreen/i.test(s))return 'widgets';if(/backup|app-data|导入备份|备份/i.test(s))return 'data';if(/image-workshop|workshop|drawing|绘图|生图/i.test(s))return 'workshop';if(/peek|Moments|查手机|动态生成/i.test(s))return 'peek';if(/journal|日记/i.test(s))return 'journal';if(/ShopSystem|shop|商店/i.test(s))return 'shop';if(/status_history|statusPanel|状态面板/i.test(s))return 'status';if(/customize|settings_presets|个性化/i.test(s))return 'personalize';if(/chat_ai|\/chat\.|chat_features|chat_ops|chat_archives/i.test(s))return 'chat';return null;
@@ -59,9 +59,9 @@ function activeApp(){
 }
 function infer(source=''){return child?'morrow':fromSource(source)||scope?.app||activeApp();}
 function featureOf(source){return /cloudsearch|searchSongs|搜索/.test(source)?'搜索':/qrCreate|qrCheck|login|登录/.test(source)?'账号':/lyric|歌词/.test(source)?'歌词':/playlist|sources|歌单|retainedSource/.test(source)?'歌单':/thought|describeSong|选曲留言/.test(source)?'AI 留言':/generateReply|后台回信|FreshRoleReply/.test(source)?'后台回信':/priority|mpAccelerate|mpBuy|mpClaim/.test(source)?'加速与游戏':/synthesize|speech|tts|voice|语音/.test(source)?'语音':/model|completion|generateContent|生成|fetchAiResponse/.test(source)?'模型请求':/import|Import|readFile|导入/.test(source)?'文件导入':/export|Export|导出/.test(source)?'导出':/preview|Preview|预览/.test(source)?'预览':/move|Move|移动/.test(source)?'移动':/play|播放/.test(source)?'播放':/connect|连接/.test(source)?'连接':'运行';}
-function publicRow(r){return {id:r.id,session:r.session,app:apps[r.app]?r.app:'system',feature:redact(r.feature||'运行',40),level:labels[r.level]?r.level:'log',phase:redact(r.phase||'',24),title:redact(r.title||'运行记录',160),detail:redact(r.detail||'',2200),stack:redact(r.stack||'',3000),at:Number(r.at)||Date.now(),ended:Number(r.ended)||0,duration:Number.isFinite(r.duration)?Math.max(0,r.duration):null,status:Number(r.status)||0,endpoint:redact(r.endpoint||'',200),count:Math.max(1,Number(r.count)||1),trace:Array.isArray(r.trace)?r.trace.slice(0,5).map(t=>redact(t,90)):[]};}
+function publicRow(r){return {id:r.id,session:r.session,app:apps[r.app]?r.app:'system',feature:redact(r.feature||'运行',40),level:labels[r.level]?r.level:'log',phase:redact(r.phase||'',24),title:redact(r.title||'运行记录',160),detail:redact(r.detail||'',128000),stack:redact(r.stack||'',3000),at:Number(r.at)||Date.now(),ended:Number(r.ended)||0,duration:Number.isFinite(r.duration)?Math.max(0,r.duration):null,status:Number(r.status)||0,endpoint:redact(r.endpoint||'',200),count:Math.max(1,Number(r.count)||1),trace:Array.isArray(r.trace)?r.trace.slice(0,5).map(t=>redact(t,90)):[]};}
 try{const old=JSON.parse(sessionStorage.getItem(STORE)||'[]');if(Array.isArray(old))logs=old.slice(-KEEP).map(publicRow).map(r=>r.phase==='start'?{...r,phase:'cancel',level:'warn',title:r.title+' · 页面已重新载入',detail:'任务结果未确认'}:r);}catch{}
-function persist(){saveTimer=0;try{sessionStorage.setItem(STORE,JSON.stringify(logs.slice(-KEEP)));}catch{}}
+function persist(){saveTimer=0;try{sessionStorage.setItem(STORE,JSON.stringify(logs.slice(-KEEP).map(r=>({...r,detail:r.detail.slice(0,2200)+(r.detail.length>2200?'\n[刷新页面后仅保留摘要，完整日志请在刷新前导出]':'')}))));}catch{}}
 function changed(){if(!child&&!saveTimer)saveTimer=setTimeout(persist,1800);if(ui&&document.getElementById('console-screen')?.classList.contains('active')&&!timer)timer=setTimeout(()=>{timer=0;paint();},160);}
 function record(data){
  try{
@@ -97,11 +97,27 @@ g.addEventListener('error',ev=>{if(ev.target!==g&&ev.target!==document){const ta
  const container=el.closest('.screen[id],#hearu-app,#forumPage'),where=[tag,el.id?'#'+el.id:'',container?'所在页面 #'+container.id:''].filter(Boolean).join(' · ');
  record({app:infer(src||container?.id||''),feature:'资源加载',level:'error',title:hasSource?'资源加载失败 · '+tag:'资源地址为空 · '+tag,endpoint:src,detail:where+'\n'+(hasSource?(src?redact(src,200):'浏览器未提供所选资源地址'):'未设置有效地址；请检查该元素的资源配置')});return;}const err=ev.error;record({app:infer(err?.stack||ev.filename||''),feature:'脚本错误',level:'error',title:err?.name||'Error',detail:err?.message||ev.message,stack:err?.stack||'',endpoint:ev.filename});},true);
 g.addEventListener('unhandledrejection',ev=>{record({app:infer(ev.reason?.stack||''),feature:'异步任务',level:'error',title:'未处理的异步错误',detail:ev.reason instanceof Error?ev.reason.message:format([ev.reason]),stack:ev.reason?.stack||''});});
+// Read only a response clone; native consumers retain their original response/stream.
+function modelBody(args){try{const raw=args[1]?.body;if(typeof raw!=='string')return null;const value=JSON.parse(raw);return value&&(value.messages||value.contents||typeof value.prompt==='string'||value.input)?value:null;}catch{return null;}}
+async function captureModel(res,app,feature,started){
+ const id=record({app,feature,phase:'start',title:'模型响应流水 · 读取中',detail:'HTTP '+res.status,unique:true});
+ try{
+  const copy=res.clone(),reader=copy.body?.getReader();if(!reader){update(id,{phase:'end',title:'模型响应为空',ended:Date.now()});return;}
+  const decoder=new TextDecoder();let body='',chunks=0,truncated=false,lastProgress=0;
+  while(true){const {done,value}=await reader.read();if(done)break;chunks++;body+=decoder.decode(value,{stream:true});if(performance.now()-lastProgress>1000){lastProgress=performance.now();update(id,{title:'模型响应流水 · 接收中',detail:redact(body,128000),duration:performance.now()-started,trace:['HTTP '+res.status,'接收分片 '+chunks,'已接收 '+body.length+' 字符']});}if(body.length>128000){body=body.slice(0,128000);truncated=true;void reader.cancel();break;}}
+  body+=decoder.decode();let parsed;try{parsed=JSON.parse(body);}catch{}
+  let content='',reasoning='',usage=null,events=0,tools=[];
+  if(!parsed&&/(?:^|\n)data:/.test(body)){for(const line of body.split(/\r?\n/)){if(!line.startsWith('data:'))continue;const text=line.slice(5).trim();if(text==='[DONE]')continue;try{const data=JSON.parse(text);events++;const d=data.choices?.[0]?.delta||data.choices?.[0]?.message;if(d){content+=d.content||'';reasoning+=d.reasoning_content||d.reasoning||'';if(d.tool_calls)tools.push(d.tool_calls);}if(data.usage)usage=data.usage;for(const p of data.candidates?.[0]?.content?.parts||[])if(p.text){if(p.thought)reasoning+=p.text;else content+=p.text;}}catch{}}}
+  const detail=parsed?format([parsed]):events?format([{chunks,events,content,reasoning_content:reasoning||'接口未返回独立推理字段',tool_calls:tools,usage}]):redact(body,128000);
+  update(id,{phase:res.ok?'end':'error',level:res.ok?'log':'error',title:'模型响应流水 · '+(res.ok?'完成':'失败'),detail:detail+(truncated?'\n[超过128000字符，后续省略]':''),status:res.status,duration:performance.now()-started,ended:Date.now(),trace:['接收响应头','读取响应副本',events?'流事件 '+events+' 条':'JSON / 原文','已记录实际响应']});
+ }catch(error){update(id,{phase:'error',level:'warn',title:'响应日志读取失败',detail:error.message,duration:performance.now()-started});}
+}
 if(g.fetch){const fetch=g.fetch;g.fetch=function(...args){
  const source=new Error().stack||'',input=args[0],method=args[1]?.method||input?.method||'GET';let endpoint='';try{const u=new URL(typeof input==='string'||input instanceof URL?String(input):input.url,location.href);if(!/^https?:$/.test(u.protocol))return Reflect.apply(fetch,this,args);endpoint=u.origin+u.pathname.replace(/\b\d{5,}\b/g,':id');}catch{return Reflect.apply(fetch,this,args);}
  const app=infer(source),feature=scope?.feature||featureOf(source+' '+endpoint),started=performance.now();const id=record({app,feature,phase:'start',title:method+' 请求',endpoint,detail:'等待响应',unique:true});
+ const body=modelBody(args);if(body)record({app,feature,phase:'trigger',title:'模型请求详情',endpoint,detail:format([body]),unique:true});
  let promise;try{promise=Reflect.apply(fetch,this,args);}catch(error){update(id,{level:'error',phase:'error',title:'请求失败',detail:error.message,stack:error.stack,duration:performance.now()-started});throw error;}
- promise.then(res=>{update(id,{level:res.ok?'log':'error',phase:res.ok?'response':'error',title:res.ok?'请求已响应':'请求失败 · HTTP '+res.status,detail:res.ok?'已收到响应头；业务结果由对应功能日志记录':'HTTP '+res.status+' '+res.statusText,status:res.status,duration:performance.now()-started,ended:Date.now(),trace:[apps[app]?.[0]||'系统',feature,'HTTP '+res.status]});},error=>{const abort=error.name==='AbortError';update(id,{level:abort?'warn':'error',phase:abort?'cancel':'error',title:abort?'请求已取消':'请求失败',detail:error.message,stack:error.stack,duration:performance.now()-started,ended:Date.now()});});
+ promise.then(res=>{if(body)void captureModel(res,app,feature,started);update(id,{level:res.ok?'log':'error',phase:res.ok?'response':'error',title:res.ok?'请求已响应':'请求失败 · HTTP '+res.status,detail:res.ok?'已收到响应头；业务结果由对应功能日志记录':'HTTP '+res.status+' '+res.statusText,status:res.status,duration:performance.now()-started,ended:Date.now(),trace:[apps[app]?.[0]||'系统',feature,'HTTP '+res.status]});},error=>{const abort=error.name==='AbortError';update(id,{level:abort?'warn':'error',phase:abort?'cancel':'error',title:abort?'请求已取消':'请求失败',detail:error.message,stack:error.stack,duration:performance.now()-started,ended:Date.now()});});
  return promise;
 };}
 // Metadata-only XHR capture, retaining the native instance, events and return values.
@@ -145,7 +161,7 @@ function appCard(id){const a=apps[id],items=logs.filter(r=>r.app===id),n=items.f
 function tabs(){return `<nav class="kc-tabs" aria-label="日志级别">${['all','log','warn','error'].map(k=>`<button data-level="${k}" class="${state.level===k?'selected':''}" aria-pressed="${state.level===k}">${k==='all'?'全部':labels[k]}</button>`).join('')}</nav>`;}
 function controls(){const fs=[...new Set(logs.filter(r=>state.app==='all'||r.app===state.app).map(r=>r.feature))].sort();return `<div class="kc-filters"><select id="kc-feature" aria-label="筛选功能"><option value="all">全部功能</option>${fs.map(f=>`<option ${state.feature===f?'selected':''}>${e(f)}</option>`).join('')}</select><label class="kc-search">${icon('search')}<input id="kc-query" placeholder="搜索日志" value="${e(state.query)}" aria-label="搜索日志"></label></div>`;}
 function stats(){return `<section class="kc-summary"><div class="kc-session"><span>● 正在记录</span><small>最近 ${MAX} 条以内</small></div><div class="kc-metrics">${['log','warn','error'].map(k=>`<button data-stat="${k}"><strong>${logs.filter(r=>r.level===k).length}</strong><small>${labels[k]}</small></button>`).join('')}</div></section>`;}
-function detail(r){const a=apps[r.app];return `<section class="kc-detail-top"><div class="kc-identity"><span class="kc-app-icon">${icon(a[1])}</span><div><small>${e(a[0])} / ${e(r.feature)}</small><h2>${e(r.title)}</h2></div></div><div class="kc-message ${r.level==='error'?'error':r.level==='warn'?'warn':''}">${icon(r.level==='error'?'error':r.level==='warn'?'warn':'terminal')}<div><strong>${e(r.detail||states[r.phase]||'运行记录')}</strong>${r.status?`<small>HTTP ${r.status}</small>`:''}</div></div><dl class="kc-metadata"><div><dt>时间</dt><dd>${time(r.at)}</dd></div><div><dt>阶段</dt><dd>${e(states[r.phase]||r.feature)}</dd></div><div><dt>耗时</dt><dd>${r.duration==null?'未记录':r.duration<1000?Math.round(r.duration)+' ms':(r.duration/1000).toFixed(2)+' s'}</dd></div><div><dt>级别</dt><dd class="${r.level}">${labels[r.level]}${r.count>1?' ×'+r.count:''}</dd></div></dl></section><section class="kc-section"><h3>调用过程</h3><div class="kc-trace">${(r.trace.length?r.trace:[a[0],r.feature,states[r.phase]||labels[r.level]]).map((t,i)=>`<div><i>${i+1}</i><strong>${e(t)}</strong></div>`).join('')}</div></section><section class="kc-section"><h3>技术详情</h3><pre>${e([r.endpoint,r.stack||r.detail||r.title].filter(Boolean).join('\n'))}</pre><small class="kc-privacy">不采集请求正文、响应正文或密钥；仅记录运行元信息</small></section><div class="kc-detail-buttons"><button class="kc-button" data-copy="${r.id}">${icon('copy')}复制详情</button><button class="kc-button primary" data-export="${r.id}">${icon('export')}导出此条</button></div>`;}
+function detail(r){const a=apps[r.app];return `<section class="kc-detail-top"><div class="kc-identity"><span class="kc-app-icon">${icon(a[1])}</span><div><small>${e(a[0])} / ${e(r.feature)}</small><h2>${e(r.title)}</h2></div></div><div class="kc-message ${r.level==='error'?'error':r.level==='warn'?'warn':''}">${icon(r.level==='error'?'error':r.level==='warn'?'warn':'terminal')}<div><strong>${e((r.detail||states[r.phase]||'运行记录').split('\n')[0].slice(0,180))}</strong>${r.status?`<small>HTTP ${r.status}</small>`:''}</div></div><dl class="kc-metadata"><div><dt>时间</dt><dd>${time(r.at)}</dd></div><div><dt>阶段</dt><dd>${e(states[r.phase]||r.feature)}</dd></div><div><dt>耗时</dt><dd>${r.duration==null?'未记录':r.duration<1000?Math.round(r.duration)+' ms':(r.duration/1000).toFixed(2)+' s'}</dd></div><div><dt>级别</dt><dd class="${r.level}">${labels[r.level]}${r.count>1?' ×'+r.count:''}</dd></div></dl></section><section class="kc-section"><h3>调用过程</h3><div class="kc-trace">${(r.trace.length?r.trace:[a[0],r.feature,states[r.phase]||labels[r.level]]).map((t,i)=>`<div><i>${i+1}</i><strong>${e(t)}</strong></div>`).join('')}</div></section><section class="kc-section"><h3>技术详情</h3><pre>${e([r.endpoint,r.stack||r.detail||r.title].filter(Boolean).join('\n'))}</pre><small class="kc-privacy">记录接口实际返回的正文与推理字段；密钥已遮挡。完整流水仅保留在当前页面内存，可复制或导出。</small></section><div class="kc-detail-buttons"><button class="kc-button" data-copy="${r.id}">${icon('copy')}复制详情</button><button class="kc-button primary" data-export="${r.id}">${icon('export')}导出此条</button></div>`;}
 function paint(){if(!ui||composing)return;ui.dataset.view=state.view;const scroll=ui.querySelector('.kc-content'),top=scroll?.scrollTop||0;const focus=document.activeElement?.id,selection=focus==='kc-query'?document.activeElement.selectionStart:null;
  const r=logs.find(r=>r.id===state.detail);if(state.view==='detail'&&!r){state.view=state.app==='all'?'home':'app';state.detail=null;}
  const home=state.view==='home',isDetail=state.view==='detail',app=apps[state.app];

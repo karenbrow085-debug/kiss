@@ -819,7 +819,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             if (momentPostWithImageMatch) {
                 isMomentAction = true;
                 const author = momentPostWithImageMatch[1].trim();
-                if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments'))continue;
+                if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments')||window.KissMomentsPolicy&&!window.KissMomentsPolicy.hasCapacity(chat))continue;
                 const imageDesc = momentPostWithImageMatch[2].trim();
                 let momentContent = momentPostWithImageMatch[3].trim();
                 let prepared;try{prepared=window.KissMomentsLanguage?.complete(momentContent)||{content:momentContent,translation:''};}catch(error){showToast(error.message);continue;}momentContent=prepared.content;
@@ -849,7 +849,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             else if (momentPostMatch && !momentPostWithImageMatch) { // 确保不重复匹配
                 isMomentAction = true;
                 const author = momentPostMatch[1].trim();
-                if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments'))continue;
+                if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments')||window.KissMomentsPolicy&&!window.KissMomentsPolicy.hasCapacity(chat))continue;
                 let momentContent = momentPostMatch[2].trim();
                 let prepared;try{prepared=window.KissMomentsLanguage?.complete(momentContent)||{content:momentContent,translation:''};}catch(error){showToast(error.message);continue;}momentContent=prepared.content;
                 
