@@ -1,7 +1,9 @@
 /* Pure helpers shared by both chat surfaces and the data inspector. */
 (function (root) {
 'use strict';
-const norm = s => String(s || '').toLowerCase().normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu, '');
+let toSimple;
+function canonical(value){const text=String(value||'').normalize('NFKC');if(!toSimple&&root.OpenCC)toSimple=root.OpenCC.Converter({from:'tw',to:'cn'});return toSimple?toSimple(text):text;}
+const norm = s => canonical(s).toLowerCase().replace(/[\s\p{P}\p{S}]/gu, '');
 // Symbol-only names must survive text normalization (e.g. ? / ？ / ...).
 function symbolKey(value){const key=String(value??'').normalize('NFKC').toLowerCase().replace(/\s/gu,'').replace(/\uFE0F/gu,'');if(!key||! /^[\p{P}\p{S}]+$/u.test(key))return '';return key.replace(/\.{2,}/g,'…').replace(/…+/g,'…').replace(/([!?])\1+/g,'$1');}
 function score(query, name) {
@@ -14,7 +16,7 @@ function score(query, name) {
   const a=pairs(q),b=pairs(n);return 2*[...a].filter(x=>b.has(x)).length/(a.size+b.size);
 }
 function matches(query,pool,limit=8){return pool.map((s,i)=>({s,i,score:score(query,s.name)})).filter(x=>x.score>=.58).sort((a,b)=>b.score-a.score||a.i-b.i).slice(0,limit).map(x=>x.s);}
-function resolve(query,pool,enabled){const exact=pool.find(s=>s.name===query);if(exact || !enabled)return exact;const symbol=symbolKey(query);if(symbol)return pool.find(s=>symbolKey(s.name)===symbol);const ranked=pool.map(s=>({s,score:score(query,s.name)})).sort((a,b)=>b.score-a.score);return norm(query).length>=3 && norm(ranked[0]?.s.name).length>=3 && ranked[0]?.score>=.8 && (!ranked[1] || ranked[0].score-ranked[1].score>.12)?ranked[0].s:undefined;}
+function resolve(query,pool,enabled){const exact=pool.find(s=>s.name===query);if(exact || !enabled)return exact;const normalized=norm(query),equivalent=pool.filter(s=>norm(s.name)===normalized);if(normalized&&equivalent.length===1)return equivalent[0];const symbol=symbolKey(query);if(symbol)return pool.find(s=>symbolKey(s.name)===symbol);const ranked=pool.map(s=>({s,score:score(query,s.name)})).sort((a,b)=>b.score-a.score);return norm(query).length>=3 && norm(ranked[0]?.s.name).length>=3 && ranked[0]?.score>=.8 && (!ranked[1] || ranked[0].score-ranked[1].score>.12)?ranked[0].s:undefined;}
 const catalog = {
  thought:['已生成思维链','仅删除历史思考消息，保留思维链规则',false],
  cot:['思维链规则 / 预设','清除后会影响生成方式',true],

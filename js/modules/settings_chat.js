@@ -372,6 +372,7 @@ function renderBoundWorldBooks(type, worldBookIds) {
 function loadSettingsToSidebar() {
     const e = db.characters.find(e => e.id === currentChatId);
     if (e) {
+        window.KissClock?.loadSettings(e);
         document.getElementById('setting-char-avatar-preview').src = e.avatar;
         renderBoundWorldBooks('private', e.worldBookIds || []);
         const nameDisplay = document.getElementById('setting-char-name-display');
@@ -710,6 +711,8 @@ function initTextareaSearchReplace(toolbarId, textareaId) {
 async function saveSettingsFromSidebar() {
     const e = db.characters.find(e => e.id === currentChatId);
     if (e) {
+        let roleClock;try{roleClock=window.KissClock?.readSettings();}catch(error){showToast(error.message);return;}
+        if(roleClock)e.timeZone=roleClock.timeZone;
         e.avatar = document.getElementById('setting-char-avatar-preview').src;
         
         const oldRealName = e.realName;
@@ -830,6 +833,7 @@ async function saveSettingsFromSidebar() {
         e.videoCallEnabled = document.getElementById('setting-video-call-enabled').checked;
 
         if (!e.autoReply) e.autoReply = {};
+        if(roleClock)Object.assign(e.autoReply,roleClock.quiet);
         e.autoReply.enabled = document.getElementById('setting-auto-reply-enabled').checked;
         const autoReplyIntervalInput = parseInt(document.getElementById('setting-auto-reply-interval').value, 10);
         e.autoReply.interval = isNaN(autoReplyIntervalInput) ? 60 : autoReplyIntervalInput;

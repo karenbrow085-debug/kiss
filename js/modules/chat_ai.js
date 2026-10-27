@@ -127,6 +127,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
 
     const chat = (chatType === 'private') ? db.characters.find(c => c.id === chatId) : db.groups.find(g => g.id === chatId);
     if (!chat) return;
+    if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
     await PhoneBackup.hydrateChat(chat);
 
     let apiConfig = db.apiSettings;
@@ -744,6 +745,7 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
 }
 
 async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChatType, isBackground = false, generation = null) {
+    if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
     generation?.check();
     const rawResponse = fullResponse;
     if (fullResponse) {
@@ -817,7 +819,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             if (momentPostWithImageMatch) {
                 isMomentAction = true;
                 const author = momentPostWithImageMatch[1].trim();
-                if(window.KissMoments?.isForeignActor(chat,author))continue;
+                if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments'))continue;
                 const imageDesc = momentPostWithImageMatch[2].trim();
                 const momentContent = momentPostWithImageMatch[3].trim();
                 
@@ -845,7 +847,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             else if (momentPostMatch && !momentPostWithImageMatch) { // 确保不重复匹配
                 isMomentAction = true;
                 const author = momentPostMatch[1].trim();
-                if(window.KissMoments?.isForeignActor(chat,author))continue;
+                if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments'))continue;
                 const momentContent = momentPostMatch[2].trim();
                 
                 if (!chat.moments) chat.moments = [];

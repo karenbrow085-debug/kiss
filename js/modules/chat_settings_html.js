@@ -28,6 +28,7 @@ const chatSettingsHtml = `
                     
                     <!-- 【设定】Tab 内容 -->
                     <div id="setting-tab-basic" class="settings-tab-content active">
+                        ${window.KissClock?.zoneFields()||''}
                         <!-- 角色信息分组 -->
                         <div class="kkt-group">
                             <div class="kkt-item">
@@ -321,16 +322,15 @@ const chatSettingsHtml = `
                                 </div>
                             </div>
 
-                            <!-- 自动消息详细设置 (折叠面板) -->
+                            <!-- 自动消息详细设置 -->
                             <div id="auto-reply-settings-container" class="feature-details-panel">
                                 <div class="kkt-group">
                                     <div class="kkt-item">
-                                        <div class="kkt-item-label">无操作检测时间 (分钟)</div>
-                                        <div class="kkt-item-control">
-                                            <input type="number" id="setting-auto-reply-interval" value="60" min="1" style="width:50px; text-align:right; border:none; background: #f5f5f5; border-radius: 4px; padding: 4px;">
-                                        </div>
+                                        <div class="kkt-item-label">无操作检测时间（分钟）</div>
+                                        <div class="kkt-item-control"><input type="number" id="setting-auto-reply-interval" value="60" min="1" style="width:65px;text-align:right;border:none;background:#f5f5f5;border-radius:6px;padding:6px;"></div>
                                     </div>
                                 </div>
+                                <div id="setting-auto-quiet"></div>
                             </div>
                         </div>
 
