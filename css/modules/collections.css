@@ -11,3 +11,9 @@
 @media(max-width:340px){.kc-role-line,.kc-collection-list{padding-left:17px;padding-right:17px}.kc-collection-tabs{padding-left:17px;padding-right:17px}.kc-collection-tabs{gap:18px}.kc-message-text{font-size:13px}.kc-attribution{font-size:9px}.kc-saved-voice{gap:9px}.kc-wave{letter-spacing:0}}
 
 .ku-tools [data-ku="tool:star"] .ku-chevron{display:none}
+
+/* Shared multi-select actions: delete and collection, one footer. */
+#multi-select-bar .kc-collect-selected{width:auto;min-width:66px;min-height:36px;padding:8px 16px;border:0;border-radius:8px;background:#252a32;color:#fff;font:inherit;font-size:12px;cursor:pointer;box-shadow:none;margin-left:9px}
+#multi-select-bar .kc-collect-selected:disabled{opacity:.4;cursor:default}
+#multi-select-bar .kc-collect-selected[hidden]{display:none!important}
+#message-multi-btn .expansion-item-icon svg{width:24px;height:24px;display:block}

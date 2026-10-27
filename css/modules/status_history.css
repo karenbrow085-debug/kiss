@@ -57,3 +57,24 @@
 #char-status-content .sh-toolbar-compact button.is-saved{color:#648cb3;background:transparent}
 #char-status-content .sh-history-tools{margin:0 23px 3px;min-height:28px}
 #char-status-content .sh-history-tools button{font-size:10px;min-height:30px}
+
+/* Four independent, borderless bottom controls. */
+#char-status-overlay{padding-top:max(20px,calc(env(safe-area-inset-top,0px) + 8px))!important;padding-bottom:0!important}
+#char-status-overlay>.close-status-panel{display:none!important}
+#char-status-content .sh-toolbar-compact{position:absolute;left:17px;right:17px;bottom:calc(19px + env(safe-area-inset-bottom,0px));margin:0!important;padding:0!important;min-height:0;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;z-index:1004;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none}
+#char-status-content .sh-toolbar-compact .sh-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start;width:100%}
+#char-status-content .sh-toolbar-compact button{display:flex;flex-direction:column;gap:7px;align-items:center;justify-content:flex-start;padding:0!important;margin:0;min-width:0;min-height:71px;border:0!important;background:transparent!important;box-shadow:none!important;color:#656c76;letter-spacing:0;pointer-events:auto;font-size:11px;font-weight:400;line-height:1.3;border-radius:0}
+#char-status-content .sh-control-icon{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 3px 16px #00000005;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);transition:background .15s,transform .15s}
+#char-status-content .sh-toolbar-compact svg{width:21px;height:21px;flex:0 0 21px}
+#char-status-content .sh-toolbar-compact .is-saved{color:#648fb5;background:transparent!important}
+#char-status-content .sh-toolbar-compact .is-saved svg{fill:none}
+#char-status-content .sh-toolbar-compact button[data-sh-regenerate] svg{fill:currentColor;stroke:none}
+#char-status-content .sh-toolbar-compact button:active .sh-control-icon{background:#fff;transform:scale(.94)}
+#char-status-content .sh-toolbar-compact button[data-sh-close]{grid-column:4}
+#char-status-content .sh-history-tools{position:absolute;right:23px;left:auto;bottom:calc(104px + env(safe-area-inset-bottom,0px));padding:0;margin:0!important;min-height:24px;z-index:1004}
+#char-status-content .sh-history-tools button{min-height:30px;padding:3px 0;color:#fff;font-size:11px;text-shadow:0 1px 3px #0002}
+#char-status-content .status-indicator{left:23px;bottom:calc(112px + env(safe-area-inset-bottom,0px));transform:none;background:none;border:0;border-radius:0;box-shadow:none;padding:0;color:#fff;font-size:11px;line-height:1.4;letter-spacing:.04em;font-weight:500;text-shadow:0 1px 3px #0002}
+#char-status-content .status-slide{padding:12px 20px calc(151px + env(safe-area-inset-bottom,0px))}
+#char-status-content .sh-list{padding-top:12px;padding-bottom:calc(175px + env(safe-area-inset-bottom,0px))}
+#char-status-content .sh-selection-footer,#char-status-content .sh-confirm{bottom:calc(153px + env(safe-area-inset-bottom,0px))}
+@media(max-width:340px){#char-status-content .sh-toolbar-compact{left:12px;right:12px}#char-status-content .sh-toolbar-compact .sh-actions{gap:7px}#char-status-content .sh-control-icon{width:46px;height:46px;flex-basis:46px}}
