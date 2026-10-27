@@ -821,13 +821,15 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                 const author = momentPostWithImageMatch[1].trim();
                 if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments'))continue;
                 const imageDesc = momentPostWithImageMatch[2].trim();
-                const momentContent = momentPostWithImageMatch[3].trim();
+                let momentContent = momentPostWithImageMatch[3].trim();
+                let prepared;try{prepared=window.KissMomentsLanguage?.complete(momentContent)||{content:momentContent,translation:''};}catch(error){showToast(error.message);continue;}momentContent=prepared.content;
                 
                 if (!chat.moments) chat.moments = [];
                 chat.moments.unshift({
                     id: `moment_${Date.now()}`,
                     author: author,
                     content: momentContent,
+                    translation: prepared.translation,
                     imageDescription: imageDesc, // 保存图片描述
                     timestamp: Date.now(),
                     likes: [],
@@ -848,13 +850,15 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                 isMomentAction = true;
                 const author = momentPostMatch[1].trim();
                 if(window.KissMoments?.isForeignActor(chat,author)||window.KissClock?.isQuiet(chat,'moments'))continue;
-                const momentContent = momentPostMatch[2].trim();
+                let momentContent = momentPostMatch[2].trim();
+                let prepared;try{prepared=window.KissMomentsLanguage?.complete(momentContent)||{content:momentContent,translation:''};}catch(error){showToast(error.message);continue;}momentContent=prepared.content;
                 
                 if (!chat.moments) chat.moments = [];
                 chat.moments.unshift({
                     id: `moment_${Date.now()}`,
                     author: author,
                     content: momentContent,
+                    translation: prepared.translation,
                     timestamp: Date.now(),
                     likes: [],
                     comments: []

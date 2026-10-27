@@ -712,7 +712,7 @@ async function saveSettingsFromSidebar() {
     const e = db.characters.find(e => e.id === currentChatId);
     if (e) {
         let roleClock;try{roleClock=window.KissClock?.readSettings();}catch(error){showToast(error.message);return;}
-        if(roleClock)e.timeZone=roleClock.timeZone;
+        if(roleClock){e.timeZone=roleClock.timeZone;window.KissClock.setUserZone(roleClock.userTimeZone);}
         e.avatar = document.getElementById('setting-char-avatar-preview').src;
         
         const oldRealName = e.realName;

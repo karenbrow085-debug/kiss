@@ -441,4 +441,4 @@ function calculateTokenBreakdown(chatId, chatType = 'private') {
 }
 
 // Time context is appended without replacing the role prompt or chain.
-(() => {const original=window.generatePrivateSystemPrompt;window.generatePrivateSystemPrompt=function(character){return original(character)+(window.KissClock?.context(character)||'');};})();
+(() => {const original=window.generatePrivateSystemPrompt;window.generatePrivateSystemPrompt=function(character){return original(character)+(window.KissClock?.context(character)||'')+(window.KissMomentsLanguage?.promptFor(character)||'');};})();
