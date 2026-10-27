@@ -9,7 +9,8 @@ function hash(value){let n=2166136261;for(const x of String(value))n=Math.imul(n
 function sourceKey(type,item){return type==='chat'?'chat:'+String(item.id??hash(item.content))+':'+String(item.timestamp||0):'status:'+String(item.timestamp||0)+':'+hash(item.raw||item.html);}
 function has(c,type,item,actor=SELF){return account().items.some(x=>x.roleId===String(c.id)&&x.type===type&&x.sourceKey===sourceKey(type,item)&&x.savedBy===String(actor));}
 function allowedMessage(m){return !!m&&!m.isThinking&&!m.isWithdrawn&&!m.isContextDisabled&&m.role!=='system'&&!String(m.content||'').trim().startsWith('<thinking>');}
-async function stable(value,seen=new WeakMap()){
+async function stable(value,seen){
+ if(!seen){if(window.PhoneBackup?.expand)value=await window.PhoneBackup.expand(value);seen=new WeakMap();}
  if(typeof value==='string'){const matches=[...value.matchAll(/blob:[A-Za-z0-9:/._-]+/g)];for(const match of matches){const response=await fetch(match[0]);if(!response.ok)throw Error('本地附件读取失败，未收藏');const blob=await response.blob();const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('附件保存失败'));reader.readAsDataURL(blob);});value=value.split(match[0]).join(data);}return value;}
  if(!value||typeof value!=='object')return value;if(seen.has(value))return seen.get(value);const out=Array.isArray(value)?[]:{};seen.set(value,out);for(const k of Object.keys(value)){if(['__proto__','constructor','prototype'].includes(k))continue;out[k]=await stable(value[k],seen);}return out;
 }
@@ -60,7 +61,27 @@ function statusMarkup(row){return `<article class="kc-saved-status" data-entry="
 function ensure(){if(screen)return;screen=document.createElement('section');screen.id='kiss-collections-screen';screen.className='screen kc-collections';screen.addEventListener('click',click);screen.addEventListener('input',e=>{if(e.target.name==='collection-search'){query=e.target.value;renderList();}});const host=document.getElementById('more-screen')?.parentElement||document.querySelector('#phone-screen')?.parentElement||document.body;host.append(screen);}
 function visibleRows(){return account().items.filter(x=>x.roleId===owner&&x.type===kind&&(filter==='all'||(filter==='me'?x.savedBy===SELF:x.savedBy!==SELF))&&(!query||[x.senderName,x.snapshot.content,x.snapshot.raw,x.snapshot.html].join(' ').toLowerCase().includes(query.toLowerCase()))).sort((a,b)=>b.savedAt-a.savedAt);}
 function render(){ensure();const roles=roleList();if(!roles.some(c=>c.id===owner))owner=roles[0]?.id||'';const c=roles.find(c=>c.id===owner);screen.innerHTML=`<header class="kc-collection-header">${button('back',icon('back'),'aria-label="返回"')}<h1>お気に入り</h1>${button('search',icon('search'),'aria-label="搜索收藏"')}</header><div class="kc-search" ${searchOpen?'':'hidden'}><input name="collection-search" placeholder="搜索收藏" value="${esc(query)}" autocomplete="off" aria-label="搜索收藏"></div><div class="kc-role-line">${button('roles',`${avatar(c?.avatar,'kc-role-avatar')}<span><strong>${esc(c?.name||'选择角色')}</strong><small>与你的收藏</small></span>`,'class="kc-role-button" aria-label="切换角色"')}</div><nav class="kc-collection-tabs" aria-label="收藏分类">${button('chat','聊天消息',`aria-pressed="${kind==='chat'}"`)}${button('status','状态栏',`aria-pressed="${kind==='status'}"`)}${button('filter',icon('filter'),`class="kc-filter ${filter==='all'?'':'is-filtered'}" aria-label="筛选收藏者"`)}</nav><main class="kc-collection-list"></main><div class="kc-collection-count" aria-live="polite"></div>`;renderList();}
-function renderList(){if(!screen)return;const rows=visibleRows(),list=screen.querySelector('.kc-collection-list');if(!list)return;let day='';list.innerHTML=rows.map(row=>{const d=date(row.savedAt);const heading=d!==day?`<div class="kc-date">${esc(d)}</div>`:'';day=d;return heading+(kind==='chat'?messageMarkup(row):statusMarkup(row));}).join('')||'<p class="kc-collection-empty">还没有收藏</p>';screen.querySelector('.kc-collection-count').textContent=rows.length+' 条收藏';for(const frame of list.querySelectorAll('[data-frame]')){const row=rows.find(r=>r.id===frame.dataset.frame);frame.srcdoc=kind==='status'?row.snapshot.html:row.snapshot.parts[0].text;}list.scrollTop=0;}
+// Saved HTML runs in a sandbox, so local image tokens must become real image data first.
+const savedFrameJobs=new WeakMap();
+async function prepareSavedHtml(row,html){
+ const c=char(row.roleId),fallback=c?.avatar||row.roleAvatar||'',user=c?.myAvatar||person()?.avatar||'';
+ let roleAvatar='',userAvatar='';try{roleAvatar=await stable(row.roleAvatar||fallback);}catch{try{roleAvatar=await stable(fallback);}catch{}}
+ try{userAvatar=await stable(user);}catch{}
+ let content=String(html||'');
+ // Recover old dead blob-avatar snapshots with the corresponding role's available avatar.
+ if(roleAvatar&&row.roleAvatar&&row.roleAvatar!==roleAvatar)content=content.split(row.roleAvatar).join(roleAvatar);
+ if(roleAvatar)content=content.replace(/{{char_avatar}}/gi,()=>roleAvatar).replace(/<char-avatar([^>]*)>\s*(?:<\/char-avatar>)?/gi,(_,attrs)=>'<img src="'+esc(roleAvatar)+'" class="uwu-char-avatar" '+attrs+'>');
+ if(userAvatar)content=content.replace(/{{user_avatar}}/gi,()=>userAvatar).replace(/<user-avatar([^>]*)>\s*(?:<\/user-avatar>)?/gi,(_,attrs)=>'<img src="'+esc(userAvatar)+'" class="uwu-user-avatar" '+attrs+'>');
+ try{content=await stable(content);}catch{if(window.PhoneBackup?.expand){try{content=await window.PhoneBackup.expand(content);}catch{}}}
+ // The base URL of sandboxed srcdoc is explicit, preserving relative assets too.
+ const doc=new DOMParser().parseFromString(content,'text/html');let base=doc.querySelector('base');if(!base){base=doc.createElement('base');doc.head.prepend(base);}base.href=document.baseURI;
+ for(const image of doc.querySelectorAll('img.uwu-char-avatar,char-avatar img'))if(roleAvatar)image.setAttribute('src',roleAvatar);
+ for(const image of doc.querySelectorAll('img.uwu-user-avatar,user-avatar img'))if(userAvatar)image.setAttribute('src',userAvatar);
+ return '<!doctype html>\n'+doc.documentElement.outerHTML;
+}
+async function renderSavedFrame(frame,row,html){if(!frame)return;const ticket={account:accountId()};savedFrameJobs.set(frame,ticket);try{const resolved=await prepareSavedHtml(row,html);if(frame.isConnected&&savedFrameJobs.get(frame)===ticket&&ticket.account===accountId())frame.srcdoc=resolved;}catch(e){if(frame.isConnected&&savedFrameJobs.get(frame)===ticket&&ticket.account===accountId())frame.srcdoc='<p style="font:14px sans-serif;color:#8b95a3">收藏内容暂未读取，请重新打开。</p>';}}
+
+function renderList(){if(!screen)return;const rows=visibleRows(),list=screen.querySelector('.kc-collection-list');if(!list)return;let day='';list.innerHTML=rows.map(row=>{const d=date(row.savedAt);const heading=d!==day?`<div class="kc-date">${esc(d)}</div>`:'';day=d;return heading+(kind==='chat'?messageMarkup(row):statusMarkup(row));}).join('')||'<p class="kc-collection-empty">还没有收藏</p>';screen.querySelector('.kc-collection-count').textContent=rows.length+' 条收藏';for(const frame of list.querySelectorAll('[data-frame]')){const row=rows.find(r=>r.id===frame.dataset.frame);void renderSavedFrame(frame,row,kind==='status'?row.snapshot.html:row.snapshot.parts[0].text);}list.scrollTop=0;}
 function refresh(){if(screen?.classList.contains('active'))renderList();}
 function closeModal(){modal?.remove();modal=null;}
 function sheet(title,html){closeModal();modal=document.createElement('div');modal.className='kc-collection-overlay';modal.innerHTML=`<section class="kc-collection-sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header><h2>${esc(title)}</h2>${button('close',icon('close'),'aria-label="关闭"')}</header>${html}</section>`;modal.addEventListener('click',e=>{if(e.target===modal)closeModal();else click(e);});document.body.append(modal);modal.querySelector('button')?.focus();}
@@ -78,7 +99,7 @@ async function click(e){const b=e.target.closest('[data-kc]');if(!b)return;const
  if(action==='item-menu'&&row)return sheet('收藏操作',button('remove','取消收藏',`data-id="${row.id}" class="kc-remove-collection"`));
  if(action==='remove'&&row){b.disabled=true;await remove(row.id);closeModal();return;}
  if(action==='voice'){b.parentElement.querySelector('.kc-voice-text').hidden=!b.parentElement.querySelector('.kc-voice-text').hidden;return;}
- if(action==='full-status'&&row){sheet('收藏的状态','<iframe class="kc-status-full" sandbox="allow-scripts" title="完整收藏状态"></iframe>');modal.querySelector('iframe').srcdoc=row.snapshot.html;return;}
+ if(action==='full-status'&&row){sheet('收藏的状态','<iframe class="kc-status-full" sandbox="allow-scripts" title="完整收藏状态"></iframe>');void renderSavedFrame(modal.querySelector('iframe'),row,row.snapshot.html);return;}
  }catch(error){b.disabled=false;showToast(error.message||'操作失败');}}
 // The existing multi-select mode now offers both delete and save, from one tool.
 let multiContext=null,bulkBusy=false;
@@ -102,5 +123,5 @@ document.addEventListener('keydown',event=>{if(event.target.id==='message-multi-
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-ku="tool:star"],.menu-item[data-action="star"]')){e.preventDefault();e.stopImmediatePropagation();void open();}},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal)closeModal();});
 const original=window.generatePrivateSystemPrompt;if(typeof original==='function')window.generatePrivateSystemPrompt=function(c){return original(c)+prompt(c);};
-window.KissCollections={open,save,saveMany,remove,has,allowedMessage,toggleMessage,toggleStatus,consume,prompt,migrate,sourceKey,_test:{account,accountId,visibleRows,sourceKey,hash,syncMulti,collectSelected}};
+window.KissCollections={open,save,saveMany,remove,has,allowedMessage,toggleMessage,toggleStatus,consume,prompt,migrate,sourceKey,_test:{stable,prepareSavedHtml,renderSavedFrame,account,accountId,visibleRows,sourceKey,hash,syncMulti,collectSelected}};
 })();
