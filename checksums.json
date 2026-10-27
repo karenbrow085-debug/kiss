@@ -1,10 +1,9 @@
 {
-  "index.html": "824c2b53f0667bf06107d8586feb1c518f2ffb2a23a372c28d47b97881973813",
-  "js/modules/peek.js": "69123bee27bef4158e8a9f61dd4c804bd026fda8da600cc95570332ebb6d3fe5",
-  "js/modules/chat_ai.js": "f5d3568e648d95bf7bde38c30e66e4609bd4fc46f418cb097fa01e88ba14e8db",
-  "js/modules/kiss-moments.js": "1172be10164fad8f4b50a6c9d92d45bfde240d25fe205833c2cd0ea40130a444",
-  "css/modules/kiss-moments.css": "137ee3bdd5b509532a8a572edcd4c7b2d615317c2c927fba5df4e45c554e4a37",
-  "js/modules/role-time.js": "6b41cb8c52486ad7bd807f80bece8f7ec5f2c259815f9a75f2b888d7a75a82a3",
-  "js/modules/moments-policy.js": "c3d6ce7c2e28f35659708cdd3ee9e6e6ce2252eab09ded3559a27c3c0db67b47",
-  "js/modules/console.js": "d1e6e63c789606e4c38ce280b44b1a79f98907a70b855bae76d778157bfdb0e3"
+  "css/modules/collections.css": "5ce0f3209d205789d142609e038ec09990a1a543d379dbd3e856d3419ff73b67",
+  "css/modules/status_history.css": "9f9f121930d3df7af9e52649bcaaca9d15834d3c9ced8021f29696f8827ba377",
+  "index.html": "57b801a1575ffae303fc9b72e514e95173d82a6b9057a561d0f81f02e6296798",
+  "js/modules/chat_ai.js": "964e20bfe2b4e08fb9b94f3f9d8e955a37f79d91b0d74e3dc4fb020f77aa5827",
+  "js/modules/chat_ops.js": "6955be8cb751a76657094d199852c0a26a7f0d4b97195d2a6609c0cc1588e544",
+  "js/modules/collections.js": "e4cf52b5e0099d1cf0404bf943fffb990443d60f06be6c3a756509007f0b0d92",
+  "js/modules/status_history.js": "673e4efb87335064f864ceb5bf8f44c409d79b2709af70fdd46b066778be8104"
 }
