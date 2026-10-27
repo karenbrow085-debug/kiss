@@ -1,9 +1,8 @@
 {
-  "css/modules/collections.css": "5ce0f3209d205789d142609e038ec09990a1a543d379dbd3e856d3419ff73b67",
-  "css/modules/status_history.css": "9f9f121930d3df7af9e52649bcaaca9d15834d3c9ced8021f29696f8827ba377",
-  "index.html": "57b801a1575ffae303fc9b72e514e95173d82a6b9057a561d0f81f02e6296798",
-  "js/modules/chat_ai.js": "964e20bfe2b4e08fb9b94f3f9d8e955a37f79d91b0d74e3dc4fb020f77aa5827",
-  "js/modules/chat_ops.js": "6955be8cb751a76657094d199852c0a26a7f0d4b97195d2a6609c0cc1588e544",
-  "js/modules/collections.js": "e4cf52b5e0099d1cf0404bf943fffb990443d60f06be6c3a756509007f0b0d92",
-  "js/modules/status_history.js": "673e4efb87335064f864ceb5bf8f44c409d79b2709af70fdd46b066778be8104"
+  "css/modules/collections.css": "2afdaf33b5db8bccb9d3aa07d1ed42c331470808810ddac8a75d0100094458b3",
+  "css/modules/status_history.css": "0637ad37f4486b4972bf128ff88f8b19566ecd7bb8c7a575843e41e197db0aea",
+  "index.html": "61bcf0715cdbbb93b020f20b085096d4ee181e17762fcee86c8201304e1f036b",
+  "js/modules/chat_room_html.js": "3947c97012d0a4a68d3dc5708284bb61de1ad3ac4ef56abdb7c83ecb1748f6ce",
+  "js/modules/collections.js": "97b2172a590302cafc8ba7f65890a5c087ff6ce8cc3ae2fbdd5e5d37cd990055",
+  "js/modules/status_history.js": "307d216d93e978534426ec58277eaf5fa2e1e2b81d80d8af1042d2b25fc6f6cd"
 }
