@@ -184,6 +184,8 @@ async function getAiReply(chatId, chatType, isBackground = false) {
     try {
         let systemPrompt, requestBody;
         if (chatType === 'private') {
+            await window.KissMoments?.prepareContext(chat, apiConfig, generation);
+            generation.check();
             systemPrompt = generatePrivateSystemPrompt(chat);
         } else {
             // generateGroupSystemPrompt 应该在 group_chat.js 中定义
