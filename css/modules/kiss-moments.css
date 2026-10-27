@@ -82,3 +82,7 @@
 #kiss-moments-feed .km-post+.km-post{margin-top:0;border-top:0.5px solid rgba(40,45,52,.10)}
 .km-limit-row{padding:12px;background:#f7f8fa;border-radius:8px;margin-bottom:9px;min-width:0}
 .km-limit-count{display:flex;gap:8px;align-items:center;margin-top:10px;color:#77818d}.km-limit-count label{flex:1;min-width:0}.km-limit-count input{min-width:0}.km-limit-count>button{padding:8px!important;color:#999!important}
+
+/* Reply prefixes always refer to an actual parent comment. */
+.km-comment-body .km-reply-prefix{color:#72a0c8;font-weight:400;white-space:normal;overflow-wrap:anywhere}
+.km-comment-body p{line-height:1.65}
