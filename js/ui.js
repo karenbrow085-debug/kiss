@@ -109,7 +109,7 @@ const switchScreen = (targetId) => {
     // 控制全局底栏显示与状态
     const globalNav = document.getElementById('global-bottom-nav');
     if (globalNav) {
-        if (targetId === 'chat-list-screen' || targetId === 'contacts-screen' || targetId === 'more-screen' || targetId === 'phone-screen' || targetId.startsWith('kiss-moments-')) {
+        if (targetId === 'chat-list-screen' || targetId === 'contacts-screen' || targetId === 'more-screen' || targetId === 'phone-screen' || targetId === 'kiss-moments-feed') {
             globalNav.style.display = 'flex';
             // 更新选中状态
             const navItems = globalNav.querySelectorAll('.nav-item');

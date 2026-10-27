@@ -196,6 +196,7 @@ async function checkAutoReply() {
     const now = Date.now();
     for (const char of db.characters) {
         if (char.autoReply && char.autoReply.enabled) {
+            if(window.KissClock?.isQuiet(char,'chat',new Date(now)))continue;
             const intervalMs = (char.autoReply.interval || 60) * 60 * 1000;
             const lastTriggerTime = char.autoReply.lastTriggerTime || 0;
             
