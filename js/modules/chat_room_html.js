@@ -163,6 +163,10 @@ const chatRoomHtml = `
                         </div>
                         <span class="expansion-item-name">TA相册</span>
                     </div>
+                    <div class="expansion-item" id="message-multi-btn" role="button" tabindex="0" aria-label="多选">
+                        <div class="expansion-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="5" rx="1"/><path d="m4 6 1 1 2-2M12 6h9M12 17h9"/><rect x="3" y="14" width="5" height="5" rx="1"/></svg></div>
+                        <span class="expansion-item-name">多选</span>
+                    </div>
                     <div class="expansion-item" id="capture-btn">
                         <div class="expansion-item-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
@@ -236,8 +240,9 @@ const chatRoomHtml = `
 
         
         <div id="multi-select-bar"><span id="select-count">已选择 0 项</span>
-            <button class="btn btn-danger" id="delete-selected-btn" style="width: auto; padding: 8px 16px;">删除已选
+            <button class="btn btn-danger" id="delete-selected-btn" style="width: auto; padding: 8px 16px;">删除
             </button>
+            <button class="btn kc-collect-selected" id="collect-selected-btn" type="button" disabled>收藏</button>
         </div>
         <div id="capture-mode-bar">
             <span id="capture-select-count">已选择 0 项</span>

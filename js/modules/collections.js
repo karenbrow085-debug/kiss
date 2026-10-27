@@ -15,14 +15,22 @@ async function stable(value,seen=new WeakMap()){
 }
 const audit=(title,detail)=>window.KissDiagnostics?.record({app:'status',feature:'收藏',title,detail:JSON.stringify(detail),phase:'end'});
 const jobs=new Set();
-async function save(c,type,item,actor=SELF){
+async function save(c,type,item,actor=SELF,options={}){
  if(!c||!chars().includes(c)||!['chat','status'].includes(type)||type==='chat'&&!allowedMessage(item)||type==='status'&&!item?.html)return null;if(actor!==SELF&&String(actor)!==String(c.id))throw Error('不能代其他角色收藏');
  const a=account(),aid=accountId(),key=sourceKey(type,item),job=[aid,c.id,type,key,actor].join('/');if(jobs.has(job))return null;if(has(c,type,item,actor))return a.items.find(x=>x.roleId===String(c.id)&&x.sourceKey===key&&x.savedBy===String(actor));jobs.add(job);
  try{let snapshot=structuredClone(item);if(type==='chat'){for(const part of snapshot.parts||[])if(part.type==='html'&&typeof part.text==='string'&&typeof processTemplate==='function')part.text=processTemplate(part.text,c);const sticker=String(item.content||'').match(/\[.*?(?:的表情包|发送的表情包)[：:]([^\]]+)\]/);if(sticker&&!snapshot.stickerData){const found=(db.myStickers||[]).find(x=>x.name===sticker[1].trim());if(found)snapshot.stickerData=found.data||found.url||'';}}if(type==='status')snapshot={...snapshot,html:typeof processTemplate==='function'?processTemplate(item.html,c):item.html};snapshot=await stable(snapshot);
  const identity=await stable({senderName:type==='chat'&&item.role==='user'?(c.myName||person()?.name||'我'):name(c),senderAvatar:type==='chat'&&item.role==='user'?(c.myAvatar||person()?.avatar||''):c.avatar||'',roleName:name(c),roleAvatar:c.avatar||''});
  if(aid!==accountId()||!chars().includes(c)||window.kissCleanupLocked)throw Error('身份或数据已变化，请重新收藏');
- const row={id:crypto.randomUUID(),roleId:String(c.id),type,sourceKey:key,savedBy:String(actor),savedAt:Date.now(),archiveId:c.activeArchiveId||null,...identity,snapshot};a.items.push(row);try{await saveData();}catch(error){a.items=a.items.filter(x=>x!==row);throw error;}audit('已收藏',{role:c.id,type,savedBy:actor,id:row.id});refresh();return row;
+ const row={id:crypto.randomUUID(),roleId:String(c.id),type,sourceKey:key,savedBy:String(actor),savedAt:Date.now(),archiveId:c.activeArchiveId||null,...identity,snapshot};if(options.prepareOnly)return row;a.items.push(row);try{await saveData();}catch(error){a.items=a.items.filter(x=>x!==row);throw error;}audit('已收藏',{role:c.id,type,savedBy:actor,id:row.id});refresh();return row;
  }finally{jobs.delete(job);}
+}
+async function saveMany(c,messages,guard=()=>true){
+ const a=account(),aid=accountId(),archive=c?.activeArchiveId;if(!c||!chars().includes(c))throw Error('角色已变化，请重新选择');const unique=new Map();for(const message of messages)if(allowedMessage(message))unique.set(sourceKey('chat',message),message);
+ const prepared=[];let skipped=0;for(const message of unique.values()){if(has(c,'chat',message)){skipped++;continue;}const row=await save(c,'chat',structuredClone(message),SELF,{prepareOnly:true});if(row)prepared.push(row);}
+ if(aid!==accountId()||!chars().includes(c)||c.activeArchiveId!==archive||!guard())throw Error('选择或聊天已变化，本次未收藏');
+ const added=prepared.filter(row=>!a.items.some(x=>x.roleId===row.roleId&&x.type==='chat'&&x.savedBy===SELF&&x.sourceKey===row.sourceKey));skipped+=prepared.length-added.length;a.items.push(...added);
+ try{if(added.length)await saveData();}catch(error){const ids=new Set(added.map(x=>x.id));a.items=a.items.filter(x=>!ids.has(x.id));throw error;}
+ audit('多选收藏完成',{role:c.id,added:added.length,skipped});refresh();return {added:added.length,skipped};
 }
 async function remove(id){const a=account(),row=a.items.find(x=>x.id===id);if(!row)return;const index=a.items.indexOf(row);a.items.splice(index,1);try{await saveData();}catch(error){if(!a.items.includes(row))a.items.splice(Math.min(index,a.items.length),0,row);throw error;}refresh();}
 async function toggleMessage(c,m){if(!allowedMessage(m))return;const existing=account().items.find(x=>x.roleId===String(c.id)&&x.type==='chat'&&x.sourceKey===sourceKey('chat',m)&&x.savedBy===SELF);if(existing){await remove(existing.id);showToast('已取消收藏');}else{await save(c,'chat',m);showToast('已收藏聊天消息');}}
@@ -72,9 +80,27 @@ async function click(e){const b=e.target.closest('[data-kc]');if(!b)return;const
  if(action==='voice'){b.parentElement.querySelector('.kc-voice-text').hidden=!b.parentElement.querySelector('.kc-voice-text').hidden;return;}
  if(action==='full-status'&&row){sheet('收藏的状态','<iframe class="kc-status-full" sandbox="allow-scripts" title="完整收藏状态"></iframe>');modal.querySelector('iframe').srcdoc=row.snapshot.html;return;}
  }catch(error){b.disabled=false;showToast(error.message||'操作失败');}}
+// The existing multi-select mode now offers both delete and save, from one tool.
+let multiContext=null,bulkBusy=false;
+function selectedRows(){const c=char(typeof currentChatId==='undefined'?'':currentChatId);if(!c)return [];const ids=new Set([...selectedMessageIds].map(String));return (c.history||[]).filter(m=>ids.has(String(m.id))&&allowedMessage(m));}
+function syncMulti(){const b=document.getElementById('collect-selected-btn');if(!b)return;const active=typeof isInMultiSelectMode!=='undefined'&&isInMultiSelectMode&&typeof currentMultiSelectMode!=='undefined'&&currentMultiSelectMode==='delete';b.hidden=typeof currentChatType==='undefined'||currentChatType!=='private';b.disabled=!active||bulkBusy||selectedRows().length===0;if(active){const remove=document.getElementById('delete-selected-btn'),count=document.getElementById('select-count');if(remove)remove.disabled=bulkBusy||selectedMessageIds.size===0;if(count)count.textContent='已选择 '+selectedMessageIds.size+' 项';}}
+const enterOriginal=window.enterMultiSelectMode,selectOriginal=window.toggleMessageSelection,exitOriginal=window.exitMultiSelectMode;
+if(typeof enterOriginal==='function')window.enterMultiSelectMode=function(id,mode='delete'){const result=enterOriginal(id,mode);multiContext={chatId:currentChatId,type:currentChatType,archive:char(currentChatId)?.activeArchiveId,account:accountId()};syncMulti();return result;};
+if(typeof selectOriginal==='function')window.toggleMessageSelection=function(id){const result=selectOriginal(id);syncMulti();return result;};
+if(typeof exitOriginal==='function')window.exitMultiSelectMode=function(...args){multiContext=null;const result=exitOriginal(...args);syncMulti();return result;};
+async function collectSelected(){
+ if(bulkBusy||!multiContext)return;const token=multiContext,c=char(token.chatId),rows=selectedRows();if(!rows.length)return showToast('请先选择可收藏的消息');const ids=[...selectedMessageIds].map(String).sort().join('|');
+ const valid=()=>multiContext===token&&currentChatType==='private'&&String(currentChatId)===String(token.chatId)&&accountId()===token.account&&c?.activeArchiveId===token.archive&&[...selectedMessageIds].map(String).sort().join('|')===ids;
+ bulkBusy=true;const button=document.getElementById('collect-selected-btn'),deleteButton=document.getElementById('delete-selected-btn');if(button){button.disabled=true;button.textContent='收藏中';}if(deleteButton)deleteButton.disabled=true;
+ try{const result=await saveMany(c,rows,valid);if(valid())exitMultiSelectMode();showToast(result.added?'已收藏 '+result.added+' 条'+(result.skipped?'，已跳过重复项':''):'所选消息已收藏');}
+ catch(error){showToast(error.message||'收藏失败，原消息保留');}
+ finally{bulkBusy=false;if(button)button.textContent='收藏';if(deleteButton)deleteButton.disabled=selectedMessageIds.size===0;syncMulti();}
+}
+document.addEventListener('click',event=>{const tool=event.target.closest?.('#message-multi-btn');if(tool){event.preventDefault();event.stopImmediatePropagation();if(typeof showPanel==='function')showPanel('none');enterMultiSelectMode(null,'delete');return;}if(event.target.closest?.('#collect-selected-btn')){event.preventDefault();event.stopImmediatePropagation();void collectSelected();}},true);
+document.addEventListener('keydown',event=>{if(event.target.id==='message-multi-btn'&&(event.key==='Enter'||event.key===' ')){event.preventDefault();event.target.click();}});
 // One menu entry, compatible with the original menu and the unified menu renderer.
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-ku="tool:star"],.menu-item[data-action="star"]')){e.preventDefault();e.stopImmediatePropagation();void open();}},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal)closeModal();});
 const original=window.generatePrivateSystemPrompt;if(typeof original==='function')window.generatePrivateSystemPrompt=function(c){return original(c)+prompt(c);};
-window.KissCollections={open,save,remove,has,allowedMessage,toggleMessage,toggleStatus,consume,prompt,migrate,sourceKey,_test:{account,accountId,visibleRows,sourceKey,hash}};
+window.KissCollections={open,save,saveMany,remove,has,allowedMessage,toggleMessage,toggleStatus,consume,prompt,migrate,sourceKey,_test:{account,accountId,visibleRows,sourceKey,hash,syncMulti,collectSelected}};
 })();
