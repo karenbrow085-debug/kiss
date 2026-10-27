@@ -63,6 +63,7 @@ function handleMessageLongPress(messageWrapper, x, y) {
         }
     });
 
+    if (currentChatType === 'private' && window.KissCollections?.allowedMessage(message)) menuItems.push({label: window.KissCollections.has(chat,'chat',message) ? '取消收藏' : '收藏', action: () => window.KissCollections.toggleMessage(chat,message).catch(e => showToast(e.message || '收藏失败'))});
     menuItems.push({label: '删除', action: () => enterMultiSelectMode(messageId)});
     menuItems.push({label: '从这里创建分支', action: () => createBranchArchiveAtMessage(messageId)});
 

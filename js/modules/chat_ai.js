@@ -795,6 +795,8 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             fullResponse = fullResponse.substring(lastThinkingIndex + 11);
         }
 
+        if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat);
+
         // --- 朋友圈指令解析 ---
         const momentPostWithImageRegex = /\[(.*?)\s*发布了一条带图动态[：:](.*?)\|([\s\S]+?)\]/;
         const momentPostRegex = /\[(.*?)\s*发布了一条动态[：:]([\s\S]+?)\]/;
