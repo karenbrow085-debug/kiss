@@ -76,3 +76,5 @@
 #storage-analysis-screen #storage-persistence-container button[style]{color:#fff!important}
 #storage-analysis-screen #storage-persistence-container div[style*="font-weight"]{font-size:12px!important;font-weight:500!important;color:#333!important}
 #storage-analysis-screen #storage-persistence-container div[style*="font-size: 0.8rem"]{font-size:10px!important;font-weight:400!important}
+
+.kt-suggestions{overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}.kt-suggestions button{flex-shrink:0!important;touch-action:pan-x!important}.kt-suggestions img{pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
