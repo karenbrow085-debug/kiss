@@ -4745,3 +4745,12 @@ textarea.forum-input{resize:vertical;min-height:64px}.forum-input:focus,.forum-p
 #forumPage .mono-friend-detail-card .mt-voice,#forumPage .mono-friend-detail-card .mt-link,#forumPage .mono-friend-detail-card .mt-location{border-radius:9px;box-shadow:none}
 #forumPage .mono-friend-detail-card .mt-card p{font-size:13px;font-weight:400;line-height:1.65}
 #forumPage .mono-friend-detail-card .mt-card strong{font-size:14px;font-weight:550}
+/* MONO timestamp and restrained footer; no blue avatar outlines. */
+#forumPage .mono-friend-detail-card .mono-x-detail-author>.mono-x-avatar-button{border:0!important;outline:0!important;padding:0!important;box-shadow:none!important}
+#forumPage .mono-x-avatar,#forumPage .mono-x-avatar-button,#forumPage .mt-typed-post .mono-x-avatar,#forumPage .mono-x-quote-avatar,.mt-editor .mt-editor-author>img{border:0!important;outline:0!important;box-shadow:none!important;padding:0!important}
+#forumPage .mono-friend-detail-card .mono-detail-device{display:block;font-size:10.5px;color:#5794b6;line-height:1.4;margin-top:5px}
+#forumPage .mono-friend-detail-card>.mono-x-time{display:flex;align-items:center;flex-wrap:wrap;column-gap:5px;row-gap:3px;margin:16px 0 8px!important;padding:0!important;color:#8d969e;font-size:11px!important;line-height:1.6;font-weight:500;font-variant-numeric:tabular-nums}
+#forumPage .mono-friend-detail-card>.mono-x-time time{white-space:nowrap}#forumPage .mono-friend-detail-card>.mono-x-time b{font-size:11px;color:#303840;font-weight:650}.mono-meta-dot{color:#a9afb5}
+#forumPage .mono-friend-detail-card>.mono-x-actions{margin-top:12px!important;padding:13px 0 4px!important;border-top:1px solid #eef0f2!important;min-height:39px!important}
+.phone-screen .forum-dm-chat .mono-sticker-suggestions{overflow-x:auto!important;overflow-y:hidden!important;min-width:0;max-width:calc(100% - 20px);overscroll-behavior-x:contain;touch-action:pan-x!important;scrollbar-width:thin}
+.mono-sticker-suggestions button{flex-shrink:0!important;touch-action:pan-x!important}.mono-sticker-suggestions img{pointer-events:none;user-select:none;-webkit-user-select:none}
