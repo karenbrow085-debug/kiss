@@ -375,7 +375,7 @@ function renderChatList() {
             } else {
                 invisibleRegex = /\[.*?(?:接收|退回).*?的转账\]|\[.*?更新状态为：.*?\]|\[.*?已接收礼物\]|\[system:.*?\]|\[.*?邀请.*?加入了群聊\]|\[.*?修改群名为：.*?\]|\[system-display:.*?\]/;
             }
-            const visibleHistory = chat.history.filter(msg => !invisibleRegex.test(msg.content));
+            const visibleHistory = chat.history.filter(msg => !msg.offlineNarrative && !msg.offlineSessionId && !msg.offlineArchiveId && !msg.offlineBoundary && !msg.offlineHidden && !invisibleRegex.test(msg.content));
             if (visibleHistory.length > 0) {
                 const lastMsg = visibleHistory[visibleHistory.length - 1];
                 const urlRegex = /^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)|data:image\/[a-z]+;base64,)/i;
