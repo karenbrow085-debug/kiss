@@ -1,5 +1,27 @@
 // --- SillyTavern 玩家认证模块 (js/modules/st_unlock.js) ---
 
+let stUnlockImportTarget = 'character-card-input';
+const stUnlockScope = targetId => targetId === 'pt-import-file' ? 'preset' : 'character';
+const stUnlockFlag = scope => scope === 'preset' ? 'stPresetUnlocked' : 'stUnlocked';
+const stUnlockPrefix = scope => scope === 'preset' ? 'st_preset_unlock_' : 'st_unlock_';
+function requestStImportUnlock(targetId = 'character-card-input') {
+    if (!['character-card-input', 'pt-import-file'].includes(targetId)) return;
+    if (document.getElementById('st-unlock-verify-btn')?.disabled) return;
+    stUnlockImportTarget = targetId;
+    if (db[stUnlockFlag(stUnlockScope(targetId))] === true) {
+        stUnlockImportTarget = 'character-card-input';
+        document.getElementById(targetId)?.click();
+        return;
+    }
+    const modal = document.getElementById('st-unlock-modal');
+    if (!modal) { showToast('认证模块未加载，请刷新后重试'); return; }
+    const keyInput = document.getElementById('st-unlock-key-input');
+    if (keyInput) keyInput.value = '';
+    const heading = modal.querySelector('h3');
+    if (heading) heading.textContent = stUnlockScope(targetId) === 'preset' ? '酒馆预设导入认证' : '酒馆角色卡导入认证';
+    modal.classList.add('visible');
+}
+
 function setupStUnlock() {
     const modal = document.getElementById('st-unlock-modal');
     const imageInput = document.getElementById('st-unlock-image-input');
@@ -16,7 +38,7 @@ function setupStUnlock() {
 
         try {
             showToast('正在制作认证卡...');
-            await generateUnlockCard(file);
+            await generateUnlockCard(file, stUnlockScope(stUnlockImportTarget));
             showToast('认证卡已生成并下载，请导入酒馆获取密钥');
         } catch (error) {
             console.error('生成认证卡失败:', error);
@@ -27,17 +49,29 @@ function setupStUnlock() {
 
     // 第二步：验证密钥
     verifyBtn.addEventListener('click', async () => {
+        if (verifyBtn.disabled) return;
         const key = keyInput.value.trim();
         if (!key) return showToast('请输入密钥');
 
-        const result = verifyUnlockKey(key);
+        const targetId = stUnlockImportTarget;
+        const scope = stUnlockScope(targetId), flag = stUnlockFlag(scope);
+        const result = verifyUnlockKey(key, scope);
         if (result === true) {
-            db.stUnlocked = true;
-            await saveData();
-            showToast('🎉 认证成功！已永久解锁导入功能');
+            const previous = db[flag];
+            db[flag] = true;
+            verifyBtn.disabled = true;
+            try { await saveData(); }
+            catch (error) {
+                db[flag] = previous;
+                showToast('认证状态保存失败，请重新制作认证卡后重试：' + error.message);
+                return;
+            } finally { verifyBtn.disabled = false; }
+            showToast(scope === 'preset' ? '酒馆预设导入已解锁' : '酒馆角色卡导入已解锁');
             modal.classList.remove('visible');
             // 自动触发真正的导入
-            document.getElementById('character-card-input').click();
+            stUnlockImportTarget = 'character-card-input';
+            document.dispatchEvent(new Event('st-import-unlocked'));
+            document.getElementById(targetId)?.click();
         } else if (result === 'expired') {
             showToast('⏰ 认证卡已过期（超过3分钟），请重新生成');
         } else {
@@ -46,6 +80,8 @@ function setupStUnlock() {
     });
 
     cancelBtn.addEventListener('click', () => {
+        if (verifyBtn.disabled) return;
+        stUnlockImportTarget = 'character-card-input';
         modal.classList.remove('visible');
     });
 }
@@ -53,15 +89,16 @@ function setupStUnlock() {
 /**
  * 生成认证角色卡 PNG
  */
-async function generateUnlockCard(file) {
+async function generateUnlockCard(file, scope = 'character') {
+    const prefix = stUnlockPrefix(scope);
     // 1. 生成随机凭证
     const uuid = 'UwU_' + Math.random().toString(36).substr(2, 9);
     const randomName = 'UwU_Unlocker_' + Math.floor(Math.random() * 1000);
-    
+
     // 存入临时缓存用于验证
-    localStorage.setItem('st_unlock_uuid', uuid);
-    localStorage.setItem('st_unlock_name', randomName);
-    localStorage.setItem('st_unlock_time', Date.now().toString());
+    localStorage.setItem(prefix + 'uuid', uuid);
+    localStorage.setItem(prefix + 'name', randomName);
+    localStorage.setItem(prefix + 'time', Date.now().toString());
 
     // 2. 构造角色卡数据 (V3 格式)
     const unlockHtml = "```html\n" + `<!DOCTYPE html>
@@ -88,7 +125,7 @@ function generateUwUKey() {
     const rawMacro = "{" + "{" + "char" + "}" + "}";
     const output = document.getElementById('uwu-key-output');
     const btn = document.getElementById('uwu-gen-btn');
-    
+
     if (stChar === rawMacro) {
         output.style.display = 'block';
         output.style.color = '#ff4d4f';
@@ -100,7 +137,7 @@ function generateUwUKey() {
     const uuid = "${uuid}";
     // 生成密钥：UUID | 角色名
     const secret = btoa(uuid + "|" + stChar);
-    
+
     output.style.display = 'block';
     output.style.color = '#00ff00';
     output.innerText = secret;
@@ -116,7 +153,7 @@ function generateUwUKey() {
             }, 2000);
         });
     }
-    
+
     // 自动选中作为备选
     const range = document.createRange();
     range.selectNode(output);
@@ -176,31 +213,32 @@ function generateUwUKey() {
 /**
  * 验证密钥
  */
-function verifyUnlockKey(key) {
+function verifyUnlockKey(key, scope = 'character') {
+    const prefix = stUnlockPrefix(scope);
     try {
         const decoded = atob(key);
         const [uuid, charName] = decoded.split('|');
-        
-        const savedUuid = localStorage.getItem('st_unlock_uuid');
-        const savedName = localStorage.getItem('st_unlock_name');
-        const savedTime = localStorage.getItem('st_unlock_time');
+
+        const savedUuid = localStorage.getItem(prefix + 'uuid');
+        const savedName = localStorage.getItem(prefix + 'name');
+        const savedTime = localStorage.getItem(prefix + 'time');
 
         if (!savedUuid || !savedName || !savedTime) return false;
 
         // 检查是否过期 (3分钟 = 180000ms)
         const now = Date.now();
         if (now - parseInt(savedTime) > 180000) {
-            localStorage.removeItem('st_unlock_uuid');
-            localStorage.removeItem('st_unlock_name');
-            localStorage.removeItem('st_unlock_time');
+            localStorage.removeItem(prefix + 'uuid');
+            localStorage.removeItem(prefix + 'name');
+            localStorage.removeItem(prefix + 'time');
             return 'expired';
         }
 
         // 验证 UUID 是否匹配，且角色名是否被酒馆正确替换（不等于原始宏）
         if (uuid === savedUuid && charName === savedName) {
-            localStorage.removeItem('st_unlock_uuid');
-            localStorage.removeItem('st_unlock_name');
-            localStorage.removeItem('st_unlock_time');
+            localStorage.removeItem(prefix + 'uuid');
+            localStorage.removeItem(prefix + 'name');
+            localStorage.removeItem(prefix + 'time');
             return true;
         }
     } catch (e) {
@@ -214,7 +252,7 @@ function verifyUnlockKey(key) {
  */
 function injectCharaToPng(pngBuffer, jsonData) {
     const view = new DataView(pngBuffer);
-    
+
     // 验证 PNG 签名
     if (view.getUint32(0) !== 0x89504E47 || view.getUint32(4) !== 0x0D0A1A0A) {
         throw new Error('无效的 PNG 文件');
@@ -243,7 +281,7 @@ function injectCharaToPng(pngBuffer, jsonData) {
     // 插入位置：IHDR 块之后 (PNG Signature 8 + IHDR Chunk 12 + 13 = 33)
     // 标准 IHDR 长度是 13，加上 12 字节的 chunk 结构 = 25。8 + 25 = 33。
     const insertPos = 33;
-    
+
     const result = new Uint8Array(pngBuffer.byteLength + newChunk.length);
     result.set(new Uint8Array(pngBuffer.slice(0, insertPos)), 0);
     result.set(newChunk, insertPos);

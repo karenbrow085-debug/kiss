@@ -349,7 +349,7 @@ async function handleExport() {
                 'globalReceiveSound', 'multiMsgSoundEnabled', 'soundPresets', 'galleryPresets', 
                 'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint', 'workshopSettings', 
                 'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder', 'homeLayoutPages', 
-                'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stickerMatchSettings',
+                'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stPresetUnlocked', 'stickerMatchSettings',
                     'homePresets', 'activeHomePresetId', 'homePresetUndo'
             ];
             settingsKeys.forEach(key => {

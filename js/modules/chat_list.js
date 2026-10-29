@@ -8,7 +8,7 @@ function setupChatListScreen() {
     if (typeof setupShopSystem === 'function') {
         setupShopSystem();
     }
-    
+
     // 绑定旧按钮事件 (如果存在)
     const addChatBtn = document.getElementById('add-chat-btn');
     if(addChatBtn) {
@@ -43,21 +43,11 @@ function setupChatListScreen() {
     const cardInput = document.getElementById('character-card-input');
     if (importBtnKkt) {
         importBtnKkt.addEventListener('click', () => {
-            // 检查是否已解锁 SillyTavern 认证
-            if (db.stUnlocked) {
-                cardInput.click();
-            } else {
-                const unlockModal = document.getElementById('st-unlock-modal');
-                if (unlockModal) {
-                    unlockModal.classList.add('visible');
-                } else {
-                    // 如果模态框不存在（可能还没加载），回退到直接导入
-                    cardInput.click();
-                }
-            }
+            if (typeof requestStImportUnlock === 'function') requestStImportUnlock('character-card-input');
+            else showToast('认证模块未加载，请刷新后重试');
         });
     }
-    
+
     cardInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -73,10 +63,10 @@ function setupChatListScreen() {
             currentChatId = chatItem.dataset.id;
             currentChatType = chatItem.dataset.type;
 
-            const chat = (currentChatType === 'private') 
-                ? db.characters.find(c => c.id === currentChatId) 
+            const chat = (currentChatType === 'private')
+                ? db.characters.find(c => c.id === currentChatId)
                 : db.groups.find(g => g.id === currentChatId);
-            
+
             if (chat) {
                 updateCustomBubbleStyle(currentChatId, chat.customBubbleCss, chat.useCustomBubbleCss);
             }
@@ -101,7 +91,7 @@ function setupChatListScreen() {
     });
     chatListContainer.addEventListener('touchend', () => clearTimeout(longPressTimer));
     chatListContainer.addEventListener('touchmove', () => clearTimeout(longPressTimer));
-    
+
     setupFolderManagement();
     setupImportConfirmModal();
 }
@@ -115,7 +105,7 @@ function setupFolderManagement() {
     const cancelBtn = document.getElementById('folder-cancel-btn');
 
     window.openCreateFolderModal = () => {
-        currentFolderActionTarget = null; 
+        currentFolderActionTarget = null;
         document.getElementById('folder-modal-title').textContent = '新建文件夹';
         folderNameInput.value = '';
         deleteBtn.style.display = 'none';
@@ -125,8 +115,8 @@ function setupFolderManagement() {
     window.openEditFolderModal = (folderId) => {
         const folder = db.chatFolders.find(f => f.id === folderId);
         if (!folder) return;
-        
-        currentFolderActionTarget = folderId; 
+
+        currentFolderActionTarget = folderId;
         document.getElementById('folder-modal-title').textContent = '管理文件夹';
         folderNameInput.value = folder.name;
         deleteBtn.style.display = 'block';
@@ -150,7 +140,7 @@ function setupFolderManagement() {
             db.chatFolders.push(newFolder);
             showToast('文件夹已创建');
         }
-        
+
         await saveData();
         renderChatFolders();
         folderModal.classList.remove('visible');
@@ -160,17 +150,17 @@ function setupFolderManagement() {
         if (!currentFolderActionTarget) return;
         if (confirm('确定删除此文件夹吗？其中的聊天不会被删除，将归入"全部"列表。')) {
             db.chatFolders = db.chatFolders.filter(f => f.id !== currentFolderActionTarget);
-            
+
             db.characters.forEach(c => { if (c.folderId === currentFolderActionTarget) delete c.folderId; });
             db.groups.forEach(g => { if (g.folderId === currentFolderActionTarget) delete g.folderId; });
-            
+
             if (currentFolderId === currentFolderActionTarget) {
                 currentFolderId = 'all';
             }
 
             await saveData();
             renderChatFolders();
-            renderChatList(); 
+            renderChatList();
             folderModal.classList.remove('visible');
             showToast('文件夹已删除');
         }
@@ -186,7 +176,7 @@ function setupFolderManagement() {
     window.openMoveToFolderModal = (chatId, chatType) => {
         chatToMove = { id: chatId, type: chatType };
         folderSelectionList.innerHTML = '';
-        
+
         const removeLi = document.createElement('li');
         removeLi.className = 'list-item';
         removeLi.textContent = '❌ 移出文件夹 (归入全部)';
@@ -215,7 +205,7 @@ function setupFolderManagement() {
             emptyLi.style.textAlign = 'center';
             folderSelectionList.appendChild(emptyLi);
         }
-        
+
         moveFolderModal.classList.add('visible');
     };
 
@@ -225,13 +215,13 @@ function setupFolderManagement() {
         if (!chatToMove) return;
         const { id, type } = chatToMove;
         const chat = (type === 'private') ? db.characters.find(c => c.id === id) : db.groups.find(g => g.id === id);
-        
+
         if (chat) {
             if (folderId) {
                 chat.folderId = folderId;
                 showToast('已移动到文件夹');
             } else {
-                delete chat.folderId; 
+                delete chat.folderId;
                 showToast('已移出文件夹');
             }
             await saveData();
@@ -243,16 +233,16 @@ function setupFolderManagement() {
 function renderChatFolders() {
     const container = document.getElementById('chat-category-tabs');
     if (!container) return;
-    
-    container.innerHTML = ''; 
+
+    container.innerHTML = '';
 
     const allTab = document.createElement('div');
     allTab.className = `tab-item ${currentFolderId === 'all' ? 'active pill-black' : 'pill-white'}`;
     allTab.textContent = 'All';
     allTab.onclick = () => {
         currentFolderId = 'all';
-        renderChatFolders(); 
-        renderChatList();    
+        renderChatFolders();
+        renderChatList();
     };
     container.appendChild(allTab);
 
@@ -261,7 +251,7 @@ function renderChatFolders() {
             const tab = document.createElement('div');
             tab.className = `tab-item ${currentFolderId === folder.id ? 'active pill-black' : 'pill-white'}`;
             tab.textContent = folder.name;
-            
+
             tab.onclick = () => {
                 currentFolderId = folder.id;
                 renderChatFolders();
@@ -277,7 +267,7 @@ function renderChatFolders() {
                 pressTimer = setTimeout(() => window.openEditFolderModal(folder.id), 500);
             });
             tab.addEventListener('touchend', () => clearTimeout(pressTimer));
-            
+
             container.appendChild(tab);
         });
     }
@@ -340,7 +330,7 @@ function handleChatListLongPress(chatId, chatType, x, y) {
 function renderChatList() {
     const chatListContainer = document.getElementById('chat-list-container');
     chatListContainer.innerHTML = '';
-    
+
     if (document.getElementById('chat-category-tabs').children.length === 0) {
         renderChatFolders();
     }
@@ -349,7 +339,7 @@ function renderChatList() {
         ...g,
         type: 'group'
     }))];
-    
+
     let filteredChats;
     if (currentFolderId === 'all') {
         filteredChats = allChats.filter(chat => !chat.folderId);
@@ -358,14 +348,14 @@ function renderChatList() {
     }
 
     document.getElementById('no-chats-placeholder').style.display = filteredChats.length === 0 ? 'block' : 'none';
-    
+
     const sortedChats = filteredChats.sort((a, b) => {
         if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
         const lastMsgTimeA = a.history && a.history.length > 0 ? a.history[a.history.length - 1].timestamp : 0;
         const lastMsgTimeB = b.history && b.history.length > 0 ? b.history[b.history.length - 1].timestamp : 0;
         return lastMsgTimeB - lastMsgTimeA;
     });
-    
+
     sortedChats.forEach(chat => {
         let lastMessageText = '开始聊天吧...';
         if (chat.history && chat.history.length > 0) {
@@ -406,7 +396,7 @@ function renderChatList() {
                     if (plainTextMatch && plainTextMatch[1]) {
                         text = plainTextMatch[1].trim();
                     }
-                    text = text.replace(/\[发送时间:.*?\]$/, '').trim(); 
+                    text = text.replace(/\[发送时间:.*?\]$/, '').trim();
                     const htmlRegex = /<[a-z][\s\S]*>/i;
                     if (htmlRegex.test(text)) {
                         lastMessageText = '[互动]';
@@ -430,7 +420,7 @@ function renderChatList() {
                     } else {
                     lastMessageText = 'ta正在等你';
                 }
-                
+
             }
         }
         const li = document.createElement('li');
@@ -441,7 +431,7 @@ function renderChatList() {
         const avatarClass = chat.type === 'group' ? 'group-avatar' : '';
         const itemName = chat.type === 'private' ? chat.remarkName : chat.name;
         const pinBadgeHTML = chat.isPinned ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="color: #999; margin-left: 4px; flex-shrink: 0;"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" /></svg>' : '';
-        
+
         let timeString = '';
         const lastMessage = chat.history && chat.history.length > 0 ? chat.history[chat.history.length - 1] : null;
         if (lastMessage) {

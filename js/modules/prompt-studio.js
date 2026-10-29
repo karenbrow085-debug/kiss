@@ -13,6 +13,15 @@ function state() {
     if (!db.tavernSettings || typeof db.tavernSettings !== 'object') db.tavernSettings = { enabled: false, activePresetId: null, groupIndex: 0 };
     return { presets: db.tavernPresets, settings: db.tavernSettings };
 }
+function needsMainOrder(p) {
+    const groups=E.groupList(p);
+    return groups.length>0&&(groups.length!==1||String(groups[0].character_id)!=='100001'||p.groupIndex!==0);
+}
+function keepMainOrder(p) {
+    const groups=E.groupList(p);if(!groups.length)return;
+    const selected=groups.find(g=>String(g.character_id)==='100001')||groups[p.groupIndex||0]||groups[0];
+    p.data.prompt_order=[{...selected,character_id:100001}];p.groupIndex=0;
+}
 function active() { const s=state(); return s.presets.find(p=>p.id===s.settings.activePresetId) || null; }
 function group(p) { return Number.isInteger(p?.groupIndex) ? p.groupIndex : 0; }
 async function commit(change) {
@@ -87,23 +96,19 @@ function updateOrders(record, transform) {
 }
 function currentRecordName() {return active()?.name||'未选择预设';}
 async function importFiles(files) {
+    if(db.stPresetUnlocked!==true)throw Error('请先完成 SillyTavern 玩家认证，再导入酒馆预设');
     const imported=[];
-    for(const f of files){if(f.size>12*1024*1024)throw Error('单个预设不能超过 12 MB');const p=E.importPreset(await f.text(),f.name.replace(/\.json$/i,''));p.id=uid();p.groupIndex=Math.max(0,(p.data.prompt_order||[]).findIndex(g=>String(g.character_id)==='100001'));imported.push(p);}
+    for(const f of files){if(f.size>12*1024*1024)throw Error('单个预设不能超过 12 MB');const p=E.importPreset(await f.text(),f.name.replace(/\.json$/i,''));p.id=uid();keepMainOrder(p);imported.push(p);}
     if(!imported.length)return;
     await commit(s=>{s.presets.push(...imported);s.settings.activePresetId=imported[0].id;s.settings.enabled=false;});
-    toast('已导入 '+imported.length+' 份预设；未自动启用');
+    toast('已导入 '+imported.length+' 份预设');
     showReport(imported[0].id);
 }
 function report(p) {
     const issues=(p.warnings||[]).filter(message=>!message.startsWith('排序引用缺少条目：')&&!message.startsWith('扩展数据将原样保留')&&!message.startsWith('扩展字段完整保留'));
     if(p.format==='chat-completion'){
-        const groups=E.groupList(p), selectedIndex=group(p);
-        const missing=E.orderedPrompts(p,selectedIndex).filter(row=>row.prompt.missing&&row.enabled).map(row=>row.prompt.identifier);
-        issues.push(missing.length?'当前排序方案缺少已启用条目：'+missing.join('、')+'。使用此方案前需补全、停用或移除引用。':'当前排序方案没有缺失的已启用条目引用。');
-        groups.forEach((g,i)=>{
-            const ids=E.orderedPrompts(p,i).filter(row=>row.prompt.missing&&row.enabled).map(row=>row.prompt.identifier);
-            if(i!==selectedIndex&&ids.length)issues.push('其他方案 '+g.character_id+' 缺少条目：'+ids.join('、')+'。不影响当前方案；切换到该方案使用前需处理。');
-        });
+        const missing=E.orderedPrompts(p,group(p)).filter(row=>row.prompt.missing&&row.enabled).map(row=>row.prompt.identifier);
+        if(missing.length)issues.push('缺少已启用条目：'+missing.join('、')+'。使用前需补全、停用或移除引用。');
     }
     if(p.data.extensions&&Object.keys(p.data.extensions).length) issues.push('扩展字段完整保留供导出；第三方脚本、正则插件和酒馆助手不在这里执行。');
     if(p.format!=='chat-completion') issues.push('此文件为文本补全采样器预设：可管理参数和导出，当前 404 对话接口不能按该模板生成。');
@@ -111,16 +116,41 @@ function report(p) {
 }
 function showReport(id) {
     const p=state().presets.find(x=>x.id===id);if(!p)return;
-    dialog('预设信息',a=>{
-        notice(a.body,p.name+'\n'+(p.format==='chat-completion'?'聊天补全预设':'采样参数预设')+' · '+(p.data.prompts?.length||0)+' 个条目 · '+E.groupList(p).length+' 组排序');
-        notice(a.body,'名称、条目、顺序、角色、深度及未知字段会保留。未实现的扩展不会被当作已执行。');
-        const issues=report(p);const last=global.KissTavernRuntime?.lastReport;if(last?.presetId===p.id&&last.warnings?.length){notice(a.body,'最近一次生成的兼容提示：\n'+last.warnings.join('\n'));}notice(a.body,issues.length?issues.join('\n\n'):'基础结构已识别。不同接口对采样参数的支持仍有差异。');
+    const d=dialog('预设信息',a=>{
+        a.body.appendChild(text('div','PRESET / NOTES','pt-info-eyebrow'));
+        a.body.appendChild(text('h3',p.name,'pt-info-title'));
+        a.body.appendChild(text('p',p.format==='chat-completion'?'聊天补全预设':'采样参数预设','pt-info-kind'));
+        const section=text('section','','pt-info-section');section.appendChild(text('h4','保存与导出'));
+        notice(section,'保留条目内容、开关、角色、深度和独立参数。未知字段随文件导出。');a.body.appendChild(section);
+        const issues=report(p);if(issues.length){const section=text('section','','pt-info-section');section.appendChild(text('h4','兼容提示'));issues.forEach(message=>notice(section,message));a.body.appendChild(section);}
+        const last=global.KissTavernRuntime?.lastReport;
+        if(last?.presetId===p.id&&last.warnings?.length){const section=text('section','','pt-info-section');section.appendChild(text('h4','最近一次生成'));last.warnings.forEach(message=>notice(section,message));a.body.appendChild(section);}
     });
+    d?.el.classList.add('pt-info-dialog');
+}
+function showXmlHelp() {
+    const d=dialog('标签说明',a=>{
+        a.body.appendChild(text('div','XML / REFERENCE','pt-info-eyebrow'));
+        a.body.appendChild(text('h3','提示词标签','pt-info-title'));
+        notice(a.body,'默认思维链通过以下标签组织提示词，可在编辑条目时引用。');
+        const tags=[['<char_settings>','角色设定','角色人设及世界书·后；不包含世界书·破限和世界书·前。'],['<user_settings>','用户设定','你的名字及用户人设。'],['<logic_rules>','逻辑规则','表情包、相册及转账、礼物、撤回等交互规则。'],['<output_formats>','输出格式','回复消息的格式规范。'],['<Chatting Guidelines>','对话指南','对话节奏、消息条数及风格建议。'],['<thinking>','思维链','提示词约定的思维链区域，聊天界面会按现有规则处理。']];
+        tags.forEach(([tag,name,description])=>{const section=text('section','','pt-info-section');section.append(text('code',tag),text('h4',name));notice(section,description);a.body.appendChild(section);});
+    });
+    d?.el.classList.add('pt-info-dialog');
+}
+function refreshImportLock() {
+    const button=$('pt-import');if(!button)return;
+    const unlocked=db.stPresetUnlocked===true;
+    button.replaceChildren();
+    if(!unlocked){const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 16 16');icon.setAttribute('aria-hidden','true');icon.classList.add('pt-import-lock');icon.innerHTML='<rect x="3.5" y="7" width="9" height="6.5" rx="1.4"/><path d="M5.5 7V4.5a2.5 2.5 0 0 1 5 0V7"/>';button.appendChild(icon);}
+    button.appendChild(document.createTextNode('导入'));
+    button.setAttribute('aria-label',unlocked?'导入酒馆预设':'导入酒馆预设（需玩家认证）');
 }
 function render() {
+    refreshImportLock();
     const body=$('pt-tavern-body');if(!body)return;
     tavernSort?.destroy();tavernSort=null;body.replaceChildren();
-    const s=state();const filtered=s.presets.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
+    const s=state();if(s.presets.some(needsMainOrder)){if(!busy)commit(next=>next.presets.forEach(keepMainOrder)).catch(error=>{body.replaceChildren(text('div','预设整理未保存：'+error.message,'pt-warning'));action(body,'重试',render);});return;}const filtered=s.presets.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
     $('pt-export').disabled=!active();$('pt-manage').disabled=!s.presets.length;
     if(!s.presets.length){body.appendChild(text('div','尚未导入预设\n导入酒馆 JSON，或新建空白预设。','pt-empty'));return;}
     const wrap=text('div','','pt-preset-select');wrap.appendChild(text('small','JSON / PRESET'));
@@ -132,10 +162,8 @@ function render() {
     const p=active();if(!p)return;
     if(search&&!filtered.some(item=>item.id===p.id)){body.appendChild(text('div','请选择匹配的预设；当前预设未切换。','pt-empty'));return;}
     const tools=text('div','','pt-preset-tools');action(tools,'参数设置',()=>parameters(p.id));action(tools,'预设信息',()=>showReport(p.id));body.appendChild(tools);
-    const groups=E.groupList(p);
-    if(groups.length>1){const row=text('div','','pt-group-select');row.appendChild(text('span','排序方案'));const sel=document.createElement('select');sel.setAttribute('aria-label','排序方案');groups.forEach((g,i)=>{const opt=text('option','方案 '+g.character_id+' · '+(g.count??g.length??g.order?.length??0)+' 项');opt.value=i;sel.appendChild(opt);});sel.value=group(p);sel.addEventListener('change',()=>run(()=>editRecord(p.id,r=>{r.groupIndex=Number(sel.value);})));row.appendChild(sel);body.appendChild(row);}
     if(p.format!=='chat-completion'){body.appendChild(text('div','此格式仅管理、保存和导出参数；不作为聊天补全模板执行。','pt-warning'));return;}
-    const head=text('div','','pt-section-head');const entries=E.orderedPrompts(p,group(p));head.appendChild(text('h2','条目序列 '+entries.length));action(head,'＋ 添加',()=>editItem(p.id));body.appendChild(head);
+    const head=text('div','','pt-section-head');const entries=E.orderedPrompts(p,group(p));head.appendChild(text('h2','条目序列'));action(head,'＋ 添加',()=>editItem(p.id));body.appendChild(head);
     const searchRow=text('div','','pt-search');const input=document.createElement('input');input.type='search';input.placeholder='搜索条目';input.setAttribute('aria-label','搜索条目');input.value=itemSearch;input.addEventListener('input',()=>{itemSearch=input.value;renderItems(p,list);});searchRow.appendChild(input);body.appendChild(searchRow);
     const list=text('div');list.id='pt-st-items';body.appendChild(list);renderItems(p,list);
 }
@@ -149,8 +177,7 @@ function renderItems(p,list) {
     visible.forEach(({prompt:item,enabled},index)=>{
         const row=text('div','','pt-st-row');row.dataset.identifier=item.identifier;
         const grip=action(row,'⠿',()=>moveItem(p.id,item.identifier),'pt-grip');grip.setAttribute('aria-label','移动条目：'+(item.name||item.identifier));
-        row.appendChild(text('span',String(all.findIndex(x=>x.prompt.identifier===item.identifier)+1).padStart(2,'0'),'pt-num'));
-        const button=text('button','','pt-item-open');button.type='button';button.append(text('strong',item.name||item.identifier),text('small',(item.role||'system').toUpperCase()+' · '+(item.marker?'动态插入':Number(item.injection_position)===1?'深度 '+(item.injection_depth??4):'文本')));button.setAttribute('aria-label','编辑条目：'+(item.name||item.identifier));button.onclick=()=>editItem(p.id,item.identifier);row.appendChild(button);
+        const button=text('button','','pt-item-open');button.type='button';button.appendChild(text('strong',item.name||item.identifier));button.setAttribute('aria-label','编辑条目：'+(item.name||item.identifier));button.onclick=()=>editItem(p.id,item.identifier);row.appendChild(button);
         row.appendChild(toggle(enabled,'启用：'+(item.name||item.identifier),checked=>editRecord(p.id,r=>{const order=E.getOrder(r,group(r));const ref=order.find(x=>x.identifier===item.identifier);if(ref)ref.enabled=checked;else order.push({identifier:item.identifier,enabled:checked});E.setOrder(r,order,group(r));})));list.appendChild(row);
     });
     if(!visible.length)list.appendChild(text('div','没有匹配的条目','pt-empty'));
@@ -179,7 +206,7 @@ function editItem(id,identifier) {
         a.depth=a.field('距聊天末尾深度',original?.injection_depth??4,'number');a.depth.min=0;a.depth.max=10000;
         a.order=a.field('同深度插入顺序',original?.injection_order??100,'number');
         a.triggers=a.field('生成时机',original?.injection_trigger?.join(',')||'');notice(a.body,'留空为全部；可填写 normal,continue,regenerate,swipe,impersonate,quiet。动态插入点由当前角色、世界书和记录填入。');
-        if(original)action(a.body,'删除此条目',async()=>{if(!await confirmDialog('删除条目','从此预设及其所有排序方案中删除该条目？'))return;await editRecord(id,r=>{r.data.prompts=r.data.prompts.filter(x=>x.identifier!==identifier);updateOrders(r,refs=>refs.filter(x=>x.identifier!==identifier));});a.close();});
+        if(original)action(a.body,'删除此条目',async()=>{if(!await confirmDialog('删除条目','从此预设中删除该条目？'))return;await editRecord(id,r=>{r.data.prompts=r.data.prompts.filter(x=>x.identifier!==identifier);updateOrders(r,refs=>refs.filter(x=>x.identifier!==identifier));});a.close();});
     },a=>editRecord(id,r=>{
         const name=a.name.value.trim();if(!name)throw Error('请输入条目名称');
         const marker=a.marker.value==='marker',key=marker?a.identifier.value:(original?.marker?uid():identifier||uid());
@@ -255,12 +282,15 @@ async function run(fn){try{await fn();}catch(e){toast(e.message||'操作失败')
 function init() {
     if(!$('pt-tavern-page')||!E)return;
     document.querySelector('#cot-settings-tabs [data-mode=tavern]').onclick=showTavern;
-    $('pt-help').onclick=()=>{if(view==='tavern'){const p=active();if(p)showReport(p.id);else dialog('酒馆预设',a=>notice(a.body,'导入 SillyTavern JSON 后，可编辑条目、调整顺序并设置独立参数。不会内置任何第三方预设。'));}else if(typeof openXmlHelpModal==='function')openXmlHelpModal();};
+    document.querySelector('#cot-settings-screen .pt-close').onclick=e=>{e.stopPropagation();global.switchScreen('more-screen');};
+    $('pt-help').onclick=()=>{if(view==='tavern'){const p=active();if(p)showReport(p.id);else dialog('酒馆预设',a=>notice(a.body,'导入 SillyTavern JSON 后，可编辑条目、调整顺序并设置独立参数。不会内置任何第三方预设。'));}else showXmlHelp();};
     $('pt-preset-search').oninput=e=>{search=e.target.value;render();};
-    $('pt-import').onclick=()=>$('pt-import-file').click();
+    $('pt-import').onclick=()=>{if(typeof global.requestStImportUnlock==='function')global.requestStImportUnlock('pt-import-file');else toast('认证模块未加载，请刷新后重试');};
+    document.addEventListener('st-import-unlocked',refreshImportLock);
+    refreshImportLock();
     $('pt-import-file').onchange=async e=>{try{await importFiles([...e.target.files]);}catch(error){toast('导入失败：'+error.message);}finally{e.target.value='';}};
     $('pt-export').onclick=()=>{const p=active();if(p)download(p);};$('pt-new').onclick=()=>run(createPreset);$('pt-manage').onclick=manage;
 }
-global.KissPromptUI={refreshMode,attachCotSort,destroyCotSort,moveCot,askName,confirmDialog,showTavern,render,parameters,importFiles,commit};
+global.KissPromptUI={refreshMode,attachCotSort,destroyCotSort,moveCot,askName,confirmDialog,showTavern,render,parameters,importFiles,commit,showXmlHelp};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);
