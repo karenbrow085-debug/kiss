@@ -157,7 +157,7 @@ const DEFAULT_COT_PRESETS = [
 ];
 
 const globalSettingKeys = [
-    'offlineStylePresets',
+    'offlineStylePresets', 'tavernPresets', 'tavernSettings',
     'apiSettings', 'wallpaper', 'homeScreenMode', 'fontUrl', 'customIcons',
     'apiPresets', 'bubbleCssPresets', 'myPersonaPresets', 'globalCss',
     'globalCssPresets', 'fontPresets', 'homeSignature', 'insWidgetSettings', 'homeWidgetSettings',
@@ -356,6 +356,8 @@ notes: [
 
 // 全局变量
 var db = {
+    tavernPresets: [],
+    tavernSettings: { enabled: false, activePresetId: null, groupIndex: 0 },
     characters: [],
     groups: [],
     apiSettings: {},
@@ -637,6 +639,8 @@ const loadData = async () => {
 
     globalSettingKeys.forEach(key => {
         const defaultValue = {
+            tavernPresets: [],
+            tavernSettings: { enabled: false, activePresetId: null, groupIndex: 0 },
             stickerMatchSettings: { '404': false, hu: false },
             apiSettings: {},
             wallpaper: 'https://i.postimg.cc/W4Z9R9x4/ins-1.jpg',
@@ -802,6 +806,8 @@ const dataStorage = {
         categorizedSizes.apiAndCore += stringify(db.apiPresets);
         categorizedSizes.apiAndCore += stringify(db.cotSettings);
         categorizedSizes.apiAndCore += stringify(db.cotPresets);
+        categorizedSizes.apiAndCore += stringify(db.tavernPresets);
+        categorizedSizes.apiAndCore += stringify(db.tavernSettings);
         categorizedSizes.apiAndCore += stringify(db.workshopSettings);
         categorizedSizes.apiAndCore += stringify(db.workshopLlmPresets);
 
