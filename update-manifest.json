@@ -1,20 +1,20 @@
 {
   "base_commit": "f06fadec42d9ec6c37b76adb128780375aecc1c0",
   "files": {
-    "index.html": "7eff9007abf07e67e88c7be8234312ee2428830ea08665a50bdf4e88c0755bc5",
-    "css/modules/prompt-studio.css": "8c5dbc137156ecfeca55d13896dad5c13ee08b14af3e822f5892e5e84414e88e",
+    "index.html": "f216ae267e99a1a9ed9aa4a612a1870a391ac15f346e5689016dcd92b7032c7b",
+    "css/modules/prompt-studio.css": "99c323e2297ed4430a54774f1bd95b29a80f4fe307626bd51758bc0f2887a588",
     "js/db.js": "1405bc95be8f087df2ccc70197d41673460a6f3035e51d98a1a55d05d5df102c",
     "js/modules/cot_settings.js": "458057c02f848da26d8e8c278da8d8fd5550317f3c0f85909df3561418ef4da5",
-    "js/modules/prompt-studio.js": "c4d4e02ee7ab184157018b42e8a7e02bc51efeefb86b0bd8087a81a2ba5e35d2",
+    "js/modules/prompt-studio.js": "c76da725ff55bf04d9401e1eba0cf72b7cfa5e47483466427a93832320e711c1",
     "js/modules/tavern-engine.js": "2f2435917d17cb2dfaccfe59a9cad819d455e85c07427ad8ede0b5e1692015a4",
     "js/modules/tavern-runtime.js": "7a2e54066315e54eaf3246fe727f2518eef3a94dd7e85d7d4c3bfcfac878d0c3",
     "js/modules/chat_ai.js": "940a01ca45b4bf4cf8415954be4a23dd84e9e7156c90638faf737a548aa45cce",
     "js/modules/offline.js": "6b17574a396734bb4742b14f943773f8a2ee76c93a8cce4866a104c04bef44e2",
     "js/modules/storage.js": "0d186a3142ecb664e36ce671fdb7df851939ffd6f8983e629092160aef4e64d2",
-    "js/modules/st_unlock.js": "595373b91c1e611f011d193095b67521cb46102abf80be77c5646258d1c12bc0",
+    "js/modules/st_unlock.js": "8122b3706666d27f42aced3611c0c48bc73f6dc44d30f65d9327dde1c784dcd9",
     "js/modules/chat_list.js": "56b81dcb7ba4f5c0e17ba730117ddecc35ced78264535d897deb3e0b1957bf24"
   },
-  "test_count": 72,
+  "test_count": 73,
   "bundled_user_presets": false,
-  "revision": "separate-character-preset-auth-20261030"
+  "revision": "auth-sheet-ui-real-navigation-fix-20261030"
 }

@@ -56,7 +56,7 @@
     <link rel="stylesheet" href="css/modules/shop.css">
     <link rel="stylesheet" href="css/modules/widget_market.css?v=20261024-studio-2">
     <link rel="stylesheet" href="css/modules/cot_settings.css">
-<link rel="stylesheet" href="css/modules/prompt-studio.css?v=20261030-st8">
+<link rel="stylesheet" href="css/modules/prompt-studio.css?v=20261030-st10">
     <link rel="stylesheet" href="css/modules/video_call.css">
     <link rel="stylesheet" href="css/modules/storage.css">
     <link rel="stylesheet" href="css/workshop.css">
@@ -1131,31 +1131,34 @@
         </div>
     </div>
 
-    <!-- SillyTavern Unlock Modal -->
-    <div id="st-unlock-modal" class="modal-overlay">
-        <div class="modal-window" style="max-width: 400px;">
-            <h3>🔒 SillyTavern 玩家认证</h3>
-            <div style="font-size: 13px; color: #666; line-height: 1.6; margin-bottom: 20px;">
-                为了防止非酒馆玩家滥用他人心血，首次使用导入功能需要进行环境认证。请按以下步骤操作：
+    <!-- Separate character / preset authentication, shared visual shell. -->
+    <div id="st-unlock-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="st-unlock-title">
+        <div class="modal-window st-auth-sheet">
+            <header class="st-auth-head">
+                <span>404 / KISS</span>
+                <button type="button" id="st-unlock-cancel-btn" aria-label="关闭认证弹窗">×</button>
+            </header>
+            <div class="st-auth-body">
+                <div class="st-auth-eyebrow">SILLYTAVERN / ACCESS</div>
+                <h3 id="st-unlock-title">酒馆角色卡导入认证</h3>
+                <p class="st-auth-intro">完成一次认证，解锁此项导入。</p>
+                <section class="st-auth-step">
+                    <div class="st-auth-step-title"><span>01</span><h4>制作认证卡</h4></div>
+                    <p>选择一张图片，下载专属认证卡。</p>
+                    <input type="file" id="st-unlock-image-input" accept="image/*" hidden>
+                    <button type="button" id="st-unlock-image-btn" class="st-auth-upload">选择图片并下载认证卡</button>
+                </section>
+                <section class="st-auth-step">
+                    <div class="st-auth-step-title"><span>02</span><h4>在酒馆获取密钥</h4></div>
+                    <p>将认证卡导入 SillyTavern，新建聊天，点击卡片中的「生成密钥」并复制。</p>
+                    <label for="st-unlock-key-input" class="st-auth-key-label">认证密钥</label>
+                    <input type="text" id="st-unlock-key-input" placeholder="粘贴密钥" autocomplete="off" autocapitalize="off" spellcheck="false">
+                </section>
             </div>
-            
-            <div class="form-group">
-                <label style="font-weight: bold;">第一步：制作认证卡</label>
-                <p style="font-size: 12px; color: #888; margin-bottom: 10px;">选择一张图片，我们将为你生成一张专属认证角色卡。</p>
-                <input type="file" id="st-unlock-image-input" accept="image/*" style="display: none;">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('st-unlock-image-input').click()" style="width: 100%;">选择图片并下载认证卡</button>
-            </div>
-
-            <div class="form-group" style="margin-top: 20px;">
-                <label style="font-weight: bold;">第二步：获取密钥</label>
-                <p style="font-size: 12px; color: #888; margin-bottom: 10px;">将下载的图片导入酒馆，新建聊天，点击卡片中的【生成密钥】按钮并复制。</p>
-                <input type="text" id="st-unlock-key-input" placeholder="在此粘贴密钥 (Base64)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-family: monospace;">
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 25px;">
-                <button id="st-unlock-verify-btn" class="btn btn-primary" style="flex: 1;">验证并永久解锁</button>
-                <button id="st-unlock-cancel-btn" class="btn btn-neutral" style="flex: 1;">取消</button>
-            </div>
+            <footer class="st-auth-foot">
+                <p>密钥有效期 3 分钟 · 仅解锁当前导入功能</p>
+                <button type="button" id="st-unlock-verify-btn">验证并解锁</button>
+            </footer>
         </div>
     </div>
     <div id="add-sticker-modal" class="modal-overlay">
@@ -2654,7 +2657,7 @@
 <script src="js/modules/moments-policy.js?v=20261027-moments-v4"></script>
 <script src="js/vendor/opencc-t2cn.js?v=1.0.5"></script>
 <script src="js/utils.js?v=20261029-offline-1"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
-<script src="js/db.js?v=20261030-st8"></script>
+<script src="js/db.js?v=20261030-st10"></script>
 <script src="js/modules/backup-safe.js?v=20261029-offline-14"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
 <!-- [2. 核心交互层] -->
@@ -2663,7 +2666,7 @@
 <script src="js/modules/home_free_layout.js?v=20261026-spacing-2"></script>
 <script src="js/ui.js?v=20261029-offline-1"></script>       <!-- UI交互：界面切换、主屏幕逻辑、右键菜单 -->
 <!-- Chat Modules -->
-<script src="js/modules/chat_list.js?v=20261030-st8"></script>
+<script src="js/modules/chat_list.js?v=20261030-st10"></script>
 <script src="js/modules/character_import.js"></script>
 <script src="js/modules/chat_render.js?v=20261029-offline-8"></script>
 <script src="js/modules/chat_archives.js?v=20261023-chat-fixes-1"></script>
@@ -2671,7 +2674,7 @@
     <script src="js/modules/cot_hh.js?v=20261029-offline-1"></script>
     <script src="js/modules/chat_ai_prompt.js?v=20261029-offline-1"></script>
     <script src="js/modules/chat_ai_call.js?v=20261027-moments-v2"></script>
-    <script src="js/modules/chat_ai.js?v=20261030-st8"></script>
+    <script src="js/modules/chat_ai.js?v=20261030-st10"></script>
 <script src="js/modules/chat_features.js"></script>
 <script src="js/modules/chat_ops.js?v=20261027-collections"></script>
 <script src="js/modules/status_viewer.js?v=20261029-offline-11"></script>
@@ -2697,7 +2700,7 @@
 <script src="js/modules/peek.js?v=20261027-moments-v4"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js?v=20261029-offline-2"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
-<script src="js/modules/storage.js?v=20261030-st8"></script>   <!-- 存储空间分析图表 -->
+<script src="js/modules/storage.js?v=20261030-st10"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
 <script src="js/modules/widget_market.js?v=20261024-studio-2"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js?v=20261024-archive-1"></script>  <!-- 教程、更新日志、GitHub备份 -->
@@ -2706,10 +2709,10 @@
 <script src="js/modules/battery_interaction.js"></script> <!-- 电量交互模块 -->
 <script src="js/modules/gallery.js"></script> <!-- 角色相册管理模块 -->
 <script src="js/modules/shop.js"></script>    <!-- 商城模块 -->
-<script src="js/modules/cot_settings.js?v=20261030-st8"></script>
-<script src="js/modules/tavern-engine.js?v=20261030-st8"></script>
-<script src="js/modules/tavern-runtime.js?v=20261030-st8"></script>
-<script src="js/modules/prompt-studio.js?v=20261030-st8"></script> <!-- 思维链设置模块 -->
+<script src="js/modules/cot_settings.js?v=20261030-st10"></script>
+<script src="js/modules/tavern-engine.js?v=20261030-st10"></script>
+<script src="js/modules/tavern-runtime.js?v=20261030-st10"></script>
+<script src="js/modules/prompt-studio.js?v=20261030-st10"></script> <!-- 思维链设置模块 -->
 <script src="js/modules/video_call.js"></script> <!-- 视频通话模块 -->
 <script src="js/workshop_html.js"></script> <!-- 绘图工坊HTML注入 -->
 <script src="js/modules/image-workshop/settings.js"></script>
@@ -2720,7 +2723,7 @@
 <script src="js/modules/image-workshop/char.js"></script>
 <script src="js/workshop.js"></script> <!-- 绘图工坊模块 -->
 <script src="js/modules/community.js"></script> <!-- 社区模块 -->
-<script src="js/modules/st_unlock.js?v=20261030-st8"></script> <!-- 酒馆解锁模块 -->
+<script src="js/modules/st_unlock.js?v=20261030-st10"></script> <!-- 酒馆解锁模块 -->
 <script src="js/modules/reader_parser.js"></script> <!-- TXT解析模块 -->
 <script src="js/modules/reader_html.js"></script> <!-- 阅读器HTML注入 -->
 <script src="js/modules/reader_bookshelf.js"></script> <!-- 阅读器书架逻辑 -->
@@ -2750,6 +2753,6 @@
 <script src="js/modules/collections.js?v=20261029-offline-1"></script>
 <script src="js/modules/offline_html.js?v=20261029-13"></script>
 <script src="js/modules/offline_send.js?v=20261029-14"></script>
-<script src="js/modules/offline.js?v=20261030-st8"></script>
+<script src="js/modules/offline.js?v=20261030-st10"></script>
 </body>
 </html>
