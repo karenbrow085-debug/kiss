@@ -343,7 +343,7 @@ async function handleExport() {
         // 6. Settings
         if (selectedModules.settings) {
             const settingsKeys = [
-                'apiSettings', 'apiPresets', 'cotSettings', 'cotPresets', 'homeScreenMode', 
+                'apiSettings', 'apiPresets', 'cotSettings', 'cotPresets', 'tavernPresets', 'tavernSettings', 'homeScreenMode',
                 'customIcons', 'insWidgetSettings', 'homeWidgetSettings', 'chatFolders', 
                 'fontSizeScale', 'savedKeyboardHeight', 'statusBarPresets', 'globalSendSound', 
                 'globalReceiveSound', 'multiMsgSoundEnabled', 'soundPresets', 'galleryPresets', 

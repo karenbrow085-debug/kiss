@@ -65,6 +65,7 @@ function initCotSettings() {
             }
             
             loadCotSettings();
+            window.KissPromptUI?.refreshMode(currentCotMode);
         });
     });
 
@@ -498,6 +499,7 @@ function loadCotSettings() {
 
     renderCotPresetSelect();
     renderCotItems();
+    window.KissPromptUI?.refreshMode(currentCotMode);
 }
 
 // 渲染预设下拉框
@@ -539,6 +541,7 @@ function renderCotPresetSelect() {
 // 渲染条目列表
 function renderCotItems() {
     const list = document.getElementById('cot-items-list');
+    window.KissPromptUI?.destroyCotSort();
     list.innerHTML = '';
     list.className = 'cot-items-container'; // 使用新 CSS 类
 
@@ -555,6 +558,15 @@ function renderCotItems() {
     activePreset.items.forEach((item, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = `cot-item-card ${item.locked ? 'locked' : ''}`;
+        itemEl.dataset.itemId = item.id;
+        const grip = document.createElement('button');
+        grip.className = 'pt-grip';
+        grip.textContent = '⠿';
+        grip.type = 'button';
+        grip.setAttribute('aria-label', '移动条目：' + item.name);
+        grip.disabled = !!item.locked;
+        grip.onclick = () => window.KissPromptUI?.moveCot(index, activePreset);
+        itemEl.appendChild(grip);
         
         // 开关
         const switchLabel = document.createElement('label');
@@ -562,6 +574,7 @@ function renderCotItems() {
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = item.enabled;
+        checkbox.setAttribute('aria-label', '启用条目：' + item.name);
         checkbox.addEventListener('change', async (e) => {
             item.enabled = e.target.checked;
             await saveData();
@@ -605,12 +618,11 @@ function renderCotItems() {
         itemEl.appendChild(btnGroup);
         
         // 绑定长按拖拽事件
-        if (!item.locked) {
-            bindDragEvents(itemEl, index, activePreset.items);
-        }
+        // Sorting is attached once to the list, with an explicit touch handle.
 
         list.appendChild(itemEl);
     });
+    window.KissPromptUI?.attachCotSort(list, activePreset);
 }
 
 // 绑定长按拖拽事件
@@ -803,7 +815,8 @@ function createIconBtn(text, onClick, isDanger = false) {
     else if (text === '×') iconSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
     
     btn.innerHTML = iconSvg || text;
-    btn.title = text; // Tooltip
+    btn.title = text === '✎' ? '编辑条目' : text === '×' ? '删除条目' : text === '⭳' ? '导出预设' : text;
+    btn.setAttribute('aria-label', btn.title);
     
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -976,7 +989,7 @@ async function saveCotItem(e) {
 
 // 新建预设
 async function createNewCotPreset() {
-    const name = prompt('请输入新预设名称：');
+    const name = window.KissPromptUI ? await window.KissPromptUI.askName('新建思维链预设') : prompt('请输入新预设名称：');
     if (!name) return;
 
     let activeId;
@@ -1069,7 +1082,7 @@ function openCotPresetManageModal() {
         btnGroup.style.gap = '5px';
 
         const renameBtn = createIconBtn('✎', async () => {
-            const newName = prompt('请输入新名称：', preset.name);
+            const newName = window.KissPromptUI ? await window.KissPromptUI.askName('重命名预设', preset.name) : prompt('请输入新名称：', preset.name);
             if (newName) {
                 preset.name = newName;
                 await saveData();
