@@ -56,6 +56,7 @@
     <link rel="stylesheet" href="css/modules/shop.css">
     <link rel="stylesheet" href="css/modules/widget_market.css?v=20261024-studio-2">
     <link rel="stylesheet" href="css/modules/cot_settings.css">
+<link rel="stylesheet" href="css/modules/prompt-studio.css?v=20261029-st1">
     <link rel="stylesheet" href="css/modules/video_call.css">
     <link rel="stylesheet" href="css/modules/storage.css">
     <link rel="stylesheet" href="css/workshop.css">
@@ -824,90 +825,35 @@
     </div>
 
     <div id="cot-settings-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" data-target="more-screen">‹</button>
-            <div class="title-container"><h1 class="title">思维链(CoT)设置</h1></div>
-            <div class="placeholder"></div>
+        <header class="pt-masthead">
+            <button class="pt-close" data-target="more-screen" aria-label="关闭提示词设置">×</button>
+            <span>404 / KISS</span><button class="pt-help" id="pt-help" aria-label="使用说明">?</button>
         </header>
-        <main class="content" style="padding: 15px;">
-            <div class="kkt-settings-container">
-                <!-- Tab 导航栏 -->
-                <div class="settings-tabs" id="cot-settings-tabs" style="margin-bottom: 15px;">
-                    <div class="settings-tab-item active" data-mode="chat">聊天</div>
-                    <div class="settings-tab-item" data-mode="call">通话</div>
-                </div>
-
-                <!-- 全局开关 -->
-                <div class="kkt-group">
-                    <div class="kkt-item">
-                        <div class="kkt-item-label">提示词版本</div>
-                        <div class="kkt-item-control">
-                            <select id="cot-prompt-version-select" style="border:none; background:transparent; text-align:right; direction: rtl; appearance: none; -webkit-appearance: none; padding-right: 15px; font-size: 14px; outline: none;">
-                                <option value="uwu">UwU</option>
-                                <option value="tt">T.T</option>
-                                <option value="hh">ㅎ.ㅎ（线上）</option>
-                                <option value="hh_offline">ㅎ-ㅎ（线下）</option>
-                            </select>
-                            <span class="kkt-arrow" style="color: #999; margin-left: 5px;">›</span>
-                        </div>
-                    </div>
-                    <div class="kkt-item">
-                        <div class="kkt-item-label">启用思维链 (CoT)</div>
-                        <div class="kkt-item-control">
-                            <label class="kkt-switch">
-                                <input type="checkbox" id="cot-enabled-switch">
-                                <span class="kkt-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="kkt-item">
-                        <div class="kkt-item-label">预填thinking(Claude建议关闭)</div>
-                        <div class="kkt-item-control">
-                            <label class="kkt-switch">
-                                <input type="checkbox" id="cot-prefill-switch">
-                                <span class="kkt-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="kkt-item">
-                        <div class="kkt-item-label">过境预设条目【复杂人设+活人化+行为一致性】</div>
-                        <div class="kkt-item-control">
-                            <label class="kkt-switch">
-                                <input type="checkbox" id="cot-human-run-switch">
-                                <span class="kkt-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 预设管理 -->
-                <div class="kkt-group" style="margin-top: 15px;">
-                    <div class="kkt-item" style="flex-direction: column; align-items: stretch;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <div class="kkt-item-label">当前预设</div>
-                            <div style="display: flex; gap: 5px;">
-                                <button class="btn btn-small" id="cot-new-preset-btn">新建</button>
-                                <button class="btn btn-small" id="cot-manage-presets-btn">管理</button>
-                                <button class="btn btn-small danger" id="cot-reset-preset-btn">重置</button>
-                            </div>
-                        </div>
-                        <select id="cot-preset-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #eee; background: transparent;">
-                            <!-- JS populated -->
-                        </select>
-                    </div>
-                </div>
-
-                <!-- 条目列表 -->
-                <div class="kkt-group" style="margin-top: 15px; padding-bottom: 10px;">
-                    <div class="kkt-item" style="border-bottom: 1px solid #f0f0f0; margin-bottom: 10px;">
-                        <div class="kkt-item-label" style="font-weight: bold;">Prompt 条目序列</div>
-                    </div>
-                    <div id="cot-items-list" style="display: flex; flex-direction: column; gap: 10px;">
-                        <!-- JS populated items -->
-                    </div>
-                    <button class="btn btn-secondary" id="cot-add-item-btn" style="margin-top: 15px; width: 100%;">+ 添加新条目</button>
-                </div>
+        <nav class="settings-tabs pt-tabs" id="cot-settings-tabs" aria-label="提示词页面">
+            <button class="settings-tab-item active" data-mode="chat">聊天</button>
+            <button class="settings-tab-item" data-mode="call">通话</button>
+            <button class="pt-tab" data-mode="tavern">酒馆预设</button>
+        </nav>
+        <main class="content pt-content">
+          <div class="pt-hero"><h1 id="pt-page-name">Dialogue.</h1><span id="pt-page-index">01</span><p id="pt-page-caption">聊天提示词</p></div>
+          <section id="pt-cot-page">
+            <div class="pt-settings">
+              <div class="kkt-item"><label for="cot-prompt-version-select">提示词版本</label><select id="cot-prompt-version-select"><option value="uwu">UwU</option><option value="tt">T.T</option><option value="hh">ㅎ.ㅎ（线上）</option><option value="hh_offline">ㅎ-ㅎ（线下）</option></select></div>
+              <div class="kkt-item"><label for="cot-enabled-switch">启用思维链（CoT）</label><label class="kkt-switch"><input type="checkbox" id="cot-enabled-switch"><span class="kkt-slider"></span></label></div>
+              <div class="kkt-item"><div><label for="cot-prefill-switch">预填 thinking</label><small>Claude 建议关闭</small></div><label class="kkt-switch"><input type="checkbox" id="cot-prefill-switch"><span class="kkt-slider"></span></label></div>
+              <div class="kkt-item"><div><label for="cot-human-run-switch">过境预设条目</label><small>复杂人设 · 活人化 · 行为一致性</small></div><label class="kkt-switch"><input type="checkbox" id="cot-human-run-switch"><span class="kkt-slider"></span></label></div>
             </div>
+            <div class="pt-section-head"><h2>当前预设</h2><div class="pt-text-actions"><button id="cot-new-preset-btn">新建</button><button id="cot-manage-presets-btn">管理</button><button id="cot-reset-preset-btn">重置</button></div></div>
+            <div class="pt-select-wrap"><select id="cot-preset-select" aria-label="当前思维链预设"></select><span aria-hidden="true">⌕</span></div>
+            <div class="pt-section-head"><h2 class="kkt-item-label">Prompt 条目序列</h2><button id="cot-add-item-btn">＋ 添加</button></div>
+            <div id="cot-items-list"></div>
+          </section>
+          <section id="pt-tavern-page" hidden>
+            <div class="pt-search"><span aria-hidden="true">⌕</span><input id="pt-preset-search" type="search" placeholder="搜索预设" aria-label="搜索酒馆预设"></div>
+            <div class="pt-toolbar"><button id="pt-import">导入</button><button id="pt-new">＋ 新建</button><button id="pt-export">导出</button><button id="pt-manage">管理</button></div>
+            <input id="pt-import-file" type="file" accept=".json,application/json" multiple hidden>
+            <div id="pt-tavern-body"></div>
+          </section>
         </main>
     </div>
 
@@ -2708,7 +2654,7 @@
 <script src="js/modules/moments-policy.js?v=20261027-moments-v4"></script>
 <script src="js/vendor/opencc-t2cn.js?v=1.0.5"></script>
 <script src="js/utils.js?v=20261029-offline-1"></script>    <!-- 工具函数：图片压缩、Toast提示、随机数等 -->
-<script src="js/db.js?v=20261029-offline-1"></script>
+<script src="js/db.js?v=20261029-st1"></script>
 <script src="js/modules/backup-safe.js?v=20261029-offline-14"></script>       <!-- 数据层：Dexie数据库配置、全局变量定义、数据存取 -->
 
 <!-- [2. 核心交互层] -->
@@ -2725,7 +2671,7 @@
     <script src="js/modules/cot_hh.js?v=20261029-offline-1"></script>
     <script src="js/modules/chat_ai_prompt.js?v=20261029-offline-1"></script>
     <script src="js/modules/chat_ai_call.js?v=20261027-moments-v2"></script>
-    <script src="js/modules/chat_ai.js?v=20261029-offline-1"></script>
+    <script src="js/modules/chat_ai.js?v=20261029-st1"></script>
 <script src="js/modules/chat_features.js"></script>
 <script src="js/modules/chat_ops.js?v=20261027-collections"></script>
 <script src="js/modules/status_viewer.js?v=20261029-offline-11"></script>
@@ -2751,7 +2697,7 @@
 <script src="js/modules/peek.js?v=20261027-moments-v4"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js?v=20261029-offline-2"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
-<script src="js/modules/storage.js?v=20261023-resource-fix-1"></script>   <!-- 存储空间分析图表 -->
+<script src="js/modules/storage.js?v=20261029-st1"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
 <script src="js/modules/widget_market.js?v=20261024-studio-2"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js?v=20261024-archive-1"></script>  <!-- 教程、更新日志、GitHub备份 -->
@@ -2760,7 +2706,10 @@
 <script src="js/modules/battery_interaction.js"></script> <!-- 电量交互模块 -->
 <script src="js/modules/gallery.js"></script> <!-- 角色相册管理模块 -->
 <script src="js/modules/shop.js"></script>    <!-- 商城模块 -->
-<script src="js/modules/cot_settings.js?v=20261010-loki-6"></script> <!-- 思维链设置模块 -->
+<script src="js/modules/cot_settings.js?v=20261029-st1"></script>
+<script src="js/modules/tavern-engine.js?v=20261029-st1"></script>
+<script src="js/modules/tavern-runtime.js?v=20261029-st1"></script>
+<script src="js/modules/prompt-studio.js?v=20261029-st1"></script> <!-- 思维链设置模块 -->
 <script src="js/modules/video_call.js"></script> <!-- 视频通话模块 -->
 <script src="js/workshop_html.js"></script> <!-- 绘图工坊HTML注入 -->
 <script src="js/modules/image-workshop/settings.js"></script>
@@ -2801,6 +2750,6 @@
 <script src="js/modules/collections.js?v=20261029-offline-1"></script>
 <script src="js/modules/offline_html.js?v=20261029-13"></script>
 <script src="js/modules/offline_send.js?v=20261029-14"></script>
-<script src="js/modules/offline.js?v=20261029-14"></script>
+<script src="js/modules/offline.js?v=20261029-st1"></script>
 </body>
 </html>
