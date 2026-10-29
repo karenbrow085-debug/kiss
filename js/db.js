@@ -166,7 +166,7 @@ const globalSettingKeys = [
     'cotSettings', 'cotPresets', 'hasSeenVideoCallDisclaimer', 'hasSeenVideoCallAvatarHint',
     'workshopSettings', 'workshopLlmPresets', 'workshopPromptPresets', 'homeLayoutOrder',
     'homeLayoutPages', 'widgetTemplates', 'addedWidgets', 'backupReminderSettings',
-    'stUnlocked', 'stickerMatchSettings'
+    'stUnlocked', 'stPresetUnlocked', 'stickerMatchSettings'
 ];
 
 
@@ -677,7 +677,8 @@ const loadData = async () => {
             homeLayoutOrder: ['widget-top', 'widget-ins', 'app-chat', 'app-api', 'app-wallpaper', 'app-worldbook', 'app-customize', 'app-tutorial', 'app-reader', 'widget-heart', 'app-placeholder'],
             homeLayoutPages: null,
             backupReminderSettings: { enabled: true, interval: 3, lastReminderTime: 0 },
-            stUnlocked: false
+            stUnlocked: false,
+            stPresetUnlocked: false
         };
         db[key] = settings[key] !== undefined ? settings[key] : (defaultValue[key] !== undefined ? JSON.parse(JSON.stringify(defaultValue[key])) : undefined);
     });
