@@ -57,14 +57,14 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-4"><style id="of-custom-style"></style>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-5r1"><style id="of-custom-style"></style>
  <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><span class="of-header-profile"><img class="of-header-avatar" alt=""><i></i></span><button class="of-title" data-action="menu"><strong></strong><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main><div class="of-status" role="status" aria-live="polite"></div>
- <form class="of-composer"><button type="button" data-action="menu" aria-label="Actions">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Story tools">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Continue story">${icon('mic')}</button></form></div>
+ <form class="of-composer"><button type="button" data-action="menu" aria-label="Actions">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Continue story">${icon('mic')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-4';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-5r1';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  state.root.addEventListener('click',onClick);
  installGestures();
  $('#of-archive-search').addEventListener('input',e=>{state.archiveQuery=e.target.value;renderArchives();});
@@ -369,11 +369,11 @@ async function request(chat,apiConfig,isBackground=false) {
 }
 function presets(){db.offlineStylePresets ||= [];return db.offlineStylePresets;}
 function cssEditor() {
- panel('CSS 编辑器',`<div class="of-section-title">当前页面 <button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">保存为预设</button></div>`);
+ panel('CSS 编辑器',`<div class="of-section-title"><span>页面样式</span><span><button data-action="style-presets">预设库</button><button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></span></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">存为预设</button><button data-action="reset-css" class="of-text-button">重置</button></div>`);
  $('#of-css').value=state.editorDraft??config(character()).css??'';
 }
 function toolRow(action,label,mark,id='') {return `<button class="of-tool-row" data-action="${action}" ${id?'data-id="'+escape(id)+'"':''}><span class="of-tool-icon">${icon(mark)}</span><span>${label}</span><i>${icon('chevron')}</i></button>`;}
-function appearance() {panel('外观美化',`<div class="of-dialog-summary">${icon('phone')}<span>线下专属美化<small>${presets().length} 个已存预设</small></span></div>${toolRow('css-editor','编辑页面 CSS','edit')}${toolRow('style-presets','美化预设','more')}${toolRow('reset-css','恢复默认外观','back')}`);}
+function appearance() {cssEditor();}
 function stylePresets() {
  panel('美化预设',`<div class="of-preset-tools"><input id="of-preset-search" class="of-wide" placeholder="搜索预设" aria-label="搜索预设"><button data-action="import-style">导入</button><button data-action="export-all">导出</button></div><div id="of-presets"></div><p class="of-note">支持 CSS / TXT / DOCX / JSON</p><input id="of-style-file" type="file" accept=".css,.txt,.docx,.json" multiple hidden>`);
  $('#of-preset-search').addEventListener('input',renderPresets);$('#of-style-file').addEventListener('change',event=>importStyles(event).catch(fail));renderPresets();
@@ -401,10 +401,10 @@ async function importStyles(event) {
 }
 function memoryEditor(tab='summary') {
  const chat=character();ensureFloors(chat);const floors=displayRows(chat),last=floors.at(-1)?.offlineFloor||1;
- panel('总结与楼层',`<div class="of-tabs"><button class="selected" data-action="memory-tab" data-tab="summary">总结</button><button data-action="memory-tab" data-tab="hide">隐藏楼层</button></div><div id="of-memory-summary"><label class="of-label">楼层范围<input id="of-summary-range" placeholder="1–20, 24, 28–30" value="1-${last}"></label><p class="of-note">支持连续范围和独立楼层，例如 1-20, 24, 28-30。隐藏后编号不变。</p><label class="of-label">总结方式<select id="of-summary-method"><option value="current">沿用当前日记风格</option><option value="summary">客观摘要</option><option value="default">角色日记</option><option value="custom">自定义世界书</option></select></label><div id="of-summary-books" hidden>${worldbookChoices('summary-wb',chat.journalStyleSettings?.customWorldBookIds||[])}</div><label class="of-check"><input id="of-summary-favorites" type="checkbox">参考已收藏日记</label><label class="of-check"><input id="of-summary-hide" type="checkbox">日记保存成功后隐藏所选楼层</label><p class="of-note">隐藏只排除原消息，已有日记可能仍保留相关信息。</p><button data-action="summarize" class="of-primary">生成并存入日记</button><button data-action="diary">查看日记</button></div><div id="of-memory-hide" hidden><label class="of-label">楼层范围<input id="of-hide-range" placeholder="1–20, 24, 28–30"></label><div class="of-row"><button data-action="hide-floors" class="of-primary">隐藏</button><button data-action="restore-floors">恢复</button></div><p class="of-note">隐藏后原文仍保留，但不进入后续 AI 上下文，可随时恢复。</p><div class="of-hidden-list">${floors.filter(m=>m.offlineHidden).map(m=>`<button data-action="restore-one" data-id="${escape(m.id)}">#${m.offlineFloor} · 恢复</button>`).join('')||'暂无隐藏楼层。'}</div></div>`);
+ panel('总结与楼层',`<div class="of-tabs"><button class="selected" data-action="memory-tab" data-tab="summary">总结</button><button data-action="memory-tab" data-tab="hide">隐藏楼层</button></div><div id="of-memory-summary"><label class="of-label">楼层范围<input id="of-summary-range" placeholder="1–20, 24, 28–30" value="1-${last}"></label><p class="of-note">支持连续范围和独立楼层，例如 1-20, 24, 28-30。隐藏后编号不变。</p><label class="of-label">总结方式<select id="of-summary-method"><option value="current">沿用当前日记风格</option><option value="summary">客观摘要</option><option value="default">角色日记</option><option value="custom">自定义世界书</option></select></label><div id="of-summary-books" hidden>${worldbookChoices('summary-wb',chat.journalStyleSettings?.customWorldBookIds||[])}</div><label class="of-check"><input id="of-summary-favorites" type="checkbox">参考已收藏日记</label><label class="of-check"><input id="of-summary-hide" type="checkbox">日记保存成功后隐藏所选楼层</label><p class="of-note">隐藏只排除原消息，已有日记可能仍保留相关信息。</p><button data-action="summarize" class="of-primary of-full-button">生成并存入日记</button></div><div id="of-memory-hide" hidden><label class="of-label">楼层范围<input id="of-hide-range" placeholder="1–20, 24, 28–30"></label><div class="of-row"><button data-action="hide-floors" class="of-primary">隐藏</button><button data-action="restore-floors">恢复</button></div><p class="of-note">隐藏后原文仍保留，但不进入后续 AI 上下文，可随时恢复。</p><div class="of-hidden-list">${floors.filter(m=>m.offlineHidden).map(m=>`<button data-action="restore-one" data-id="${escape(m.id)}">#${m.offlineFloor} · 恢复</button>`).join('')||'暂无隐藏楼层。'}</div></div>`);
  $('#of-summary-method').addEventListener('change',e=>{$('#of-summary-books').hidden=e.target.value!=='custom';});selectMemoryTab(tab);
 }
-function memory() {panel('记忆与楼层',`${toolRow('memory-summary','总结存入日记','edit')}${toolRow('memory-hidden','隐藏与恢复楼层','video')}${toolRow('diary','查看已有日记','more')}`);}
+function memory() {memoryEditor('summary');}
 function selectMemoryTab(tab) {
  $('#of-memory-summary').hidden=tab!=='summary';$('#of-memory-hide').hidden=tab!=='hide';all('.of-tabs button').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));
 }
@@ -440,7 +440,7 @@ function setup() {
 }
 function updateComposer() {if(!state.root)return;const hasText=!!$('.of-composer textarea').value.trim();$('.of-send').innerHTML=icon(hasText?'send':'mic');$('.of-send').setAttribute('aria-label',hasText?'Send':'Continue story');}
 
-function menu(){panel('线下菜单',`<button class="of-menu-row" data-action="archives">线下归档</button><button class="of-menu-row" data-action="select-floors">多选删除楼层</button><button class="of-menu-row" data-action="continue">继续剧情 ${icon('send')}</button><button class="of-menu-row" data-action="pause">暂停生成 ${icon('stop')}</button><button class="of-menu-row" data-action="online">切回线上 ${icon('back')}</button><p class="of-note">返回仅退出页面；选择「切回线上」才会结束线下模式。</p>`);}
+function menu(){panel('线下',`<div class="of-menu-group">${toolRow('archives','线下归档','more')}${toolRow('diary','查看日记','edit')}${toolRow('select-floors','多选楼层','check')}</div><div class="of-menu-group">${isGenerating?toolRow('pause','暂停生成','stop'):''}${toolRow('online','结束线下 · 切回线上','back')}</div><p class="of-note">左上角返回会保留当前线下状态。</p>`);}
 async function onClick(event) {
  if(event.composedPath()[0]===$('.of-panel')){closePanel();return;}
  const button=event.composedPath().find(node=>node instanceof Element&&node.matches('[data-action]'));if(!button)return;event.preventDefault();const action=button.dataset.action,chat=character();
@@ -481,7 +481,7 @@ async function onClick(event) {
  case 'memory-summary':memoryEditor('summary');break;
  case 'memory-hidden':memoryEditor('hide');break;
  case 'send-or-continue':if($('.of-composer textarea').value.trim())await send();else if(!isGenerating)await getAiReply(chat.id,'private');break;
- case 'story-tools':panel('内容工具',`${toolRow('continue','继续剧情','mic')}${toolRow('archives','查看线下归档','more')}`);break;
+ case 'story-tools':showArchives();break;
  case 'emoji':panel('表情',`<div class="of-emoji-grid">${['☺️','🥺','🤍','🫶','✨','🌙','☁️','🫧'].map(text=>`<button data-action="insert-emoji" data-id="${text}">${text}</button>`).join('')}</div>`);break;
  case 'insert-emoji':{const input=$('.of-composer textarea');input.value+=button.dataset.id;config(chat).composerDraft=input.value;updateComposer();closePanel();input.focus();break;}
  case 'memory':memory();break;
@@ -513,10 +513,13 @@ async function onClick(event) {
 }
 function syncEntry() {
  const entry=document.getElementById('offline-chat-menu-btn');if(entry)entry.style.display=currentChatType==='private'?'':'none';
- document.getElementById('offline-active-entry')?.remove();
  const chat=currentChatType==='private'?db.characters?.find(c=>c.id===currentChatId):null;
- if(entry){const label=entry.querySelector('.expansion-item-name');if(label)label.textContent=chat?.offline?.active?'Offline · On':'线下';entry.setAttribute('aria-label',chat?.offline?.active?'Offline is active':'线下');}
-
+ if(entry){const label=entry.querySelector('.expansion-item-name');if(label)label.textContent='线下';entry.setAttribute('aria-label','线下');}
+ let badge=document.getElementById('offline-active-entry');
+ if(!chat?.offline?.active){badge?.remove();return;}
+ const header=document.getElementById('chat-room-header-default');if(!header)return;
+ if(!badge){badge=document.createElement('div');badge.id='offline-active-entry';badge.style.cssText='flex:0 0 auto;width:100%;position:relative;z-index:1';
+ const root=badge.attachShadow({mode:'open'});root.innerHTML=`<style>:host{display:block}button{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;border:0;border-bottom:1px solid #e8e8ec;background:#f4f4f7;color:#666673;padding:8px 16px;font:12px/18px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;text-align:left;cursor:pointer}i{height:6px;width:6px;border-radius:50%;background:#9394ae;box-shadow:0 0 0 3px #e8e8f0}span{flex:1}small{font:inherit;color:#90909c}svg{width:12px;height:12px}</style><button type="button" aria-label="正在线下中，返回线下"><i></i><span>正在线下中</span><small>返回线下</small>${icon('chevron')}</button>`;root.querySelector('button').addEventListener('click',()=>open().catch(fail));header.after(badge);}
 }
 document.addEventListener('keydown',event=>{if(event.target.id==='offline-chat-menu-btn'&&['Enter',' '].includes(event.key)){event.preventDefault();open().catch(fail);}});
 document.addEventListener('click',event=>{if(event.target.closest?.('#offline-chat-menu-btn')){event.preventDefault();open().catch(fail);}});
