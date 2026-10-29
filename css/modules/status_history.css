@@ -5,7 +5,9 @@
 #char-status-content .sh-toolbar button,#char-status-content .sh-selection-footer button,#char-status-content .sh-confirm button{appearance:none;border:1px solid #e6e6e6;background:#fff;color:#333;border-radius:9px;padding:8px 11px;font:inherit;font-size:10px;line-height:1.5;cursor:pointer;box-shadow:none;font-weight:400}
 #char-status-content button:disabled{opacity:.4;cursor:default}
 #char-status-content .sh-primary{background:#111!important;color:#fff!important;border-color:#111!important}
-#char-status-content .status-swiper{flex:1;min-height:0;height:auto}
+/* IMPORTANT: Original uwu-1900 status-swiper sizing comes from css/chat.css.
+   Do not override it with flex:1 / height:auto: the floating actions must not
+   turn the viewer into a shorter flex track. */
 #char-status-content .status-swiper[hidden],#char-status-content .sh-selection-footer[hidden],#char-status-content .sh-toolbar button[hidden],#char-status-content .status-indicator[hidden]{display:none!important}
 #char-status-content .sh-list{margin:0 14px;overflow-y:auto;flex:1;min-height:0;padding-bottom:150px;scrollbar-width:none}
 #char-status-content .sh-row{display:flex;align-items:center;gap:12px;padding:16px;background:#fff;border:1px solid #e9e9e9;border-radius:12px;margin-bottom:8px;color:#111;cursor:pointer;box-sizing:border-box;font-weight:400}
@@ -24,13 +26,11 @@
 #char-status-content .sh-empty{margin:auto!important;font-size:12px!important;color:#888!important;font-weight:400;text-align:center}
 #char-status-content .sh-toolbar button:focus-visible,#char-status-content .sh-confirm button:focus-visible,#char-status-content .sh-row:focus-within{outline:2px solid #999;outline-offset:2px}
 @media(max-width:340px){#char-status-content .sh-toolbar{gap:8px;padding:12px}#char-status-content .sh-actions{gap:5px}#char-status-content .sh-toolbar button{padding:7px 8px}}
-
 /* Keep status history actions below the iOS status bar and Dynamic Island. */
 #char-status-overlay{box-sizing:border-box;padding-top:max(64px,calc(env(safe-area-inset-top,0px) + 16px))!important;padding-bottom:env(safe-area-inset-bottom,0px)}
 #char-status-content .sh-toolbar{margin-top:8px;min-height:64px;gap:10px;padding:10px 13px}
 #char-status-content .sh-toolbar button{min-height:44px;min-width:44px;touch-action:manipulation}
 @media(max-width:340px){#char-status-content .sh-toolbar{margin-left:10px;margin-right:10px;padding-left:10px;padding-right:10px;gap:6px}#char-status-content .sh-actions{gap:5px}#char-status-content .sh-toolbar button{padding-left:8px;padding-right:8px}}
-
 /* Compact, three equal actions; retain the safe-area positioning above. */
 #char-status-content .sh-toolbar-compact{order:0;flex-shrink:0;min-height:54px;margin:8px 16px 0;padding:4px;background:rgba(255,255,255,.9);border:0;border-radius:15px;box-shadow:0 3px 18px #00000005;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-sizing:border-box}
 #char-status-content .sh-toolbar-compact .sh-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:4px}
@@ -48,7 +48,6 @@
 #char-status-content .sh-saved-item span{font-size:12px;line-height:1.6}
 #char-status-content .sh-saved-frame{width:100%;height:60dvh;border:0;display:block;margin-top:16px;background:transparent}
 @media(prefers-reduced-motion:reduce){#char-status-content .sh-toolbar-compact button{transition:none}}
-
 /* Revised toolbar: no outer pill, no heavy cards or secondary collection link. */
 #char-status-content .sh-toolbar-compact{background:rgba(255,255,255,.96);border:0;border-radius:9px;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:2px 6px;min-height:49px;margin:7px 18px 0}
 #char-status-content .sh-toolbar-compact .sh-actions{gap:0}
@@ -57,7 +56,6 @@
 #char-status-content .sh-toolbar-compact button.is-saved{color:#648cb3;background:transparent}
 #char-status-content .sh-history-tools{margin:0 23px 3px;min-height:28px}
 #char-status-content .sh-history-tools button{font-size:10px;min-height:30px}
-
 /* Four independent, borderless bottom controls. */
 #char-status-overlay{padding-top:max(20px,calc(env(safe-area-inset-top,0px) + 8px))!important;padding-bottom:0!important}
 #char-status-overlay>.close-status-panel{display:none!important}
@@ -74,7 +72,9 @@
 #char-status-content .sh-history-tools{position:absolute;right:23px;left:auto;bottom:calc(104px + env(safe-area-inset-bottom,0px));padding:0;margin:0!important;min-height:24px;z-index:1004}
 #char-status-content .sh-history-tools button{min-height:30px;padding:3px 0;color:#fff;font-size:11px;text-shadow:0 1px 3px #0002}
 #char-status-content .status-indicator{left:23px;bottom:calc(112px + env(safe-area-inset-bottom,0px));transform:none;background:none;border:0;border-radius:0;box-shadow:none;padding:0;color:#fff;font-size:11px;line-height:1.4;letter-spacing:.04em;font-weight:500;text-shadow:0 1px 3px #0002}
-#char-status-content .status-slide{padding:12px 20px calc(151px + env(safe-area-inset-bottom,0px))}
+/* Restore the original uwu-1900 .status-slide padding (20px 20px 140px).
+   The actions stay position:absolute over the reserved bottom zone, so the
+   status card/HTML iframe keeps its original height and independent scroll. */
 #char-status-content .sh-list{padding-top:12px;padding-bottom:calc(175px + env(safe-area-inset-bottom,0px))}
 #char-status-content .sh-selection-footer,#char-status-content .sh-confirm{bottom:calc(153px + env(safe-area-inset-bottom,0px))}
 @media(max-width:340px){#char-status-content .sh-toolbar-compact{left:12px;right:12px}#char-status-content .sh-toolbar-compact .sh-actions{gap:7px}#char-status-content .sh-control-icon{width:46px;height:46px;flex-basis:46px}}
