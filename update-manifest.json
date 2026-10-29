@@ -1,18 +1,20 @@
 {
   "base_commit": "f06fadec42d9ec6c37b76adb128780375aecc1c0",
   "files": {
-    "index.html": "133862a54f9126ad46205998a9f6fe8e145f51a23a5c47193cecd3b830beb6f6",
-    "css/modules/prompt-studio.css": "de1696926bd725788ba43de0a31546ccdc7f5316128117858d07be738d21a933",
-    "js/db.js": "ea7f2d83fa3348e9a2bfad6dd3092b11d2568626cc2cecd4dee0c75db3077fe5",
-    "js/modules/cot_settings.js": "dd73dbe700843a115fd9b71645b1480f6d9fa4b752a8a41bbb9ff45e7a7b58cc",
-    "js/modules/prompt-studio.js": "cc799d6a96f5cb6836fc6a0d72d54c12683ee9718489e43c695c9f4b82c447b8",
+    "index.html": "7eff9007abf07e67e88c7be8234312ee2428830ea08665a50bdf4e88c0755bc5",
+    "css/modules/prompt-studio.css": "8c5dbc137156ecfeca55d13896dad5c13ee08b14af3e822f5892e5e84414e88e",
+    "js/db.js": "1405bc95be8f087df2ccc70197d41673460a6f3035e51d98a1a55d05d5df102c",
+    "js/modules/cot_settings.js": "458057c02f848da26d8e8c278da8d8fd5550317f3c0f85909df3561418ef4da5",
+    "js/modules/prompt-studio.js": "c4d4e02ee7ab184157018b42e8a7e02bc51efeefb86b0bd8087a81a2ba5e35d2",
     "js/modules/tavern-engine.js": "2f2435917d17cb2dfaccfe59a9cad819d455e85c07427ad8ede0b5e1692015a4",
     "js/modules/tavern-runtime.js": "7a2e54066315e54eaf3246fe727f2518eef3a94dd7e85d7d4c3bfcfac878d0c3",
     "js/modules/chat_ai.js": "940a01ca45b4bf4cf8415954be4a23dd84e9e7156c90638faf737a548aa45cce",
     "js/modules/offline.js": "6b17574a396734bb4742b14f943773f8a2ee76c93a8cce4866a104c04bef44e2",
-    "js/modules/storage.js": "6d0c24d4518a175bed114e424d36272f3ced48a41f7b6469f58bffb5fe23ea7a"
+    "js/modules/storage.js": "0d186a3142ecb664e36ce671fdb7df851939ffd6f8983e629092160aef4e64d2",
+    "js/modules/st_unlock.js": "595373b91c1e611f011d193095b67521cb46102abf80be77c5646258d1c12bc0",
+    "js/modules/chat_list.js": "56b81dcb7ba4f5c0e17ba730117ddecc35ced78264535d897deb3e0b1957bf24"
   },
-  "test_count": 60,
+  "test_count": 72,
   "bundled_user_presets": false,
-  "revision": "preset-report-groups-20261030"
+  "revision": "separate-character-preset-auth-20261030"
 }
