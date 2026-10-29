@@ -282,7 +282,7 @@ async function run(fn){try{await fn();}catch(e){toast(e.message||'操作失败')
 function init() {
     if(!$('pt-tavern-page')||!E)return;
     document.querySelector('#cot-settings-tabs [data-mode=tavern]').onclick=showTavern;
-    document.querySelector('#cot-settings-screen .pt-close').onclick=e=>{e.stopPropagation();global.switchScreen('more-screen');};
+    document.querySelector('#cot-settings-screen .pt-close').onclick=e=>{e.preventDefault();e.stopPropagation();switchScreen('more-screen');};
     $('pt-help').onclick=()=>{if(view==='tavern'){const p=active();if(p)showReport(p.id);else dialog('酒馆预设',a=>notice(a.body,'导入 SillyTavern JSON 后，可编辑条目、调整顺序并设置独立参数。不会内置任何第三方预设。'));}else showXmlHelp();};
     $('pt-preset-search').oninput=e=>{search=e.target.value;render();};
     $('pt-import').onclick=()=>{if(typeof global.requestStImportUnlock==='function')global.requestStImportUnlock('pt-import-file');else toast('认证模块未加载，请刷新后重试');};

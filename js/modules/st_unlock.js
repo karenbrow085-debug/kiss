@@ -30,6 +30,8 @@ function setupStUnlock() {
     const cancelBtn = document.getElementById('st-unlock-cancel-btn');
 
     if (!modal) return;
+    document.getElementById('st-unlock-image-btn')?.addEventListener('click', () => imageInput.click());
+    modal.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); cancelBtn.click(); } });
 
     // 第一步：选择图片并生成认证卡
     imageInput.addEventListener('change', async (e) => {
