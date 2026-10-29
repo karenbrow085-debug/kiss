@@ -684,6 +684,7 @@ async function sendMessage() {
     if (currentChatType === 'group') {
         message.senderId = 'user_me';
     }
+    if (currentChatType === 'private') window.KissOffline?.tagMessage(chat, message);
     chat.history.push(message);
     addMessageBubble(message, currentChatId, currentChatType);
     triggerHapticFeedback('success');

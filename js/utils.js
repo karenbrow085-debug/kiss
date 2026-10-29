@@ -503,8 +503,9 @@ function filterHistoryForAI(chat, historySlice, ignoreContextDisabled = false) {
     // 1. 基础过滤：深度克隆并过滤掉被屏蔽上下文的消息
     let filteredHistory = JSON.parse(JSON.stringify(historySlice || chat.history));
     if (!ignoreContextDisabled) {
-        filteredHistory = filteredHistory.filter(m => !m.isContextDisabled);
+        filteredHistory = filteredHistory.filter(m => !m.isContextDisabled && !m.offlineHidden);
     }
+    filteredHistory = filteredHistory.filter(m => !m.offlineBoundary);
 
     // 【三重保险】强制清洗所有消息内容中的 <thinking> 标签块
     // 防止思维链内容意外混入普通消息中

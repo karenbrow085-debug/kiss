@@ -157,6 +157,7 @@ const DEFAULT_COT_PRESETS = [
 ];
 
 const globalSettingKeys = [
+    'offlineStylePresets',
     'apiSettings', 'wallpaper', 'homeScreenMode', 'fontUrl', 'customIcons',
     'apiPresets', 'bubbleCssPresets', 'myPersonaPresets', 'globalCss',
     'globalCssPresets', 'fontPresets', 'homeSignature', 'insWidgetSettings', 'homeWidgetSettings',
