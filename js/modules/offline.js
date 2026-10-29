@@ -60,14 +60,14 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});if(/Android/i.test(globalThis.navigator?.userAgent||''))host.dataset.platform='android';
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-7"><style id="of-custom-style"></style>
- <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><span class="of-header-profile"><img class="of-header-avatar" alt=""><i></i></span><button class="of-title" data-action="menu"><strong></strong><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
- <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main><div class="of-status" role="status" aria-live="polite"></div>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-9"><style id="of-custom-style"></style>
+ <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><span class="of-header-profile"><img class="of-header-avatar" alt=""><i></i></span><button class="of-title" data-action="menu"><span class="of-title-copy"><strong></strong><span class="of-status" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
+ <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main>
  <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Continue story">${icon('mic')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-7';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-9';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  if(typeof ResizeObserver!=='undefined')new ResizeObserver(entries=>{const size=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height;if(size)$('.of-page').style.setProperty('--of-composer-height',size+'px');}).observe($('.of-composer'));
  state.root.addEventListener('click',onClick);
  installGestures();
@@ -136,7 +136,7 @@ function render(force) {
   const date=new Date(m.timestamp||Date.now()),key=date.toDateString();
   if(day&&key!==day){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});area.append(divider);}day=key;
   if(m.offlineNarrative&&previousMode===false){const divider=document.createElement('div');divider.className='of-mode-divider';divider.textContent='Offline started';area.append(divider);}previousMode=!!m.offlineNarrative;
-  if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${String(m.offlineFloor).padStart(3,'0')} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}area.append(row);continue;}
+  if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${m.offlineFloor} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}area.append(row);continue;}
   const user=m.role==='user',item=document.createElement('article');item.className=`of-message ${user?'of-self':'of-orbit'}`;item.dataset.messageId=m.id;item.dataset.floor=m.offlineFloor;item.classList.toggle('of-selected',state.selected.has(m.id));if(state.selecting&&!readOnly){item.dataset.action='toggle-floor';item.dataset.id=m.id;}
   item.innerHTML=`<img class="of-avatar" alt=""><div class="of-message-content"><div class="of-byline"><strong class="of-name"></strong><span class="of-badge"><span class="of-badge-mark">${badgeMark(user)}</span>${user?'echo':'orbit'}</span><time></time></div><div class="of-prose"></div><div class="of-meta"></div></div>`;
   if(!readOnly){const more=document.createElement('button');more.className='of-message-more';more.dataset.action=state.selecting?'toggle-floor':'floor-menu';more.dataset.id=m.id;more.setAttribute('aria-label',state.selecting?'Select floor '+m.offlineFloor:'Message actions');more.innerHTML=state.selecting?(state.selected.has(m.id)?'✓':'○'):icon('more');item.querySelector('.of-byline').append(more);}
@@ -144,7 +144,7 @@ function render(force) {
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
   item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
   const prose=item.querySelector('.of-prose'); for(const paragraph of textOf(m).split(/\n{2,}/)){const p=document.createElement('p');p.textContent=paragraph;prose.append(p);}
-  item.querySelector('.of-meta').textContent=[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${String(m.offlineFloor).padStart(3,'0')}`].filter(Boolean).join(' · ');
+  item.querySelector('.of-meta').textContent=[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${m.offlineFloor}`].filter(Boolean).join(' · ');
   area.append(item);
  }
  if(atBottom)area.scrollTop=area.scrollHeight;
@@ -340,7 +340,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
  apiConfig=resolveOfflineApi(chat,apiConfig);if(!apiConfig.url||!apiConfig.key||!apiConfig.model){showApiError(Error('请配置 API 地址、密钥和模型'));return false;}
  if(state.busy||isGenerating&&!isBackground)return;
  const generation=aiGenerationControl.begin(chat.id,'private',isBackground),start=performance.now();
- state.busy=true;if(!isBackground){isGenerating=true;getReplyBtn.disabled=true;regenerateBtn.disabled=true;status('Writing…');}
+ state.busy=true;if(!isBackground){isGenerating=true;getReplyBtn.disabled=true;regenerateBtn.disabled=true;status('Typing…');}
  let persisted=false;
  try{
   const limit=Number(chat.maxMemory)>0?Number(chat.maxMemory):30;
@@ -506,7 +506,7 @@ async function onClick(event) {
  case 'confirm-finish-summary':await summarizeAndFinish();break;
 
  case 'menu':menu();break;
- case 'generation-tools':panel('生成操作',`${toolRow('pause','暂停生成','stop')}${toolRow('regenerate','重新生成','back')}`);break;
+ case 'generation-tools':panel('生成操作',`<div class="of-generation-grid"><button data-action="pause" class="of-generation-card"><span class="of-generation-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg></span><strong>暂停生成</strong></button><button data-action="regenerate" class="of-generation-card"><span class="of-generation-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 6.1 22 3.5V11h-7.5l2.8-2.8A6.3 6.3 0 1 0 18 15h3.1A9.3 9.3 0 1 1 19.4 6.1Z"/></svg></span><strong>重新生成</strong></button></div>`);break;
  case 'regenerate':closePanel();await regenerate(chat);break;
  case 'fetch-models':{const name=$('#of-api').value,revision=state.modelRevision||0,target=$('#of-model-results');button.disabled=true;$('#of-model-status').textContent='正在拉取…';try{const rows=await fetchOfflineModels(chat,name);if($('#of-model-results')!==target||$('#of-api').value!==name||(state.modelRevision||0)!==revision)break;state.modelRows=rows;state.drawModels();$('#of-model-status').textContent=`${rows.length} 个模型`;}catch(error){if($('#of-model-results')===target)$('#of-model-status').textContent=error.name==='AbortError'?'请求超时，请重试':error.message;}finally{button.disabled=false;}break;}
  case 'choose-model':$('#of-model').value=button.dataset.id;break;
@@ -524,7 +524,7 @@ async function onClick(event) {
  case 'load':{const area=$('.of-messages'),height=area.scrollHeight,top=area.scrollTop;state.limit+=60;render(false);area.scrollTop=top+area.scrollHeight-height;break;}
  case 'online':exitDialog();break;
  case 'continue':closePanel();if(!isGenerating)await getAiReply(chat.id,'private');break;
- case 'pause':pauseAiGeneration();status('Paused');break;
+ case 'pause':pauseAiGeneration();status('Paused');closePanel();break;
  case 'diary':closePanel();renderJournalList();switchScreen('memory-journal-screen');break;
  case 'memory-tab':selectMemoryTab(button.dataset.tab);break;
  case 'summarize':await summarize();break;
