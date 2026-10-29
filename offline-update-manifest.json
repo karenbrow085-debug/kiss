@@ -1,0 +1,23 @@
+{
+  "base_commit": "d6144542fb92d59ef15ae5f5fac3633dddf57299",
+  "revision": "v3",
+  "files": {
+    "css/modules/offline.css": "8bdd3fc71ef7e48033c670e28ef429a6a0555420fa0114c4803975d565d4d165",
+    "index.html": "e40dacff6f0a7019b9232423e2c05efc2e33a5b21897d02af255a9d8bcfa6a9b",
+    "js/chat.js": "dbd830228ed7b58dfe6807acad167a6d5da58e0d27c05e45479563bdf227c157",
+    "js/db.js": "603b0ea575db33b8e0212ffc67ddf71c62544662647f2b3b14f0dba4e737caab",
+    "js/mcp/runtime.js": "a3d09229de6c84aecff997e40b7fd1cc290133db8ba93bfba73aa98dc93dd6fa",
+    "js/modules/chat_ai.js": "29b104e0a734fe8794d0670eab0b885b49d7ab26b3eb357b9e47eb4d70df71d3",
+    "js/modules/chat_ai_prompt.js": "0f79f1733582a5c113c9d34a388b8d9e5b86ccce5694adc2c24cb9f84e3cec2a",
+    "js/modules/chat_render.js": "d246f15868f8efc8f10f83838db3055a6075ef9b1d1947e7781330cce09b0e6e",
+    "js/modules/chat_room_html.js": "80090ee560cb73b175b7e683fd359a838d4fc0ddffd15375e8422753c30f9de3",
+    "js/modules/collections.js": "d3b89afe8e9a66fcedef95717665766472b0626a9139954d5396a244847b47b5",
+    "js/modules/cot_hh.js": "d1a06a9b2752fee06efdd18d6aa0ab52ca87b089774ac6eafe6bc3319e81021d",
+    "js/modules/journal.js": "d2a90152c611ffec1857f1c4a3c8e7730e3d3bdd9eeb337b036b51e177d8a071",
+    "js/modules/kiss-moments.js": "2b7b7ef1d6f029c470324d24e6a273f108566a6afe8b069dbcae945828472bca",
+    "js/modules/offline.js": "8fb75cc7f344f2bc5fdd6df224241cf82e002e6527192ea035a73185ff0d3e26",
+    "js/ui.js": "40cbb62485e4d33b7d3fcca0137f517a90f587b43d5d0f42bd281f1c5760dfcd",
+    "js/utils.js": "422f698be07d56ed79fe8ef8d638aa10bcce06df56c95b0164420d66fc8ba551",
+    "tests/offline.test.cjs": "678a3584a6a5ff690105bc3fdfa869f7aead8b571c502d62d0d790537340a553"
+  }
+}
