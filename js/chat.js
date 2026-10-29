@@ -104,108 +104,9 @@ function setupChatRoom() {
     const closeStatusBtn = document.getElementById('close-status-panel-btn');
     const statusContent = document.getElementById('char-status-content');
 
-    if (charStatusBtn) {
-        charStatusBtn.addEventListener('click', () => {
-            const char = db.characters.find(c => c.id === currentChatId);
-            if (!char || !char.statusPanel) return;
-
-            statusContent.innerHTML = ''; // Clear previous content
-
-            // Prepare data: combine history and current if needed
-            let slidesData = [];
-            if (char.statusPanel.history && char.statusPanel.history.length > 0) {
-                // history is [newest, older, oldest...]
-                // We want to display newest last (on the right), so history is on the left
-                slidesData = [...char.statusPanel.history].reverse();
-            } else if (char.statusPanel.currentStatusHtml) {
-                slidesData = [{ html: char.statusPanel.currentStatusHtml, timestamp: Date.now() }];
-            }
-
-            if (slidesData.length === 0) {
-                statusContent.innerHTML = '<p style="text-align:center; color:#999;">暂无状态信息</p>';
-                window.attachStatusHistoryControls?.(char, statusContent, slidesData, null, null);
-                statusOverlay.classList.add('visible');
-                return;
-            }
-
-            // Build Swiper Structure
-            const swiper = document.createElement('div');
-            swiper.className = 'status-swiper';
-
-            // Helper function for Lazy Loading
-            const loadSlideContent = (index) => {
-                if (index < 0 || index >= slidesData.length) return;
-                const slide = swiper.children[index];
-                if (!slide) return;
-                const slideInner = slide.querySelector('.status-slide-inner');
-                if (slideInner.hasChildNodes()) return; // Already loaded
-
-                const item = slidesData[index];
-                const htmlContent = item.html;
-                if (htmlContent.includes('<!DOCTYPE html>') || htmlContent.includes('<html') || htmlContent.includes('<style')) {
-                    const iframe = document.createElement('iframe');
-                    iframe.style.cssText = "width: 100%; height: 100%; min-height: 80vh; border: none; background: transparent; display: block;";
-                    iframe.srcdoc = processTemplate(htmlContent, char);
-                    slideInner.appendChild(iframe);
-                } else {
-                    slideInner.innerHTML = processTemplate(htmlContent, char);
-                }
-            };
-
-            // Create empty slides first
-            slidesData.forEach((item, index) => {
-                const slide = document.createElement('div');
-                slide.className = 'status-slide';
-                
-                const slideInner = document.createElement('div');
-                slideInner.className = 'status-slide-inner';
-                // Content will be loaded lazily
-                
-                slide.appendChild(slideInner);
-                swiper.appendChild(slide);
-            });
-
-            // Indicator
-            const indicator = document.createElement('div');
-            indicator.className = 'status-indicator';
-            indicator.textContent = `${slidesData.length} / ${slidesData.length}`;
-
-            statusContent.appendChild(swiper);
-            statusContent.appendChild(indicator);
-
-            // Initial Load: Load the last slide (newest) and previous ones
-            const lastIndex = slidesData.length - 1;
-            loadSlideContent(lastIndex);
-            if (lastIndex > 0) loadSlideContent(lastIndex - 1);
-            if (lastIndex > 1) loadSlideContent(lastIndex - 2);
-
-            // Scroll to the end (newest) initially
-            setTimeout(() => {
-                swiper.style.scrollBehavior = 'auto';
-                swiper.scrollLeft = swiper.scrollWidth;
-                setTimeout(() => {
-                    swiper.style.scrollBehavior = 'smooth';
-                }, 50);
-            }, 0);
-
-            // Scroll Listener for Indicator & Lazy Loading
-            swiper.addEventListener('scroll', () => {
-                const width = swiper.offsetWidth;
-                if (width > 0) {
-                    const currentIndex = Math.round(swiper.scrollLeft / width);
-                    indicator.textContent = `${currentIndex + 1} / ${slidesData.length}`;
-                    
-                    // Lazy load adjacent slides (current +/- 2)
-                    for (let i = currentIndex - 2; i <= currentIndex + 2; i++) {
-                        loadSlideContent(i);
-                    }
-                }
-            });
-
-            window.attachStatusHistoryControls?.(char, statusContent, slidesData, swiper, indicator);
-            statusOverlay.classList.add('visible');
-        });
-    }
+    if (charStatusBtn) charStatusBtn.addEventListener('click', () => {
+        window.openCharacterStatusPanel?.(db.characters.find(c => c.id === currentChatId));
+    });
 
     if (closeStatusBtn) {
         closeStatusBtn.addEventListener('click', () => {
@@ -228,6 +129,8 @@ function setupChatRoom() {
             if (target) {
                 const msg = target.dataset.sendMsg;
                 if (msg) {
+                    if(statusOverlay.dataset.readonly==='true')return;
+                    if(statusOverlay.dataset.offline==='true'){window.KissOffline?.sendFromStatus(msg).catch(e=>showToast(e.message));statusOverlay.classList.remove('visible');return;}
                     const input = document.getElementById('message-input');
                     if (input) {
                         input.value = msg;
