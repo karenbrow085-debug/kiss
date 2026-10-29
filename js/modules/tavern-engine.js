@@ -348,9 +348,9 @@
             if (id === 'kissStatus') value = context.kissStatus == null ? context.status : context.kissStatus;
             if (value == null) { warnings.push('动态插入点没有可用内容：' + id); return []; }
             if (typeof value === 'string') {
-                if ((id === 'worldInfoBefore' || id === 'worldInfoAfter') && data.wi_format) value = data.wi_format.replace(/\{0\}/g, value);
-                if (id === 'charPersonality' && data.personality_format) value = data.personality_format.replace(/\{\{personality\}\}/gi, value);
-                if (id === 'scenario' && data.scenario_format) value = data.scenario_format.replace(/\{\{scenario\}\}/gi, value);
+                if ((id === 'worldInfoBefore' || id === 'worldInfoAfter') && data.wi_format) value = data.wi_format.replace(/\{0\}/g, () => value);
+                if (id === 'charPersonality' && data.personality_format) value = data.personality_format.replace(/\{\{personality\}\}/gi, () => value);
+                if (id === 'scenario' && data.scenario_format) value = data.scenario_format.replace(/\{\{scenario\}\}/gi, () => value);
             }
             return (Array.isArray(value) ? value : [value]).map(item => normalizeMessage(item, prompt.role || 'system')).filter(item => item && (typeof item.content !== 'string' || item.content.trim()));
         }
@@ -373,7 +373,9 @@
             if (Number(prompt.injection_position || 0) === 1) {
                 const depth = Number(prompt.injection_depth == null ? 4 : prompt.injection_depth);
                 if (!Number.isFinite(depth) || depth < 0) throw new Error('聊天插入深度无效：' + prompt.identifier);
-                injections.push({ depth: Math.floor(depth), order: Number(prompt.injection_order == null ? 100 : prompt.injection_order), index, items });
+                const order = Number(prompt.injection_order == null ? 100 : prompt.injection_order);
+                if (!Number.isFinite(order)) throw new Error('聊天插入顺序无效：' + prompt.identifier);
+                injections.push({ depth: Math.floor(depth), order, index, items });
             } else {
                 if (prompt.injection_position != null && Number(prompt.injection_position) !== 0) throw new Error('不支持的条目插入位置：' + prompt.identifier);
                 relative.push({ id: prompt.identifier, items });

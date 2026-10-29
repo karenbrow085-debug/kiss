@@ -14,8 +14,8 @@
     const sampleKeys = ['temperature', 'frequency_penalty', 'presence_penalty', 'top_p', 'top_k', 'top_a', 'min_p', 'typical_p', 'repetition_penalty', 'seed', 'n', 'max_tokens', 'max_completion_tokens', 'stop', 'logit_bias', 'reasoning_effort', 'verbosity', 'stream'];
     const api = { isEnabled, prepare, lastReport: null, normalizeHistory };
 
-    function isEnabled(chatType = 'private') {
-        return chatType === 'private' && env.getDb()?.tavernSettings?.enabled === true;
+    function isEnabled(chatType = 'private', offline = false) {
+        return offline === true && chatType === 'private' && env.getDb()?.tavernSettings?.enabled === true;
     }
 
     function normalizeHistory(history) {
@@ -31,6 +31,14 @@
                         return null;
                     }).filter(Boolean);
                 }
+                if (message.quote && message.role === 'user') {
+                    const quoted = typeof message.quote.content === 'string' ? message.quote.content : '';
+                    if (quoted) {
+                        const context = '[引用消息：' + quoted + ']\n';
+                        if (Array.isArray(content)) content = [{ type: 'text', text: context }, ...content];
+                        else content = context + (content || '');
+                    }
+                }
                 const result = { role: message.role, content: typeof content === 'string' || Array.isArray(content) ? copy(content) : String(content || '') };
                 for (const key of ['name', 'tool_call_id', 'tool_calls']) if (message[key] !== undefined) result[key] = copy(message[key]);
                 return result;
@@ -41,7 +49,7 @@
         const database = env.getDb();
         const setting = database.tavernSettings || {};
         const preset = (database.tavernPresets || []).find(item => item.id === setting.activePresetId);
-        if (!preset) throw Error('请先在酒馆预设页选择一份预设，或关闭“用于 404 回复”。');
+        if (!preset) throw Error('请先在酒馆预设页选择一份预设，或关闭“仅用于线下回复”。');
         if (preset.format !== 'chat-completion') throw Error('这份是文本补全采样器预设，不能直接用于 404 的聊天补全 API；可保留、编辑和导出。');
         return { preset, setting, database };
     }
@@ -142,7 +150,7 @@
     }
 
     function prepare({ chat, chatType = 'private', body, provider, trigger = 'normal', history, isBackground = false, offline = false }) {
-        if (!isEnabled(chatType)) return { active: false };
+        if (!isEnabled(chatType, offline)) return { active: false };
         if (!chat || !body) throw Error('缺少酒馆预设请求上下文。');
         const engine = env.getEngine();
         if (!engine?.assemble) throw Error('酒馆预设模块未加载，请上传完整更新包后刷新。');
@@ -184,6 +192,12 @@
         warnings.push(...(assembled.warnings || []));
         const messages = copy(assembled.messages || []);
         if (!messages.length) throw Error('此预设没有启用的提示词或聊天记录，请检查条目序列和顺序组。');
+        if (Number.isFinite(maxContext) && maxContext > 0) {
+            const expandedEstimate = messages.reduce((total, message) => total + Math.ceil(text(message).length / 2) + 4
+                + (Array.isArray(message.content) ? message.content.filter(part => part.type === 'image_url').length * 1024 : 0), 0)
+                + Math.ceil(hostText.length / 2) + 4 + maxOutput;
+            if (expandedEstimate > maxContext) throw Error('宏展开后的提示词超出此预设的上下文预算，请增加上下文长度或减少提示词内容。');
+        }
         // Required host display protocol stays separate from the user's ordered preset entries.
         messages.unshift({ role: 'system', content: hostText });
         delete body.messages; delete body.contents; delete body.system_instruction; delete body.systemInstruction;

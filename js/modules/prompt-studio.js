@@ -17,6 +17,7 @@ function active() { const s=state(); return s.presets.find(p=>p.id===s.settings.
 function group(p) { return Number.isInteger(p?.groupIndex) ? p.groupIndex : 0; }
 async function commit(change) {
     if (busy) throw Error('正在保存，请稍候');
+    if (global.kissCleanupLocked) throw Error('数据正在整理，请稍后保存');
     const s=state(), before={presets:s.presets,settings:s.settings}, next=clone(s);
     change(next); busy=true;
     db.tavernPresets=next.presets; db.tavernSettings=next.settings;
@@ -29,22 +30,25 @@ function editRecord(id, change) { return commit(s=>{ const p=s.presets.find(x=>x
 function action(parent, label, fn, className='pt-link') {
     const b=text('button',label,className);b.type='button';b.addEventListener('click',async()=>{ if(b.disabled)return; b.disabled=true; try{await fn();}catch(e){toast(e.message||'操作失败');}finally{b.disabled=false;} });parent.appendChild(b);return b;
 }
-function dialog(title, setup, save, saveLabel='保存') {
-    if(openDialog) openDialog.close();
+function dialog(title, setup, save, saveLabel='保存', nested=false) {
+    const parent = nested ? openDialog : null;
+    if(openDialog && !nested) { if(openDialog.isSaving()) return null; openDialog.close(); }
+    let saving=false, closed=false;
+    if(parent) parent.el.hidden=true;
     const overlay=text('div','','pt-dialog'), box=text('form','','pt-dialog-box');
     overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
     const titleId=uid();overlay.setAttribute('aria-labelledby',titleId);
     const head=text('div','','pt-dialog-head'), heading=text('h2',title);heading.id=titleId;head.appendChild(heading);
     const body=text('div','','pt-dialog-body'), error=text('div','','pt-error'), foot=text('div','','pt-dialog-foot'); error.setAttribute('role','alert');body.appendChild(error);
     const previous=document.activeElement;
-    const close=()=>{overlay.remove();document.removeEventListener('keydown',keys);if(openDialog?.el===overlay)openDialog=null;if(previous?.isConnected)previous.focus();};
+    const close=()=>{if(saving||closed)return;closed=true;overlay.remove();document.removeEventListener('keydown',keys);if(openDialog?.el===overlay)openDialog=parent?.el.isConnected?parent:null;if(parent?.el.isConnected)parent.el.hidden=false;if(previous?.isConnected)previous.focus();};
     const x=action(head,'×',close,'');x.setAttribute('aria-label','关闭弹窗');
-    const api={el:overlay,form:box,body,error,close,field:(...args)=>field(body,...args)};
-    action(foot,save?'取消':'关闭',close,'');
-    if(save){const submit=text('button',saveLabel);submit.type='submit';foot.appendChild(submit);box.addEventListener('submit',async e=>{e.preventDefault();if(submit.disabled)return;error.textContent='';submit.disabled=true;x.disabled=true;try{await save(api);close();}catch(e){error.textContent=e.message||'保存失败，请重试';}finally{submit.disabled=false;x.disabled=false;}});}
+    const api={el:overlay,form:box,body,error,close,isSaving:()=>saving,field:(...args)=>field(body,...args)};
+    const cancel=action(foot,save?'取消':'关闭',close,'');
+    if(save){const submit=text('button',saveLabel);submit.type='submit';foot.appendChild(submit);box.addEventListener('submit',async e=>{e.preventDefault();if(saving||submit.disabled)return;error.textContent='';saving=true;submit.disabled=true;x.disabled=true;cancel.disabled=true;try{await save(api);saving=false;close();}catch(e){error.textContent=e.message||'保存失败，请重试';}finally{saving=false;submit.disabled=false;x.disabled=false;cancel.disabled=false;}});}
     else box.addEventListener('submit',e=>e.preventDefault());
     box.append(head,body,foot);overlay.appendChild(box);document.body.appendChild(overlay);openDialog=api;
-    const keys=e=>{if(e.key==='Escape'){e.preventDefault();close();}if(e.key==='Tab'){const nodes=[...box.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')].filter(n=>n.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};document.addEventListener('keydown',keys);
+    const keys=e=>{if(openDialog?.el!==overlay)return;if(e.key==='Escape'){e.preventDefault();close();}if(e.key==='Tab'){const nodes=[...box.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')].filter(n=>n.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};document.addEventListener('keydown',keys);
     setup(api); const first=body.querySelector('input,select,textarea,button');(first||x).focus();return api;
 }
 function field(parent,label,value='',type='text',options) {
@@ -56,9 +60,9 @@ function field(parent,label,value='',type='text',options) {
     l.appendChild(input);parent.appendChild(l);return input;
 }
 function notice(parent,message) {parent.appendChild(text('p',message,'pt-notice'));}
-function askName(title,value='') {return new Promise(resolve=>{let answered=false;const d=dialog(title,a=>{a.name=a.field('名称',value);a.name.required=true;a.name.maxLength=150;},a=>{const name=a.name.value.trim();if(!name)throw Error('请输入名称');answered=true;resolve(name);},'确定');const close=d.close;d.close=()=>{if(!answered){answered=true;resolve(null);}close();}; // cancellation handlers use DOM removal observer below
+function askName(title,value='') {return new Promise(resolve=>{let answered=false;const d=dialog(title,a=>{a.name=a.field('名称',value);a.name.required=true;a.name.maxLength=150;},a=>{const name=a.name.value.trim();if(!name)throw Error('请输入名称');answered=true;resolve(name);},'确定',true);if(!d){resolve(null);return;}const close=d.close;d.close=()=>{if(!answered){answered=true;resolve(null);}close();}; // cancellation handlers use DOM removal observer below
  const observer=new MutationObserver(()=>{if(!d.el.isConnected){observer.disconnect();if(!answered){answered=true;resolve(null);}}});observer.observe(document.body,{childList:true});});}
-function confirmDialog(title,message) {return new Promise(resolve=>{let answered=false;const d=dialog(title,a=>notice(a.body,message),()=>{answered=true;resolve(true);},'确认');const observer=new MutationObserver(()=>{if(!d.el.isConnected){observer.disconnect();if(!answered)resolve(false);}});observer.observe(document.body,{childList:true});});}
+function confirmDialog(title,message) {return new Promise(resolve=>{let answered=false;const d=dialog(title,a=>notice(a.body,message),()=>{answered=true;resolve(true);},'确认',true);if(!d){resolve(false);return;}const observer=new MutationObserver(()=>{if(!d.el.isConnected){observer.disconnect();if(!answered)resolve(false);}});observer.observe(document.body,{childList:true});});}
 function refreshMode(mode) {
     if(mode!=='chat'&&mode!=='call')return;
     view=mode;
@@ -91,8 +95,17 @@ async function importFiles(files) {
     showReport(imported[0].id);
 }
 function report(p) {
-    const issues=[...(p.warnings||[])];
-    if(p.data.extensions&&Object.keys(p.data.extensions).length) issues.push('扩展字段完整保留供导出；外部脚本、正则插件和酒馆助手不在这里执行。');
+    const issues=(p.warnings||[]).filter(message=>!message.startsWith('排序引用缺少条目：')&&!message.startsWith('扩展数据将原样保留')&&!message.startsWith('扩展字段完整保留'));
+    if(p.format==='chat-completion'){
+        const groups=E.groupList(p), selectedIndex=group(p);
+        const missing=E.orderedPrompts(p,selectedIndex).filter(row=>row.prompt.missing&&row.enabled).map(row=>row.prompt.identifier);
+        issues.push(missing.length?'当前排序方案缺少已启用条目：'+missing.join('、')+'。使用此方案前需补全、停用或移除引用。':'当前排序方案没有缺失的已启用条目引用。');
+        groups.forEach((g,i)=>{
+            const ids=E.orderedPrompts(p,i).filter(row=>row.prompt.missing&&row.enabled).map(row=>row.prompt.identifier);
+            if(i!==selectedIndex&&ids.length)issues.push('其他方案 '+g.character_id+' 缺少条目：'+ids.join('、')+'。不影响当前方案；切换到该方案使用前需处理。');
+        });
+    }
+    if(p.data.extensions&&Object.keys(p.data.extensions).length) issues.push('扩展字段完整保留供导出；第三方脚本、正则插件和酒馆助手不在这里执行。');
     if(p.format!=='chat-completion') issues.push('此文件为文本补全采样器预设：可管理参数和导出，当前 404 对话接口不能按该模板生成。');
     return [...new Set(issues)];
 }
@@ -117,12 +130,8 @@ function render() {
     select.addEventListener('change',()=>run(()=>commit(n=>{n.settings.activePresetId=select.value||null;n.settings.enabled=false;})));
     wrap.appendChild(select);body.appendChild(wrap);
     const p=active();if(!p)return;
+    if(search&&!filtered.some(item=>item.id===p.id)){body.appendChild(text('div','请选择匹配的预设；当前预设未切换。','pt-empty'));return;}
     const tools=text('div','','pt-preset-tools');action(tools,'参数设置',()=>parameters(p.id));action(tools,'预设信息',()=>showReport(p.id));body.appendChild(tools);
-    const use=text('div','','kkt-item');use.appendChild(text('label','用于 404 回复'));use.firstChild.htmlFor='pt-runtime-enable';use.appendChild(toggle(s.settings.enabled,'用于 404 回复',async checked=>{
-        if(checked&&p.format!=='chat-completion')throw Error('此预设不是聊天补全格式，仅支持保存和导出');
-        if(checked&&!await confirmDialog('启用酒馆预设','私聊和线下的下一次回复将使用「'+p.name+'」及其独立参数；替代原提示词组装，不叠加原思维链。通话和论坛不受影响。')){render();return;}
-        await commit(n=>{n.settings.enabled=checked;});
-    },'pt-runtime-enable'));body.appendChild(use);
     const groups=E.groupList(p);
     if(groups.length>1){const row=text('div','','pt-group-select');row.appendChild(text('span','排序方案'));const sel=document.createElement('select');sel.setAttribute('aria-label','排序方案');groups.forEach((g,i)=>{const opt=text('option','方案 '+g.character_id+' · '+(g.count??g.length??g.order?.length??0)+' 项');opt.value=i;sel.appendChild(opt);});sel.value=group(p);sel.addEventListener('change',()=>run(()=>editRecord(p.id,r=>{r.groupIndex=Number(sel.value);})));row.appendChild(sel);body.appendChild(row);}
     if(p.format!=='chat-completion'){body.appendChild(text('div','此格式仅管理、保存和导出参数；不作为聊天补全模板执行。','pt-warning'));return;}
@@ -178,7 +187,7 @@ function editItem(id,identifier) {
         const depth=Number(a.depth.value),order=Number(a.order.value);if(!Number.isInteger(depth)||depth<0||depth>10000||!Number.isFinite(order))throw Error('深度或顺序无效');
         const item={...(original||{}),identifier:key,name,role:a.role.value,marker,content:marker?'':a.content.value,injection_position:Number(a.position.value),injection_depth:depth,injection_order:order,injection_trigger:a.triggers.value.split(',').map(s=>s.trim()).filter(Boolean)};
         if(item.injection_trigger.some(x=>!['normal','continue','regenerate','swipe','impersonate','quiet'].includes(x)))throw Error('生成时机填写有误');
-        r.data.prompts=r.data.prompts||[];const i=r.data.prompts.findIndex(x=>x.identifier===identifier);if(i<0){r.data.prompts.push(item);const refs=E.getOrder(r,group(r));if(!refs.some(x=>x.identifier===key))refs.push({identifier:key,enabled:true});E.setOrder(r,refs,group(r));}else{r.data.prompts[i]=item;if(key!==identifier)updateOrders(r,refs=>refs.map(ref=>ref.identifier===identifier?{...ref,identifier:key}:ref));}
+        r.data.prompts=r.data.prompts||[];const i=r.data.prompts.findIndex(x=>x.identifier===identifier);if(i<0){r.data.prompts.push(item);if(missing&&key!==identifier)updateOrders(r,refs=>refs.map(ref=>ref.identifier===identifier?{...ref,identifier:key}:ref));const refs=E.getOrder(r,group(r));if(!refs.some(x=>x.identifier===key))refs.push({identifier:key,enabled:true});E.setOrder(r,refs,group(r));}else{r.data.prompts[i]=item;if(key!==identifier)updateOrders(r,refs=>refs.map(ref=>ref.identifier===identifier?{...ref,identifier:key}:ref));}
     }));
 }
 const PARAMS=[['temperature','温度',0,2,.01],['frequency_penalty','频率惩罚',-2,2,.01],['presence_penalty','存在惩罚',-2,2,.01],['top_p','Top P',0,1,.01],['top_k','Top K',0,null,1],['min_p','Min P',0,1,.01],['top_a','Top A',0,1,.01],['repetition_penalty','重复惩罚',0,null,.01],['openai_max_context','上下文长度',1,null,1],['openai_max_tokens','最大回复长度',1,null,1],['n','候选回复数',1,null,1],['seed','随机种子',-1,null,1]];
@@ -189,20 +198,27 @@ function parameters(id) {
         const grid=text('div','','pt-param-grid');a.body.appendChild(grid);a.params={};
         const aliases={temperature:'temp_openai',frequency_penalty:'freq_pen_openai',presence_penalty:'pres_pen_openai',top_p:'top_p_openai',top_k:'top_k_openai'};
         const normalized=E.parameters(p), requestKeys={openai_max_context:'max_context',openai_max_tokens:'max_tokens'};
-        for(const [key,label,min,max,step]of PARAMS){const input=field(grid,label,p.data[key]??normalized[requestKeys[key]||key]??'','number');input.min=min;if(max!==null)input.max=max;input.step=step;a.params[key]=input;}
+        for(const [key,label,min,max,step]of PARAMS){const input=field(grid,label,p.data[key]??normalized[requestKeys[key]||key]??'','number');const value=Number(input.value);if(input.value===''||(Number.isFinite(value)&&value>=min&&(max===null||value<=max))){input.min=min;if(max!==null)input.max=max;}input.step=step===1?'1':'any';a.params[key]=input;}
         a.stream=a.field('流式传输',typeof normalized.stream==='boolean'?String(normalized.stream):'','text',[['','不指定'],['true','开启'],['false','关闭']]);
         a.context=a.field('解锁上下文长度',Object.hasOwn(p.data,'max_context_unlocked')?String(p.data.max_context_unlocked):'','text',[['','不指定'],['true','开启'],['false','关闭']]);
         a.effort=a.field('推理强度（留空不指定）',p.data.reasoning_effort||'');a.verbosity=a.field('详细程度（留空不指定）',p.data.verbosity||'');
         const details=document.createElement('details'),summary=text('summary','高级字段');details.appendChild(summary);a.body.appendChild(details);
         const remaining=clone(p.data);for(const key of Object.values(aliases))delete remaining[key];for(const key of ['temp','rep_pen','max_tokens','max_length','max_context','max_context_length','stream'])delete remaining[key];delete remaining.prompts;delete remaining.prompt_order;PARAMS.forEach(([key])=>delete remaining[key]);['stream_openai','max_context_unlocked','reasoning_effort','verbosity'].forEach(key=>delete remaining[key]);
         a.advanced=field(details,'其他原始字段（JSON）',JSON.stringify(remaining,null,2),'textarea');a.advanced.classList.add('pt-json');notice(details,'完整保留未识别字段与扩展。此编辑器不执行脚本。');
+        a.initial={params:Object.fromEntries(Object.entries(a.params).map(([key,input])=>[key,input.value])),stream:a.stream.value,context:a.context.value,effort:a.effort.value,verbosity:a.verbosity.value,advanced:a.advanced.value};
     },a=>editRecord(id,r=>{
         let extra;try{extra=JSON.parse(a.advanced.value);}catch(e){throw Error('高级字段不是有效 JSON');}
         if(!extra||typeof extra!=='object'||Array.isArray(extra)||Object.hasOwn(extra,'prompts')||Object.hasOwn(extra,'prompt_order'))throw Error('高级字段应为对象，且不能覆盖条目和排序');
-        const data={...extra};if(r.data.prompts)data.prompts=r.data.prompts;if(r.data.prompt_order)data.prompt_order=r.data.prompt_order;
-        for(const [key,label,min,max,step]of PARAMS){const str=a.params[key].value;if(str==='')continue;const value=Number(str);if(!Number.isFinite(value)||value<min||(max!==null&&value>max)||(step===1&&!Number.isInteger(value)))throw Error(label+'超出有效范围');data[key]=value;}
-        if(a.stream.value!=='')data.stream_openai=a.stream.value==='true';if(a.context.value!=='')data.max_context_unlocked=a.context.value==='true';
-        if(a.effort.value.trim())data.reasoning_effort=a.effort.value.trim();if(a.verbosity.value.trim())data.verbosity=a.verbosity.value.trim();r.data=data;
+        const aliases={temperature:['temperature','temp_openai','temp'],frequency_penalty:['frequency_penalty','freq_pen_openai'],presence_penalty:['presence_penalty','pres_pen_openai'],top_p:['top_p','top_p_openai'],top_k:['top_k','top_k_openai'],repetition_penalty:['repetition_penalty','rep_pen'],openai_max_tokens:['openai_max_tokens','max_tokens','max_length'],openai_max_context:['openai_max_context','max_context','max_context_length']};
+        const managed=[...PARAMS.flatMap(([key])=>aliases[key]||[key]),'stream_openai','stream','max_context_unlocked','reasoning_effort','verbosity'];
+        let data=clone(r.data);
+        if(a.advanced.value!==a.initial.advanced){data={...extra};for(const key of managed)if(Object.hasOwn(r.data,key))data[key]=clone(r.data[key]);if(r.data.prompts)data.prompts=r.data.prompts;if(r.data.prompt_order)data.prompt_order=r.data.prompt_order;}
+        for(const [key,label,min,max,step]of PARAMS){const str=a.params[key].value;if(str===a.initial.params[key])continue;for(const alias of aliases[key]||[key])delete data[alias];if(str==='')continue;const value=Number(str);if(!Number.isFinite(value)||value<min||(max!==null&&value>max)||(step===1&&!Number.isInteger(value)))throw Error(label+'超出有效范围');data[key]=value;}
+        if(a.stream.value!==a.initial.stream){delete data.stream;delete data.stream_openai;if(a.stream.value!=='')data.stream_openai=a.stream.value==='true';}
+        if(a.context.value!==a.initial.context){delete data.max_context_unlocked;if(a.context.value!=='')data.max_context_unlocked=a.context.value==='true';}
+        if(a.effort.value!==a.initial.effort){delete data.reasoning_effort;if(a.effort.value.trim())data.reasoning_effort=a.effort.value.trim();}
+        if(a.verbosity.value!==a.initial.verbosity){delete data.verbosity;if(a.verbosity.value.trim())data.verbosity=a.verbosity.value.trim();}
+        r.data=data;
     }));
 }
 function manage() {

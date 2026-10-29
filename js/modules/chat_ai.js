@@ -114,7 +114,7 @@ document.addEventListener('keydown',event => {
 });
 
 // AI 交互逻辑
-async function getAiReply(chatId, chatType, isBackground = false) {
+async function getAiReply(chatId, chatType, isBackground = false, generationType = 'normal') {
     if (isGenerating && !isBackground) return; 
     
     if (!isBackground) {
@@ -186,7 +186,6 @@ async function getAiReply(chatId, chatType, isBackground = false) {
     }
 
     try {
-        const tavernActive = window.KissTavernRuntime?.isEnabled(chatType) === true;
         let systemPrompt, requestBody;
         if (chatType === 'private') {
             await window.KissMoments?.prepareContext(chat, apiConfig, generation);
@@ -228,7 +227,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
         });
 
         // 检查系统提示词中是否包含聊天记录占位符
-        const hasHistoryPlaceholder = !tavernActive && systemPrompt.includes('【动态插入: 聊天记录】');
+        const hasHistoryPlaceholder = systemPrompt.includes('【动态插入: 聊天记录】');
         
         if (!hasHistoryPlaceholder) {
             // 如果没有占位符（如默认的 UwU 版本），则将提示语加在末尾
@@ -530,7 +529,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             }
 
             // 2. 插入 CoT 序列（无论前台后台，只要开启就插入）
-            const cotEnabled = !tavernActive && db.cotSettings && db.cotSettings.enabled;
+            const cotEnabled = db.cotSettings && db.cotSettings.enabled;
             
             if (cotEnabled) {
                 let cotInstruction = '';
@@ -576,8 +575,6 @@ async function getAiReply(chatId, chatType, isBackground = false) {
             };
         }
         
-        const tavernRequest = window.KissTavernRuntime?.prepare({chat, chatType, body:requestBody, provider, history:historySlice, isBackground});
-        if (tavernRequest?.active) streamEnabled = tavernRequest.stream;
 
         // 格式化打印日志
         let logText = "========== [发送给 AI 的请求内容] ==========\n";
@@ -1384,5 +1381,5 @@ async function handleRegenerate() {
     currentPage = 1; 
     renderMessages(false, true); 
 
-    await getAiReply(currentChatId, currentChatType);
+    await getAiReply(currentChatId, currentChatType, false, 'regenerate');
 }

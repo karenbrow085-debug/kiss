@@ -411,9 +411,8 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   const messages=[{role:'system',content:prompt(chat)},...history.filter(m=>['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:m.offlineNarrative&&m.role==='assistant'?displayStatus(m,chat).text:textOf(m)})).filter(m=>m.content.trim())];
   if(messages.length===1)messages.push({role:'user',content:'请根据当前场景开始线下剧情，留出我的回应空间。'});
   const built=buildChatApiRequest(apiConfig,messages,{temperature:apiConfig.temperatureEnabled?apiConfig.temperature:undefined});
-  const tavernRequest=window.KissTavernRuntime?.prepare({chat,chatType:'private',body:built.requestBody,provider:apiConfig.provider,history:messages.slice(1),offline:true,trigger:replacement?'regenerate':'normal'});
   let endpoint=built.endpoint;
-  const useStream=tavernRequest?.active?tavernRequest.stream:apiConfig.streamEnabled;
+  const useStream=apiConfig.streamEnabled;
   if(useStream){if(apiConfig.provider==='gemini')endpoint=endpoint.replace(':generateContent',':streamGenerateContent')+'&alt=sse';else built.requestBody.stream=true;}
   const blocked=typeof BLOCKED_API_DOMAINS!=='undefined'?BLOCKED_API_DOMAINS:[];
   if(blocked.some(domain=>endpoint.includes(domain)))throw Error('当前 API 站点已被屏蔽');
