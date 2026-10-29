@@ -325,6 +325,23 @@ async function save() {
  };
  const job=serial.then(async()=>{await pause();return run();});queuedSave=job;serial=job.catch(()=>{});return job;
 }
+// Offline keystrokes save the current chat only, on the same ordered write queue.
+const queuedChatSaves=new WeakMap();
+function saveChat(chat){
+ if(!chat||typeof chat!=='object')return Promise.reject(Error('聊天不存在'));
+ if(queuedChatSaves.has(chat))return queuedChatSaves.get(chat);
+ const job=serial.then(async()=>{
+  queuedChatSaves.delete(chat);await pause();
+  if(busy||global.kissCleanupLocked)throw Error('数据正在整理，请稍后重试保存');
+  const key=(db.characters||[]).includes(chat)?'characters':(db.groups||[]).includes(chat)?'groups':null;
+  if(!key)throw Error('当前账号或聊天已切换，未写入其他账号');
+  if(typeof syncChatActiveArchive==='function')syncChatActiveArchive(chat,true);
+  const packed=await diskChat(chat);
+  if(!(db[key]||[]).includes(chat))throw Error('聊天已移除，未恢复已删除的数据');
+  await dexieDB[key].put(packed);
+ });
+ queuedChatSaves.set(chat,job);serial=job.catch(()=>{});return job;
+}
 // Desktop interactions share the existing write queue but never traverse chat tables.
 function saveHomeSettings(keys) {
  const allowed=new Set(['homeLayoutMode','homeFreePositions','homeLayoutPages','homeLayoutOrder','addedWidgets']);
@@ -467,5 +484,5 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);
