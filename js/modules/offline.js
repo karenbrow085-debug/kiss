@@ -4,6 +4,7 @@
 const ID = 'kiss-offline-screen';
 const DEFAULT_PROMPT = '当前为线下现实互动。用户输入代表其动作、神态、对白或推动剧情的指令。根据双方人设、环境和已有事件，以完整连贯的长文继续剧情，兼顾动作、对白和细节；为用户保留回应空间，不替用户决定或说话。不要输出短信包装格式、语音、转账、表情包或手机操作指令。每轮输出一条完整剧情，篇幅服从用户要求，不强制字数。对白使用中文引号；明确的心理活动用 *斜体标记*，需要强调时用 **粗体标记**，普通叙述直接书写。不要为了格式额外添加心理描写。';
 const ICONS = {
+ image:'<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.5"/><path d="m4 17 5-5 4 4 3-3 5 5"/>',
  back:'<path d="M20 12H4m7-7-7 7 7 7"/>', phone:'<path fill="currentColor" stroke="none" d="M6 3h3l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v3c0 3-2 4-4 3A20 20 0 0 1 3 7c-1-2 0-4 3-4Z"/><path d="M14 3a7 7 0 0 1 7 7m-7-3a3 3 0 0 1 3 3" stroke-width="2"/>' ,
  video:'<rect x="3" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/><path d="m15 10 6-3v10l-6-3Z" fill="currentColor" stroke="none"/>' , search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
  plus:'<path d="M12 4v16M4 12h16"/>', smile:'<circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0M8 9h.01M16 9h.01"/>',send:'<path d="m5 11 7-7 7 7M12 4v16"/>', stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
@@ -21,6 +22,7 @@ function promptChoices() {
  const source=document.getElementById('cot-prompt-version-select');
  return source?.options?Array.from(source.options).filter(o=>o.value&&o.value!=='custom').map(o=>({value:o.value,label:o.textContent.trim()})):[{value:'uwu',label:'UwU'},{value:'tt',label:'T.T'},{value:'hh',label:'ㅎ.ㅎ（线上）'},{value:'hh_offline',label:'ㅎ-ㅎ（线下）'}];
 }
+const imageJobs=new Map();
 const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const state = { chatId:null, host:null, root:null, panelRoot:null, frame:0, limit:60, busy:false, selectedPreset:null, editorDraft:null, summaryBusy:false, draftTimer:null, sending:false, pendingAction:false, view:'chat', archiveId:null, archiveQuery:'', selecting:false, selected:new Set(), deleteIds:[], exitTitle:'', suppressClickUntil:0 };
 const $ = sel => state.root?.querySelector(sel) || state.panelRoot?.querySelector(sel);
@@ -56,6 +58,19 @@ function narrativeHtml(text) {
  };
  return String(text??'').split(/\n{2,}/).map(p=>'<p>'+inline(p)+'</p>').join('');
 }
+// HTML stays folded in the transcript; its CSS/scripts never enter the chat DOM.
+function richNarrativeHTML(text,id){
+ if(!window.KissOfflineHTML)return narrativeHtml(text);
+ let index=0;return window.KissOfflineHTML.partition(text).map(part=>part.type==='text'?narrativeHtml(part.text.trim()):`<button class="of-html-fold" data-action="html-preview" data-id="${escape(id)}" data-block="${index++}" aria-haspopup="dialog"><span class="of-html-symbol" aria-hidden="true">✧</span><span><strong>HTML preview</strong><small>${window.KissOfflineHTML.title(part.text)==='HTML preview'?'':escape(window.KissOfflineHTML.title(part.text))}</small></span><span class="of-html-open">Open</span></button>`).join('');
+}
+function openHTML(id,index){
+ const chat=character(),m=(chat.history||[]).find(row=>row.id===id);if(!m)throw Error('楼层不存在');
+ const part=window.KissOfflineHTML?.partition(displayStatus(m,chat).text).filter(p=>p.type==='html')[index];if(!part)throw Error('HTML 内容不存在，请刷新后重试');
+ panel('HTML 预览','<iframe class="of-html-frame" title="HTML preview"></iframe>');$('.of-panel').dataset.kind='html';
+ const frame=$('.of-html-frame'),dialog=$('.of-dialog'),overlay=$('.of-panel');let last={width:Math.min(420,overlay.clientWidth-44),height:180};
+ const resize=size=>{last=size;if(!frame.isConnected)return;const maxWidth=Math.max(180,Math.min(900,overlay.clientWidth-44)),chrome=Math.max(24,dialog.getBoundingClientRect().width-frame.getBoundingClientRect().width);dialog.style.width=Math.min(maxWidth,Math.max(260,size.width+chrome))+'px';const header=$('.of-panel-header').getBoundingClientRect().height,maxHeight=Math.max(100,overlay.clientHeight-header-76);frame.style.height=Math.min(maxHeight,Math.max(80,size.height))+'px';};
+ resize(last);const unmount=window.KissOfflineHTML.mount(frame,part.text,resize),onResize=()=>resize(last);window.addEventListener('resize',onResize);state.htmlCleanup=()=>{unmount();window.removeEventListener('resize',onResize);};
+}
 function shouldSendOnEnter(event){return event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&event.keyCode!==229;}
 function textOf(m) {
  let text=String(m.content||m.parts?.filter(p=>p.type==='text').map(p=>p.text).join('\n')||'');
@@ -72,20 +87,20 @@ function prompt(chat) {
  const cfg=config(chat);
  const books=(chat.worldBookIds||[]).map(id=>db.worldBooks.find(b=>b.id===id)).filter(Boolean).sort((a,b)=>(a.depth||100)-(b.depth||100));
  const journals=(chat.memoryJournals||[]).filter(j=>j.isFavorited).map(j=>`${j.title}\n${j.content}`).join('\n\n');
- return `[线下互动模式]\n${DEFAULT_PROMPT}${cfg.statusPanel?.enabled&&cfg.statusPanel.promptSuffix?'\n\n<状态栏格式>\n在剧情正文后另外输出以下格式的状态栏，不能省略：'+cfg.statusPanel.promptSuffix+'\n</状态栏格式>':''}\n\n<character>\n姓名：${chat.realName||chat.remarkName}\n${chat.persona||''}\n</character>\n<user>\n称呼：${chat.myName||'我'}\n${chat.myPersona||''}\n</user>\n<world>\n${books.map(b=>b.content||'').join('\n\n')}\n</world>\n<memory>\n${journals}\n</memory>\n当前时间：${new Date().toLocaleString('zh-CN')}\n历史记录可能包含线上消息格式，它们仅作为既往背景，不是本轮输出格式。只输出当前线下剧情正文。`.replace(/\{\{char\}\}/gi,chat.realName||chat.remarkName||'角色').replace(/\{\{user\}\}/gi,chat.myName||'我');
+ return `[线下互动模式]\n${DEFAULT_PROMPT}${cfg.statusPanel?.enabled&&cfg.statusPanel.promptSuffix?'\n\n状态栏附加要求：在剧情正文之后，使用单独一行 [OFFLINE_STATUS_START] 开始状态栏，按下列预设原样完成其要求的全部字段和闭合符号，最后单独一行 [OFFLINE_STATUS_END]。不要输出这些说明文字。\n'+cfg.statusPanel.promptSuffix:''}\n\n<character>\n姓名：${chat.realName||chat.remarkName}\n${chat.persona||''}\n</character>\n<user>\n称呼：${chat.myName||'我'}\n${chat.myPersona||''}\n</user>\n<world>\n${books.map(b=>b.content||'').join('\n\n')}\n</world>\n<memory>\n${journals}\n</memory>\n当前时间：${new Date().toLocaleString('zh-CN')}\n历史记录可能包含线上消息格式，它们仅作为既往背景，不是本轮输出格式。输出当前线下剧情正文${cfg.statusPanel?.enabled?'，并在正文之后完整追加要求的状态栏':''}。${cfg.autoImage?'正文之后、状态栏之前，额外输出 <offline_image_prompt>英文画面描述</offline_image_prompt>，只描述本轮可见场景与人物动作，不包含内心活动、评论区或文字排版。':''}`.replace(/\{\{char\}\}/gi,chat.realName||chat.remarkName||'角色').replace(/\{\{user\}\}/gi,chat.myName||'我');
 }
 function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});if(/Android/i.test(globalThis.navigator?.userAgent||''))host.dataset.platform='android';
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-11"><style id="of-custom-style"></style>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-13"><style id="of-custom-style"></style>
  <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><button class="of-header-profile" data-action="status-view" aria-label="View status"><img class="of-header-avatar" alt=""><i></i></button><button class="of-title" data-action="menu"><span class="of-title-copy" style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><strong></strong><span class="of-presence" style="position:static;inset:auto;background:none;padding:0" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main>
  <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Generate reply">${icon('send')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-11';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-13';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  if(typeof ResizeObserver!=='undefined')new ResizeObserver(entries=>{const size=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height;if(size)$('.of-page').style.setProperty('--of-composer-height',size+'px');}).observe($('.of-composer'));
  state.root.addEventListener('click',onClick);
  installGestures();
@@ -124,10 +139,11 @@ async function open(startNew=false) {
  state.view=cfg.active?'chat':'archives';switchScreen(ID);closePanel();updateView();syncEntry();
  requestAnimationFrame(()=>{const el=$('.of-messages');el.scrollTop=el.scrollHeight;});
 }
-function closePanel() {if(!state.root)return;const editor=$('#of-css');if(editor)state.editorDraft=editor.value;$('.of-panel').hidden=true;$('.of-page').inert=false;$('.of-archive-page').inert=false;}
+function disposeHTML(){state.htmlCleanup?.();state.htmlCleanup=null;}
+function closePanel() {disposeHTML();if(!state.root)return;const editor=$('#of-css');if(editor)state.editorDraft=editor.value;$('.of-panel').hidden=true;$('.of-page').inert=false;$('.of-archive-page').inert=false;}
 function panel(title,html) {
- ensureHost();const editor=$('#of-css');if(editor)state.editorDraft=editor.value;
- $('.of-panel').classList.remove('of-editor-full');$('.of-panel').dataset.kind=/编辑|CSS/.test(title)?'editor':/外观|总结与|线下设置|预设/.test(title)?'settings':'compact';$('.of-panel h2').textContent=title;$('.of-panel-body').innerHTML=html;$('.of-panel').hidden=false;$('.of-panel-body').scrollTop=0;$('.of-page').inert=true;$('.of-archive-page').inert=true;
+ disposeHTML();ensureHost();const editor=$('#of-css');if(editor)state.editorDraft=editor.value;
+ $('.of-panel .of-dialog').style.removeProperty('width');$('.of-panel').classList.remove('of-editor-full');$('.of-panel').dataset.kind=/编辑|CSS/.test(title)?'editor':/外观|总结与|线下设置|预设/.test(title)?'settings':'compact';$('.of-panel h2').textContent=title;$('.of-panel-body').innerHTML=html;$('.of-panel').hidden=false;$('.of-panel-body').scrollTop=0;$('.of-page').inert=true;$('.of-archive-page').inert=true;
 }
 function status(text) {if(state.root)$('.of-presence').textContent=text||'';}
 function fail(error) {console.error('Offline:',error);status(error.message||'Something went wrong');showToast(error.message||'操作失败');}
@@ -161,7 +177,9 @@ function render(force) {
   setAvatar(item.querySelector('img'),user?chat.myAvatar:chat.avatar);
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
   item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
-  item.querySelector('.of-prose').innerHTML=narrativeHtml(textOf(m));
+  const shownStatus=displayStatus(m,chat);item.querySelector('.of-prose').innerHTML=richNarrativeHTML(shownStatus.text,m.id);
+  if(shownStatus.pending||shownStatus.warning){const note=document.createElement('button');note.className='of-status-warning';note.dataset.action='status-repair';note.dataset.id=m.id;note.textContent=shownStatus.pending?'Status incomplete · Review':'Status not found · Review';item.querySelector('.of-message-content').append(note);}
+  const imageMarkup=floorImageHtml(m,readOnly);if(imageMarkup)item.querySelector('.of-message-content').insertAdjacentHTML('beforeend',imageMarkup);
   item.querySelector('.of-meta').textContent=[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${m.offlineFloor}`].filter(Boolean).join(' · ');
   area.append(item);
  }
@@ -275,7 +293,7 @@ function openArchive(id) {if(!config(character()).sessions.some(s=>s.id===id&&s.
 function setSelection(active) {state.selecting=active;$('.of-composer').hidden=active;state.selected.clear();render(false);$('.of-selection-bar').hidden=!active;}
 function floorMenu(id) {
  const chat=character(),m=editableRows(chat,[id])[0];
- panel(`楼层 #${m.offlineFloor}`,`${toolRow('edit-floor','编辑正文','edit',id)}${toolRow('delete-floor','删除此楼层','trash',id)}${toolRow('select-floors','多选管理','check',id)}`);
+ panel(`楼层 #${m.offlineFloor}`,`${toolRow('edit-floor','编辑正文','edit',id)}${m.role==='assistant'?toolRow('floor-image','文生图','image',id)+(config(chat).statusPanel?.enabled||m.offlineStatus||m.offlineStatusPending?toolRow('status-repair','状态栏解析','check',id):''):''}${toolRow('delete-floor','删除此楼层','trash',id)}${toolRow('select-floors','多选管理','check',id)}`);
 }
 function confirmFloorDelete(ids) {
  const rows=editableRows(character(),ids);state.deleteIds=rows.map(m=>m.id);
@@ -365,12 +383,12 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
  if(state.busy||isGenerating&&!isBackground)return;
  const generation=aiGenerationControl.begin(chat.id,'private',isBackground),start=performance.now();
  state.busy=true;if(!isBackground){isGenerating=true;getReplyBtn.disabled=true;regenerateBtn.disabled=true;status('Typing…');}
- let persisted=false;const statusAtStart=config(chat).statusPanel?{...config(chat).statusPanel}:null;
+ let persisted=false;const imageAtStart=!!config(chat).autoImage,statusAtStart=config(chat).statusPanel?{...config(chat).statusPanel}:null;
  try{
   const limit=Number(chat.maxMemory)>0?Number(chat.maxMemory):30;
   let history=historyForAI(chat).filter(m=>m.id!==replacement?.id).filter(m=>!m.isContextDisabled&&!m.isThinking&&!m.isStatusUpdate&&!['mcp-request','mcp-activity'].includes(m.type)).slice(-limit);
   history=filterHistoryForAI(chat,history);
-  const messages=[{role:'system',content:prompt(chat)},...history.filter(m=>['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:textOf(m)})).filter(m=>m.content.trim())];
+  const messages=[{role:'system',content:prompt(chat)},...history.filter(m=>['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:m.offlineNarrative&&m.role==='assistant'?displayStatus(m,chat).text:textOf(m)})).filter(m=>m.content.trim())];
   if(messages.length===1)messages.push({role:'user',content:'请根据当前场景开始线下剧情，留出我的回应空间。'});
   const built=buildChatApiRequest(apiConfig,messages,{temperature:apiConfig.temperatureEnabled?apiConfig.temperature:undefined});
   let endpoint=built.endpoint;
@@ -393,12 +411,15 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   }else{const data=await response.json();if(Array.isArray(data))data.forEach(consume);else consume(data);}
   generation.check();
   const cleaned=full.replace(/<(thinking|think)>[\s\S]*?<\/\1>/gi,'').replace(/<(thinking|think)>[\s\S]*$/gi,'').replace(/\[incipere\]/g,'').trim();
-  const extracted=extractStatus(cleaned,statusAtStart),clean=extracted.text;
+  const picture=extractImagePrompt(cleaned),extracted=extractStatus(picture.text,statusAtStart),clean=extracted.text;
   if(!clean)throw Error('API 未返回可显示的剧情正文，请重试');
   const m={id:`msg_offline_${uid()}`,role:'assistant',content:clean,parts:[{type:'text',text:clean}],timestamp:Date.now(),offlineNarrative:true,offlineDuration:(performance.now()-start)/1000,offlineTokens:Number.isFinite(usage)?usage:estimate(clean),offlineTokensEstimated:!Number.isFinite(usage)};
+  if(extracted.pending)m.offlineStatusPending=extracted.pending;if(extracted.warning)m.offlineStatusWarning=extracted.warning;
+  if(imageAtStart)m.offlineImage={prompt:picture.prompt||defaultImagePrompt(chat,clean)};
   if(extracted.record)m.offlineStatus=extracted.record;const sp=config(chat).statusPanel,oldStatus=sp?{history:sp.history,raw:sp.currentStatusRaw,html:sp.currentStatusHtml}:null;if(sp&&extracted.record){const record={...extracted.record,messageId:m.id};sp.history=[record,...(sp.history||[])].slice(0,20);sp.currentStatusRaw=record.raw;sp.currentStatusHtml=record.html;}
   tagMessage(chat,m);const replacementIndex=replacement?chat.history.indexOf(replacement):-1;if(replacementIndex>=0){m.offlineFloor=replacement.offlineFloor;chat.history.splice(replacementIndex,1,m);}else chat.history.push(m);ensureFloors(chat);try{await saveData();}catch(error){if(sp&&oldStatus){sp.history=oldStatus.history;sp.currentStatusRaw=oldStatus.raw;sp.currentStatusHtml=oldStatus.html;}if(replacementIndex>=0)chat.history.splice(replacementIndex,1,replacement);else chat.history.splice(chat.history.indexOf(m),1);throw error;}persisted=true;
   addMessageBubble(m,chat.id,'private');renderChatList();refresh(true);status('');
+  if(imageAtStart)generateFloorImage(chat,m.id).catch(error=>{console.warn('[Offline image]',error.message);if(state.chatId===chat.id&&typeof showToast==='function')showToast('正文已保存，配图未完成：'+error.message);});
  }catch(error){if(error.name==='AbortError')status('Paused');else{status(persisted?'Saved; display refresh failed':'Reply failed · your message is saved');showApiError(error);}}
  finally{state.busy=false;aiGenerationControl.finish(generation);refresh();}
  return persisted;
@@ -428,23 +449,78 @@ function statusFormat(chat,presetId) {
  return {presetId,promptSuffix:source.promptSuffix,regexPattern:source.regexPattern,replacePattern:source.replacePattern||'',historyLimit:source.historyLimit??20};
 }
 function statusRegex(pattern){let flags='gs';const parts=String(pattern||'').match(/^\/(.*?)\/([a-z]*)$/);if(parts){pattern=parts[1];flags=parts[2]||'gs';if(!flags.includes('s'))flags+='s';}return new RegExp(pattern,flags);}
-function extractStatus(text,format){if(!format?.enabled||!format.regexPattern)return {text,record:null};const match=statusRegex(format.regexPattern).exec(text);if(!match||!match[0])return {text,record:null};const html=String(format.replacePattern||'').replace(/\$(\d+)/g,(all,n)=>match[Number(n)]??all);return {text:(text.slice(0,match.index)+text.slice(match.index+match[0].length)).trim(),record:{raw:match[0],html,timestamp:Date.now(),regexPattern:format.regexPattern,replacePattern:format.replacePattern}};}
+// Failed status output is preserved separately, never silently discarded or fabricated.
+function extractStatus(text,format){
+ if(!format?.enabled||!format.regexPattern)return {text,record:null};
+ const original=String(text),boundary=/\[OFFLINE_STATUS_START\]|<状态栏格式>/i.exec(original);
+ let raw=original,body=null;
+ if(boundary){const start=boundary.index+boundary[0].length,rest=original.slice(start),end=/\[OFFLINE_STATUS_END\]|<\/状态栏格式>/i.exec(rest);raw=(end?rest.slice(0,end.index):rest).trim();body=(original.slice(0,boundary.index)+(end?rest.slice(end.index+end[0].length):'')).trim().replace(/(?:\n|^)\s*(?:\*\*\*|---)\s*$/,'').trim();}
+ const match=statusRegex(format.regexPattern).exec(raw);
+ if(match?.[0]){const html=String(format.replacePattern||'').replace(/\$(\d+)/g,(all,n)=>match[Number(n)]??all);return {text:body??(raw.slice(0,match.index)+raw.slice(match.index+match[0].length)).trim(),record:{raw:match[0],html,timestamp:Date.now(),regexPattern:format.regexPattern,replacePattern:format.replacePattern}};}
+ // Legacy replies without an envelope: recognize only a sufficiently specific literal prefix.
+ if(body===null){const source=statusRegex(format.regexPattern).source,cut=source.search(/(?<!\\)\(/);if(cut>0){const prefix=source.slice(0,cut);if((prefix.match(/[a-zA-Z\u3400-\u9fff]/g)||[]).length>=4&&!/[|$]/.test(prefix)){try{const found=new RegExp(prefix,'s').exec(original);if(found){body=original.slice(0,found.index).trim();raw=original.slice(found.index).trim();}}catch{}}}}
+ return {text:body??original,record:null,pending:body!==null?raw:undefined,warning:'状态栏未匹配，请检查输出是否完整及预设正则'};
+}
+function displayStatus(m,chat){if(m.role!=='assistant')return {text:textOf(m)};if(m.offlineStatusPending)return {text:textOf(m),pending:m.offlineStatusPending,warning:m.offlineStatusWarning};if(m.offlineStatus)return {text:textOf(m)};const parsed=extractStatus(textOf(m),config(chat).statusPanel);return parsed.pending||parsed.record||m.offlineStatusWarning?parsed:{text:textOf(m)};}
+async function reparseStatus(chat,id,raw){
+ const [m]=editableRows(chat,[id]),format=config(chat).statusPanel;if(!format?.enabled)throw Error('请先启用状态栏');
+ const parsed=extractStatus('[OFFLINE_STATUS_START]'+raw+'[OFFLINE_STATUS_END]',format);if(!parsed.record)throw Error('仍未匹配：请检查字段、结尾符号或预设正则，原文已保留');
+ const body=displayStatus(m,chat).text,record={...parsed.record,messageId:m.id},old={...m},previous={...format};
+ await persistChange(()=>{m.content=body;m.parts=[{type:'text',text:body}];m.offlineStatus=record;delete m.offlineStatusPending;delete m.offlineStatusWarning;format.history=[record,...(format.history||[]).filter(r=>r.messageId!==id)].slice(0,20);format.currentStatusRaw=record.raw;format.currentStatusHtml=record.html;},()=>{for(const key of Object.keys(m))delete m[key];Object.assign(m,old);for(const key of Object.keys(format))delete format[key];Object.assign(format,previous);});
+}
+function statusRepair(id){const chat=character(),m=(chat.history||[]).find(m=>m.id===id);if(!m)throw Error('楼层不存在');const shown=displayStatus(m,chat),readonly=!!m.offlineArchiveId;state.statusRepairId=id;panel('状态栏解析',`<p class="of-note">${readonly?'归档只供查看。':'正文与状态栏分别保留。检查原文后可重新解析，不会调用 API。'}</p><label class="of-label">状态栏原文<textarea id="of-status-raw" rows="9" ${readonly?'readonly':''}></textarea></label>${readonly?'':'<button class="of-primary of-full-button" data-action="reparse-status">重新解析</button>'}`);$('#of-status-raw').value=shown.pending||m.offlineStatus?.raw||shown.record?.raw||textOf(m);}
+function extractImagePrompt(text){const m=/<offline_image_prompt>([\s\S]*?)(?:<\/offline_image_prompt>|$)/i.exec(text);return {text:m?(text.slice(0,m.index)+text.slice(m.index+m[0].length)).trim():text,prompt:m?.[1]?.trim()||''};}
+function defaultImagePrompt(chat,text){return `Illustrate a single scene from this story, no text or speech bubbles. Character: ${chat.realName||chat.remarkName||''}. Scene: ${text.slice(-2400)}`;}
+function workshopConfig(chat){
+ if(!db.workshopSettings)throw Error('请先在绘图工坊保存生图配置');
+ const settings=JSON.parse(JSON.stringify(db.workshopSettings));
+ if((settings.provider||'novelai')==='novelai'&&chat.exclusiveWorkshopPromptPreset){const preset=(db.workshopPromptPresets||[]).find(p=>p.id===chat.exclusiveWorkshopPromptPreset);if(preset){settings.positivePrompt=preset.positive||'';settings.characterPrompt=preset.character||'';settings.negativePrompt=preset.negative||'';}}
+ return settings;
+}
+function safeImage(value){return /^(https?:\/\/|data:image\/(?:png|jpeg|jpg|webp|gif|avif);base64,)/i.test(value||'')?String(value):'';}
+function floorImageHtml(m,readOnly=false){
+ const image=m.offlineImage,busy=imageJobs.has(m);if(!image&&!busy)return '';const url=safeImage(image?.url);
+ if(url)return `<figure class="of-floor-image"><button class="of-image-open" data-action="view-floor-image" data-id="${escape(m.id)}" aria-label="View illustration"><img src="${escape(url)}" alt="Scene illustration" loading="lazy"></button><figcaption><span>${busy?'Generating…':'Scene illustration'}</span>${!readOnly?`<button data-action="floor-image" data-id="${escape(m.id)}">${busy?'View progress':'Edit image'}</button>`:''}</figcaption></figure>`;
+ return `<div class="of-image-empty"><span>${busy?'Creating your scene…':image?.error?'Image unavailable':'Scene ready to illustrate'}</span>${!readOnly?`<button data-action="floor-image" data-id="${escape(m.id)}">${busy?'View progress':'Image options'}</button>`:''}</div>`;
+}
+async function saveImagePrompt(chat,id,prompt){const [m]=editableRows(chat,[id]);if(m.role!=='assistant')throw Error('只有回复楼层支持文生图');if(imageJobs.has(m))throw Error('本层图片正在生成，请稍后编辑');if(!prompt.trim())throw Error('请填写生图提示词');const previous=m.offlineImage;await persistChange(()=>m.offlineImage={...(previous||{}),prompt:prompt.trim()},()=>{if(previous===undefined)delete m.offlineImage;else m.offlineImage=previous;});}
+async function generateFloorImage(chat,id){
+ const [m]=editableRows(chat,[id]);if(m.role!=='assistant')throw Error('只有回复楼层支持文生图');if(imageJobs.has(m))throw Error('本层图片正在生成');
+ if(typeof window.executeImageGeneration!=='function')throw Error('绘图工坊尚未就绪');
+ const settings=workshopConfig(chat),prompt=m.offlineImage?.prompt||defaultImagePrompt(chat,displayStatus(m,chat).text),content=m.content,previous=m.offlineImage;
+ const token={};imageJobs.set(m,token);refresh();
+ const valid=()=>db.characters.includes(chat)&&(chat.history||[]).includes(m)&&!m.offlineArchiveId&&m.content===content;
+ try{
+  const result=await window.executeImageGeneration(settings,prompt);if(!valid())return false;
+  let url=result?.imageData;if(typeof url!=='string'||!url.trim())throw Error('生图接口未返回图片');if(!/^(?:https?:|data:)/i.test(url))url='data:image/png;base64,'+url;if(!safeImage(url))throw Error('生图接口返回的图片格式不支持');
+  await persistChange(()=>m.offlineImage={prompt,url,updatedAt:Date.now()},()=>{if(previous===undefined)delete m.offlineImage;else m.offlineImage=previous;});return true;
+ }catch(error){if(valid()){const failed={...(m.offlineImage||{}),prompt,error:'生成失败，请重试'};try{await persistChange(()=>m.offlineImage=failed,()=>{if(previous===undefined)delete m.offlineImage;else m.offlineImage=previous;});}catch{}}throw error;
+ }finally{if(imageJobs.get(m)===token)imageJobs.delete(m);refresh();if(state.chatId===chat.id&&state.imageEditId===id&&$('#of-image-prompt')&&!$('.of-panel').hidden){try{imageDialog(id);}catch{closePanel();}}}
+}
+function imageDialog(id){
+ const chat=character(),[m]=editableRows(chat,[id]);if(m.role!=='assistant')throw Error('只有回复楼层支持文生图');state.imageEditId=id;
+ const picture=m.offlineImage||{},busy=imageJobs.has(m),url=safeImage(picture.url),settings=db.workshopSettings||{},provider=settings.provider||'novelai';
+ panel(`文生图 · #${m.offlineFloor}`,`<div class="of-image-editor">${url?`<img class="of-image-thumbnail" src="${escape(url)}" alt="当前配图">`:`<div class="of-image-placeholder">${icon('image')}<span>${busy?'图片生成中':'为这一刻配图'}</span></div>`}<div class="of-image-config"><span>绘图工坊</span><span>${escape(provider.toUpperCase())}${settings[provider+'Model']?' · '+escape(settings[provider+'Model']):''}</span></div><label class="of-label">本层提示词<textarea id="of-image-prompt" rows="5" ${busy?'readonly':''} placeholder="描述人物、动作与场景"></textarea></label>${picture.error?'<p class="of-note">上次生成未完成，已有图片会保留。</p>':''}<div class="of-image-actions"><button data-action="save-image-prompt" ${busy?'disabled':''}>保存提示词</button><button class="of-primary" data-action="generate-floor-image" ${busy?'disabled':''}>${busy?'生成中…':url?'重新生成':'生成图片'}</button></div></div>`);
+ $('#of-image-prompt').value=picture.prompt||defaultImagePrompt(chat,displayStatus(m,chat).text);
+}
+function viewFloorImage(id){const m=(character().history||[]).find(m=>m.id===id),url=safeImage(m?.offlineImage?.url);if(!url)throw Error('图片暂不可用');panel('查看配图',`<img class="of-image-full" src="${escape(url)}" alt="场景配图">`);}
+
 function statusChoices(chat,query=''){const rows=[...(chat.statusPanel?.regexPattern?[{id:'__online__',name:'沿用线上当前格式'}]:[]),...(db.statusBarPresets||[])];return rows.filter(p=>String(p.name||'').toLowerCase().includes(query.toLowerCase()));}
 function renderStatusChoices(){const list=$('#of-status-choices');if(!list)return;const rows=statusChoices(character(),$('#of-status-search').value);list.innerHTML=rows.map(p=>`<button data-action="status-preset" data-id="${escape(p.id)}" aria-pressed="${state.statusPresetDraft===p.id}"><span>${escape(p.name)}</span><i>${state.statusPresetDraft===p.id?'✓':''}</i></button>`).join('')||'<p class="of-note">暂无匹配预设，请先在已有状态栏管理中添加。</p>';}
 async function saveSetup(){
  const chat=character(),cfg=config(chat),draft={apiPreset:$('#of-api').value,model:$('#of-model').value.trim(),promptPreset:$('#of-prompt-preset').value,cotEnabled:$('#of-cot-enabled').checked,cotPreset:$('#of-cot-preset').value,prompt:$('#of-prompt-preset').value==='custom'?($('#of-prompt')?.value||''):'',customPrompt:$('#of-prompt')?.value??state.customPromptDraft??'',inheritWorldbooks:$('#of-inherit-books').checked,worldBookIds:all('.of-worldbook:checked').map(el=>el.value)};
- const enabled=$('#of-status-enabled').checked,oldDraft=cfg.draft,oldPanel=cfg.statusPanel,format=enabled?statusFormat(chat,state.statusPresetDraft):{};
- const nextPanel={...(oldPanel||{}),...format,enabled};await persistChange(()=>{cfg.draft=draft;cfg.statusPanel=nextPanel;},()=>{cfg.draft=oldDraft;if(oldPanel===undefined)delete cfg.statusPanel;else cfg.statusPanel=oldPanel;});
- closePanel();showToast('API、模型与状态栏设置已生效，其余选择已保存');
+ const autoImage=$('#of-auto-image').checked,oldImage=cfg.autoImage,enabled=$('#of-status-enabled').checked,oldDraft=cfg.draft,oldPanel=cfg.statusPanel,format=enabled?statusFormat(chat,state.statusPresetDraft):{};
+ const nextPanel={...(oldPanel||{}),...format,enabled};await persistChange(()=>{cfg.draft=draft;cfg.statusPanel=nextPanel;cfg.autoImage=autoImage;},()=>{cfg.draft=oldDraft;cfg.autoImage=oldImage;if(oldPanel===undefined)delete cfg.statusPanel;else cfg.statusPanel=oldPanel;});
+ closePanel();refresh();showToast('设置已保存');
 }
-function viewStatus(){const chat=character(),sp=config(chat).statusPanel;if(!sp?.enabled&&!sp?.history?.length&&!sp?.currentStatusHtml){showToast('请先在线下设置中启用状态栏');return;}if(!window.openCharacterStatusPanel){showToast('状态栏查看器尚未就绪');return;}if(state.view==='archive'){const archive=config(chat).sessions.find(s=>s.id===state.archiveId),records=sessionRows(chat,archive).filter(m=>m.offlineStatus).map(m=>m.offlineStatus).reverse();window.openCharacterStatusPanel(chat,{...sp,history:records,currentStatusHtml:records[0]?.html||''},{readOnly:true});}else window.openCharacterStatusPanel(chat,sp);}
+function viewStatus(){const chat=character(),sp=config(chat).statusPanel;if(!sp?.history?.length&&!sp?.currentStatusHtml&&state.view!=='archive'){const pending=displayRows(chat).findLast(m=>m.role==='assistant'&&(displayStatus(m,chat).pending||m.offlineStatusWarning));if(pending){statusRepair(pending.id);return;}}if(!sp?.enabled&&!sp?.history?.length&&!sp?.currentStatusHtml){showToast('请先在线下设置中启用状态栏');return;}if(!window.openCharacterStatusPanel){showToast('状态栏查看器尚未就绪');return;}if(state.view==='archive'){const archive=config(chat).sessions.find(s=>s.id===state.archiveId),records=sessionRows(chat,archive).filter(m=>m.offlineStatus).map(m=>m.offlineStatus).reverse();window.openCharacterStatusPanel(chat,{...sp,history:records,currentStatusHtml:records[0]?.html||''},{readOnly:true});}else window.openCharacterStatusPanel(chat,sp);}
 async function sendFromStatus(text){const input=$('.of-composer textarea'),previous=input.value;input.value=text;try{return await send();}finally{input.value=previous;config(character()).composerDraft=previous;updateComposer();await saveData();}}
 function presets(){db.offlineStylePresets ||= [];return db.offlineStylePresets;}
 function cssEditor() {
  panel('CSS 编辑器',`<div class="of-section-title"><span>页面样式</span><span><button data-action="style-presets">预设库</button><button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></span></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">存为预设</button><button data-action="reset-css" class="of-text-button">重置</button></div>`);
  $('#of-css').value=state.editorDraft??config(character()).css??'';
 }
-function toolRow(action,label,mark,id='') {return `<button class="of-tool-row" data-action="${action}" ${id?'data-id="'+escape(id)+'"':''}><span class="of-tool-icon">${icon(mark)}</span><span>${label}</span><i>${icon('chevron')}</i></button>`;}
+function toolRow(action,label,mark,id='') {return `<button class="of-tool-row" data-action="${action}" ${id?'data-id="'+escape(id)+'"':''}><span class="of-tool-icon">${icon(mark)}</span><span>${label}</span></button>`;}
 function appearance() {cssEditor();}
 function stylePresets() {
  panel('美化预设',`<div class="of-preset-tools"><input id="of-preset-search" class="of-wide" placeholder="搜索预设" aria-label="搜索预设"><button data-action="import-style">导入</button><button data-action="export-all">导出</button></div><div id="of-presets"></div><p class="of-note">支持 CSS / TXT / DOCX / JSON</p><input id="of-style-file" type="file" accept=".css,.txt,.docx,.json" multiple hidden>`);
@@ -503,9 +579,9 @@ async function summarize() {
 function setup() {
  const cfg=config(character()),draft=cfg.draft;
  const choices=promptChoices();
- panel('线下设置',`<div class="of-settings-group"><label class="of-inline-field"><span>专属 API</span><select id="of-api" aria-label="专属 API"><option value="">沿用当前聊天</option>${(db.apiPresets||[]).map(p=>`<option value="${escape(p.name)}">${escape(p.name)}</option>`).join('')}</select></label><div class="of-model-editor"><label class="of-label">当前模型<input id="of-model" aria-label="当前模型" placeholder="选择或手动输入模型"></label><div class="of-find"><input id="of-model-search" placeholder="搜索模型" aria-label="搜索模型"><button data-action="fetch-models">拉取模型</button></div><div id="of-model-results" class="of-model-results"></div><small id="of-model-status" role="status"></small></div><label class="of-inline-field"><span>提示词</span><select id="of-prompt-preset" aria-label="提示词"><option value="">跟随当前提示词</option>${choices.map(p=>`<option value="${escape(p.value)}">${escape(p.label)}</option>`).join('')}<option value="custom">自定义</option></select></label><div id="of-custom-prompt"></div><label class="of-inline-field"><span>思维链</span><input id="of-cot-enabled" type="checkbox" class="of-switch"></label><label class="of-inline-field"><span>思维链预设</span><select id="of-cot-preset" aria-label="思维链预设"><option value="">沿用当前预设</option>${(db.cotPresets||[]).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('')}</select></label></div><details class="of-worldbook-details"><summary>绑定世界书 <span>选择与解绑</span></summary><label class="of-check"><input id="of-inherit-books" type="checkbox">沿用线上绑定</label>${worldbookChoices('of-worldbook',draft.worldBookIds||character().worldBookIds||[])}<button data-action="unbind-books">全部解绑</button></details><div class="of-settings-group"><label class="of-inline-field"><span>启用状态栏</span><input id="of-status-enabled" aria-label="启用状态栏" type="checkbox" class="of-switch"></label><div id="of-status-picker" hidden><input id="of-status-search" class="of-wide" placeholder="搜索已有状态栏" aria-label="搜索已有状态栏"><div id="of-status-choices"></div></div></div><p class="of-note">API、模型与状态栏即时生效；提示词、思维链和世界书选择暂存待接入。</p><button data-action="save-setup" class="of-primary of-full-button">保存设置</button>`);
+ panel('线下设置',`<div class="of-settings-group"><label class="of-inline-field"><span>专属 API</span><select id="of-api" aria-label="专属 API"><option value="">沿用当前聊天</option>${(db.apiPresets||[]).map(p=>`<option value="${escape(p.name)}">${escape(p.name)}</option>`).join('')}</select></label><div class="of-model-editor"><label class="of-label">当前模型<input id="of-model" aria-label="当前模型" placeholder="选择或手动输入模型"></label><div class="of-find"><input id="of-model-search" placeholder="搜索模型" aria-label="搜索模型"><button data-action="fetch-models">拉取模型</button></div><div id="of-model-results" class="of-model-results"></div><small id="of-model-status" role="status"></small></div><label class="of-inline-field"><span>提示词</span><select id="of-prompt-preset" aria-label="提示词"><option value="">跟随当前提示词</option>${choices.map(p=>`<option value="${escape(p.value)}">${escape(p.label)}</option>`).join('')}<option value="custom">自定义</option></select></label><div id="of-custom-prompt"></div><label class="of-inline-field"><span>思维链</span><input id="of-cot-enabled" type="checkbox" class="of-switch"></label><label class="of-inline-field"><span>思维链预设</span><select id="of-cot-preset" aria-label="思维链预设"><option value="">沿用当前预设</option>${(db.cotPresets||[]).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('')}</select></label></div><details class="of-worldbook-details"><summary>绑定世界书 <span>选择与解绑</span></summary><label class="of-check"><input id="of-inherit-books" type="checkbox">沿用线上绑定</label>${worldbookChoices('of-worldbook',draft.worldBookIds||character().worldBookIds||[])}<button data-action="unbind-books">全部解绑</button></details><div class="of-settings-group"><label class="of-inline-field"><span>启用状态栏</span><input id="of-status-enabled" aria-label="启用状态栏" type="checkbox" class="of-switch"></label><div id="of-status-picker" hidden><input id="of-status-search" class="of-wide" placeholder="搜索已有状态栏" aria-label="搜索已有状态栏"><div id="of-status-choices"></div></div></div><div class="of-settings-group of-image-settings"><label class="of-inline-field"><span>文生图</span><input id="of-auto-image" aria-label="文生图" type="checkbox" class="of-switch"></label><p class="of-workshop-source">每次回复后自动配图 · 使用绘图工坊当前配置</p></div><p class="of-note">API、模型、文生图与状态栏即时生效；提示词、思维链和世界书选择暂存待接入。</p><button data-action="save-setup" class="of-primary of-full-button">保存设置</button>`);
  $('#of-api').value=draft.apiPreset||'';try{$('#of-model').value=resolveOfflineApi(character()).model||'';}catch(error){$('#of-model').value='';$('#of-model-status').textContent=error.message;}state.modelRows=[];const modelResults=()=>{const query=$('#of-model-search').value.toLowerCase();$('#of-model-results').innerHTML=state.modelRows.filter(n=>n.toLowerCase().includes(query)).map(n=>`<button data-action="choose-model" data-id="${escape(n)}">${escape(n)}</button>`).join('');};$('#of-model-search').addEventListener('input',modelResults);state.drawModels=modelResults;$('#of-api').addEventListener('change',()=>{state.modelRevision=(state.modelRevision||0)+1;state.modelRows=[];modelResults();const name=$('#of-api').value;const c=resolveOfflineApi({...character(),offline:{...cfg,draft:{...draft,apiPreset:name,model:''}}});$('#of-model').value=c.model||'';$('#of-model-status').textContent='';});$('#of-prompt-preset').value=choices.some(p=>p.value===draft.promptPreset)||draft.promptPreset==='custom'?draft.promptPreset:'';$('#of-cot-enabled').checked=!!draft.cotEnabled;$('#of-cot-preset').value=draft.cotPreset||'';$('#of-inherit-books').checked=draft.inheritWorldbooks!==false;
- $('#of-status-enabled').checked=!!cfg.statusPanel?.enabled;state.statusPresetDraft=cfg.statusPanel?.presetId||(character().statusPanel?.regexPattern?'__online__':db.statusBarPresets?.[0]?.id||'');$('#of-status-picker').hidden=!$('#of-status-enabled').checked;$('#of-status-enabled').addEventListener('change',()=>$('#of-status-picker').hidden=!$('#of-status-enabled').checked);$('#of-status-search').addEventListener('input',renderStatusChoices);renderStatusChoices();
+ $('#of-auto-image').checked=!!cfg.autoImage;$('#of-status-enabled').checked=!!cfg.statusPanel?.enabled;state.statusPresetDraft=cfg.statusPanel?.presetId||(character().statusPanel?.regexPattern?'__online__':db.statusBarPresets?.[0]?.id||'');$('#of-status-picker').hidden=!$('#of-status-enabled').checked;$('#of-status-enabled').addEventListener('change',()=>$('#of-status-picker').hidden=!$('#of-status-enabled').checked);$('#of-status-search').addEventListener('input',renderStatusChoices);renderStatusChoices();
  state.customPromptDraft=draft.promptPreset==='custom'?(draft.prompt||''):(draft.customPrompt||'');
  const sync=()=>{const current=$('#of-prompt');if(current)state.customPromptDraft=current.value;$('#of-custom-prompt').replaceChildren();if($('#of-prompt-preset').value==='custom'){$('#of-custom-prompt').innerHTML='<label class="of-label of-custom-prompt-label">自定义提示词<textarea id="of-prompt" rows="5" placeholder="输入当前线下使用的提示词"></textarea></label>';$('#of-prompt').value=state.customPromptDraft;}
  $('#of-cot-preset').disabled=!$('#of-cot-enabled').checked;all('.of-worldbook').forEach(el=>el.disabled=$('#of-inherit-books').checked);};
@@ -590,6 +666,13 @@ async function onClick(event) {
  case 'save-setup':await saveSetup();break;
  case 'status-preset':state.statusPresetDraft=button.dataset.id;renderStatusChoices();break;
  case 'status-view':viewStatus();break;
+ case 'html-preview':openHTML(button.dataset.id,Number(button.dataset.block));break;
+ case 'status-repair':statusRepair(button.dataset.id);break;
+ case 'reparse-status':button.disabled=true;try{await reparseStatus(chat,state.statusRepairId,$('#of-status-raw').value);closePanel();refresh();showToast('状态栏已解析，点击顶部头像查看');}finally{button.disabled=false;}break;
+ case 'floor-image':imageDialog(button.dataset.id);break;
+ case 'view-floor-image':viewFloorImage(button.dataset.id);break;
+ case 'save-image-prompt':await saveImagePrompt(chat,state.imageEditId,$('#of-image-prompt').value);closePanel();refresh();break;
+ case 'generate-floor-image':{const id=state.imageEditId;button.disabled=true;try{await saveImagePrompt(chat,id,$('#of-image-prompt').value);closePanel();await generateFloorImage(chat,id);}finally{button.disabled=false;}break;}
  }}catch(error){fail(error);}finally{if(mutation){state.pendingAction=false;button.disabled=false;}}
 }
 function syncEntry() {
@@ -604,5 +687,5 @@ function syncEntry() {
 }
 document.addEventListener('keydown',event=>{if(event.target.id==='offline-chat-menu-btn'&&['Enter',' '].includes(event.key)){event.preventDefault();open().catch(fail);}});
 document.addEventListener('click',event=>{if(event.target.closest?.('#offline-chat-menu-btn')){event.preventDefault();open().catch(fail);}});
-window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter,statusFormat,extractStatus,statusChoices,sendFromStatus};
+window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter,statusFormat,extractStatus,statusChoices,sendFromStatus,displayStatus,reparseStatus,extractImagePrompt,workshopConfig,saveImagePrompt,generateFloorImage,floorImageHtml,richNarrativeHTML};
 })();
