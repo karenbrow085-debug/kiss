@@ -2,7 +2,7 @@
 (() => {
 'use strict';
 const ID = 'kiss-offline-screen';
-const DEFAULT_PROMPT = '当前为线下现实互动。用户输入代表其动作、神态、对白或推动剧情的指令。根据双方人设、环境和已有事件，以完整连贯的长文继续剧情，兼顾动作、对白和细节；为用户保留回应空间，不替用户决定或说话。不要输出短信包装格式、语音、转账、表情包或手机操作指令。每轮输出一条完整剧情，篇幅服从用户要求，不强制字数。';
+const DEFAULT_PROMPT = '当前为线下现实互动。用户输入代表其动作、神态、对白或推动剧情的指令。根据双方人设、环境和已有事件，以完整连贯的长文继续剧情，兼顾动作、对白和细节；为用户保留回应空间，不替用户决定或说话。不要输出短信包装格式、语音、转账、表情包或手机操作指令。每轮输出一条完整剧情，篇幅服从用户要求，不强制字数。对白使用中文引号；明确的心理活动用 *斜体标记*，需要强调时用 **粗体标记**，普通叙述直接书写。不要为了格式额外添加心理描写。';
 const ICONS = {
  back:'<path d="M20 12H4m7-7-7 7 7 7"/>', phone:'<path fill="currentColor" stroke="none" d="M6 3h3l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v3c0 3-2 4-4 3A20 20 0 0 1 3 7c-1-2 0-4 3-4Z"/><path d="M14 3a7 7 0 0 1 7 7m-7-3a3 3 0 0 1 3 3" stroke-width="2"/>' ,
  video:'<rect x="3" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/><path d="m15 10 6-3v10l-6-3Z" fill="currentColor" stroke="none"/>' , search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
@@ -39,6 +39,24 @@ function ensureFloors(chat) {
  if(session)session.nextFloor=next;else if(key==='legacy')cfg.nextFloor=next;}
  cfg.floorVersion=2;
 }
+// Deliberately small, escaped rich-text vocabulary; chat content never executes HTML.
+function narrativeHtml(text) {
+ const inline=(value,depth=0)=>{
+  if(depth>8)return escape(value);let out='',last=0;
+  const pattern=/\*\*([\s\S]+?)\*\*|\*([^*\n]+)\*|（(?:心想|心声|心理|内心)[：:][^）]*）|【(?:心想|心声|心理|内心)[：:][^】]*】|“[^”]*”|「[^」]*」|『[^』]*』|"[^"\n]+"/g;
+  for(const m of value.matchAll(pattern)){
+   out+=escape(value.slice(last,m.index));
+   if(m[1]!==undefined)out+='<strong>'+inline(m[1],depth+1)+'</strong>';
+   else if(m[2]!==undefined)out+='<em class="of-thought">'+inline(m[2],depth+1)+'</em>';
+   else if(/^[（【]/.test(m[0]))out+='<em class="of-thought">'+escape(m[0])+'</em>';
+   else out+='<span class="of-dialogue">'+escape(m[0][0])+inline(m[0].slice(1,-1),depth+1)+escape(m[0].at(-1))+'</span>';
+   last=m.index+m[0].length;
+  }
+  return out+escape(value.slice(last));
+ };
+ return String(text??'').split(/\n{2,}/).map(p=>'<p>'+inline(p)+'</p>').join('');
+}
+function shouldSendOnEnter(event){return event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&event.keyCode!==229;}
 function textOf(m) {
  let text=String(m.content||m.parts?.filter(p=>p.type==='text').map(p=>p.text).join('\n')||'');
  text=text.replace(/<(thinking|think)>[\s\S]*?<\/\1>/gi,'').replace(/^\[.*?的消息[：:]([\s\S]*)\]$/,'$1');
@@ -60,21 +78,21 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});if(/Android/i.test(globalThis.navigator?.userAgent||''))host.dataset.platform='android';
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-9"><style id="of-custom-style"></style>
- <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><span class="of-header-profile"><img class="of-header-avatar" alt=""><i></i></span><button class="of-title" data-action="menu"><span class="of-title-copy"><strong></strong><span class="of-status" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-10"><style id="of-custom-style"></style>
+ <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><span class="of-header-profile"><img class="of-header-avatar" alt=""><i></i></span><button class="of-title" data-action="menu"><span class="of-title-copy" style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><strong></strong><span class="of-presence" style="position:static;inset:auto;background:none;padding:0" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main>
- <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Continue story">${icon('mic')}</button></form></div>
+ <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Generate reply">${icon('send')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-9';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-10';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  if(typeof ResizeObserver!=='undefined')new ResizeObserver(entries=>{const size=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height;if(size)$('.of-page').style.setProperty('--of-composer-height',size+'px');}).observe($('.of-composer'));
  state.root.addEventListener('click',onClick);
  installGestures();
  $('#of-archive-search').addEventListener('input',e=>{state.archiveQuery=e.target.value;renderArchives();});
  $('.of-composer').addEventListener('submit',e=>{e.preventDefault();send().catch(fail);});
  $('.of-composer textarea').addEventListener('input',e=>{updateComposer();e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,124)+'px';const chat=character();if(chat){config(chat).composerDraft=e.target.value;clearTimeout(state.draftTimer);state.draftTimer=setTimeout(()=>saveData().catch(fail),500);}});
- $('.of-composer textarea').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();send().catch(fail);}});
+ $('.of-composer textarea').addEventListener('keydown',e=>{if(shouldSendOnEnter(e)){e.preventDefault();send().catch(fail);}});
  state.root.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
 }
 async function persistChange(apply,rollback) {
@@ -111,7 +129,7 @@ function panel(title,html) {
  ensureHost();const editor=$('#of-css');if(editor)state.editorDraft=editor.value;
  $('.of-panel').classList.remove('of-editor-full');$('.of-panel').dataset.kind=/编辑|CSS/.test(title)?'editor':/外观|总结与|线下设置|预设/.test(title)?'settings':'compact';$('.of-panel h2').textContent=title;$('.of-panel-body').innerHTML=html;$('.of-panel').hidden=false;$('.of-panel-body').scrollTop=0;$('.of-page').inert=true;$('.of-archive-page').inert=true;
 }
-function status(text) {if(state.root)$('.of-status').textContent=text||'';}
+function status(text) {if(state.root)$('.of-presence').textContent=text||'';}
 function fail(error) {console.error('Offline:',error);status(error.message||'Something went wrong');showToast(error.message||'操作失败');}
 function refresh(force=false) {
  syncEntry();if(!state.root||!state.host.classList.contains('active'))return;
@@ -143,7 +161,7 @@ function render(force) {
   setAvatar(item.querySelector('img'),user?chat.myAvatar:chat.avatar);
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
   item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
-  const prose=item.querySelector('.of-prose'); for(const paragraph of textOf(m).split(/\n{2,}/)){const p=document.createElement('p');p.textContent=paragraph;prose.append(p);}
+  item.querySelector('.of-prose').innerHTML=narrativeHtml(textOf(m));
   item.querySelector('.of-meta').textContent=[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${m.offlineFloor}`].filter(Boolean).join(' · ');
   area.append(item);
  }
@@ -226,7 +244,7 @@ async function deleteFloors(chat,ids) {
 function updateView() {
  const archives=state.view==='archives';$('.of-page').hidden=archives;$('.of-archive-page').hidden=!archives;
  if(archives){$('#of-custom-style').textContent='';renderArchives();return;}
- const readOnly=state.view==='archive';$('.of-composer').hidden=readOnly||state.selecting;$('.of-status').hidden=readOnly;
+ const readOnly=state.view==='archive';$('.of-composer').hidden=readOnly||state.selecting;$('.of-presence').hidden=readOnly;
  for(const action of ['style','memory','setup'])$(`.of-header [data-action="${action}"]`).hidden=readOnly;
  $('.of-selection-bar').hidden=!state.selecting||readOnly;
  $('.of-title').dataset.action=readOnly?'archive-info':'menu';
@@ -332,9 +350,15 @@ async function send() {
  chat.history ||= [];tagMessage(chat,m);chat.history.push(m);ensureFloors(chat);
  const previousDraft=config(chat).composerDraft;config(chat).composerDraft='';
  try{await saveData();}catch(error){chat.history.splice(chat.history.indexOf(m),1);config(chat).composerDraft=previousDraft;throw error;}
- input.value='';input.style.height='auto';updateComposer();renderMessages();refresh(true);renderChatList();
- await getAiReply(chat.id,'private');
+ input.value='';input.style.height='auto';status('');updateComposer();renderMessages();refresh(true);renderChatList();
+ return m;
  } finally { state.sending=false; }
+}
+async function callReply() {
+ const chat=character();if(!chat||isGenerating||state.busy||state.callPending||state.view!=='chat'||!config(chat).active)return;
+ state.callPending=true;
+ try{if($('.of-composer textarea').value.trim()){const saved=await send();if(!saved)return;}await getAiReply(chat.id,'private');}
+ finally{state.callPending=false;}
 }
 async function request(chat,apiConfig,isBackground=false,replacement=null) {
  apiConfig=resolveOfflineApi(chat,apiConfig);if(!apiConfig.url||!apiConfig.key||!apiConfig.model){showApiError(Error('请配置 API 地址、密钥和模型'));return false;}
@@ -467,7 +491,7 @@ function setup() {
  $('#of-cot-preset').disabled=!$('#of-cot-enabled').checked;all('.of-worldbook').forEach(el=>el.disabled=$('#of-inherit-books').checked);};
  $('#of-prompt-preset').addEventListener('change',sync);$('#of-cot-enabled').addEventListener('change',sync);$('#of-inherit-books').addEventListener('change',sync);sync();
 }
-function updateComposer() {if(!state.root)return;const hasText=!!$('.of-composer textarea').value.trim();$('.of-send').innerHTML=icon(hasText?'send':'mic');$('.of-send').setAttribute('aria-label',hasText?'Send':'Continue story');}
+function updateComposer() {if(!state.root)return;$('.of-send').innerHTML=icon('send');$('.of-send').setAttribute('aria-label','Generate reply');}
 
 function menu(){panel('线下',`<div class="of-menu-group">${toolRow('archives','线下归档','more')}${toolRow('diary','查看日记','edit')}${toolRow('select-floors','多选楼层','check')}</div><div class="of-menu-group">${toolRow('online','结束线下 · 切回线上','back')}</div><p class="of-note">左上角返回会保留当前线下状态。</p>`);}
 async function onClick(event) {
@@ -506,7 +530,7 @@ async function onClick(event) {
  case 'confirm-finish-summary':await summarizeAndFinish();break;
 
  case 'menu':menu();break;
- case 'generation-tools':panel('生成操作',`<div class="of-generation-grid"><button data-action="pause" class="of-generation-card"><span class="of-generation-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg></span><strong>暂停生成</strong></button><button data-action="regenerate" class="of-generation-card"><span class="of-generation-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 6.1 22 3.5V11h-7.5l2.8-2.8A6.3 6.3 0 1 0 18 15h3.1A9.3 9.3 0 1 1 19.4 6.1Z"/></svg></span><strong>重新生成</strong></button></div>`);break;
+ case 'generation-tools':panel('生成',`<div class="of-generation-list"><button data-action="pause" class="of-generation-action"><span><strong>暂停生成</strong><small>停止当前请求</small></span><span class="of-action-key">Ⅱ</span></button><button data-action="regenerate" class="of-generation-action"><span><strong>重新生成</strong><small>替换最近一条回复</small></span><span class="of-action-key">↻</span></button></div>`);break;
  case 'regenerate':closePanel();await regenerate(chat);break;
  case 'fetch-models':{const name=$('#of-api').value,revision=state.modelRevision||0,target=$('#of-model-results');button.disabled=true;$('#of-model-status').textContent='正在拉取…';try{const rows=await fetchOfflineModels(chat,name);if($('#of-model-results')!==target||$('#of-api').value!==name||(state.modelRevision||0)!==revision)break;state.modelRows=rows;state.drawModels();$('#of-model-status').textContent=`${rows.length} 个模型`;}catch(error){if($('#of-model-results')===target)$('#of-model-status').textContent=error.name==='AbortError'?'请求超时，请重试':error.message;}finally{button.disabled=false;}break;}
  case 'choose-model':$('#of-model').value=button.dataset.id;break;
@@ -515,7 +539,7 @@ async function onClick(event) {
  case 'style-presets':stylePresets();break;
  case 'memory-summary':memoryEditor('summary');break;
  case 'memory-hidden':memoryEditor('hide');break;
- case 'send-or-continue':if($('.of-composer textarea').value.trim())await send();else if(!isGenerating)await getAiReply(chat.id,'private');break;
+ case 'send-or-continue':await callReply();break;
  case 'story-tools':showArchives();break;
  case 'emoji':panel('表情',`<div class="of-emoji-grid">${['☺️','🥺','🤍','🫶','✨','🌙','☁️','🫧'].map(text=>`<button data-action="insert-emoji" data-id="${text}">${text}</button>`).join('')}</div>`);break;
  case 'insert-emoji':{const input=$('.of-composer textarea');input.value+=button.dataset.id;config(chat).composerDraft=input.value;updateComposer();closePanel();input.focus();break;}
@@ -558,5 +582,5 @@ function syncEntry() {
 }
 document.addEventListener('keydown',event=>{if(event.target.id==='offline-chat-menu-btn'&&['Enter',' '].includes(event.key)){event.preventDefault();open().catch(fail);}});
 document.addEventListener('click',event=>{if(event.target.closest?.('#offline-chat-menu-btn')){event.preventDefault();open().catch(fail);}});
-window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate};
+window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter};
 })();
