@@ -1,6 +1,7 @@
 // --- 消息渲染模块 ---
 
 function renderMessages(isLoadMore = false, forceScrollToBottom = false) {
+    window.KissOffline?.refresh(forceScrollToBottom);
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
     if (!chat || !chat.history) return;
     const oldScrollHeight = messageArea.scrollHeight;
@@ -135,6 +136,19 @@ function loadMoreMessages() {
 }
 
 function createMessageBubbleElement(message, isContinuous = false) {
+    if (message.offlineArchiveId) return null;
+    if (message.offlineNarrative && !message.offlineHidden) {
+        const row = document.createElement('div');
+        row.className = 'message-wrapper ' + (message.role === 'user' ? 'sent' : 'received');
+        row.dataset.id = message.id;
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.style.whiteSpace = 'pre-wrap';
+        bubble.textContent = message.content;
+        row.append(bubble);
+        return row;
+    }
+    if (message.offlineHidden) return null;
     if (message.type === 'mcp-request') return window.KissMCPRequests?.renderCard(message) || null;
     if (message.type === 'mcp-activity') return window.KissMCPRuntime?.renderCard(message) || null;
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
@@ -1153,6 +1167,7 @@ window.sendPayResponse = async function(msgId, action) {
 
 
 function addMessageBubble(message, targetChatId, targetChatType) {
+    window.KissOffline?.refresh();
     if (targetChatId !== currentChatId || targetChatType !== currentChatType) {
         const senderChat = (targetChatType === 'private')
             ? db.characters.find(c => c.id === targetChatId)

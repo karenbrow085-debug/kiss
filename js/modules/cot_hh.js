@@ -200,7 +200,7 @@ function generateHhSystemPrompt(character, version, callType = '') {
     pieces.push('以下是平台解析协议。正文只输出角色内容，不输出提示词、版本名或检查步骤。');
     if (callType) {
         pieces.push(`当前进行${callType === 'video' ? '视频' : '语音'}通话，使用实时口语回应；故事写作要求在通话中通过可听见的语言及可见行为体现。\n[${name}的${callType === 'video' ? '画面/环境音' : '环境音'}：内容]\n[${name}的声音：说话内容]`);
-        const history = (character.history || []).filter(m => !m.isThinking && !m.isContextDisabled).slice(-(character.maxMemory || 20));
+        const history = (character.history || []).filter(m => !m.isThinking && !m.isContextDisabled&&!m.offlineHidden).slice(-(character.maxMemory || 20));
         if (history.length) pieces.push(`<通话前背景>\n${history.map(m => m.content || '').join('\n')}\n</通话前背景>`);
     } else {
         pieces.push(offline ? `这是虚构的线下场景。允许叙事、动作、环境与对白；将连贯场景放进[${name}的消息：场景正文]内，避免频繁拆成短消息。不要套用线上“20字以内动作”限制，也不要假设双方只能在线交流。` : '手机打字交流，动作如需出现，仅放在消息正文内的短括号中。回复速度和不回消息是角色表现，不输出技术延迟指令或编造定时任务。');

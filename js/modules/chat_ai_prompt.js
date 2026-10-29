@@ -1,4 +1,5 @@
 function generatePrivateSystemPrompt(character) {
+    if (window.KissOffline?.isActive(character)) return window.KissOffline.prompt(character);
     const worldBooksLimitBreak = (character.worldBookIds || []).map(id => db.worldBooks.find(wb => wb.id === id && wb.position === 'limit_break')).filter(Boolean).sort((a, b) => (a.depth || 100) - (b.depth || 100)).map(wb => wb.content).join('\n');
     const worldBooksBefore = (character.worldBookIds || []).map(id => db.worldBooks.find(wb => wb.id === id && wb.position === 'before')).filter(Boolean).sort((a, b) => (a.depth || 100) - (b.depth || 100)).map(wb => wb.content).join('\n');
     const worldBooksAfter = (character.worldBookIds || []).map(id => db.worldBooks.find(wb => wb.id === id && wb.position === 'after')).filter(Boolean).sort((a, b) => (a.depth || 100) - (b.depth || 100)).map(wb => wb.content).join('\n');
@@ -421,7 +422,7 @@ function calculateTokenBreakdown(chatId, chatType = 'private') {
 
     // 5. 聊天记录
     let historySlice = chat.history.slice(-chat.maxMemory);
-    historySlice = historySlice.filter(m => !m.isContextDisabled);
+    historySlice = historySlice.filter(m => !m.isContextDisabled && !m.offlineHidden);
     
     let historyText = '';
     historySlice.forEach(msg => {

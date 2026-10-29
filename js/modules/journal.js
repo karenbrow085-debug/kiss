@@ -507,7 +507,8 @@ function renderJournalList() {
     });
 }
 
-async function generateJournal(start, end, includeFavorited = false) {
+async function generateJournal(start, end, includeFavorited = false, options = {}) {
+    const journalChatId = currentChatId, journalChatType = currentChatType;
     showToast('正在生成日记，请稍候...');
     
     // 显示列表占位卡片
@@ -520,7 +521,7 @@ async function generateJournal(start, end, includeFavorited = false) {
     loadingCard.id = 'journal-generating-card';
     loadingCard.innerHTML = `
         <div class="spinner"></div>
-        <div class="text">正在${currentChatType === 'group' ? '总结群聊' : '编织回忆'}...</div>
+        <div class="text">正在${journalChatType === 'group' ? '总结群聊' : '编织回忆'}...</div>
     `;
     
     if (container.firstChild) {
@@ -531,10 +532,10 @@ async function generateJournal(start, end, includeFavorited = false) {
     container.scrollTop = 0;
 
     isGenerating = true; 
-    generatingChatId = currentChatId;
+    generatingChatId = journalChatId;
 
     try {
-        const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+        const chat = (journalChatType === 'private') ? db.characters.find(c => c.id === journalChatId) : db.groups.find(g => g.id === journalChatId);
         if (!chat) {
             throw new Error("未找到当前聊天。");
         }
@@ -548,6 +549,11 @@ async function generateJournal(start, end, includeFavorited = false) {
 
         // ...
         let messagesToSummarize = chat.history.slice(startIndex, endIndex);
+        if (options.messageIds) {
+            const selected = new Set(options.messageIds);
+            messagesToSummarize = messagesToSummarize.filter(m => selected.has(m.id));
+        }
+        if (!messagesToSummarize.length) throw new Error("未选中有效消息");
         
         // 1. 保持原样：第三个参数设为 true，确保你想要的“高权重”隐藏消息能被读进来
         messagesToSummarize = filterHistoryForAI(chat, messagesToSummarize, true);
@@ -581,7 +587,7 @@ async function generateJournal(start, end, includeFavorited = false) {
             }
         }
 
-        if (currentChatType === 'group') {
+        if (journalChatType === 'group') {
             // 群聊逻辑
             const worldBooksLimitBreak = (chat.worldBookIds || []).map(id => db.worldBooks.find(wb => wb.id === id && wb.position === 'limit_break')).filter(Boolean).sort((a, b) => (a.depth || 100) - (b.depth || 100));
             const worldBooksBefore = (chat.worldBookIds || []).map(id => db.worldBooks.find(wb => wb.id === id && wb.position === 'before')).filter(Boolean).sort((a, b) => (a.depth || 100) - (b.depth || 100));
@@ -657,7 +663,7 @@ async function generateJournal(start, end, includeFavorited = false) {
             ].join('\n\n');
 
             // 2. 获取风格设置
-            const styleSettings = chat.journalStyleSettings || { mode: 'default', customWorldBookIds: [] };
+            const styleSettings = options.styleSettings || chat.journalStyleSettings || { mode: 'default', customWorldBookIds: [] };
             
             // 3. 构建 Prompt
             if (styleSettings.mode === 'summary') {
@@ -776,7 +782,10 @@ async function generateJournal(start, end, includeFavorited = false) {
         const parsedTitle = titleMatch ? titleMatch[1].trim() : "无标题日记";
         const parsedContent = contentMatch ? contentMatch[1].trim() : "内容为空。";
 
+        if (!titleMatch || !contentMatch || !parsedContent) throw new Error("日记返回格式不完整，请重试");
+
         const newJournal = {
+            selectedMessageIds: options.messageIds || null,
             id: `journal_${Date.now()}`,
             range: { start, end },
             startMessageId: chat.history[start - 1]?.id || null,
@@ -784,8 +793,8 @@ async function generateJournal(start, end, includeFavorited = false) {
             title: parsedTitle,
             content: parsedContent,
             createdAt: Date.now(),
-            chatId: currentChatId,
-            chatType: currentChatType,
+            chatId: journalChatId,
+            chatType: journalChatType,
             isFavorited: false 
         };
 
@@ -793,10 +802,17 @@ async function generateJournal(start, end, includeFavorited = false) {
             chat.memoryJournals = [];
         }
         chat.memoryJournals.push(newJournal);
-        await saveData();
+        try { await saveData(); } catch (error) {
+            chat.memoryJournals = chat.memoryJournals.filter(item => item !== newJournal);
+            throw error;
+        }
 
-        renderJournalList();
+        loadingCard.remove();
+        if (currentChatId === journalChatId && currentChatType === journalChatType) {
+            try { renderJournalList(); } catch (error) { console.error('日记已保存，列表刷新失败', error); }
+        }
         showToast('新日记已生成！');
+        return newJournal;
 
     } catch (error) {
         // 移除生成卡片
@@ -804,7 +820,7 @@ async function generateJournal(start, end, includeFavorited = false) {
         if(card) card.remove();
         
         // 如果列表为空，恢复显示 placeholder
-        const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+        const chat = (journalChatType === 'private') ? db.characters.find(c => c.id === journalChatId) : db.groups.find(g => g.id === journalChatId);
         if (!chat || !chat.memoryJournals || chat.memoryJournals.length === 0) {
              const placeholder = document.getElementById('no-journals-placeholder');
              if (placeholder) placeholder.style.display = 'block';

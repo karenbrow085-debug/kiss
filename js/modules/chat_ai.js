@@ -149,6 +149,10 @@ async function getAiReply(chatId, chatType, isBackground = false) {
         }
     }
 
+    if (chatType === 'private' && window.KissOffline?.isActive(chat) && apiConfig.url && apiConfig.key && apiConfig.model) {
+        return window.KissOffline.request(chat, apiConfig, isBackground);
+    }
+
     let {url, key, model, provider, streamEnabled} = apiConfig; 
     if (!url || !key || !model) {
         if (!isBackground) {
@@ -198,7 +202,7 @@ async function getAiReply(chatId, chatType, isBackground = false) {
 
         systemPrompt += window.KissVoiceScript?.directionPrompt(chat,chatType)||'';
 
-        let historySlice = chat.history.slice(-chat.maxMemory);
+        let historySlice = (window.KissOffline ? window.KissOffline.historyForAI(chat) : chat.history).slice(-chat.maxMemory);
         
         // 使用工具函数进行过滤（包含深度克隆、屏蔽过滤、双语修正、状态栏剔除）
         historySlice = filterHistoryForAI(chat, historySlice);
