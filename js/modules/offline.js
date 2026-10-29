@@ -4,15 +4,23 @@
 const ID = 'kiss-offline-screen';
 const DEFAULT_PROMPT = '当前为线下现实互动。用户输入代表其动作、神态、对白或推动剧情的指令。根据双方人设、环境和已有事件，以完整连贯的长文继续剧情，兼顾动作、对白和细节；为用户保留回应空间，不替用户决定或说话。不要输出短信包装格式、语音、转账、表情包或手机操作指令。每轮输出一条完整剧情，篇幅服从用户要求，不强制字数。';
 const ICONS = {
- back:'<path d="m14 5-7 7 7 7"/>', phone:'<path d="M5 3h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4c0 2-2 2-3 2A18 18 0 0 1 3 6c0-1 0-3 2-3Z"/>',
- video:'<rect x="3" y="6" width="12" height="12" rx="2"/><path d="m15 10 6-3v10l-6-3Z"/>', search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+ back:'<path d="M20 12H4m7-7-7 7 7 7"/>', phone:'<path fill="currentColor" stroke="none" d="M6 3h3l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v3c0 3-2 4-4 3A20 20 0 0 1 3 7c-1-2 0-4 3-4Z"/><path d="M14 3a7 7 0 0 1 7 7m-7-3a3 3 0 0 1 3 3" stroke-width="2"/>' ,
+ video:'<rect x="3" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/><path d="m15 10 6-3v10l-6-3Z" fill="currentColor" stroke="none"/>' , search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
  plus:'<path d="M12 4v16M4 12h16"/>', smile:'<circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0M8 9h.01M16 9h.01"/>',send:'<path d="m5 11 7-7 7 7M12 4v16"/>', stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
- expand:'<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+ gift:'<path fill="currentColor" stroke="none" d="M3 10h8V7H5a3 3 0 1 1 5-3l2 3 2-3a3 3 0 1 1 5 3h-6v3h8v4H3zm1 6h7v6H4zm9 0h7v6h-7zM9 5 8 3c-2-1-3 2-1 2zm6 0h2c2 0 1-3-1-2z"/>',mic:'<rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor" stroke="none"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/>',chevron:'<path d="m9 6 6 6-6 6"/>',edit:'<path d="m4 15-1 6 6-1L21 8l-5-5Z"/><path d="m13 6 5 5"/>',trash:'<path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/>',check:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',expand:'<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
  rabbit:'<path fill="currentColor" stroke="none" d="M10.5 1A1.5 1.5 0 0 1 12 2.5v4.258A4.5 4.5 0 0 1 9.5 15h-3A4.5 4.5 0 0 1 4 6.758V2.5a1.5 1.5 0 1 1 3 0V6h2V2.5A1.5 1.5 0 0 1 10.5 1m-3 11a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1zm-2-3a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0v-2a.5.5 0 0 0-.5-.5m5 0a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0v-2a.5.5 0 0 0-.5-.5"/>'
 };
 const icon = name => `<svg viewBox="0 0 ${name==='rabbit'?'16 16':'24 24'}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||ICONS.more}</svg>`;
 const escape = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const floorLabel = n => `${n} ${n===1?'floor':'floors'}`;
+function badgeMark(user) {
+ return user?'<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="#e5a9c3" stroke="#50404c" stroke-width="1.1" stroke-linejoin="round" d="m2 8 16-6-5 16-4-6-7-4Z"/><path d="m9 12 9-10M9 12l-1 5 3-3" fill="none" stroke="#50404c" stroke-width="1"/></svg>':'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="#8fc9db" stroke="#394f5c" stroke-width="1"/><path d="M15 5c5-1 4 3-3 7S-1 15 3 10" fill="none" stroke="#394f5c" stroke-width="1.3"/><path d="M6 6c1-2 4-2 5-1" fill="none" stroke="#e2f4fa" stroke-width="1.5"/></svg>';
+}
+function displayRows(chat) {return (chat.history||[]).filter(m=>isNarrative(m)&&!m.offlineArchiveId&&!!m.offlineNarrative);}
+function promptChoices() {
+ const source=document.getElementById('cot-prompt-version-select');
+ return source?.options?Array.from(source.options).filter(o=>o.value&&o.value!=='custom').map(o=>({value:o.value,label:o.textContent.trim()})):[{value:'uwu',label:'UwU'},{value:'tt',label:'T.T'},{value:'hh',label:'ㅎ.ㅎ（线上）'},{value:'hh_offline',label:'ㅎ-ㅎ（线下）'}];
+}
 const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const state = { chatId:null, host:null, root:null, panelRoot:null, frame:0, limit:60, busy:false, selectedPreset:null, editorDraft:null, summaryBusy:false, draftTimer:null, sending:false, pendingAction:false, view:'chat', archiveId:null, archiveQuery:'', selecting:false, selected:new Set(), deleteIds:[], exitTitle:'', suppressClickUntil:0 };
 const $ = sel => state.root?.querySelector(sel) || state.panelRoot?.querySelector(sel);
@@ -49,19 +57,19 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-3"><style id="of-custom-style"></style>
- <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><img class="of-header-avatar" alt=""><button class="of-title" data-action="menu"><strong></strong><span>Offline</span></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261029-4"><style id="of-custom-style"></style>
+ <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><span class="of-header-profile"><img class="of-header-avatar" alt=""><i></i></span><button class="of-title" data-action="menu"><strong></strong><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main><div class="of-status" role="status" aria-live="polite"></div>
- <form class="of-composer"><button type="button" data-action="menu" aria-label="Actions">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="continue" aria-label="Continue story" title="Continue story">${icon('smile')}</button><button class="of-send" type="submit" aria-label="Send">${icon('send')}</button></form></div>
+ <form class="of-composer"><button type="button" data-action="menu" aria-label="Actions">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Story tools">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Continue story">${icon('mic')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
- <section class="of-panel" hidden aria-label="设置"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('back')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></section>`;
+ <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-3';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261029-4';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  state.root.addEventListener('click',onClick);
  installGestures();
  $('#of-archive-search').addEventListener('input',e=>{state.archiveQuery=e.target.value;renderArchives();});
  $('.of-composer').addEventListener('submit',e=>{e.preventDefault();send().catch(fail);});
- $('.of-composer textarea').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,124)+'px';const chat=character();if(chat){config(chat).composerDraft=e.target.value;clearTimeout(state.draftTimer);state.draftTimer=setTimeout(()=>saveData().catch(fail),500);}});
+ $('.of-composer textarea').addEventListener('input',e=>{updateComposer();e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,124)+'px';const chat=character();if(chat){config(chat).composerDraft=e.target.value;clearTimeout(state.draftTimer);state.draftTimer=setTimeout(()=>saveData().catch(fail),500);}});
  $('.of-composer textarea').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();send().catch(fail);}});
  state.root.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
 }
@@ -83,7 +91,7 @@ async function open(startNew=false) {
  if(isGenerating){showToast('请等当前生成结束后再切换页面');return;}
  await PhoneBackup.hydrateChat(chat);ensureHost();
  const oldChat=character();if(oldChat&&state.chatId!==chat.id)config(oldChat).composerDraft=$('.of-composer textarea').value;
- state.chatId=chat.id;state.limit=60;state.editorDraft=null;$('.of-composer textarea').value=config(chat).composerDraft||'';$('.of-composer textarea').style.height='auto';
+ state.chatId=chat.id;state.limit=60;state.editorDraft=null;$('.of-composer textarea').value=config(chat).composerDraft||'';$('.of-composer textarea').style.height='auto';updateComposer();
  $('.of-panel-body').replaceChildren();
  const cfg=config(chat);ensureFloors(chat);
  migrateSessions(chat);state.archiveQuery='';$('#of-archive-search').value='';state.archiveId=null;state.selected.clear();state.selecting=false;
@@ -94,10 +102,10 @@ async function open(startNew=false) {
  state.view=cfg.active?'chat':'archives';switchScreen(ID);closePanel();updateView();syncEntry();
  requestAnimationFrame(()=>{const el=$('.of-messages');el.scrollTop=el.scrollHeight;});
 }
-function closePanel() {if(!state.root)return;const editor=$('#of-css');if(editor)state.editorDraft=editor.value;$('.of-panel').hidden=true;}
+function closePanel() {if(!state.root)return;const editor=$('#of-css');if(editor)state.editorDraft=editor.value;$('.of-panel').hidden=true;$('.of-page').inert=false;$('.of-archive-page').inert=false;}
 function panel(title,html) {
  ensureHost();const editor=$('#of-css');if(editor)state.editorDraft=editor.value;
- $('.of-panel').classList.remove('of-editor-full');$('.of-panel h2').textContent=title;$('.of-panel-body').innerHTML=html;$('.of-panel').hidden=false;$('.of-panel-body').scrollTop=0;
+ $('.of-panel').classList.remove('of-editor-full');$('.of-panel').dataset.kind=/编辑|CSS/.test(title)?'editor':/外观|总结与|线下设置|预设/.test(title)?'settings':'compact';$('.of-panel h2').textContent=title;$('.of-panel-body').innerHTML=html;$('.of-panel').hidden=false;$('.of-panel-body').scrollTop=0;$('.of-page').inert=true;$('.of-archive-page').inert=true;
 }
 function status(text) {if(state.root)$('.of-status').textContent=text||'';}
 function fail(error) {console.error('Offline:',error);status(error.message||'Something went wrong');showToast(error.message||'操作失败');}
@@ -111,10 +119,10 @@ function render(force) {
  const readOnly=state.view==='archive',archive=readOnly?config(chat).sessions.find(s=>s.id===state.archiveId):null;
  if(readOnly&&!archive){showArchives();return;}
  const area=$('.of-messages'),atBottom=force||area.scrollHeight-area.scrollTop-area.clientHeight<80;
- $('.of-title strong').textContent=readOnly?(archive.title||defaultSessionTitle(archive)):(chat.remarkName||chat.realName||'Offline');$('.of-title span').textContent=readOnly?`Read-only · ${floorLabel(sessionRows(chat,archive).length)}`:(config(chat).active?'Offline':'Online');
+ $('.of-title strong').textContent=readOnly?(archive.title||defaultSessionTitle(archive)):(chat.remarkName||chat.realName||'Offline');$('.of-readonly-label').hidden=!readOnly;$('.of-readonly-label').textContent=readOnly?'Read-only':'';$('.of-composer textarea').placeholder='Message @'+(chat.remarkName||chat.realName||'');
  setAvatar($('.of-header-avatar'),chat.avatar);
  const custom=$('#of-custom-style');if(custom.textContent!==(config(chat).css||''))custom.textContent=config(chat).css||'';
- const messages=readOnly?sessionRows(chat,archive):(chat.history||[]).filter(m=>isNarrative(m)&&!m.offlineArchiveId),shown=messages.slice(-state.limit);
+ const messages=readOnly?sessionRows(chat,archive):displayRows(chat),shown=messages.slice(-state.limit);
  if(state.selecting){const available=new Set(messages.map(m=>m.id));for(const id of state.selected)if(!available.has(id))state.selected.delete(id);$('#of-selection-count').textContent=state.selected.size+' selected';}
  area.replaceChildren();
  if(messages.length>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';area.append(more);}
@@ -122,15 +130,15 @@ function render(force) {
  let day='';let previousMode;
  for(const m of shown){
   const date=new Date(m.timestamp||Date.now()),key=date.toDateString();
-  if(key!==day){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});area.append(divider);day=key;}
+  if(day&&key!==day){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});area.append(divider);}day=key;
   if(m.offlineNarrative&&previousMode===false){const divider=document.createElement('div');divider.className='of-mode-divider';divider.textContent='Offline started';area.append(divider);}previousMode=!!m.offlineNarrative;
   if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${String(m.offlineFloor).padStart(3,'0')} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}area.append(row);continue;}
   const user=m.role==='user',item=document.createElement('article');item.className=`of-message ${user?'of-self':'of-orbit'}`;item.dataset.messageId=m.id;item.dataset.floor=m.offlineFloor;item.classList.toggle('of-selected',state.selected.has(m.id));if(state.selecting&&!readOnly){item.dataset.action='toggle-floor';item.dataset.id=m.id;}
-  item.innerHTML=`<img class="of-avatar" alt=""><div class="of-message-content"><div class="of-byline"><strong class="of-name"></strong><span class="of-badge"><span>${user?'➤':'♄'}</span>${user?'echo':'orbit'}</span><time></time></div><div class="of-prose"></div><div class="of-meta"></div></div>`;
+  item.innerHTML=`<img class="of-avatar" alt=""><div class="of-message-content"><div class="of-byline"><strong class="of-name"></strong><span class="of-badge"><span class="of-badge-mark">${badgeMark(user)}</span>${user?'echo':'orbit'}</span><time></time></div><div class="of-prose"></div><div class="of-meta"></div></div>`;
   if(!readOnly){const more=document.createElement('button');more.className='of-message-more';more.dataset.action=state.selecting?'toggle-floor':'floor-menu';more.dataset.id=m.id;more.setAttribute('aria-label',state.selecting?'Select floor '+m.offlineFloor:'Message actions');more.innerHTML=state.selecting?(state.selected.has(m.id)?'✓':'○'):icon('more');item.querySelector('.of-byline').append(more);}
   setAvatar(item.querySelector('img'),user?chat.myAvatar:chat.avatar);
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
-  item.querySelector('time').textContent=date.toLocaleString('en-GB',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
+  item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
   const prose=item.querySelector('.of-prose'); for(const paragraph of textOf(m).split(/\n{2,}/)){const p=document.createElement('p');p.textContent=paragraph;prose.append(p);}
   item.querySelector('.of-meta').textContent=[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${String(m.offlineFloor).padStart(3,'0')}`].filter(Boolean).join(' · ');
   area.append(item);
@@ -140,7 +148,7 @@ function render(force) {
 // A session references the shared messages; it never creates a second history.
 function sessionRows(chat,session) {
  const ids=new Set(session.messageIds||[]);
- return (chat.history||[]).filter(m=>isNarrative(m)&&(m.offlineSessionId===session.id||ids.has(m.id)));
+ return (chat.history||[]).filter(m=>isNarrative(m)&&m.offlineNarrative&&(m.offlineSessionId===session.id||ids.has(m.id)));
 }
 function activeSession(chat) {
  const cfg=config(chat);if(!cfg.active)return null;
@@ -148,10 +156,12 @@ function activeSession(chat) {
 }
 function migrateSessions(chat) {
  const cfg=config(chat),history=chat.history||[];
+ // Earlier builds tagged online messages while the mode was active. Restore their online ownership.
+ for(const m of history)if(!m.offlineNarrative){delete m.offlineSessionId;delete m.offlineArchiveId;}
  for(const session of cfg.sessions){
   const start=history.findIndex(m=>m.id===session.startAfterMessageId),end=history.findIndex(m=>m.id===session.endMessageId);
   if(!session.messageIds){
-   const candidates=history.filter((m,index)=>isNarrative(m)&&!m.offlineSessionId&&
+   const candidates=history.filter((m,index)=>isNarrative(m)&&(m.offlineNarrative||m.offlineSessionId)&&!m.offlineSessionId&&
     (session.startAfterMessageId&&start>=0?index>start:Number(m.timestamp)>=session.startedAt)&&
     (end>=0?index<=end:!session.endedAt||Number(m.timestamp)<=session.endedAt));
    candidates.forEach(m=>{m.offlineSessionId=session.id;});
@@ -162,7 +172,7 @@ function migrateSessions(chat) {
 }
 function defaultSessionTitle(session) {return new Date(session.startedAt||Date.now()).toLocaleString('en-GB',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
 function tagMessage(chat,message) {
- if(!config(chat).active)return;
+ if(!config(chat).active||!message.offlineNarrative)return;
  let session=activeSession(chat);
  if(!session){session={id:uid(),startedAt:Date.now(),startAfterMessageId:chat.history?.at(-1)?.id||null};config(chat).sessions.push(session);config(chat).activeSessionId=session.id;}
  message.offlineSessionId=session.id;
@@ -192,7 +202,7 @@ async function deleteArchive(chat,sessionId) {
 function editableRows(chat,ids) {
  const requested=new Set(ids),rows=(chat.history||[]).filter(m=>requested.has(m.id));
  if(!rows.length||rows.length!==requested.size)throw Error('选中的楼层已不存在');
- if(rows.some(m=>!isNarrative(m)||m.offlineArchiveId))throw Error('归档楼层只能查看，不能编辑或删除');
+ if(rows.some(m=>!isNarrative(m)||!m.offlineNarrative||m.offlineArchiveId))throw Error('归档楼层只能查看，不能编辑或删除');
  return rows;
 }
 async function editFloor(chat,id,text) {
@@ -239,7 +249,7 @@ function openArchive(id) {if(!config(character()).sessions.some(s=>s.id===id&&s.
 function setSelection(active) {state.selecting=active;$('.of-composer').hidden=active;state.selected.clear();render(false);$('.of-selection-bar').hidden=!active;}
 function floorMenu(id) {
  const chat=character(),m=editableRows(chat,[id])[0];
- panel(`楼层 #${m.offlineFloor}`,`<button class="of-menu-row" data-action="edit-floor" data-id="${escape(id)}">编辑正文</button><button class="of-menu-row" data-action="delete-floor" data-id="${escape(id)}">删除此楼层</button><button class="of-menu-row" data-action="select-floors" data-id="${escape(id)}">多选删除</button>`);
+ panel(`楼层 #${m.offlineFloor}`,`${toolRow('edit-floor','编辑正文','edit',id)}${toolRow('delete-floor','删除此楼层','trash',id)}${toolRow('select-floors','多选管理','check',id)}`);
 }
 function confirmFloorDelete(ids) {
  const rows=editableRows(character(),ids);state.deleteIds=rows.map(m=>m.id);
@@ -314,7 +324,7 @@ async function send() {
  chat.history ||= [];tagMessage(chat,m);chat.history.push(m);ensureFloors(chat);
  const previousDraft=config(chat).composerDraft;config(chat).composerDraft='';
  try{await saveData();}catch(error){chat.history.splice(chat.history.indexOf(m),1);config(chat).composerDraft=previousDraft;throw error;}
- input.value='';input.style.height='auto';renderMessages();refresh(true);renderChatList();
+ input.value='';input.style.height='auto';updateComposer();renderMessages();refresh(true);renderChatList();
  await getAiReply(chat.id,'private');
  } finally { state.sending=false; }
 }
@@ -358,9 +368,14 @@ async function request(chat,apiConfig,isBackground=false) {
  finally{state.busy=false;aiGenerationControl.finish(generation);refresh();}
 }
 function presets(){db.offlineStylePresets ||= [];return db.offlineStylePresets;}
-function appearance() {
- const cfg=config(character());panel('外观美化',`<div class="of-section-title">页面 CSS <button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="reset-css">重置</button><button data-action="save-preset">保存预设</button></div><div class="of-section-title">美化预设 <span><button data-action="import-style">导入</button><button data-action="export-all">全部导出</button></span></div><input id="of-preset-search" class="of-wide" placeholder="搜索预设" aria-label="搜索预设"><div id="of-presets"></div><p class="of-note">支持 CSS / TXT / DOCX / JSON，导入后自动保存为预设。美化仅作用于线下页面。</p><input id="of-style-file" type="file" accept=".css,.txt,.docx,.json" multiple hidden>`);
- $('#of-css').value=state.editorDraft??cfg.css??'';
+function cssEditor() {
+ panel('CSS 编辑器',`<div class="of-section-title">当前页面 <button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">保存为预设</button></div>`);
+ $('#of-css').value=state.editorDraft??config(character()).css??'';
+}
+function toolRow(action,label,mark,id='') {return `<button class="of-tool-row" data-action="${action}" ${id?'data-id="'+escape(id)+'"':''}><span class="of-tool-icon">${icon(mark)}</span><span>${label}</span><i>${icon('chevron')}</i></button>`;}
+function appearance() {panel('外观美化',`<div class="of-dialog-summary">${icon('phone')}<span>线下专属美化<small>${presets().length} 个已存预设</small></span></div>${toolRow('css-editor','编辑页面 CSS','edit')}${toolRow('style-presets','美化预设','more')}${toolRow('reset-css','恢复默认外观','back')}`);}
+function stylePresets() {
+ panel('美化预设',`<div class="of-preset-tools"><input id="of-preset-search" class="of-wide" placeholder="搜索预设" aria-label="搜索预设"><button data-action="import-style">导入</button><button data-action="export-all">导出</button></div><div id="of-presets"></div><p class="of-note">支持 CSS / TXT / DOCX / JSON</p><input id="of-style-file" type="file" accept=".css,.txt,.docx,.json" multiple hidden>`);
  $('#of-preset-search').addEventListener('input',renderPresets);$('#of-style-file').addEventListener('change',event=>importStyles(event).catch(fail));renderPresets();
 }
 function renderPresets(){const query=($('#of-preset-search')?.value||'').toLowerCase();$('#of-presets').innerHTML=presets().filter(p=>p.name.toLowerCase().includes(query)).map(p=>`<div class="of-preset"><button class="of-preset-name" data-action="load-preset" data-id="${escape(p.id)}">${escape(p.name)}</button><button data-action="export-preset" data-id="${escape(p.id)}">导出</button><button data-action="delete-preset" data-id="${escape(p.id)}" aria-label="删除 ${escape(p.name)}">×</button></div>`).join('')||'<p class="of-note">暂无匹配预设。</p>';}
@@ -384,16 +399,17 @@ async function importStyles(event) {
  }catch(error){showToast(`${file.name}：${error.message}`);}}
  if(added.length){presets().push(...added);try{await saveData();}catch(error){const ids=new Set(added.map(p=>p.id));db.offlineStylePresets=presets().filter(p=>!ids.has(p.id));throw error;}if($('#of-presets'))renderPresets();showToast(`已保存 ${added.length} 个预设`);}event.target.value='';
 }
-function memory() {
- const chat=character();ensureFloors(chat);const floors=chat.history.filter(m=>isNarrative(m)&&!m.offlineArchiveId),last=floors.at(-1)?.offlineFloor||1;
+function memoryEditor(tab='summary') {
+ const chat=character();ensureFloors(chat);const floors=displayRows(chat),last=floors.at(-1)?.offlineFloor||1;
  panel('总结与楼层',`<div class="of-tabs"><button class="selected" data-action="memory-tab" data-tab="summary">总结</button><button data-action="memory-tab" data-tab="hide">隐藏楼层</button></div><div id="of-memory-summary"><label class="of-label">楼层范围<input id="of-summary-range" placeholder="1–20, 24, 28–30" value="1-${last}"></label><p class="of-note">支持连续范围和独立楼层，例如 1-20, 24, 28-30。隐藏后编号不变。</p><label class="of-label">总结方式<select id="of-summary-method"><option value="current">沿用当前日记风格</option><option value="summary">客观摘要</option><option value="default">角色日记</option><option value="custom">自定义世界书</option></select></label><div id="of-summary-books" hidden>${worldbookChoices('summary-wb',chat.journalStyleSettings?.customWorldBookIds||[])}</div><label class="of-check"><input id="of-summary-favorites" type="checkbox">参考已收藏日记</label><label class="of-check"><input id="of-summary-hide" type="checkbox">日记保存成功后隐藏所选楼层</label><p class="of-note">隐藏只排除原消息，已有日记可能仍保留相关信息。</p><button data-action="summarize" class="of-primary">生成并存入日记</button><button data-action="diary">查看日记</button></div><div id="of-memory-hide" hidden><label class="of-label">楼层范围<input id="of-hide-range" placeholder="1–20, 24, 28–30"></label><div class="of-row"><button data-action="hide-floors" class="of-primary">隐藏</button><button data-action="restore-floors">恢复</button></div><p class="of-note">隐藏后原文仍保留，但不进入后续 AI 上下文，可随时恢复。</p><div class="of-hidden-list">${floors.filter(m=>m.offlineHidden).map(m=>`<button data-action="restore-one" data-id="${escape(m.id)}">#${m.offlineFloor} · 恢复</button>`).join('')||'暂无隐藏楼层。'}</div></div>`);
- $('#of-summary-method').addEventListener('change',e=>{$('#of-summary-books').hidden=e.target.value!=='custom';});
+ $('#of-summary-method').addEventListener('change',e=>{$('#of-summary-books').hidden=e.target.value!=='custom';});selectMemoryTab(tab);
 }
+function memory() {panel('记忆与楼层',`${toolRow('memory-summary','总结存入日记','edit')}${toolRow('memory-hidden','隐藏与恢复楼层','video')}${toolRow('diary','查看已有日记','more')}`);}
 function selectMemoryTab(tab) {
  $('#of-memory-summary').hidden=tab!=='summary';$('#of-memory-hide').hidden=tab!=='hide';all('.of-tabs button').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));
 }
 function parseFloors(value,chat) {
- const selected=new Set(),available=new Map(chat.history.filter(m=>isNarrative(m)&&!m.offlineArchiveId).map(m=>[m.offlineFloor,m]));
+ const selected=new Set(),available=new Map(displayRows(chat).map(m=>[m.offlineFloor,m]));
  for(const part of value.replace(/[，、]/g,',').split(',').map(s=>s.trim()).filter(Boolean)){
   const match=part.match(/^(\d+)\s*(?:[-–—~]\s*(\d+))?$/);if(!match)throw Error('楼层格式例如 1-20, 24, 28-30');
   const first=Number(match[1]),last=Number(match[2]||match[1]);if(first<1||last<first||last-first>100000)throw Error('楼层范围无效');
@@ -414,13 +430,19 @@ async function summarize() {
 }
 function setup() {
  const cfg=config(character()),draft=cfg.draft;
- panel('线下设置',`<p class="of-preview-note">此处先保存设置选择，专属配置将在后续版本接入。</p><label class="of-label">专属 API<select id="of-api"><option value="">沿用当前聊天 API</option>${(db.apiPresets||[]).map(p=>`<option value="${escape(p.name)}">${escape(p.name)}</option>`).join('')}</select></label><label class="of-label">提示词预设<select id="of-prompt-preset"><option value="">默认线下提示词</option><option value="custom">自定义线下提示词</option>${(db.offlinePromptPresets||[]).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('')}</select></label><label class="of-check"><input id="of-cot-enabled" type="checkbox">启用思维链</label><label class="of-label">思维链预设<select id="of-cot-preset"><option value="">沿用当前预设</option>${(db.cotPresets||[]).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('')}</select></label><label class="of-label">线下提示词<textarea id="of-prompt" rows="5"></textarea></label><div class="of-section-title">绑定世界书 <button data-action="unbind-books">全部解绑</button></div><label class="of-check"><input id="of-inherit-books" type="checkbox">沿用线上绑定</label>${worldbookChoices('of-worldbook',draft.worldBookIds||character().worldBookIds||[])}<button data-action="save-setup" class="of-primary">保存设置</button>`);
- $('#of-api').value=draft.apiPreset||'';$('#of-prompt-preset').value=draft.promptPreset||'';$('#of-cot-enabled').checked=!!draft.cotEnabled;$('#of-cot-preset').value=draft.cotPreset||'';$('#of-prompt').value=draft.prompt??DEFAULT_PROMPT;$('#of-inherit-books').checked=draft.inheritWorldbooks!==false;
- const sync=()=>{$('#of-cot-preset').disabled=!$('#of-cot-enabled').checked;all('.of-worldbook').forEach(el=>el.disabled=$('#of-inherit-books').checked);};
- $('#of-cot-enabled').addEventListener('change',sync);$('#of-inherit-books').addEventListener('change',sync);sync();
+ const choices=promptChoices();
+ panel('线下设置',`<div class="of-settings-group"><label class="of-inline-field"><span>专属 API</span><select id="of-api" aria-label="专属 API"><option value="">沿用当前聊天</option>${(db.apiPresets||[]).map(p=>`<option value="${escape(p.name)}">${escape(p.name)}</option>`).join('')}</select></label><label class="of-inline-field"><span>提示词</span><select id="of-prompt-preset" aria-label="提示词"><option value="">跟随当前提示词</option>${choices.map(p=>`<option value="${escape(p.value)}">${escape(p.label)}</option>`).join('')}<option value="custom">自定义</option></select></label><div id="of-custom-prompt"></div><label class="of-inline-field"><span>思维链</span><input id="of-cot-enabled" type="checkbox" class="of-switch"></label><label class="of-inline-field"><span>思维链预设</span><select id="of-cot-preset" aria-label="思维链预设"><option value="">沿用当前预设</option>${(db.cotPresets||[]).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('')}</select></label></div><details class="of-worldbook-details"><summary>绑定世界书 <span>选择与解绑</span></summary><label class="of-check"><input id="of-inherit-books" type="checkbox">沿用线上绑定</label>${worldbookChoices('of-worldbook',draft.worldBookIds||character().worldBookIds||[])}<button data-action="unbind-books">全部解绑</button></details><p class="of-note">专属配置先保存选择，后续接入生效。</p><button data-action="save-setup" class="of-primary of-full-button">保存设置</button>`);
+ $('#of-api').value=draft.apiPreset||'';$('#of-prompt-preset').value=choices.some(p=>p.value===draft.promptPreset)||draft.promptPreset==='custom'?draft.promptPreset:'';$('#of-cot-enabled').checked=!!draft.cotEnabled;$('#of-cot-preset').value=draft.cotPreset||'';$('#of-inherit-books').checked=draft.inheritWorldbooks!==false;
+ state.customPromptDraft=draft.promptPreset==='custom'?(draft.prompt||''):(draft.customPrompt||'');
+ const sync=()=>{const current=$('#of-prompt');if(current)state.customPromptDraft=current.value;$('#of-custom-prompt').replaceChildren();if($('#of-prompt-preset').value==='custom'){$('#of-custom-prompt').innerHTML='<label class="of-label of-custom-prompt-label">自定义提示词<textarea id="of-prompt" rows="5" placeholder="输入当前线下使用的提示词"></textarea></label>';$('#of-prompt').value=state.customPromptDraft;}
+ $('#of-cot-preset').disabled=!$('#of-cot-enabled').checked;all('.of-worldbook').forEach(el=>el.disabled=$('#of-inherit-books').checked);};
+ $('#of-prompt-preset').addEventListener('change',sync);$('#of-cot-enabled').addEventListener('change',sync);$('#of-inherit-books').addEventListener('change',sync);sync();
 }
+function updateComposer() {if(!state.root)return;const hasText=!!$('.of-composer textarea').value.trim();$('.of-send').innerHTML=icon(hasText?'send':'mic');$('.of-send').setAttribute('aria-label',hasText?'Send':'Continue story');}
+
 function menu(){panel('线下菜单',`<button class="of-menu-row" data-action="archives">线下归档</button><button class="of-menu-row" data-action="select-floors">多选删除楼层</button><button class="of-menu-row" data-action="continue">继续剧情 ${icon('send')}</button><button class="of-menu-row" data-action="pause">暂停生成 ${icon('stop')}</button><button class="of-menu-row" data-action="online">切回线上 ${icon('back')}</button><p class="of-note">返回仅退出页面；选择「切回线上」才会结束线下模式。</p>`);}
 async function onClick(event) {
+ if(event.composedPath()[0]===$('.of-panel')){closePanel();return;}
  const button=event.composedPath().find(node=>node instanceof Element&&node.matches('[data-action]'));if(!button)return;event.preventDefault();const action=button.dataset.action,chat=character();
  const mutation=['new-offline','finish-keep','confirm-finish-delete','confirm-finish-summary','confirm-delete-archive','confirm-delete-floors','save-floor-edit','summarize','hide-floors','restore-floors','restore-one','apply-css','reset-css','confirm-preset','confirm-delete-preset','save-setup'].includes(action);
  if(action==='open-archive'&&Date.now()<state.suppressClickUntil)return;
@@ -454,6 +476,14 @@ async function onClick(event) {
 
  case 'menu':menu();break;
  case 'style':appearance();break;
+ case 'css-editor':cssEditor();break;
+ case 'style-presets':stylePresets();break;
+ case 'memory-summary':memoryEditor('summary');break;
+ case 'memory-hidden':memoryEditor('hide');break;
+ case 'send-or-continue':if($('.of-composer textarea').value.trim())await send();else if(!isGenerating)await getAiReply(chat.id,'private');break;
+ case 'story-tools':panel('内容工具',`${toolRow('continue','继续剧情','mic')}${toolRow('archives','查看线下归档','more')}`);break;
+ case 'emoji':panel('表情',`<div class="of-emoji-grid">${['☺️','🥺','🤍','🫶','✨','🌙','☁️','🫧'].map(text=>`<button data-action="insert-emoji" data-id="${text}">${text}</button>`).join('')}</div>`);break;
+ case 'insert-emoji':{const input=$('.of-composer textarea');input.value+=button.dataset.id;config(chat).composerDraft=input.value;updateComposer();closePanel();input.focus();break;}
  case 'memory':memory();break;
  case 'setup':setup();break;
  case 'load':{const area=$('.of-messages'),height=area.scrollHeight,top=area.scrollTop;state.limit+=60;render(false);area.scrollTop=top+area.scrollHeight-height;break;}
@@ -463,8 +493,8 @@ async function onClick(event) {
  case 'diary':closePanel();renderJournalList();switchScreen('memory-journal-screen');break;
  case 'memory-tab':selectMemoryTab(button.dataset.tab);break;
  case 'summarize':await summarize();break;
- case 'hide-floors':case 'restore-floors':{const ids=parseFloors($('#of-hide-range').value,chat);await setHidden(chat,ids,action==='hide-floors');memory();selectMemoryTab('hide');refresh();break;}
- case 'restore-one':{const m=chat.history.find(m=>m.id===button.dataset.id);if(m){await setHidden(chat,new Set([m.id]),false);refresh();if(!$('.of-panel').hidden){memory();selectMemoryTab('hide');}}break;}
+ case 'hide-floors':case 'restore-floors':{const ids=parseFloors($('#of-hide-range').value,chat);await setHidden(chat,ids,action==='hide-floors');memoryEditor('hide');refresh();break;}
+ case 'restore-one':{const m=chat.history.find(m=>m.id===button.dataset.id);if(m){await setHidden(chat,new Set([m.id]),false);refresh();if(!$('.of-panel').hidden){memoryEditor('hide');}}break;}
  case 'expand-css':$('.of-panel').classList.toggle('of-editor-full');button.setAttribute('aria-pressed',$('.of-panel').classList.contains('of-editor-full'));break;
  case 'find-code':{const editor=$('#of-css'),query=$('#of-find').value;if(!query)break;let pos=editor.value.toLowerCase().indexOf(query.toLowerCase(),editor.selectionEnd);if(pos<0)pos=editor.value.toLowerCase().indexOf(query.toLowerCase());if(pos<0){showToast('未找到关键词');break;}editor.focus();editor.setSelectionRange(pos,pos+query.length);editor.scrollTop=editor.value.slice(0,pos).split('\n').length*18-editor.clientHeight/2;break;}
  case 'apply-css':await setConfig(chat,'css',$('#of-css').value);state.editorDraft=config(chat).css;closePanel();refresh();break;
@@ -474,21 +504,21 @@ async function onClick(event) {
  case 'import-style':$('#of-style-file').click();break;
  case 'export-all':download('offline-styles.json',JSON.stringify({version:1,presets:presets()},null,2));break;
  case 'export-preset':{const p=presets().find(p=>p.id===button.dataset.id);if(p)download('offline-style.json',JSON.stringify({version:1,presets:[p]},null,2));break;}
- case 'load-preset':{const p=presets().find(p=>p.id===button.dataset.id);if(p){state.editorDraft=p.css;$('#of-css').value=p.css;}break;}
+ case 'load-preset':{const p=presets().find(p=>p.id===button.dataset.id);if(p){state.editorDraft=p.css;cssEditor();$('#of-css').value=p.css;}break;}
  case 'delete-preset':{const p=presets().find(p=>p.id===button.dataset.id);panel('删除预设',`<p>确定删除「${escape(p?.name)}」？</p><div class="of-row"><button data-action="confirm-delete-preset" data-id="${escape(button.dataset.id)}" class="of-primary">删除</button><button data-action="style">取消</button></div>`);break;}
  case 'confirm-delete-preset':{const previous=presets();await persistChange(()=>{db.offlineStylePresets=previous.filter(p=>p.id!==button.dataset.id);},()=>{db.offlineStylePresets=previous;});}appearance();break;
  case 'unbind-books':$('#of-inherit-books').checked=false;all('.of-worldbook').forEach(el=>{el.disabled=false;el.checked=false;});break;
- case 'save-setup':await setConfig(chat,'draft',{apiPreset:$('#of-api').value,promptPreset:$('#of-prompt-preset').value,cotEnabled:$('#of-cot-enabled').checked,cotPreset:$('#of-cot-preset').value,prompt:$('#of-prompt').value,inheritWorldbooks:$('#of-inherit-books').checked,worldBookIds:Array.from(all('.of-worldbook:checked')).map(el=>el.value)});closePanel();showToast('设置选择已保存，后续版本接入生效');break;
+ case 'save-setup':await setConfig(chat,'draft',{apiPreset:$('#of-api').value,promptPreset:$('#of-prompt-preset').value,cotEnabled:$('#of-cot-enabled').checked,cotPreset:$('#of-cot-preset').value,prompt:$('#of-prompt-preset').value==='custom'?($('#of-prompt')?.value||''):'',customPrompt:$('#of-prompt')?.value??state.customPromptDraft??'',inheritWorldbooks:$('#of-inherit-books').checked,worldBookIds:Array.from(all('.of-worldbook:checked')).map(el=>el.value)});closePanel();showToast('设置选择已保存，后续版本接入生效');break;
  }}catch(error){fail(error);}finally{if(mutation){state.pendingAction=false;button.disabled=false;}}
 }
 function syncEntry() {
  const entry=document.getElementById('offline-chat-menu-btn');if(entry)entry.style.display=currentChatType==='private'?'':'none';
- const room=document.getElementById('chat-room-header-default');if(!room)return;
- let chip=document.getElementById('offline-active-entry');
+ document.getElementById('offline-active-entry')?.remove();
  const chat=currentChatType==='private'?db.characters?.find(c=>c.id===currentChatId):null;
- if(chat?.offline?.active){if(!chip){chip=document.createElement('button');chip.id='offline-active-entry';chip.type='button';chip.textContent='线下中';chip.style.cssText='font:inherit;font-size:10px;background:#eeeef1;border:0;border-radius:5px;padding:3px 6px;color:#555;white-space:nowrap';chip.addEventListener('click',()=>open().catch(fail));room.querySelector('.title-container')?.append(chip);}chip.hidden=false;}else if(chip)chip.hidden=true;
+ if(entry){const label=entry.querySelector('.expansion-item-name');if(label)label.textContent=chat?.offline?.active?'Offline · On':'线下';entry.setAttribute('aria-label',chat?.offline?.active?'Offline is active':'线下');}
+
 }
 document.addEventListener('keydown',event=>{if(event.target.id==='offline-chat-menu-btn'&&['Enter',' '].includes(event.key)){event.preventDefault();open().catch(fail);}});
 document.addEventListener('click',event=>{if(event.target.closest?.('#offline-chat-menu-btn')){event.preventDefault();open().catch(fail);}});
-window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors};
+window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors};
 })();
