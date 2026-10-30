@@ -378,6 +378,17 @@ function formatArchiveTime(timestamp) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+function archiveUiIcon(name) {
+    const paths = {
+        close: '<path d="m6 6 12 12M18 6 6 18"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>',
+        clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        check: '<path d="M13 3H5v18h10M13 3v6h6l-6-6ZM11 16l3 3 6-6"/>',
+        export: '<path d="M8 8H5v13h14V8h-3M12 15V3m-4 4 4-4 4 4"/>'
+    };
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`;
+}
+
 function renderArchiveManager() {
     const chat = getCurrentChatEntity();
     const list = document.getElementById('chat-archive-list');
@@ -397,21 +408,27 @@ function renderArchiveManager() {
             const journalCount = data?.journalCount ?? data?.memoryJournals?.length ?? 0;
             const origin = archive.origin ? `<div class="archive-origin">来自：${escapeHtml(archive.origin.archiveName || '其他存档')}</div>` : '';
             return `
-                <article class="chat-archive-card ${active ? 'active' : ''}" data-archive-id="${archive.id}">
+                <article class="chat-archive-card ${active ? 'active' : ''}" data-archive-id="${archive.id || ''}">
+                    <div class="archive-folder-tab">${active ? '<i></i>使用中' : '存档'}</div>
                     <div class="archive-card-main">
                         <div class="archive-name-row">
                             <strong>${escapeHtml(archive.name)}</strong>
-                            ${active ? '<span class="archive-active-tag">当前</span>' : ''}
+                            ${archive.id && archives.length > 1 ? '<details class="archive-more"><summary aria-label="更多存档操作">···</summary><div class="archive-more-menu"><button type="button" data-action="delete" class="danger">删除存档</button></div></details>' : ''}
                         </div>
-                        <div class="archive-meta">${messageCount} 条消息 · ${journalCount} 篇日记 · ${formatArchiveTime(archive.updatedAt)}</div>
+                        <div class="archive-meta">${messageCount} 条消息 · ${journalCount} 篇日记</div>
                         ${origin}
                     </div>
-                    <div class="archive-actions">
-                        ${active ? '' : '<button type="button" data-action="switch">进入</button>'}
-                        ${archive.id ? '<button type="button" data-action="rename">改名</button><button type="button" data-action="delete" class="danger">删除</button>' : ''}
-                    </div>
+                    <footer class="archive-card-footer">
+                        <time>${archiveUiIcon('clock')}${formatArchiveTime(archive.updatedAt)}</time>
+                        <div class="archive-actions">
+                            ${active ? '' : '<button type="button" data-action="switch" class="archive-enter">进入</button>'}
+                            ${archive.id ? '<button type="button" data-action="rename">改名</button>' : ''}
+                        </div>
+                    </footer>
                 </article>`;
         }).join('');
+    const count = document.getElementById('chat-archive-count');
+    if (count) count.textContent = archives.length + ' 个存档';
 }
 
 function openArchiveManager() {
@@ -420,10 +437,13 @@ function openArchiveManager() {
     renderArchiveManager();
     const check=document.getElementById('chat-record-check-result');if(check)check.textContent='';
     overlay.classList.add('visible');
+    overlay.setAttribute('aria-hidden', 'false');
 }
 
 function closeArchiveManager() {
-    document.getElementById('chat-archive-overlay')?.classList.remove('visible');
+    const overlay = document.getElementById('chat-archive-overlay');
+    overlay?.classList.remove('visible');
+    overlay?.setAttribute('aria-hidden', 'true');
 }
 
 function injectArchiveUi() {
@@ -432,17 +452,18 @@ function injectArchiveUi() {
             <div id="chat-archive-overlay" class="chat-archive-overlay" aria-hidden="true">
                 <section class="chat-archive-panel" role="dialog" aria-modal="true" aria-label="存档管理">
                     <header class="archive-panel-header">
-                        <button type="button" id="close-chat-archives">‹</button>
+                        <button type="button" id="close-chat-archives" aria-label="关闭存档管理">${archiveUiIcon('close')}</button>
                         <h2>存档管理</h2>
-                        <button type="button" id="create-chat-archive">新建</button>
+                        <button type="button" id="create-chat-archive" aria-label="新建空白存档">${archiveUiIcon('plus')}</button>
                     </header>
-                    <p class="archive-help">新建存档会复用当前设置、人设和世界书绑定，但从空白聊天开始。</p>
-                    <div class="archive-record-tools" style="padding:0 20px 12px;display:flex;gap:12px;flex-wrap:wrap">
-                        <button type="button" id="check-chat-records">检查完整记录</button>
-                        <button type="button" id="export-chat-safety">导出此聊天保护副本</button>
-                        <p id="chat-record-check-result" role="status" style="width:100%;white-space:pre-line;font-size:12px;line-height:1.7;margin:0"></p>
+                    <div class="archive-record-tools">
+                        <button type="button" id="check-chat-records">${archiveUiIcon('check')}<span>检查完整记录</span></button>
+                        <button type="button" id="export-chat-safety">${archiveUiIcon('export')}<span>导出保护副本</span></button>
                     </div>
+                    <p id="chat-record-check-result" role="status"></p>
+                    <div class="archive-section-heading"><h3>我的存档</h3><span id="chat-archive-count"></span></div>
                     <div id="chat-archive-list" class="chat-archive-list"></div>
+                    <p class="archive-help">新存档从空白聊天开始，沿用当前设置。</p>
                 </section>
             </div>`);
     }
