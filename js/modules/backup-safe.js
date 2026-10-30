@@ -10,11 +10,11 @@ const H = '__phoneHistory', A = '__phoneArchive', PART = '__phonePart';
 const assetRE = /data:[^,\s"'<>]{1,160};base64,[A-Za-z0-9+/=]+/g;
 const tokenRE = /phone-asset:[a-f0-9-]+/g;
 const mimeByURL=new Map();
-const pins = new WeakMap(), accessEpoch = new WeakMap();
+const pins = new WeakMap(), accessEpoch = new WeakMap(), writeVersions=new WeakMap();
 const cold = new WeakMap(), urls = new Map(), reverse = new Map(), pending = new WeakMap();
 let busy = false, serial = Promise.resolve(), queuedSave = null;
 const knownAssets=new Set();
-const uid = () => crypto.randomUUID();
+const uid=()=>global.crypto?.randomUUID?.()||Array.from(global.crypto?.getRandomValues?.(new Uint8Array(16))||Uint8Array.from({length:16},()=>Math.random()*256),b=>b.toString(16).padStart(2,'0')).join('');
 const pause = () => new Promise(r => setTimeout(r, 0));
 const object = x => x && typeof x === 'object' && !Array.isArray(x);
 const table = () => dexieDB.safeParts;
@@ -27,8 +27,8 @@ async function storeString(s) {
  const re=new RegExp(assetRE.source,'g');let out='',last=0,m;
  while((m=re.exec(s))) {
   if(m[0].length<8192)continue;
-  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(m[0]));
-  const id=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  const digest=global.crypto?.subtle?.digest?await crypto.subtle.digest('SHA-256',new TextEncoder().encode(m[0])):null;
+  const id=digest?Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join(''):uid();
   if(!knownAssets.has(id)){await table().put({id,kind:'asset',value:new Blob([m[0]],{type:'text/plain'})});knownAssets.add(id);}
   const token='phone-asset:'+id;
   out+=s.slice(last,m.index)+token;last=m.index+m[0].length;
@@ -62,7 +62,7 @@ function isJsonHistory(value) {
  return false;
 }
 async function historyPart(value) {
- if(!isJsonHistory(value))return part(value,'history');
+ if(!isJsonHistory(value)||!global.crypto?.subtle?.digest)return part(value,'history');
  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)));
  const id='history-'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
  if(!await table().get(id))await table().put({id,kind:'history',value});
@@ -168,10 +168,12 @@ async function diskChat(chat) {
 }
 async function runtimeChat(row) {
  const ref=row.history?.[H]?row.history:null;
- const out={...row};delete out[H];
+ const out={...row};delete out[H];delete out.__kissWriteRevision;writeVersions.set(out,Number(row.__kissWriteRevision)||0);
  if(ref){out.history=clone(ref.tail||[]);cold.set(out,{ref,preview:out.history,length:out.history.length,signature:JSON.stringify(out.history)});}
  // Only decode metadata. Old messages and archive snapshots stay on disk.
  for(const k of Object.keys(out))if(k!=='history'&&k!=='archives')out[k]=await transform(out[k],true);
+ const journal=await dexieDB.safeMeta.get('chat-outbox:'+row.id);
+ if(journal?.archiveId===row.activeArchiveId&&journal.messages?.length){const full=await unpackHistory(row.history,true),ids=new Set(full.map(m=>m.id));for(const m of journal.messages)if(!ids.has(m.id)){full.push(await transform(m,true));ids.add(m.id);}out.history=full;cold.delete(out);}
  return out;
 }
 async function hydrateChat(chat) {
@@ -227,7 +229,7 @@ async function exportChatSafety(chat) {
  const report=await inspectChat(chat),parts=[new Blob(['{"format":"kiss-chat-safety-v1","createdAt":'+Date.now()+',"report":'+JSON.stringify(report)+',"chat":'])];
  let chunks=[],size=0;
  for await(const piece of json(row)){chunks.push(piece);size+=piece.length;if(size>=262144){parts.push(new Blob(chunks));chunks=[];size=0;await pause();}}
- if(chunks.length)parts.push(new Blob(chunks));parts.push(new Blob(['}']));
+ if(chunks.length)parts.push(new Blob(chunks));for(const [name,metaKey] of [['previousSavedChat','chat-checkpoint:'+key+':'+chat.id],['pendingMessages','chat-outbox:'+chat.id]]){const stored=await dexieDB.safeMeta.get(metaKey);if(stored){parts.push(new Blob([','+JSON.stringify(name)+':']));for await(const piece of json(name==='previousSavedChat'?stored.chat:stored))parts.push(new Blob([piece]));}}parts.push(new Blob(['}']));
  download(new Blob(parts,{type:'application/json'}),'KISS-聊天保护副本-'+Date.now()+'.json');
  return report;
 }
@@ -371,22 +373,37 @@ async function selectPrepared(data,selected) {
  Object.defineProperty(out,'__phonePrepared',{value:true});return out;
 }
 async function save() {
- if(busy||global.kissCleanupLocked)return;
+ if(busy||global.kissCleanupLocked)throw Error('数据正在整理，未保存，请稍后重试');
  if(queuedSave)return queuedSave;
  const run=async()=>{
   queuedSave=null;
-  if(busy||global.kissCleanupLocked)return;
+  if(busy||global.kissCleanupLocked)throw Error('数据正在整理，未保存，请稍后重试');
   if(typeof syncAllActiveArchives==='function')syncAllActiveArchives();
   // Pack each row separately. Cold histories remain references and never get overwritten by previews.
   let yieldedAt=performance.now();
   const yieldToUI=async()=>{if(performance.now()-yieldedAt>8){await pause();yieldedAt=performance.now();}};
-  for(const key of CORE)for(const row of db[key]||[]){await yieldToUI();const packed=['characters','groups'].includes(key)?await diskChat(row):await compact(row);await dexieDB[key].put(packed);}
+  for(const key of CORE)for(const row of db[key]||[]){await yieldToUI();const packed=['characters','groups'].includes(key)?await diskChat(row):await compact(row);if(['characters','groups'].includes(key))await writeChat(key,packed,row);else await dexieDB[key].put(packed);}
   for(const key of globalSettingKeys)if(db[key]!==undefined){await yieldToUI();await dexieDB.globalSettings.put({key,value:await compact(db[key],key)});}
  };
  const job=serial.then(async()=>{await pause();return run();});queuedSave=job;serial=job.catch(()=>{});return job;
 }
 // Offline keystrokes save the current chat only, on the same ordered write queue.
 const queuedChatSaves=new WeakMap();
+async function writeChat(key,packed,chat){
+ await dexieDB.transaction('rw',dexieDB[key],dexieDB.safeMeta,async()=>{
+  const previous=await dexieDB[key].get(packed.id),revision=Number(previous?.__kissWriteRevision)||0;
+  if(writeVersions.has(chat)&&writeVersions.get(chat)!==revision)throw Error('另一个页面已更新此聊天，已阻止旧页面覆盖记录；请先导出保护副本再重新打开');
+  if(previous)await dexieDB.safeMeta.put({key:'chat-checkpoint:'+key+':'+packed.id,createdAt:Date.now(),chat:previous});
+  packed.__kissWriteRevision=revision+1;await dexieDB[key].put(packed);
+ });writeVersions.set(chat,packed.__kissWriteRevision);
+ const pending=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);
+ if(pending?.messages?.length&&pending.archiveId===packed.activeArchiveId){const ids=new Set((await unpackHistory(packed.history,false)).map(m=>m.id));await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{const current=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);if(current?.archiveId===packed.activeArchiveId)await dexieDB.safeMeta.put({...current,messages:current.messages.filter(m=>!ids.has(m.id))});});}
+}
+function stageMessage(chat,message){
+ const archiveId=chat.activeArchiveId,value=clone(message),key='chat-outbox:'+chat.id;
+ const job=serial.then(async()=>{if(busy||global.kissCleanupLocked)throw Error('数据正在整理，消息尚未保存');const encoded=await transform(value);await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{const old=await dexieDB.safeMeta.get(key);if(old?.messages?.length&&old.archiveId!==archiveId)throw Error('上一存档仍有未保存消息，请先重试保存');const messages=(old?.messages||[]).filter(m=>m.id!==value.id);messages.push(encoded);await dexieDB.safeMeta.put({key,archiveId,messages,createdAt:Date.now()});});});serial=job.catch(()=>{});return job;
+}
+
 function saveChat(chat){
  if(!chat||typeof chat!=='object')return Promise.reject(Error('聊天不存在'));
  if(queuedChatSaves.has(chat))return queuedChatSaves.get(chat);
@@ -398,7 +415,7 @@ function saveChat(chat){
   if(typeof syncChatActiveArchive==='function')syncChatActiveArchive(chat,true);
   const packed=await diskChat(chat);
   if(!(db[key]||[]).includes(chat))throw Error('聊天已移除，未恢复已删除的数据');
-  await dexieDB[key].put(packed);
+  await writeChat(key,packed,chat);
  });
  queuedChatSaves.set(chat,job);serial=job.catch(()=>{});return job;
 }
@@ -544,5 +561,6 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);
+

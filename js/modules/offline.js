@@ -70,10 +70,34 @@ function mountNarrativeFrames(item,layout){
  for(const detail of item.querySelectorAll('details[data-section-key]'))if(state.sectionOpen?.has(detail.dataset.sectionKey))detail.open=true;
  Promise.resolve().then(()=>{if(!item.isConnected)return;
   for(const box of item.querySelectorAll('[data-inline-html]')){const data=layout.frames[Number(box.dataset.inlineHtml)],frame=box.querySelector('iframe');if(!data||!frame)continue;
-   let mounted=false;const start=()=>{if(mounted||!frame.isConnected)return;const folded=frame.closest('details:not([open])');if(folded)return;mounted=true;frame.style.height='160px';const cleanup=window.KissOfflineHTML.mount(frame,data.text,size=>{if(frame.isConnected)frame.style.height=Math.min(1800,Math.max(80,size.height))+'px';});inlineFrames.set(frame,()=>{cleanup();ancestors.forEach(d=>d.removeEventListener('toggle',start));});};
-   const ancestors=[];for(let parent=frame.parentElement;parent&&parent!==item;parent=parent.parentElement)if(parent.tagName==='DETAILS')ancestors.push(parent);ancestors.forEach(d=>d.addEventListener('toggle',start));start();if(!mounted)inlineFrames.set(frame,()=>ancestors.forEach(d=>d.removeEventListener('toggle',start)));
+   let mounted=false,isFloating=false,lastSize=null,visible=!window.IntersectionObserver||/position\s*:\s*fixed/i.test(data.text),observer=null;
+   const resizeFloating=()=>{if(!isFloating||!frame.isConnected)return;const bounds=state.host.getBoundingClientRect();Object.assign(frame.style,{position:'fixed',left:bounds.left+'px',top:bounds.top+'px',width:bounds.width+'px',height:bounds.height+'px',zIndex:'4',maxWidth:'none'});};
+   const start=()=>{if(mounted||!visible||!frame.isConnected)return;const folded=frame.closest('details:not([open])');if(folded)return;mounted=true;observer?.disconnect();frame.style.height='160px';
+    if(/position\s*:\s*fixed/i.test(data.text)){isFloating=true;box.classList.add('of-floating-html');resizeFloating();frame.style.clipPath='inset(100%)';}
+    const chat=character(),sessionAtMount=config(chat).activeSessionId,archiveAtMount=chat.activeArchiveId,latest=(chat.history||[]).findLast(m=>m.role==='assistant'&&m.offlineNarrative&&!m.offlineArchiveId);
+    const cleanup=window.KissOfflineHTML.mount(frame,data.text,size=>{lastSize=size;if(!frame.isConnected)return;if(size.floating){frame.dataset.floating='true';isFloating=true;box.classList.add('of-floating-html');if(state.view!=='chat'||latest?.id!==item.dataset.messageId){frame.hidden=true;return;}resizeFloating();const paths=size.rects.map(r=>`M ${r.x} ${r.y} H ${r.right} V ${r.bottom} H ${r.x} Z`).join(' ');frame.style.clipPath=paths?`path('${paths}')`:'inset(100%)';}else{if(isFloating){frame.dataset.floating='false';isFloating=false;box.classList.remove('of-floating-html');for(const key of ['position','left','top','z-index','clip-path','max-width'])frame.style.removeProperty(key);frame.style.width='100%';}frame.style.height=Math.min(1800,Math.max(80,size.height))+'px';}}, {context:{...(window.KissTavernHelper?.snapshot(chat,item.dataset.messageId)||{}),blockIndex:Number(box.dataset.inlineHtml),text:chat.history.find(m=>m.id===item.dataset.messageId)?.content||''},onChoice:text=>fillPlotDraft(text),onCall:(method,args,expectedIds)=>handleHelperCall(chat,method,args,sessionAtMount,archiveAtMount,expectedIds),getSnapshot:()=>window.KissTavernHelper?.snapshot(chat,item.dataset.messageId),onNotify:(kind,value,source)=>{if(kind==='toast'||kind==='error'){showToast(String(value));}else if(kind==='reload'){item._ofSignature=null;refresh(true);}else if(kind==='event')window.dispatchEvent(new CustomEvent('kiss-helper-event',{detail:{...value,source}}));}});
+    window.addEventListener('resize',resizeFloating);inlineFrames.set(frame,()=>{observer?.disconnect();cleanup();window.removeEventListener('resize',resizeFloating);ancestors.forEach(d=>d.removeEventListener('toggle',start));});};
+   const ancestors=[];for(let parent=frame.parentElement;parent&&parent!==item;parent=parent.parentElement)if(parent.tagName==='DETAILS')ancestors.push(parent);ancestors.forEach(d=>d.addEventListener('toggle',start));if(!visible){observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){visible=true;start();}},{root:$('.of-messages'),rootMargin:'300px'});observer.observe(box);}start();if(!mounted)inlineFrames.set(frame,()=>{observer?.disconnect();ancestors.forEach(d=>d.removeEventListener('toggle',start));});
   }
  });
+}
+const helperCallQueue=new WeakMap();
+function handleHelperCall(chat,method,args,sessionId,archiveId,expectedIds){const previous=helperCallQueue.get(chat)||Promise.resolve(),next=previous.catch(()=>{}).then(()=>performHelperCall(chat,method,args,sessionId,archiveId,expectedIds));helperCallQueue.set(chat,next);return next;}
+async function performHelperCall(chat,method,args,sessionId,archiveId,expectedIds){
+ if(chat!==character()||chat.activeArchiveId!==archiveId||window.PhoneBackup?.isPinned(chat)||state.view!=='chat'||!config(chat).active||config(chat).activeSessionId!==sessionId)throw Error('前端所属聊天已切换');
+ const currentIds=window.KissTavernHelper.rows(chat).map(m=>String(m.id));if(['setChatMessages','deleteChatMessages'].includes(method)||method==='variables'&&args[1]?.type==='message'){if(!Array.isArray(expectedIds)||expectedIds.length!==currentIds.length||expectedIds.some((id,i)=>String(id)!==currentIds[i]))throw Error('消息楼层已变化，请刷新前端后重试');}const release=method==='generate'?()=>{}:window.PhoneBackup?.pinChat(chat)||(()=>{});try{
+ const result=await window.KissTavernHelper.handle(method,args,{chat,save:()=>saveData(),refresh:()=>refresh(true),edit:async(id,text)=>{await editFloor(chat,id,text);refresh(true);},remove:async ids=>{await deleteFloors(chat,ids);refresh(true);},create:async row=>{const text=String(row.message??row.content??'');if(!text.trim())throw Error('消息不能为空');if(!['user','assistant','system'].includes(row.role))throw Error('消息角色无效');if(row.role==='user'){await queueUserMessage(chat,text).saved;}else{const m={id:'msg_helper_'+uid(),role:row.role,content:text,parts:[{type:'text',text}],timestamp:Date.now(),offlineNarrative:true,offlineGenerationSource:config(chat).draft.generationSource,offlinePresetId:config(chat).draft.tavernPresetId};tagMessage(chat,m);chat.history.push(m);ensureFloors(chat);try{await saveOfflineChat(chat);}catch(error){const index=chat.history.indexOf(m);if(index>=0)chat.history.splice(index,1);throw error;}}refresh(true);},generate:(config,raw)=>{if(raw)throw Error('自定义 generateRaw 尚未适配');return helperGenerate(chat,config);}});window.dispatchEvent(new CustomEvent('kiss-helper-state-changed'));return result;}finally{release();}
+}
+async function helperGenerate(chat,options){
+ if(state.busy||isGenerating)throw Error('已有生成正在进行');
+ const unsupported=Object.keys(options).filter(k=>!['user_input','append','should_stream','generation_id'].includes(k));if(unsupported.length)throw Error('此生成配置尚未支持：'+unsupported.join('、'));
+ if(options.append){if(!await request(chat,null,false))throw Error('生成未完成，原记录已保留');return textOf(chat.history.findLast(m=>m.role==='assistant')||{});}
+ const api=resolveOfflineApi(chat),history=historyForAI(chat).filter(m=>['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:textOf(m)}));if(options.user_input)history.push({role:'user',content:String(options.user_input)});
+ const built=window.KissOfflineGeneration.build(chat,history,api,prompt);await window.KissOfflineGeneration.applyRequestRegex(built,chat);const blocked=typeof BLOCKED_API_DOMAINS==='undefined'?[]:BLOCKED_API_DOMAINS;if(blocked.some(domain=>built.endpoint.includes(domain)))throw Error('API 站点不可用');
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);state.busy=true;
+ try{const response=await fetch(built.endpoint,{method:'POST',headers:built.headers,body:JSON.stringify(built.requestBody),signal:controller.signal});if(!response.ok)throw Error('生成失败 HTTP '+response.status);const output={full:'',reasoning:'',usage:null};
+ if((response.headers.get('content-type')||'').includes('text/event-stream')){const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';try{for(;;){const chunk=await reader.read();buffer+=decoder.decode(chunk.value||new Uint8Array(),{stream:!chunk.done});const lines=buffer.split(/\r?\n/);buffer=lines.pop();for(const line of [...lines,...(chunk.done?[buffer]:[])])if(line.startsWith('data:')){const text=line.slice(5).trim();if(text&&text!=='[DONE]')window.KissOfflineGeneration.consume(JSON.parse(text),api.provider,output);}if(chunk.done)break;}}finally{reader.releaseLock();}}else{const data=await response.json();for(const row of Array.isArray(data)?data:[data])window.KissOfflineGeneration.consume(row,api.provider,output);}return output.full;
+ }finally{clearTimeout(timer);state.busy=false;}
 }
 function openPlotOptions(id,group){
  const chat=character(),message=chat.history.find(m=>m.id===id);if(!message)throw Error('这条消息已不存在');
@@ -82,14 +106,20 @@ function openPlotOptions(id,group){
 }
 function choosePlotOption(index){
  const option=state.plotChoices?.[index];if(!option)throw Error('选项已失效，请重新打开');if(state.view!=='chat'||!config(character()).active)throw Error('请回到当前线下聊天后选择');
- const input=$('.of-composer textarea');input.value=(input.value.trimEnd()?input.value.trimEnd()+'\n':'')+option.text;config(character()).composerDraft=input.value;closePanel();sizeInputSoon(input);input.focus();clearTimeout(state.draftTimer);const chat=character();state.draftTimer=setTimeout(()=>saveOfflineChat(chat).catch(fail),1200);
+ fillPlotDraft(option.text);
+
 }
-const displayRegexCache=new WeakMap();
+function fillPlotDraft(text){
+ const chat=character();if(state.view!=='chat'||!chat||!config(chat).active)return;
+ const input=$('.of-composer textarea');input.value=(input.value.trimEnd()?input.value.trimEnd()+'\n':'')+String(text).trim();config(chat).composerDraft=input.value;closePanel();sizeInputSoon(input);input.focus();clearTimeout(state.draftTimer);state.draftTimer=setTimeout(()=>saveOfflineChat(chat).catch(fail),1200);
+}
+let displayRegexCache=new WeakMap(),regexSignatures=new WeakMap();
+window.addEventListener('kiss-tavern-presets-changed',()=>{displayRegexCache=new WeakMap();regexSignatures=new WeakMap();refresh(true);});
 function displayNarrative(chat,m,text){
- if(!window.KissTavernRegex||m.offlinePending||m.offlineGenerationSource!=='tavern')return text;
+ if(!window.KissTavernRegex||m.offlinePending||!(m.offlineGenerationSource==='tavern'||!m.offlineGenerationSource&&config(chat).draft.generationSource==='tavern'))return text;
  const preset=(db.tavernPresets||[]).find(p=>p.id===(m.offlinePresetId||config(chat).draft.tavernPresetId));if(!preset)return text;
- const depth=Math.max(0,chat.history.length-chat.history.indexOf(m)-1),cached=displayRegexCache.get(m);if(cached?.text===text&&cached.preset===preset&&cached.depth===depth)return cached.output;
- const entry={text,preset,depth,output:text};displayRegexCache.set(m,entry);
+ let signature=regexSignatures.get(preset);if(signature===undefined){signature=JSON.stringify(window.KissTavernRegex.entries(preset).map(e=>e.script));regexSignatures.set(preset,signature);}const depth=Math.max(0,chat.history.length-chat.history.indexOf(m)-1),cached=displayRegexCache.get(m);if(cached?.text===text&&cached.preset===preset&&cached.depth===depth&&cached.signature===signature)return cached.output;
+ const entry={text,preset,depth,signature,output:text};displayRegexCache.set(m,entry);
  window.KissTavernRegex.apply(text,preset,{target:'display',placement:m.role==='user'?1:2,depth,edited:!!m.offlineEditedAt,char:chat.realName||chat.remarkName||'角色',user:chat.myName||'我'}).then(result=>{if(displayRegexCache.get(m)!==entry)return;entry.output=result.text;if(result.text!==text)refresh(true);if(result.warnings.length)console.warn('[Preset regex]',...result.warnings);});return text;
 }
 function openHTML(id,index){
@@ -123,14 +153,14 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});if(/Android/i.test(globalThis.navigator?.userAgent||''))host.dataset.platform='android';
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261030-sections-4"><style id="of-custom-style"></style>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261030-native-5"><style id="of-custom-style"></style>
  <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><button class="of-header-profile" data-action="status-view" aria-label="View status"><img class="of-header-avatar" alt=""><i></i></button><button class="of-title" data-action="menu"><span class="of-title-copy" style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><strong></strong><span class="of-presence" style="position:static;inset:auto;background:none;padding:0" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main>
  <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Generate reply">${icon('send')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261030-sections-4';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261030-native-5';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  if(typeof ResizeObserver!=='undefined')new ResizeObserver(entries=>{const size=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height;if(size)$('.of-page').style.setProperty('--of-composer-height',size+'px');}).observe($('.of-composer'));
  state.root.addEventListener('click',onClick);
  installGestures();
@@ -141,9 +171,10 @@ function ensureHost() {
  state.root.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(state.draftTimer);state.sendQueue?.flushAll().catch(fail);const chat=character();if(chat)saveOfflineChat(chat).catch(fail);}});
 }
+async function persistGlobalChange(apply,rollback){apply();try{await saveData();}catch(error){rollback();throw error;}}
 async function persistChange(apply,rollback) {
- apply();
- try { await saveData(); } catch(error) { rollback(); throw error; }
+ const chat=character();apply();
+ try { await saveOfflineChat(chat); } catch(error) { rollback(); throw error; }
 }
 async function setHidden(chat,ids,hidden) {
  const rows=chat.history.filter(m=>ids.has(m.id)),previous=rows.map(m=>m.offlineHidden);
@@ -178,6 +209,8 @@ function panel(title,html) {
 }
 function status(text) {if(state.root)$('.of-presence').textContent=text||'';}
 function fail(error) {console.error('Offline:',error);status(error.message||'Something went wrong');showToast(error.message||'操作失败');}
+function publishHelperState(){window.dispatchEvent(new CustomEvent('kiss-helper-state-changed'));}
+function scheduleLiveRender(){if(state.liveTimer)return;state.liveTimer=setTimeout(()=>{state.liveTimer=null;if(!state.root||!state.host?.classList.contains('active')||state.view!=='chat')return;const chat=character(),live=state.liveGeneration;if(!chat||live?.chatId!==chat.id)return;const area=$('.of-messages'),bottom=area.scrollHeight-area.scrollTop-area.clientHeight<100;area.querySelector('[data-message-id="of-pending"]')?.remove();if(live.content||live.reasoning)area.append(messageElement(chat,{id:live.id,role:'assistant',content:live.content,offlineReasoning:live.reasoning,offlineGenerationSource:live.mode,offlinePending:true,timestamp:live.timestamp||(live.timestamp=Date.now())},true));if(bottom)area.scrollTop=area.scrollHeight;},80);}
 function refresh(force=false) {
  syncEntry();if(!state.root||!state.host.classList.contains('active'))return;
  cancelAnimationFrame(state.frame);state.frame=requestAnimationFrame(()=>render(force));
@@ -194,21 +227,22 @@ function render(force) {
  const messages=readOnly?sessionRows(chat,archive):displayRows(chat),shown=messages.slice(-state.limit);
  if(state.selecting){const available=new Set(messages.map(m=>m.id));for(const id of state.selected)if(!available.has(id))state.selected.delete(id);$('#of-selection-count').textContent=state.selected.size+' selected';}
  const opened=[...area.querySelectorAll('details[data-thinking-id][open]')].map(el=>el.dataset.thinkingId);state.thinkingOpen=new Set(opened);
- state.sectionOpen=new Set([...area.querySelectorAll('details[data-section-key][open]')].map(el=>el.dataset.sectionKey));clearInlineFrames();
- area.replaceChildren();
- if(messages.length>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';area.append(more);}
- if(!messages.length){const empty=document.createElement('div');empty.className='of-empty';empty.textContent='A moment, just for you two.';area.append(empty);}
+ state.sectionOpen=new Set([...area.querySelectorAll('details[data-section-key][open]')].map(el=>el.dataset.sectionKey));
+ const previousNodes=new Map([...area.querySelectorAll('.of-message')].map(el=>[el.dataset.messageId,el])),desired=[],append=node=>desired.push(node);
+ if(messages.length>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';append(more);}
+ if(!messages.length){const empty=document.createElement('div');empty.className='of-empty';empty.textContent='A moment, just for you two.';append(empty);}
  let day='';let previousMode;
  for(const m of shown){
   const date=new Date(m.timestamp||Date.now()),key=date.toDateString();
-  if(day&&key!==day){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});area.append(divider);}day=key;
-  if(m.offlineNarrative&&previousMode===false){const divider=document.createElement('div');divider.className='of-mode-divider';divider.textContent='Offline started';area.append(divider);}previousMode=!!m.offlineNarrative;
-  if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${m.offlineFloor} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}area.append(row);continue;}
-  area.append(messageElement(chat,m,readOnly));
+  if(day&&key!==day){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});append(divider);}day=key;
+  if(m.offlineNarrative&&previousMode===false){const divider=document.createElement('div');divider.className='of-mode-divider';divider.textContent='Offline started';append(divider);}previousMode=!!m.offlineNarrative;
+  if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${m.offlineFloor} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}append(row);continue;}
+  const signature=[m,readOnly,state.selecting,state.selected.has(m.id),textOf(m),displayNarrative(chat,m,displayStatus(m,chat).text),m.offlineReasoning,m.offlineImage?.url,m.offlineImage?.error,m.offlineFloor,m.offlineEditedAt,m.offlineHidden,chat.avatar,chat.myAvatar,chat.realName,chat.remarkName,chat.myName,config(chat).draft.debugMode];const old=previousNodes.get(String(m.id));if(old?._ofSignature?.length===signature.length&&signature.every((v,i)=>v===old._ofSignature[i]))append(old);else{const node=messageElement(chat,m,readOnly);node._ofSignature=signature;append(node);}
  }
- if(!readOnly&&state.liveGeneration?.chatId===chat.id&&(state.liveGeneration.content||state.liveGeneration.reasoning)){const live=state.liveGeneration;area.append(messageElement(chat,{id:live.id,role:'assistant',content:live.content,offlineReasoning:live.reasoning,offlineGenerationSource:live.mode,offlinePending:true,timestamp:Date.now()},true));}
+ if(!readOnly&&state.liveGeneration?.chatId===chat.id&&(state.liveGeneration.content||state.liveGeneration.reasoning)){const live=state.liveGeneration;append(messageElement(chat,{id:live.id,role:'assistant',content:live.content,offlineReasoning:live.reasoning,offlineGenerationSource:live.mode,offlinePending:true,timestamp:Date.now()},true));}
+ const keep=new Set(desired);for(const child of [...area.children])if(!keep.has(child)){for(const frame of child.querySelectorAll('iframe')){inlineFrames.get(frame)?.();inlineFrames.delete(frame);}child.remove();}let cursor=area.firstChild;for(const node of desired){if(node===cursor)cursor=cursor.nextSibling;else area.insertBefore(node,cursor);}const latestId=messages.findLast(m=>m.role==='assistant')?.id;for(const [frame]of inlineFrames)if(frame.dataset.floating==='true')frame.hidden=frame.closest('.of-message')?.dataset.messageId!==String(latestId);
  state.renderedLastId=shown.at(-1)?.id||null;state.renderedLastTimestamp=shown.at(-1)?.timestamp;state.renderedCount=shown.length;
- if(atBottom)area.scrollTop=area.scrollHeight;
+ if(atBottom)area.scrollTop=area.scrollHeight;publishHelperState();
 }
 function messageElement(chat,m,readOnly=false){
  const date=new Date(m.timestamp||Date.now());
@@ -218,7 +252,7 @@ function messageElement(chat,m,readOnly=false){
   setAvatar(item.querySelector('img'),user?chat.myAvatar:chat.avatar);
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
   item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
-  const shownStatus=displayStatus(m,chat),layout=narrativeLayout(displayNarrative(chat,m,shownStatus.text),m.id);item.querySelector('.of-prose').innerHTML=layout.html;mountNarrativeFrames(item,layout);
+  const shownStatus=displayStatus(m,chat),layout=m.offlinePending?{html:narrativeHtml(shownStatus.text),frames:[],groups:[]}:narrativeLayout(displayNarrative(chat,m,shownStatus.text),m.id);item.querySelector('.of-prose').innerHTML=layout.html;mountNarrativeFrames(item,layout);
   if(m.offlineReasoning&&(m.offlineGenerationSource==='tavern'||config(chat).draft.debugMode)){const thought=document.createElement('details');thought.className='of-reasoning';thought.dataset.thinkingId=m.id;thought.open=state.thinkingOpen?.has(m.id)||false;const heading=document.createElement('summary');heading.textContent=m.offlinePending?'思考中…':'思考过程';const content=document.createElement('div');content.className='of-reasoning-text';content.textContent=m.offlineReasoning;thought.append(heading,content);item.querySelector('.of-prose').before(thought);}
   const imageMarkup=floorImageHtml(m,readOnly);if(imageMarkup)item.querySelector('.of-message-content').insertAdjacentHTML('beforeend',imageMarkup);
   item.querySelector('.of-meta').textContent=m.offlinePending?'生成中…':[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${m.offlineFloor}`].filter(Boolean).join(' · ');
@@ -259,6 +293,7 @@ function tagMessage(chat,message) {
 }
 async function finishSession(chat,mode,{title='',summaryId=null}={}) {
  if(!['keep','summary','summary-delete','summary-archive','archive','delete'].includes(mode))throw Error('无效的结束方式');
+ await state.sendQueue?.flush(chat);
  const cfg=config(chat),session=activeSession(chat);if(!session)throw Error('未找到当前线下片段');
  const rows=sessionRows(chat,session),ids=new Set(rows.map(m=>m.id));
  const previousHistory=chat.history,previousOffline=JSON.parse(JSON.stringify(cfg));const journal=summaryId?chat.memoryJournals?.find(j=>j.id===summaryId):null,previousFavorite=journal?.isFavorited;const previousJournals=chat.memoryJournals,previousJournalFavorites=(chat.memoryJournals||[]).map(j=>[j,j.isFavorited]);
@@ -295,6 +330,7 @@ async function editFloor(chat,id,text) {
  await persistChange(()=>{message.content=text.trim();message.parts=[{type:'text',text:text.trim()}];message.offlineNarrative=true;message.offlineEditedAt=Date.now();message.offlineTokens=estimate(text.trim());message.offlineTokensEstimated=true;},()=>{for(const key of Object.keys(message))delete message[key];Object.assign(message,previous);});
 }
 async function deleteFloors(chat,ids) {
+ await state.sendQueue?.flush(chat);
  const rows=editableRows(chat,ids),selected=new Set(rows.map(m=>m.id)),history=chat.history;
  await persistChange(()=>{chat.history=history.filter(m=>!selected.has(m.id));},()=>{chat.history=history;});
 }
@@ -401,18 +437,18 @@ function setAvatar(img,url){img.src=url||'data:image/svg+xml,%3Csvg xmlns="http:
 function saveOfflineChat(chat){return window.PhoneBackup?.saveChat?window.PhoneBackup.saveChat(chat):saveData();}
 function sizeInputSoon(input){if(state.inputFrame)return;state.inputFrame=requestAnimationFrame(()=>{state.inputFrame=0;if(!input.isConnected)return;input.style.height='auto';input.style.height=Math.min(input.scrollHeight,124)+'px';});}
 function deliveryQueue(){
- if(!state.sendQueue){if(!window.KissOfflineSend)throw Error('发送模块未加载，请上传 offline_send.js 后刷新');state.sendQueue=window.KissOfflineSend.create({save:saveOfflineChat,exists:(chat,m)=>(db.characters||[]).includes(chat)&&(chat.history||[]).includes(m),changed:(chat,m)=>{if(state.chatId===chat.id&&state.root){const el=[...$('.of-messages').querySelectorAll('.of-message')].find(el=>el.dataset.messageId===m.id)?.querySelector('.of-delivery');if(el)paintDelivery(el,m);}}});}
+ if(!state.sendQueue){if(!window.KissOfflineSend)throw Error('发送模块未加载，请上传 offline_send.js 后刷新');state.sendQueue=window.KissOfflineSend.create({save:saveOfflineChat,stage:(chat,m)=>window.PhoneBackup?.stageMessage?.(chat,m),exists:(chat,m)=>(db.characters||[]).includes(chat)&&(chat.history||[]).includes(m),changed:(chat,m)=>{if(state.chatId===chat.id&&state.root){const el=[...$('.of-messages').querySelectorAll('.of-message')].find(el=>el.dataset.messageId===m.id)?.querySelector('.of-delivery');if(el)paintDelivery(el,m);}}});}
  return state.sendQueue;
 }
 function paintDelivery(el,m){const value=state.sendQueue?.state(m);el.replaceChildren();el.hidden=!value;if(!value)return;if(value==='failed'){const retry=document.createElement('button');retry.dataset.action='retry-send';retry.textContent='Not saved · Retry';el.append(retry);}else el.textContent='Saving…';}
 function queueUserMessage(chat,text){
  if(window.PhoneBackup?.isPinned(chat))throw Error('存档正在处理，输入内容已保留');
  if(!text.trim())throw Error('消息不能为空');if(!config(chat).active)throw Error('当前已切回线上，请重新进入线下');
- const queue=deliveryQueue();if(config(chat).floorVersion!==2)ensureFloors(chat);
+ const queue=deliveryQueue(),pending=chat.history?.at(-1);if(pending?.role==='user'&&pending.content===text.trim()&&queue.state(pending)==='failed'){const saved=queue.enqueue(chat,pending);return{message:pending,saved,staged:saved.staged};}if(config(chat).floorVersion!==2)ensureFloors(chat);
  const message={id:`msg_offline_${uid()}`,role:'user',content:text.trim(),parts:[{type:'text',text:text.trim()}],timestamp:Date.now(),offlineNarrative:true,offlineTokens:estimate(text.trim()),offlineTokensEstimated:true};
  if(config(chat).draft.generationSource==='tavern'){message.offlineGenerationSource='tavern';message.offlinePresetId=config(chat).draft.tavernPresetId;}
  chat.history ||= [];tagMessage(chat,message);const session=activeSession(chat);if(!Number.isInteger(session.nextFloor))session.nextFloor=1+chat.history.reduce((n,m)=>m.offlineSessionId===session.id?Math.max(n,m.offlineFloor||0):n,0);message.offlineFloor=session.nextFloor++;chat.history.push(message);
- return {message,saved:queue.enqueue(chat,message)};
+ const saved=queue.enqueue(chat,message);return {message,saved,staged:saved.staged};
 }
 function appendSentMessage(chat,m){
  if(!state.root||state.chatId!==chat.id||state.view!=='chat'||!state.host?.classList.contains('active'))return;
@@ -421,13 +457,13 @@ function appendSentMessage(chat,m){
  if((previous?.id||null)!==state.renderedLastId){refresh(true);return;}
  const area=$('.of-messages');area.querySelector('.of-empty')?.remove();
  const date=new Date(m.timestamp);if(previous&&date.toDateString()!==new Date(state.renderedLastTimestamp).toDateString()){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});area.append(divider);}
- area.append(messageElement(chat,m));state.renderedLastId=m.id;state.renderedLastTimestamp=m.timestamp;state.renderedCount=(state.renderedCount||0)+1;
+ area.append(messageElement(chat,m));state.renderedLastId=m.id;state.renderedLastTimestamp=m.timestamp;state.renderedCount=(state.renderedCount||0)+1;publishHelperState();
  requestAnimationFrame(()=>{if(state.chatId===chat.id&&state.view==='chat')area.scrollTop=area.scrollHeight;});
 }
 function send(){
  const chat=character(),input=$('.of-composer textarea'),text=input?.value.trim();
- if(!chat||isGenerating||state.busy||state.view!=='chat'||!text)return Promise.resolve();
- try{const result=queueUserMessage(chat,text);clearTimeout(state.draftTimer);if(state.inputFrame){cancelAnimationFrame(state.inputFrame);state.inputFrame=0;}config(chat).composerDraft='';input.value='';input.style.height='auto';status('');try{appendSentMessage(chat,result.message);}catch(error){console.warn('[Offline append]',error);refresh(true);}return result.saved;}catch(error){return Promise.reject(error);}
+ if(!chat||isGenerating||state.busy||state.stagingSend||state.view!=='chat'||!text)return Promise.resolve();
+ try{const result=queueUserMessage(chat,text);clearTimeout(state.draftTimer);if(state.inputFrame){cancelAnimationFrame(state.inputFrame);state.inputFrame=0;}state.stagingSend=true;result.staged.finally(()=>{state.stagingSend=false;}).catch(()=>{});result.staged.then(()=>{if(character()===chat&&input.value.trim()===text){config(chat).composerDraft='';input.value='';input.style.height='auto';}}).catch(()=>{});status('');try{appendSentMessage(chat,result.message);}catch(error){console.warn('[Offline append]',error);refresh(true);}return result.saved;}catch(error){return Promise.reject(error);}
 }
 async function callReply() {
  const chat=character();if(!chat||isGenerating||state.busy||state.callPending||state.view!=='chat'||!config(chat).active)return;
@@ -441,7 +477,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
  if(state.busy||isGenerating&&!isBackground)return;
  const generation=aiGenerationControl.begin(chat.id,'private',isBackground),start=performance.now();
  state.busy=true;if(!isBackground){isGenerating=true;getReplyBtn.disabled=true;regenerateBtn.disabled=true;status('Typing…');}
- let persisted=false;const imageAtStart=!!config(chat).autoImage,statusAtStart=config(chat).statusPanel?{...config(chat).statusPanel}:null;
+ const archiveAtStart=chat.activeArchiveId,sessionAtStart=config(chat).activeSessionId;let persisted=false;const imageAtStart=!!config(chat).autoImage,statusAtStart=config(chat).statusPanel?{...config(chat).statusPanel}:null;
  try{
   const limit=config(chat).draft.generationSource==='tavern'?Infinity:(Number(chat.maxMemory)>0?Number(chat.maxMemory):30);
   let history=historyForAI(chat).filter(m=>m.id!==replacement?.id).filter(m=>!m.isContextDisabled&&!m.isThinking&&!m.isStatusUpdate&&!['mcp-request','mcp-activity'].includes(m.type)).slice(-limit);
@@ -460,7 +496,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
    window.KissOfflineGeneration.consume(data,apiConfig.provider,responseState);
    const parsed=window.KissOfflineGeneration.split(responseState.full);
    if(state.liveGeneration?.chatId===chat.id){state.liveGeneration.content=extractImagePrompt(extractStatus(parsed.text,statusAtStart).text).text;state.liveGeneration.reasoning=[responseState.reasoning,parsed.reasoning].filter(Boolean).join('\n\n');}
-   if(built.stream)refresh(true);
+   if(built.stream)scheduleLiveRender();
   };
   if((response.headers.get('content-type')||'').includes('text/event-stream')){
    const reader=response.body.getReader(),decoder=new TextDecoder();generation.reader=reader;let buffer='';
@@ -476,7 +512,8 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   if(extracted.pending)m.offlineStatusPending=extracted.pending;
   if(imageAtStart)m.offlineImage={prompt:picture.prompt||defaultImagePrompt(chat,clean)};
   if(extracted.record)m.offlineStatus=extracted.record;const sp=config(chat).statusPanel,oldStatus=sp?{history:sp.history,raw:sp.currentStatusRaw,html:sp.currentStatusHtml}:null;if(sp&&extracted.record){const record={...extracted.record,messageId:m.id};sp.history=[record,...(sp.history||[])].slice(0,20);sp.currentStatusRaw=record.raw;sp.currentStatusHtml=record.html;}
-  tagMessage(chat,m);const replacementIndex=replacement?chat.history.indexOf(replacement):-1;if(replacementIndex>=0){m.offlineFloor=replacement.offlineFloor;chat.history.splice(replacementIndex,1,m);}else chat.history.push(m);ensureFloors(chat);try{await saveData();}catch(error){if(sp&&oldStatus){sp.history=oldStatus.history;sp.currentStatusRaw=oldStatus.raw;sp.currentStatusHtml=oldStatus.html;}if(replacementIndex>=0)chat.history.splice(replacementIndex,1,replacement);else chat.history.splice(chat.history.indexOf(m),1);throw error;}persisted=true;
+  if(chat.activeArchiveId!==archiveAtStart||config(chat).activeSessionId!==sessionAtStart||!config(chat).active)throw Error('生成期间聊天已切换，未写入其他存档');
+  tagMessage(chat,m);const replacementIndex=replacement?chat.history.indexOf(replacement):-1;if(replacementIndex>=0){m.offlineFloor=replacement.offlineFloor;chat.history.splice(replacementIndex,1,m);}else chat.history.push(m);ensureFloors(chat);try{await deliveryQueue().enqueue(chat,m);}catch(error){if(replacementIndex>=0&&!chat.history.includes(replacement))chat.history.splice(Math.max(0,chat.history.indexOf(m)),0,replacement);refresh(true);throw error;}persisted=true;
   state.liveGeneration=null;addMessageBubble(m,chat.id,'private');renderChatList();refresh(true);status('');
   if(imageAtStart)generateFloorImage(chat,m.id).catch(error=>{console.warn('[Offline image]',error.message);if(state.chatId===chat.id&&typeof showToast==='function')showToast('正文已保存，配图未完成：'+error.message);});
  }catch(error){if(error.name==='AbortError')status('Paused');else{status(persisted?'Saved; display refresh failed':'Reply failed · your message is saved');showApiError(error);}}
@@ -712,13 +749,13 @@ async function onClick(event) {
  case 'apply-css':await setConfig(chat,'css',$('#of-css').value);state.editorDraft=config(chat).css;closePanel();refresh();break;
  case 'reset-css':await setConfig(chat,'css','');state.editorDraft='';appearance();refresh();break;
  case 'save-preset':{state.editorDraft=$('#of-css').value;panel('保存预设',`<label class="of-label">预设名称<input id="of-preset-name" placeholder="输入预设名称" maxlength="100"></label><button data-action="confirm-preset" class="of-primary">保存预设</button>`);$('#of-preset-name').focus();break;}
- case 'confirm-preset':{const name=$('#of-preset-name').value.trim();if(!name)throw Error('请填写预设名称');const p={id:uid(),name,css:state.editorDraft||'',updatedAt:Date.now()};await persistChange(()=>presets().push(p),()=>{db.offlineStylePresets=presets().filter(item=>item!==p);});appearance();break;}
+ case 'confirm-preset':{const name=$('#of-preset-name').value.trim();if(!name)throw Error('请填写预设名称');const p={id:uid(),name,css:state.editorDraft||'',updatedAt:Date.now()};await persistGlobalChange(()=>presets().push(p),()=>{db.offlineStylePresets=presets().filter(item=>item!==p);});appearance();break;}
  case 'import-style':$('#of-style-file').click();break;
  case 'export-all':download('offline-styles.json',JSON.stringify({version:1,presets:presets()},null,2));break;
  case 'export-preset':{const p=presets().find(p=>p.id===button.dataset.id);if(p)download('offline-style.json',JSON.stringify({version:1,presets:[p]},null,2));break;}
  case 'load-preset':{const p=presets().find(p=>p.id===button.dataset.id);if(p){state.editorDraft=p.css;cssEditor();$('#of-css').value=p.css;}break;}
  case 'delete-preset':{const p=presets().find(p=>p.id===button.dataset.id);panel('删除预设',`<p>确定删除「${escape(p?.name)}」？</p><div class="of-row"><button data-action="confirm-delete-preset" data-id="${escape(button.dataset.id)}" class="of-primary">删除</button><button data-action="style">取消</button></div>`);break;}
- case 'confirm-delete-preset':{const previous=presets();await persistChange(()=>{db.offlineStylePresets=previous.filter(p=>p.id!==button.dataset.id);},()=>{db.offlineStylePresets=previous;});}appearance();break;
+ case 'confirm-delete-preset':{const previous=presets();await persistGlobalChange(()=>{db.offlineStylePresets=previous.filter(p=>p.id!==button.dataset.id);},()=>{db.offlineStylePresets=previous;});}appearance();break;
  case 'unbind-books':$('#of-inherit-books').checked=false;all('.of-worldbook').forEach(el=>{el.disabled=false;el.checked=false;});break;
  case 'save-setup':await saveSetup();break;
  case 'status-preset':state.statusPresetDraft=button.dataset.id;renderStatusChoices();break;
@@ -745,5 +782,5 @@ function syncEntry() {
 }
 document.addEventListener('keydown',event=>{if(event.target.id==='offline-chat-menu-btn'&&['Enter',' '].includes(event.key)){event.preventDefault();open().catch(fail);}});
 document.addEventListener('click',event=>{if(event.target.closest?.('#offline-chat-menu-btn')){event.preventDefault();open().catch(fail);}});
-window.KissOffline={open,refresh,syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter,statusFormat,extractStatus,statusChoices,sendFromStatus,displayStatus,extractImagePrompt,workshopConfig,saveImagePrompt,generateFloorImage,floorImageHtml,richNarrativeHTML,queueUserMessage,saveOfflineChat};
+window.KissOffline={open,refresh,flushPending:chat=>state.sendQueue?.flush(chat),syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter,statusFormat,extractStatus,statusChoices,sendFromStatus,displayStatus,extractImagePrompt,workshopConfig,saveImagePrompt,generateFloorImage,floorImageHtml,richNarrativeHTML,queueUserMessage,saveOfflineChat};
 })();

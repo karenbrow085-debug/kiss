@@ -110,6 +110,8 @@ function renderStorageUI() {
     if (!totalEl || !barChart || !legendContainer || !backupOptions) return;
 
     totalEl.textContent = formatBytes(currentStorageSizes.total);
+    const caption=document.querySelector('.storage-total-label');if(caption)caption.textContent='分类内容估算 · 未压缩';
+    if(!document.getElementById('storage-size-explanation')){const note=document.createElement('p');note.id='storage-size-explanation';note.style.cssText='font-size:12px;line-height:1.7;color:#85858b;margin:16px 0 0';note.textContent='此处估算未压缩的数据内容，并非浏览器实际占用。基础设置含预设、状态栏和其他设置；下载备份会进行 gzip 压缩，文件大小通常更小。';legendContainer.after(note);}
 
     // Render Bar Chart
     barChart.innerHTML = '';
@@ -352,7 +354,9 @@ async function handleExport() {
                 'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stPresetUnlocked', 'stickerMatchSettings',
                     'homePresets', 'activeHomePresetId', 'homePresetUndo'
             ];
-            settingsKeys.forEach(key => {
+            const separate=new Set(['characters','groups','worldBooks','myStickers','myPersonaPresets','homeSignature','activePersonaId','wallpaper','bubbleCssPresets','globalCss','globalCssPresets','moreProfileCardBg','themeSettings','themePresets','fontUrl','fontPresets','appData']);
+            settingsKeys.push(...globalSettingKeys.filter(key=>!separate.has(key)));
+            [...new Set(settingsKeys)].forEach(key => {
                 exportData.modules[key] = db[key];
             });
         }
@@ -360,32 +364,10 @@ async function handleExport() {
         const chosen=new Set(Object.entries(selectedModules).filter(([,v])=>v).map(([k])=>k));
         if(Object.keys(window.KissAppData.groups).some(k=>chosen.has(k)))exportData.modules.appData=window.KissAppData.select(await window.KissAppData.snapshot(),chosen);
         const compressedBlob = await PhoneBackup.exportBlob(exportData.modules);
-        const dataBlob = compressedBlob;
-        try {
-            const url = URL.createObjectURL(compressedBlob);
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", url);
-            downloadAnchorNode.setAttribute("download", `UwU_Backup_${new Date().toISOString().slice(0,10)}.ee`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            URL.revokeObjectURL(url);
-            
-            showToast('导出成功');
-        } catch (compressError) {
-            console.warn('压缩导出失败，尝试降级为未压缩导出:', compressError);
-            // 降级为未压缩的 JSON 导出
-            const url = URL.createObjectURL(dataBlob);
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", url);
-            downloadAnchorNode.setAttribute("download", `UwU_Backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            URL.revokeObjectURL(url);
-            
-            showToast('导出成功 (未压缩)');
-        }
+        const signature=new Uint8Array(await compressedBlob.slice(0,2).arrayBuffer());
+        const gzip=signature[0]===31&&signature[1]===139;
+        PhoneBackup.download(compressedBlob,`KISS_Backup_${new Date().toISOString().slice(0,10)}.${gzip?'ee':'json'}`);
+        showToast(gzip?'导出成功':'导出成功（未压缩）');
     } catch (error) {
         console.error('导出失败:', error);
         showToast('导出失败，请重试');
@@ -410,3 +392,4 @@ async function handleImport(event) {
     }catch(e){showToast('导入失败：'+e.message);}
     finally{input.value='';label?.classList.remove('disabled');if(text)text.textContent='导入选中数据';}
 }
+

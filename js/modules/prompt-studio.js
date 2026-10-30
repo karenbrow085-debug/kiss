@@ -34,7 +34,7 @@ async function commit(change) {
     try { await saveData(); }
     catch (error) { db.tavernPresets=before.presets; db.tavernSettings=before.settings; throw error; }
     finally { busy=false; }
-    render();
+    global.dispatchEvent?.(new CustomEvent('kiss-tavern-presets-changed'));render();
 }
 function editRecord(id, change) { return commit(s=>{ const p=s.presets.find(x=>x.id===id); if(!p) throw Error('该预设已被删除'); change(p,s); }); }
 function action(parent, label, fn, className='pt-link') {

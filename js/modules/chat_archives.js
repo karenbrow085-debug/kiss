@@ -10,10 +10,12 @@ async function withChatArchiveOperation(action) {
     if(chatArchiveOperationBusy)return showToast('存档正在处理，请稍候');
     if(typeof isGenerating!=='undefined'&&isGenerating)return showToast('请等待回复生成结束后再操作存档');
     const chat=getCurrentChatEntity();if(!chat)return;
+    if(PhoneBackup.isPinned(chat))return showToast('聊天正在保存或更新，请稍后操作存档');
     chatArchiveOperationBusy=true;chatArchiveOperationSaved=false;
     const release=PhoneBackup.pinChat(chat),startArchive=chat.activeArchiveId;
     let before;
     try{
+        await window.KissOffline?.flushPending?.(chat);
         await PhoneBackup.waitForWrites();
         await PhoneBackup.hydrateChat(chat);
         if(getCurrentChatEntity()!==chat||chat.activeArchiveId!==startArchive)throw Error('聊天或存档已切换，请重新操作');
@@ -508,3 +510,4 @@ function setupChatArchiveSystem() {
         if (button.dataset.action === 'delete') deleteChatArchive(archiveId);
     });
 }
+

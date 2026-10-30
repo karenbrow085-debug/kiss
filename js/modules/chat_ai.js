@@ -754,6 +754,8 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
 }
 
 async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChatType, isBackground = false, generation = null) {
+    const previousMessageIds=new Set((chat.history||[]).map(m=>m.id));
+
     if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
     generation?.check();
     const rawResponse = fullResponse;
@@ -1167,7 +1169,8 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                     message.isWithdrawn = true;
                     message.content = `[${characterName}撤回了一条消息：${originalContent}]`;
                     
-                    await saveData();
+                    for(const m of chat.history||[])if(!previousMessageIds.has(m.id))await window.PhoneBackup?.stageMessage?.(chat,m);
+        await saveData();
                     generation?.check();
                     
                     if ((targetChatType === 'private' && currentChatId === chat.id) || 
@@ -1336,6 +1339,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         }
 
         generation?.check();
+        for(const m of chat.history||[])if(!previousMessageIds.has(m.id))await window.PhoneBackup?.stageMessage?.(chat,m);
         await saveData();
         generation?.check();
         renderChatList();
@@ -1366,22 +1370,8 @@ async function handleRegenerate() {
         return;
     }
 
-    const originalLength = chat.history.length;
-    chat.history.splice(lastUserMessageIndex + 1);
-
-    if (chat.history.length === originalLength) {
-        showToast('未找到AI的回复，无法重新生成。');
-        return;
-    }
-    
-    if (currentChatType === 'private') {
-        recalculateChatStatus(chat);
-    }
-
-    await saveData();
-    
-    currentPage = 1; 
-    renderMessages(false, true); 
-
-    await getAiReply(currentChatId, currentChatType, false, 'regenerate');
+    const originalTail=chat.history.slice(lastUserMessageIndex+1),archiveId=chat.activeArchiveId,chatId=currentChatId,chatType=currentChatType;
+    chat.history.splice(lastUserMessageIndex+1);
+    try{await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatType==='private')recalculateChatStatus(chat);currentPage=1;renderMessages(false,true);await getAiReply(chatId,chatType,false,'regenerate');}
+    finally{const replied=chat.history.slice(lastUserMessageIndex+1).some(m=>m.role==='assistant'&&!m.isThinking);if(chat.activeArchiveId===archiveId&&!replied){const ids=new Set(chat.history.map(m=>m.id));chat.history.push(...originalTail.filter(m=>m.id==null?!chat.history.includes(m):!ids.has(m.id)));await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatId===currentChatId&&chatType===currentChatType)renderMessages(false,true);}}
 }

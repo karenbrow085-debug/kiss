@@ -240,10 +240,11 @@ const chatRoomHtml = `
         <div id="music-screen" class="screen"></div>
 
         
-        <div id="multi-select-bar"><span id="select-count">已选择 0 项</span>
-            <button class="btn btn-danger" id="delete-selected-btn" style="width: auto; padding: 8px 16px;">删除
-            </button>
-            <button class="btn kc-collect-selected" id="collect-selected-btn" type="button" disabled>收藏</button>
+        <div id="multi-select-bar"><span id="select-count" role="status" aria-live="polite">已选择 0 项</span>
+            <div class="kc-multi-actions">
+                <button class="btn kc-collect-selected" id="collect-selected-btn" type="button" disabled>收藏</button>
+                <button class="btn kc-delete-selected" id="delete-selected-btn" type="button" disabled>删除</button>
+            </div>
         </div>
         <div id="capture-mode-bar">
             <span id="capture-select-count">已选择 0 项</span>
@@ -257,3 +258,4 @@ function injectChatRoomHtml() {
         container.innerHTML = chatRoomHtml;
     }
 }
+
