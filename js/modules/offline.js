@@ -58,11 +58,31 @@ function narrativeHtml(text) {
  };
  return String(text??'').split(/\n{2,}/).map(p=>'<p>'+inline(p)+'</p>').join('');
 }
-// HTML stays folded in the transcript; its CSS/scripts never enter the chat DOM.
-function richNarrativeHTML(text,id){
- if(!window.KissOfflineHTML)return narrativeHtml(text);
- if(window.KissOfflineRich)return window.KissOfflineRich.render(text,{escape,paragraph:narrativeHtml,partition:window.KissOfflineHTML.partition,html:(raw,index)=>`<button class="of-html-fold" data-action="html-preview" data-id="${escape(id)}" data-block="${index}"><span><strong>HTML preview</strong><small>${escape(window.KissOfflineHTML.title(raw))}</small></span><span>Open</span></button>`});
- let index=0;return window.KissOfflineHTML.partition(text).map(part=>part.type==='text'?narrativeHtml(part.text.trim()):`<button class="of-html-fold" data-action="html-preview" data-id="${escape(id)}" data-block="${index++}" aria-haspopup="dialog"><span class="of-html-symbol" aria-hidden="true">✧</span><span><strong>HTML preview</strong><small>${window.KissOfflineHTML.title(part.text)==='HTML preview'?'':escape(window.KissOfflineHTML.title(part.text))}</small></span><span class="of-html-open">Open</span></button>`).join('');
+// Imported cards stay isolated from app styles and storage, even when displayed inline.
+function narrativeLayout(text,id){
+ if(window.KissOfflineRich&&window.KissOfflineHTML)return window.KissOfflineRich.layout(text,{id,escape,paragraph:narrativeHtml,partition:window.KissOfflineHTML.partition});
+ return {html:narrativeHtml(text),frames:[],groups:[]};
+}
+function richNarrativeHTML(text,id){return narrativeLayout(text,id).html;}
+const inlineFrames=new Map();
+function clearInlineFrames(){for(const cleanup of inlineFrames.values())cleanup();inlineFrames.clear();}
+function mountNarrativeFrames(item,layout){
+ for(const detail of item.querySelectorAll('details[data-section-key]'))if(state.sectionOpen?.has(detail.dataset.sectionKey))detail.open=true;
+ Promise.resolve().then(()=>{if(!item.isConnected)return;
+  for(const box of item.querySelectorAll('[data-inline-html]')){const data=layout.frames[Number(box.dataset.inlineHtml)],frame=box.querySelector('iframe');if(!data||!frame)continue;
+   let mounted=false;const start=()=>{if(mounted||!frame.isConnected)return;const folded=frame.closest('details:not([open])');if(folded)return;mounted=true;frame.style.height='160px';const cleanup=window.KissOfflineHTML.mount(frame,data.text,size=>{if(frame.isConnected)frame.style.height=Math.min(1800,Math.max(80,size.height))+'px';});inlineFrames.set(frame,()=>{cleanup();ancestors.forEach(d=>d.removeEventListener('toggle',start));});};
+   const ancestors=[];for(let parent=frame.parentElement;parent&&parent!==item;parent=parent.parentElement)if(parent.tagName==='DETAILS')ancestors.push(parent);ancestors.forEach(d=>d.addEventListener('toggle',start));start();if(!mounted)inlineFrames.set(frame,()=>ancestors.forEach(d=>d.removeEventListener('toggle',start)));
+  }
+ });
+}
+function openPlotOptions(id,group){
+ const chat=character(),message=chat.history.find(m=>m.id===id);if(!message)throw Error('这条消息已不存在');
+ const layout=narrativeLayout(displayNarrative(chat,message,displayStatus(message,chat).text),id),options=layout.groups[group]?.choices;if(!options?.length)throw Error('未找到剧情选项，请刷新后重试');
+ state.plotChoices=options;panel('剧情选项',`<div class="of-plot-intro"><small>NEXT SCENE</small><p>选择接下来的走向</p></div><div class="of-plot-list">${options.map((option,index)=>`<button class="of-plot-choice" data-action="choose-plot-option" data-index="${index}"><span class="of-plot-index">${String(index+1).padStart(2,'0')}</span><span>${escape(option.label)}</span><span class="of-plot-add">＋</span></button>`).join('')}</div><p class="of-plot-note">选中后填入输入栏，可编辑后再发送。</p>`);$('.of-panel').dataset.kind='choices';
+}
+function choosePlotOption(index){
+ const option=state.plotChoices?.[index];if(!option)throw Error('选项已失效，请重新打开');if(state.view!=='chat'||!config(character()).active)throw Error('请回到当前线下聊天后选择');
+ const input=$('.of-composer textarea');input.value=(input.value.trimEnd()?input.value.trimEnd()+'\n':'')+option.text;config(character()).composerDraft=input.value;closePanel();sizeInputSoon(input);input.focus();clearTimeout(state.draftTimer);const chat=character();state.draftTimer=setTimeout(()=>saveOfflineChat(chat).catch(fail),1200);
 }
 const displayRegexCache=new WeakMap();
 function displayNarrative(chat,m,text){
@@ -103,14 +123,14 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});if(/Android/i.test(globalThis.navigator?.userAgent||''))host.dataset.platform='android';
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261030-compat-3"><style id="of-custom-style"></style>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261030-sections-4"><style id="of-custom-style"></style>
  <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><button class="of-header-profile" data-action="status-view" aria-label="View status"><img class="of-header-avatar" alt=""><i></i></button><button class="of-title" data-action="menu"><span class="of-title-copy" style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><strong></strong><span class="of-presence" style="position:static;inset:auto;background:none;padding:0" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main>
  <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Generate reply">${icon('send')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261030-compat-3';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261030-sections-4';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  if(typeof ResizeObserver!=='undefined')new ResizeObserver(entries=>{const size=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height;if(size)$('.of-page').style.setProperty('--of-composer-height',size+'px');}).observe($('.of-composer'));
  state.root.addEventListener('click',onClick);
  installGestures();
@@ -174,6 +194,7 @@ function render(force) {
  const messages=readOnly?sessionRows(chat,archive):displayRows(chat),shown=messages.slice(-state.limit);
  if(state.selecting){const available=new Set(messages.map(m=>m.id));for(const id of state.selected)if(!available.has(id))state.selected.delete(id);$('#of-selection-count').textContent=state.selected.size+' selected';}
  const opened=[...area.querySelectorAll('details[data-thinking-id][open]')].map(el=>el.dataset.thinkingId);state.thinkingOpen=new Set(opened);
+ state.sectionOpen=new Set([...area.querySelectorAll('details[data-section-key][open]')].map(el=>el.dataset.sectionKey));clearInlineFrames();
  area.replaceChildren();
  if(messages.length>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';area.append(more);}
  if(!messages.length){const empty=document.createElement('div');empty.className='of-empty';empty.textContent='A moment, just for you two.';area.append(empty);}
@@ -197,7 +218,7 @@ function messageElement(chat,m,readOnly=false){
   setAvatar(item.querySelector('img'),user?chat.myAvatar:chat.avatar);
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
   item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
-  const shownStatus=displayStatus(m,chat);item.querySelector('.of-prose').innerHTML=richNarrativeHTML(displayNarrative(chat,m,shownStatus.text),m.id);
+  const shownStatus=displayStatus(m,chat),layout=narrativeLayout(displayNarrative(chat,m,shownStatus.text),m.id);item.querySelector('.of-prose').innerHTML=layout.html;mountNarrativeFrames(item,layout);
   if(m.offlineReasoning&&(m.offlineGenerationSource==='tavern'||config(chat).draft.debugMode)){const thought=document.createElement('details');thought.className='of-reasoning';thought.dataset.thinkingId=m.id;thought.open=state.thinkingOpen?.has(m.id)||false;const heading=document.createElement('summary');heading.textContent=m.offlinePending?'思考中…':'思考过程';const content=document.createElement('div');content.className='of-reasoning-text';content.textContent=m.offlineReasoning;thought.append(heading,content);item.querySelector('.of-prose').before(thought);}
   const imageMarkup=floorImageHtml(m,readOnly);if(imageMarkup)item.querySelector('.of-message-content').insertAdjacentHTML('beforeend',imageMarkup);
   item.querySelector('.of-meta').textContent=m.offlinePending?'生成中…':[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${m.offlineFloor}`].filter(Boolean).join(' · ');
@@ -280,7 +301,7 @@ async function deleteFloors(chat,ids) {
 
 function updateView() {
  const archives=state.view==='archives';$('.of-page').hidden=archives;$('.of-archive-page').hidden=!archives;
- if(archives){$('#of-custom-style').textContent='';renderArchives();return;}
+ if(archives){clearInlineFrames();$('#of-custom-style').textContent='';renderArchives();return;}
  const readOnly=state.view==='archive';$('.of-composer').hidden=readOnly||state.selecting;$('.of-presence').hidden=readOnly;
  for(const action of ['style','memory','setup'])$(`.of-header [data-action="${action}"]`).hidden=readOnly;
  $('.of-selection-bar').hidden=!state.selecting||readOnly;
@@ -703,6 +724,8 @@ async function onClick(event) {
  case 'status-preset':state.statusPresetDraft=button.dataset.id;renderStatusChoices();break;
  case 'status-view':viewStatus();break;
  case 'retry-send':await deliveryQueue().flush(chat);break;
+ case 'plot-options':openPlotOptions(button.dataset.id,Number(button.dataset.group));break;
+ case 'choose-plot-option':choosePlotOption(Number(button.dataset.index));break;
  case 'html-preview':openHTML(button.dataset.id,Number(button.dataset.block));break;
  case 'floor-image':imageDialog(button.dataset.id);break;
  case 'view-floor-image':viewFloorImage(button.dataset.id);break;

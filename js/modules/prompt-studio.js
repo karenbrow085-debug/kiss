@@ -7,6 +7,7 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const uid = () => 'kiss_' + (global.crypto?.randomUUID?.() || Date.now() + '_' + Math.random().toString(36).slice(2));
 const text = (tag, content, className) => { const el = document.createElement(tag); el.textContent = content; if (className) el.className = className; return el; };
 const toast = message => typeof showToast === 'function' ? showToast(message) : console.info(message);
+let presetPane='items';
 let view = 'chat', busy = false, cotSort = null, tavernSort = null, search = '', itemSearch = '', openDialog = null;
 function state() {
     if (!Array.isArray(db.tavernPresets)) db.tavernPresets = [];
@@ -161,7 +162,10 @@ function render() {
     wrap.appendChild(select);body.appendChild(wrap);
     const p=active();if(!p)return;
     if(search&&!filtered.some(item=>item.id===p.id)){body.appendChild(text('div','请选择匹配的预设；当前预设未切换。','pt-empty'));return;}
-    const tools=text('div','','pt-preset-tools');action(tools,'参数设置',()=>parameters(p.id));action(tools,'预设信息',()=>showReport(p.id));body.appendChild(tools);renderRegex(p,body);
+    const tools=text('div','','pt-preset-tools');action(tools,'参数设置',()=>parameters(p.id));action(tools,'预设信息',()=>showReport(p.id));body.appendChild(tools);
+    const tabs=text('div','','pt-library-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','预设内容');
+    for(const [key,label] of [['items','预设条目'],['regex','正则']]){const b=action(tabs,label,()=>{presetPane=key;render();},presetPane===key?'selected':'');b.setAttribute('role','tab');b.setAttribute('aria-selected',String(presetPane===key));}body.appendChild(tabs);
+    if(presetPane==='regex'){renderRegex(p,body);return;}
     if(p.format!=='chat-completion'){body.appendChild(text('div','此格式仅管理、保存和导出参数；不作为聊天补全模板执行。','pt-warning'));return;}
     const head=text('div','','pt-section-head');const entries=E.orderedPrompts(p,group(p));head.appendChild(text('h2','条目序列'));action(head,'＋ 添加',()=>editItem(p.id));body.appendChild(head);
     const searchRow=text('div','','pt-search');const input=document.createElement('input');input.type='search';input.placeholder='搜索条目';input.setAttribute('aria-label','搜索条目');input.value=itemSearch;input.addEventListener('input',()=>{itemSearch=input.value;renderItems(p,list);});searchRow.appendChild(input);body.appendChild(searchRow);
