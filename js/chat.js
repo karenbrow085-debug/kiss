@@ -395,11 +395,13 @@ function setupChatRoom() {
     document.getElementById('cancel-reply-btn').addEventListener('click', cancelQuoteReply);
 }
 
-async function openChatRoom(chatId, type) {
+async function openChatRoom(chatId, type, navigationGuard = null) {
     const chat = (type === 'private') ? db.characters.find(c => c.id === chatId) : db.groups.find(g => g.id === chatId);
-    if (!chat) return;
+    if (!chat) return false;
+    if(navigationGuard&&!navigationGuard())return false;
     await PhoneBackup.evictOthers(chat);
     await PhoneBackup.hydrateChat(chat);
+    if(navigationGuard){if(!navigationGuard())return false;currentChatId=chatId;currentChatType=type;}
 
     // 迁移旧的私聊数据 (仅群聊)
     if (type === 'group' && chat.privateSessions && typeof migratePrivateSessionsToHistory === 'function') {
@@ -428,6 +430,7 @@ async function openChatRoom(chatId, type) {
     isGenerating = false;
     getReplyBtn.disabled = false;
     currentPage = 1;
+    window.kissHistoryFocus = null;
     chatRoomScreen.className = chatRoomScreen.className.replace(/\bchat-active-[^ ]+\b/g, '');
     chatRoomScreen.classList.add(`chat-active-${chatId}`);
     
@@ -510,6 +513,7 @@ async function openChatRoom(chatId, type) {
     requestAnimationFrame(() => {
         void document.body.offsetHeight; 
     });
+    return true;
 }
 
 let chatSendStaging=false;const pendingOnlineSends=new WeakMap();
