@@ -10,6 +10,7 @@ const H = '__phoneHistory', A = '__phoneArchive', PART = '__phonePart';
 const assetRE = /data:[^,\s"'<>]{1,160};base64,[A-Za-z0-9+/=]+/g;
 const tokenRE = /phone-asset:[a-f0-9-]+/g;
 const mimeByURL=new Map();
+const pins = new WeakMap(), accessEpoch = new WeakMap();
 const cold = new WeakMap(), urls = new Map(), reverse = new Map(), pending = new WeakMap();
 let busy = false, serial = Promise.resolve(), queuedSave = null;
 const knownAssets=new Set();
@@ -97,7 +98,10 @@ async function normalizeChat(chat) {
    }else if(JSON.stringify(data[k])!==JSON.stringify(chat[k]))same=false;
    if(!same)break;
   }
-  if(active.dataStoredOnChat===true||same){active.data={};active.dataStoredOnChat=true;}
+  if(active.dataStoredOnChat===true||same){
+   if(!same){const kept={...active,id:'archive_'+uid(),name:(active.name||'存档')+'（保留快照）',data:active.data};delete kept.dataStoredOnChat;chat.archives.push(kept);}
+   active.data={};active.dataStoredOnChat=true;
+  }
   else if(Array.isArray(chat.history)||chat.history?.[H]){
    const id='archive_'+uid();chat.archives.push({id,name:'当前聊天',createdAt:Date.now(),updatedAt:Date.now(),data:{},dataStoredOnChat:true});chat.activeArchiveId=id;
   }else {Object.assign(chat,data);active.data={};active.dataStoredOnChat=true;}
@@ -124,22 +128,42 @@ async function compact(value,key='') {
  }
  return out;
 }
+function pinChat(chat) {
+ if(!chat)return ()=>{};
+ pins.set(chat,(pins.get(chat)||0)+1);accessEpoch.set(chat,(accessEpoch.get(chat)||0)+1);
+ let released=false;return ()=>{if(released)return;released=true;const n=(pins.get(chat)||1)-1;if(n)pins.set(chat,n);else pins.delete(chat);};
+}
+function historyCount(chat) {
+ const state=cold.get(chat);
+ if(state&&chat.history===state.preview)return Math.max(0,(Number(state.ref.count)||0)+chat.history.length-state.length);
+ return chat?.history?.[H]?Number(chat.history.count)||0:Array.isArray(chat?.history)?chat.history.length:0;
+}
+async function readChatHistory(chat) {
+ if(!chat)return [];
+ const state=cold.get(chat),history=chat.history;
+ if(!state)return Array.isArray(history)?history.slice():unpackHistory(history,true);
+ if(history!==state.preview)throw Error('聊天仍处于预览状态，完整记录尚未加载；已阻止用预览覆盖原记录');
+ const preview=clone(history),changed=JSON.stringify(preview)!==state.signature;
+ const full=await unpackHistory(state.ref,true);
+ return changed?full.slice(0,Math.max(0,full.length-state.length)).concat(await transform(preview,true)):full;
+}
 async function diskChat(chat) {
- const state=cold.get(chat),out={};
- for(const k of Object.keys(chat)){
+ const state=cold.get(chat),preview=state&&chat.history===state.preview;
+ if(state&&!preview&&chat.history!==undefined)throw Error('完整聊天尚未加载，已阻止覆盖；请重新打开聊天');
+ // Freeze one record before the first await so an archive switch cannot mix two branches.
+ const snapshot=clone(chat),out={};
+ for(const k of Object.keys(snapshot)){
   if(k===H)continue;
   if(k==='history'){
-   if(state&&chat.history===state.preview){
-    // Untouched previews keep every older message on disk. Direct recent edits/appends
-    // are merged with the prefix instead of silently truncating a cold conversation.
-    if(JSON.stringify(chat.history)===state.signature)out.history=state.ref;
-    else {const full=await unpackHistory(state.ref,false);out.history=await packHistory(full.slice(0,Math.max(0,full.length-state.length)).concat(await transform(chat.history)));}
-   }else out.history=await packHistory(chat.history||[]);
-  }else if(k==='archives'&&Array.isArray(chat.archives)){
-   out.archives=[];for(const a of chat.archives){const copy={...a};if(copy.dataStoredOnChat)copy.data={};else copy.data=await packArchiveData(copy.data||{});out.archives.push(await transform(copy));}
-  }else out[k]=await compact(chat[k],k);
+   if(state){
+    if(JSON.stringify(snapshot.history)===state.signature)out.history=state.ref;
+    else {const full=await unpackHistory(state.ref,false);out.history=await packHistory(full.slice(0,Math.max(0,full.length-state.length)).concat(await transform(snapshot.history)));}
+   }else out.history=await packHistory(snapshot.history||[]);
+  }else if(k==='archives'&&Array.isArray(snapshot.archives)){
+   out.archives=[];for(const a of snapshot.archives){const copy={...a};if(copy.dataStoredOnChat&& !Object.keys(copy.data||{}).length)copy.data={};else copy.data=await packArchiveData(copy.data||{});out.archives.push(await transform(copy));}
+  }else out[k]=await compact(snapshot[k],k);
  }
- if(chat.history===undefined&&state)out.history=state.ref;
+ if(snapshot.history===undefined&&state)out.history=state.ref;
  return normalizeChat(out);
 }
 async function runtimeChat(row) {
@@ -152,25 +176,60 @@ async function runtimeChat(row) {
 }
 async function hydrateChat(chat) {
  if(!chat)return;
+ accessEpoch.set(chat,(accessEpoch.get(chat)||0)+1);
  if(pending.has(chat))return pending.get(chat);
  const state=cold.get(chat);if(!state)return;
  const job=(async()=>{
+  const branch=chat.activeArchiveId;
   let history=await unpackHistory(state.ref,true);
-  if(chat.history!==state.preview)history=await transform(chat.history||[],true);
-  else if(JSON.stringify(chat.history)!==state.signature)history=history.slice(0,Math.max(0,history.length-state.length)).concat(await transform(chat.history,true));
-  chat.history=history;cold.delete(chat);
+  if(cold.get(chat)!==state||chat.activeArchiveId!==branch)throw Error('聊天分支已变化，请重新打开当前聊天');
+  if(chat.history!==state.preview)throw Error('聊天预览已被替换，原记录未覆盖，请重新打开');
+  if(JSON.stringify(chat.history)!==state.signature)history=history.slice(0,Math.max(0,history.length-state.length)).concat(await transform(clone(chat.history),true));
+  if(cold.get(chat)!==state||chat.activeArchiveId!==branch||chat.history!==state.preview)throw Error('聊天分支已变化，原记录未覆盖');
+  chat.history=history;
+  cold.delete(chat);
  })();pending.set(chat,job);try{await job;}finally{pending.delete(chat);}
 }
-async function hydrateArchive(archive) { if(archive?.data?.[A]){const data=await get(archive.data[A]);archive.data=await transform({...data,history:await unpackHistory(data.history,true)},true);} }
-async function evictOthers(keep) {
- if(global.isGenerating)return;
- for(const chat of [...(db.characters||[]),...(db.groups||[])]){
-  if(chat===keep||cold.has(chat)||!Array.isArray(chat.history))continue;
-  const row=await diskChat(chat);await dexieDB[db.characters.includes(chat)?'characters':'groups'].put(row);
-  const ref=row.history;if(!ref?.[H])continue;
-  chat.history=clone(ref.tail);cold.set(chat,{ref,preview:chat.history,length:chat.history.length,signature:JSON.stringify(chat.history)});
-  for(const a of chat.archives||[])if(!a.dataStoredOnChat&&a.data&&!a.data[A])a.data=await packArchiveData(a.data);
- }
+async function hydrateArchive(archive) { if(archive?.data?.[A]){const ref=archive.data;const data=await get(ref[A]);const full=await transform({...data,history:await unpackHistory(data.history,true)},true);if(archive.data===ref)archive.data=full;} }
+function isActiveChat(chat) {
+ return typeof currentChatId!=='undefined'&&currentChatId===chat.id;
+}
+function generationInProgress(){return typeof isGenerating!=='undefined'?!!isGenerating:!!global.isGenerating;}
+function evictOthers(keep) {
+ const run=async()=>{
+  if(generationInProgress())return;
+  for(const chat of [...(db.characters||[]),...(db.groups||[])]){
+   if(chat===keep||isActiveChat(chat)||pins.has(chat)||pending.has(chat)||cold.has(chat)||!Array.isArray(chat.history))continue;
+   const history=chat.history,length=history.length,last=history.at(-1),branch=chat.activeArchiveId,epoch=accessEpoch.get(chat)||0;
+   const unchanged=()=>!generationInProgress()&&!isActiveChat(chat)&&!pins.has(chat)&&!pending.has(chat)&&!cold.has(chat)&&chat.history===history&&history.length===length&&history.at(-1)===last&&chat.activeArchiveId===branch&&(accessEpoch.get(chat)||0)===epoch;
+   const row=await diskChat(chat);if(!unchanged())continue;
+   await dexieDB[db.characters.includes(chat)?'characters':'groups'].put(row);
+   if(!unchanged())continue;
+   const ref=row.history;if(!ref?.[H])continue;
+   chat.history=clone(ref.tail);cold.set(chat,{ref,preview:chat.history,length:chat.history.length,signature:JSON.stringify(chat.history)});
+   for(const a of chat.archives||[]){const packed=row.archives?.find(item=>item.id===a.id);if(!a.dataStoredOnChat&&packed?.data?.[A])a.data=packed.data;}
+  }
+ };
+ const job=serial.then(run);serial=job.catch(()=>{});return job;
+}
+function waitForWrites(){return serial;}
+async function inspectChat(chat) {
+ const key=(db.characters||[]).includes(chat)?'characters':'groups';
+ const row=await dexieDB[key].get(chat.id);
+ const report={chatId:chat.id,activeArchiveId:chat.activeArchiveId,memoryPreviewCount:Array.isArray(chat.history)?chat.history.length:0,currentMessageCount:historyCount(chat),cold:cold.has(chat),persistedMessageCount:row?.history?.count??row?.history?.length??0,archives:[]};
+ for(const a of chat.archives||[]){const data=a.dataStoredOnChat===true&&a.id===chat.activeArchiveId?chat:a.data;report.archives.push({id:a.id,name:a.name,current:a.id===chat.activeArchiveId,messageCount:data===chat?historyCount(chat):data?.messageCount??data?.history?.count??data?.history?.length??0,journalCount:data?.journalCount??data?.memoryJournals?.length??0});}
+ return report;
+}
+async function exportChatSafety(chat) {
+ const key=(db.characters||[]).includes(chat)?'characters':'groups';
+ const row=await dexieDB[key].get(chat.id);if(!row)throw Error('未找到已保存的聊天，未改动任何数据');
+ // Read the persisted snapshot directly: this export must never save or clean the live DB.
+ const report=await inspectChat(chat),parts=[new Blob(['{"format":"kiss-chat-safety-v1","createdAt":'+Date.now()+',"report":'+JSON.stringify(report)+',"chat":'])];
+ let chunks=[],size=0;
+ for await(const piece of json(row)){chunks.push(piece);size+=piece.length;if(size>=262144){parts.push(new Blob(chunks));chunks=[];size=0;await pause();}}
+ if(chunks.length)parts.push(new Blob(chunks));parts.push(new Blob(['}']));
+ download(new Blob(parts,{type:'application/json'}),'KISS-聊天保护副本-'+Date.now()+'.json');
+ return report;
 }
 // Incremental JSON reader. No whole-file .text(), joined legacy strings, or full-db clone.
 class JSONReader {
@@ -253,6 +312,7 @@ async function readFile(blob) {
   }else {if(await reader.peek())throw Error('JSON 备份后存在多余内容');data=first;}
   if(object(data?.modules))data={...data.modules,_exportVersion:data._exportVersion||data.modules._exportVersion};
   if(!object(data))throw Error('备份根节点格式错误');
+  if(data.format==='kiss-chat-safety-v1')throw Error('这是聊天保护副本，供诊断与定向恢复使用；不能作为完整备份导入覆盖。');
   // Older OVO partial exports group settings/theater fields in containers.
   if(object(data.globalSettings)){Object.assign(data,data.globalSettings);delete data.globalSettings;}
   if(object(data.theaterData)){Object.assign(data,data.theaterData);delete data.theaterData;}
@@ -484,5 +544,5 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);

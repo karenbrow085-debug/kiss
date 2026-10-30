@@ -84,11 +84,13 @@ const SearchSystem = {
     },
 
     closeSearchScreen() {
+        this.requestId=(this.requestId||0)+1;clearTimeout(this.searchTimer);
         switchScreen('more-screen'); // 返回上一个屏幕
     },
 
     // 执行搜索
     async performSearch(keyword) {
+        const requestId=this.requestId=(this.requestId||0)+1;
         const container = document.getElementById('search-results-container');
         if (!keyword) {
             container.innerHTML = '';
@@ -119,8 +121,10 @@ const SearchSystem = {
         
         for (const chat of targets) {
             const source = [...db.characters,...db.groups].find(c => c.id === chat.id);
-            await PhoneBackup.hydrateChat(source);
-            chat.history = source.history;
+            const archiveId=source?.activeArchiveId;
+            chat.history = await PhoneBackup.readChatHistory(source);
+            if(requestId!==this.requestId)return;
+            if(source?.activeArchiveId!==archiveId)continue;
             if (!chat.history || chat.history.length === 0) continue;
 
             // 获取该聊天的清理正则（如果是私聊）
@@ -218,9 +222,10 @@ const SearchSystem = {
                 });
                 totalCount += matches.length;
             }
-            await PhoneBackup.evictOthers(null);
+            // Search uses a read-only snapshot; it must never evict a live chat or write its preview.
         }
 
+        if(requestId!==this.requestId)return;
         // 3. 渲染结果
         if (totalCount === 0) {
             container.innerHTML = `

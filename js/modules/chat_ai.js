@@ -127,8 +127,10 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
 
     const chat = (chatType === 'private') ? db.characters.find(c => c.id === chatId) : db.groups.find(g => g.id === chatId);
     if (!chat) return;
+    if(window.PhoneBackup?.isPinned(chat)){if(!isBackground)showToast('存档正在处理，请稍后生成回复');return;}
     if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
     await PhoneBackup.hydrateChat(chat);
+    if(window.PhoneBackup?.isPinned(chat))return;
 
     let apiConfig = db.apiSettings;
     

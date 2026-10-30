@@ -371,6 +371,7 @@ function deliveryQueue(){
 }
 function paintDelivery(el,m){const value=state.sendQueue?.state(m);el.replaceChildren();el.hidden=!value;if(!value)return;if(value==='failed'){const retry=document.createElement('button');retry.dataset.action='retry-send';retry.textContent='Not saved · Retry';el.append(retry);}else el.textContent='Saving…';}
 function queueUserMessage(chat,text){
+ if(window.PhoneBackup?.isPinned(chat))throw Error('存档正在处理，输入内容已保留');
  if(!text.trim())throw Error('消息不能为空');if(!config(chat).active)throw Error('当前已切回线上，请重新进入线下');
  const queue=deliveryQueue();if(config(chat).floorVersion!==2)ensureFloors(chat);
  const message={id:`msg_offline_${uid()}`,role:'user',content:text.trim(),parts:[{type:'text',text:text.trim()}],timestamp:Date.now(),offlineNarrative:true,offlineTokens:estimate(text.trim()),offlineTokensEstimated:true};
@@ -399,6 +400,7 @@ async function callReply() {
  finally{state.callPending=false;}
 }
 async function request(chat,apiConfig,isBackground=false,replacement=null) {
+ if(window.PhoneBackup?.isPinned(chat))return false;
  apiConfig=resolveOfflineApi(chat,apiConfig);if(!apiConfig.url||!apiConfig.key||!apiConfig.model){showApiError(Error('请配置 API 地址、密钥和模型'));return false;}
  if(state.busy||isGenerating&&!isBackground)return;
  const generation=aiGenerationControl.begin(chat.id,'private',isBackground),start=performance.now();

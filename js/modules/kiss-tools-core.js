@@ -121,13 +121,13 @@ function recordUnits(record,scope,label){
     continue;
    }
    if(key==='archives' && Array.isArray(value)) {value.forEach((a,i)=>{
-    for(const [ak,av] of Object.entries(a)){if(ak==='data' && av && typeof av==='object')fields(av,[...p,i,ak],(path.length ? prefix : label)+' / 存档 '+(a.name||i));else units.push({path:[...p,i,ak],cat:'structure',value:av,label:label+' / 存档结构'});}
+    for(const [ak,av] of Object.entries(a)){if(ak==='data' && av && typeof av==='object')fields(av,[...p,i,ak],(path.length ? prefix : label)+' / 存档 '+(a.name||i)+'（存档 '+(i+1)+'）');else units.push({path:[...p,i,ak],cat:'structure',value:av,label:label+' / 存档结构'});}
    });continue;}
    units.push({path:p,cat:fieldCategory(key,scope),value,label:prefix+' / '+key});
   }
  }
  const active=record.archives?.find(a=>a.id===record.activeArchiveId && a.dataStoredOnChat===true);
- fields(record,[],active ? label+' / 存档 '+active.name+'（当前）' : label);return units;
+ fields(record,[],active ? label+' / 存档 '+active.name+'（存档 '+(record.archives.indexOf(active)+1)+'，当前）' : label);return units;
 }
 function cleanRecord(record,units,selected){
  const copy=structuredClone(record),deletions=[];
