@@ -45,11 +45,11 @@
             });
     }
 
-    function selected() {
+    function selected(chat) {
         const database = env.getDb();
         const setting = database.tavernSettings || {};
-        const preset = (database.tavernPresets || []).find(item => item.id === setting.activePresetId);
-        if (!preset) throw Error('请先在酒馆预设页选择一份预设，或关闭“仅用于线下回复”。');
+        const preset = (database.tavernPresets || []).find(item => item.id === (chat?.offline?.draft?.tavernPresetId || setting.activePresetId));
+        if (!preset) throw Error('请在线下设置选择一份预设；当前选择的酒馆预设不存在。');
         if (preset.format !== 'chat-completion') throw Error('这份是文本补全采样器预设，不能直接用于 404 的聊天补全 API；可保留、编辑和导出。');
         return { preset, setting, database };
     }
@@ -150,11 +150,12 @@
     }
 
     function prepare({ chat, chatType = 'private', body, provider, trigger = 'normal', history, isBackground = false, offline = false }) {
-        if (!isEnabled(chatType, offline)) return { active: false };
+        const source=chat?.offline?.draft?.generationSource;
+        if (!(offline === true && chatType === 'private' && (source ? source === 'tavern' : isEnabled(chatType, offline)))) return { active: false };
         if (!chat || !body) throw Error('缺少酒馆预设请求上下文。');
         const engine = env.getEngine();
         if (!engine?.assemble) throw Error('酒馆预设模块未加载，请上传完整更新包后刷新。');
-        const { preset, setting, database } = selected();
+        const { preset, setting, database } = selected(chat);
         let transcript = normalizeHistory(history || body.messages?.filter(message => message.role !== 'system') || []);
         if (isBackground) transcript.push({ role: 'user', content: `现在可以由${chat.realName || chat.remarkName || '角色'}主动延续对话。` });
         const warnings = [];
@@ -206,7 +207,7 @@
         const stream = applyParameters(body, provider, assembled.parameters, warnings);
         api.lastReport = { presetId: preset.id, warnings: [...new Set(warnings)], trigger, time: Date.now() };
         for (const warning of api.lastReport.warnings) if (!warningsShown.has(warning)) { warningsShown.add(warning); env.report?.(warning); }
-        return { active: true, stream, warnings: api.lastReport.warnings, parameters: copy(assembled.parameters || {}) };
+        return { active: true, presetId: preset.id, stream, warnings: api.lastReport.warnings, parameters: copy(assembled.parameters || {}) };
     }
     return api;
 });

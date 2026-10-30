@@ -385,8 +385,8 @@ function archiveUiIcon(name) {
         close: '<path d="m6 6 12 12M18 6 6 18"/>',
         plus: '<path d="M12 5v14M5 12h14"/>',
         clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-        check: '<path d="M13 3H5v18h10M13 3v6h6l-6-6ZM11 16l3 3 6-6"/>',
-        export: '<path d="M8 8H5v13h14V8h-3M12 15V3m-4 4 4-4 4 4"/>'
+        check: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5l1.7 1.7 3.3-3.4"/>',
+        export: '<path d="M7 3h7l4 4v6M14 3v5h4M7 3H5v18h6M16 14v7m-3-3 3 3 3-3"/>'
     };
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`;
 }
