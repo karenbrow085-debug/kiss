@@ -50,3 +50,13 @@
 .of-delivery{display:block;margin-top:4px;color:#aaaab3;font-size:10px;line-height:16px}.of-delivery[hidden]{display:none}.of-delivery button{border:0;padding:0;background:none;color:#ab7d82;font:inherit;cursor:pointer;text-align:left}
 
 .of-reasoning{margin:8px 0 13px;border:1px solid #dedee2;border-radius:10px;background:#fafafa;color:#73737b;font-size:12px;overflow:hidden}.of-reasoning summary{padding:10px 12px;cursor:pointer;font-weight:500;list-style-position:inside}.of-reasoning-text{padding:0 12px 12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;line-height:1.7}.of-settings-group [hidden]{display:none!important}
+
+/* Message menu belongs to the byline, clear of expanded reasoning. */
+.of-byline{display:flex;align-items:center;flex-wrap:wrap;padding-right:0;gap:6px}
+.of-message-more{position:static;align-self:center;flex:0 0 28px;min-width:28px;min-height:28px!important;margin-left:auto;padding:5px!important;opacity:1;border-radius:8px;background:transparent;line-height:1;color:#929298}
+.of-message-more:hover,.of-message-more:focus-visible{background:#eeeeF1;color:#303136}.of-reasoning{margin-top:8px;clear:both}
+.of-exit-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;margin-top:22px}
+.of-panel-body .of-exit-actions button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:12px;font-size:13px;font-weight:600;line-height:1.5;white-space:normal;border:1px solid transparent}
+.of-panel-body .of-exit-primary{background:#242426;color:white}.of-panel-body .of-exit-secondary{background:#f6f6f8;color:#303136;border-color:#dfe0e4!important}.of-panel-body .of-exit-cancel{background:transparent;color:#85858e;font-weight:400!important;min-height:38px!important}
+
+.of-narrative-section{margin:16px 0;padding-top:12px;border-top:1px solid #e7e7eb}.of-section-label{font-size:11px;color:#8b8b94;letter-spacing:1px;margin-bottom:8px}.of-narrative-heading{font-size:18px;line-height:1.5;margin:14px 0 9px;font-weight:650}.of-prose blockquote{margin:12px 0;padding:2px 12px;border-left:2px solid #d9d9df;color:#777780}.of-prose ul{padding-left:20px}.of-prose li p{margin:3px 0}

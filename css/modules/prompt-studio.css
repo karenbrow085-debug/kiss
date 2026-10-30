@@ -153,3 +153,14 @@ body.dark-mode #cot-settings-screen,body.night-mode #cot-settings-screen{--pt-pa
 #st-unlock-modal button:disabled{opacity:.45;cursor:wait}
 #st-unlock-modal :is(button,input):focus-visible{outline:2px solid #6d7481;outline-offset:3px}
 @media(max-height:660px){#st-unlock-modal .st-auth-body{padding-top:15px}#st-unlock-modal .st-auth-intro{margin-bottom:14px}#st-unlock-modal .st-auth-step{padding:12px 0}#st-unlock-modal .st-auth-foot{padding-bottom:16px}}
+
+/* Preset scoped regular expressions and destructive controls. */
+.pt-regex-section{margin:16px 0 22px;border-top:1px solid var(--pt-rule);border-bottom:1px solid var(--pt-rule);padding:8px 0 12px}
+.pt-regex-section .pt-section-head{margin:0;padding:8px 0}.pt-regex-section h2{font-size:14px}.pt-regex-section .pt-notice{font-size:11px;margin:4px 0 10px;color:var(--pt-muted)}
+.pt-regex-row{display:flex;align-items:center;gap:14px;min-height:44px;border-top:1px solid var(--pt-rule)}
+#cot-settings-screen .pt-regex-name{flex:1;min-width:0;text-align:left;font-size:13px;border:0;background:none;padding:11px 0;overflow-wrap:anywhere}
+.pt-dialog .pt-delete-entry{appearance:none;display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin:20px 0 3px;padding:12px 16px;border:1px solid #e8d7da;border-radius:12px;background:#faf4f5;color:#a34551;font:inherit;font-size:13px;font-weight:600;line-height:1.4;cursor:pointer}
+.pt-delete-entry:before{content:'−';display:inline-grid;place-items:center;width:17px;height:17px;border:1px solid currentColor;border-radius:50%;margin-right:8px;font:16px/1 Arial}
+.pt-confirm-delete .pt-dialog-box{max-width:340px}.pt-confirm-delete .pt-dialog-body{padding-top:6px}.pt-delete-mark{display:grid;place-items:center;width:42px;height:42px;background:#f7eeee;border-radius:14px;color:#a34551;font-size:26px;margin:0 0 16px}
+.pt-confirm-delete .pt-dialog-foot button:last-child{background:#242426;color:#fff}.pt-confirm-delete .pt-notice{font-size:13px;line-height:1.8;color:#666870}
+.pt-dialog [hidden]{display:none!important}
