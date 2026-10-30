@@ -58,7 +58,9 @@ function compatibilityBridge(token,context){
   document.addEventListener('click',event=>{const option=event.target.closest?.('[data-choice],[data-option],[data-action],.st-choice,.plot-option');if(!option||typeof option.onclick==='function')return;const declared=option.getAttribute('data-choice')||option.getAttribute('data-option');if(declared)choose(declared);});
  };
  document.addEventListener('DOMContentLoaded',()=>{setUp();window.__kissHelperReady?.();},{once:true});
- let scheduled=false,floating=false,lastReport=0;const queue=()=>{if(!scheduled){scheduled=true;setTimeout(()=>requestAnimationFrame(report),Math.max(0,100-(performance.now()-lastReport)));}};
+ // A fully clipped iframe may suspend requestAnimationFrame. Report its first hit area
+ // with a timer so the host can unclip it; keep later reports throttled too.
+ let scheduled=false,floating=false,lastReport=0;const queue=()=>{if(!scheduled){scheduled=true;setTimeout(report,Math.max(0,100-(performance.now()-lastReport)));}};
  function report(){scheduled=false;lastReport=performance.now();if(!document.body)return;const all=document.body.querySelectorAll('*'),rects=[];
   let inspected=0;for(const el of all){if(++inspected>3000)break;if(el.hasAttribute('data-kiss-bridge'))continue;const style=getComputedStyle(el);if(style.position!=='fixed'||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)continue;const r=el.getBoundingClientRect();if(r.width>0&&r.height>0&&r.right>0&&r.bottom>0&&r.left<innerWidth&&r.top<innerHeight)rects.push({x:Math.max(0,r.left-3),y:Math.max(0,r.top-3),right:Math.min(innerWidth,r.right+3),bottom:Math.min(innerHeight,r.bottom+3)});}
   if(rects.length)floating=true;
