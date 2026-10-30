@@ -105,3 +105,20 @@
 #char-status-content .sh-list{box-sizing:border-box;padding-top:var(--status-top);padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
 #char-status-content .sh-empty{padding:var(--status-top) 20px 145px}
 @media(prefers-reduced-motion:reduce){#char-status-content,#char-status-content .sh-control-icon{transition:none}}
+
+/* Borderless secondary controls; retain the independent floating action buttons. */
+#char-status-content .sh-history-tools{background:transparent;box-shadow:none;border:0;border-radius:0;padding:0;backdrop-filter:none;-webkit-backdrop-filter:none;gap:10px}
+#char-status-content .sh-history-tools button,#char-status-content .sh-history-tools button:hover,#char-status-content .sh-expand[aria-pressed=true]{background:transparent;border:0;border-radius:0;box-shadow:none;color:#59616c;text-shadow:0 1px 3px #ffffffb3}
+
+/* The secondary controls have no pill in any state, including theme overrides. */
+#char-status-content .sh-history-tools,#char-status-content .sh-history-tools button,#char-status-content .sh-history-tools button:hover,#char-status-content .sh-history-tools button:active,#char-status-content .sh-history-tools .sh-expand[aria-pressed=true]{background:none!important;background-image:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#char-status-content .sh-history-tools::before,#char-status-content .sh-history-tools::after,#char-status-content .sh-history-tools button::before,#char-status-content .sh-history-tools button::after{content:none!important;display:none!important}
+#char-status-content .sh-history-tools{gap:6px}
+#char-status-content .sh-history-tools .sh-tools-toggle{width:36px;min-width:36px;min-height:36px;padding:8px;touch-action:manipulation}
+#char-status-content .sh-tools-toggle svg{width:18px;height:18px;display:block}
+#char-status-overlay.status-tools-collapsed{--status-space-bottom:52px}
+#char-status-overlay.status-tools-collapsed .sh-toolbar-compact,#char-status-overlay.status-tools-collapsed .status-indicator,#char-status-overlay.status-tools-collapsed .sh-selection-footer{display:none!important}
+#char-status-overlay.status-tools-collapsed .sh-history-tools{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+#char-status-overlay.status-tools-collapsed .sh-history-tools button:not(.sh-tools-toggle){display:none!important}
+#char-status-overlay.status-tools-collapsed .sh-confirm{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+#char-status-overlay.status-tools-collapsed .sh-list{padding-bottom:calc(66px + env(safe-area-inset-bottom,0px))}
