@@ -166,3 +166,10 @@ body.dark-mode #cot-settings-screen,body.night-mode #cot-settings-screen{--pt-pa
 .pt-dialog [hidden]{display:none!important}
 
 .pt-library-tabs{display:flex;gap:4px;margin:12px 0 18px;padding:4px;border-radius:12px;background:#f2f3f5}.pt-library-tabs button{flex:1;border:0;border-radius:9px;background:transparent;padding:10px;font:inherit;font-size:13px;color:#85858d!important}.pt-library-tabs button.selected{background:white;color:#222327!important;box-shadow:0 1px 4px #00000009;font-weight:600}.pt-library-tabs+.pt-regex-section{border-top:0;margin-top:0;padding-top:0}
+
+/* Editorial navigation, shared with the surrounding 404 typography. */
+#cot-settings-screen .pt-library-tabs{display:flex;gap:26px;margin:12px 0 20px;padding:0;border-radius:0;background:none;border-bottom:1px solid #dedee3;box-shadow:none}
+#cot-settings-screen .pt-library-tabs button{flex:0 0 auto;position:relative;padding:13px 0 14px;border:0;border-radius:0;background:none!important;box-shadow:none!important;color:#9999a2!important;font-size:13px;font-weight:400;letter-spacing:.5px;min-width:52px;text-align:center}
+#cot-settings-screen .pt-library-tabs button.selected{color:#222327!important;font-weight:600}
+#cot-settings-screen .pt-library-tabs button.selected:after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:#222327}
+#cot-settings-screen .pt-library-tabs+.pt-section-head{margin-top:0}
