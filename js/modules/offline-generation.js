@@ -39,6 +39,17 @@ function build(chat,history,apiConfig,basePrompt,trigger='normal'){
   if(!report.active)throw Error('酒馆预设没有生效，已停止请求；请重新选择预设');
   stream=report.stream;
  }
+ // Append after Tavern composition so a preset cannot silently drop collection context.
+ const collectionContext=root.KissCollections?.prompt(chat);
+ if(collectionContext&&!JSON.stringify(built.requestBody).includes('<双方收藏资料>')){
+  if(apiConfig.provider==='gemini'){
+   // The app and Tavern runtime both emit snake_case. Never send both aliases.
+   const instruction=built.requestBody.system_instruction||built.requestBody.systemInstruction||{parts:[]};
+   instruction.parts||=[];instruction.parts.push({text:collectionContext});
+   built.requestBody.system_instruction=instruction;delete built.requestBody.systemInstruction;
+  }
+  else {built.requestBody.messages||=[];built.requestBody.messages.push({role:'system',content:collectionContext});}
+ }
  if(apiConfig.provider==='gemini'){
   built.endpoint=built.endpoint.replace(':streamGenerateContent',':generateContent').replace(/([?&])alt=sse(&|$)/,'$1').replace(/[?&]$/,'');
   if(stream)built.endpoint=built.endpoint.replace(':generateContent',':streamGenerateContent')+(built.endpoint.includes('?')?'&':'?')+'alt=sse';

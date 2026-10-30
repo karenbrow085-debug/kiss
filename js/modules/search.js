@@ -22,6 +22,12 @@ const SearchSystem = {
             });
         }
 
+        // Native-style clear control; keep the search input and filters intact.
+        const wrapper=document.querySelector('#search-history-screen .search-input-wrapper');
+        if(wrapper&&!document.getElementById('search-clear-btn')){
+            const clear=document.createElement('button');clear.type='button';clear.id='search-clear-btn';clear.textContent='×';clear.setAttribute('aria-label','清空搜索');
+            clear.onclick=()=>{const input=document.getElementById('search-history-input');input.value='';clearTimeout(this.searchTimer);this.performSearch('');input.focus();};wrapper.append(clear);
+        }
         // 绑定搜索输入事件
         const input = document.getElementById('search-history-input');
         if (input) {
@@ -62,6 +68,7 @@ const SearchSystem = {
 
     // 打开搜索界面
     open() {
+        this.requestId=(this.requestId||0)+1; clearTimeout(this.searchTimer); this.currentResults=[];
         // 重置状态
         this.currentScope = 'all';
         this.updateScopeUI();
@@ -73,7 +80,7 @@ const SearchSystem = {
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 <p>输入关键词搜索聊天记录</p>
-                <p style="font-size:12px; margin-top:5px;">支持搜索消息内容</p>
+
             </div>
         `;
         
@@ -92,11 +99,13 @@ const SearchSystem = {
     async performSearch(keyword) {
         const requestId=this.requestId=(this.requestId||0)+1;
         const container = document.getElementById('search-results-container');
+        this.currentResults = [];
         if (!keyword) {
-            container.innerHTML = '';
+            container.innerHTML = '<div class="search-placeholder"><p>搜索聊天记录</p></div>';
             return;
         }
 
+        try {
         const ignoreStatus = document.getElementById('search-ignore-status')?.checked;
         const results = [];
         
@@ -122,6 +131,7 @@ const SearchSystem = {
         for (const chat of targets) {
             const source = [...db.characters,...db.groups].find(c => c.id === chat.id);
             const archiveId=source?.activeArchiveId;
+            if(!source)continue;
             chat.history = await PhoneBackup.readChatHistory(source);
             if(requestId!==this.requestId)return;
             if(source?.activeArchiveId!==archiveId)continue;
@@ -139,8 +149,16 @@ const SearchSystem = {
 
             const matches = chat.history.filter(msg => {
                 // 排除系统消息、撤回消息等（简单处理：只要 content 包含关键词且非空）
-                if (!msg.content) return false;
+                if (!msg.id) return false;
+                if (typeof msg.content !== 'string' || msg.isThinking || msg.isWithdrawn || msg.role === 'system' || msg.offlineBoundary || /^<thinking>/i.test(msg.content.trim())) return false;
 
+                // Results must be records that the chat can actually display.
+                if(!msg.offlineNarrative && typeof isDebugMode!=='undefined' && !isDebugMode && (
+                    msg.isStatusUpdate || /\[(?:system:|系统情景通知：|Private: |Private-End: )/.test(msg.content) ||
+                    /\[.*?(?:已接收礼物|同意了.*?的代付请求|拒绝了.*?的代付请求)\]/.test(msg.content) ||
+                    (!chat.showStatusUpdateMsg && /\[.*?更新状态为[：:]/.test(msg.content)) ||
+                    /\[(?:.*?)\s*(?:发布了一条(?:带图)?动态|评论了.*?|回复.*?|更新了个性签名)[：:][\s\S]+?\]/.test(msg.content)
+                )) return false;
                 // 过滤特殊消息（互动、表情包、图片等）
                 if (this.isSpecialMessage(msg.content, msg)) return false;
                 
@@ -200,6 +218,7 @@ const SearchSystem = {
                     ...msg,
                     content: displayContent, // 使用处理后的内容用于展示
                     originalContent: msg.content, // 保留原始内容（可选）
+                    archiveId,
                     chatId: chat.id,
                     chatType: chat.type,
                     chatName: chat.type === 'private' ? chat.remarkName : chat.name,
@@ -214,9 +233,11 @@ const SearchSystem = {
                 results.push({
                     chatId: chat.id,
                     chatType: chat.type,
-                    name: chat.type === 'private' ? chat.remarkName : chat.name,
+                    name: chat.type === 'private' ? (chat.remarkName || chat.realName) : chat.name,
+                    myAvatar: chat.myAvatar || chat.me?.avatar || db.myPersonaPresets?.find(p=>p.id===db.activePersonaId)?.avatar,
+                    members: chat.members || [],
                     avatar: chat.avatar,
-                    myName: chat.myName, // 保存用户在该聊天中的名字
+                    myName: chat.myName || chat.me?.nickname, // 保存用户在该聊天中的名字
                     count: matches.length,
                     messages: matches
                 });
@@ -247,127 +268,104 @@ const SearchSystem = {
             // 如果是单聊范围，直接展示详情列表
             this.renderDetail(results[0], keyword, true);
         }
+        } catch(error){if(requestId===this.requestId){container.innerHTML='<div class="search-placeholder"><p>记录暂未读取成功，请重试</p></div>';showToast(error.message||'搜索失败');}}
     },
 
-    // 渲染概览页 (按角色分组)
+    safeAvatar(url) {
+        return /^(https?:\/\/|data:image\/|blob:|phone-asset:)/i.test(String(url || '')) ? this.escapeHtml(url) : '';
+    },
+
+    snippet(content, keyword) {
+        const text = String(content || '').replace(/\s+/g, ' ');
+        const at = text.toLowerCase().indexOf(keyword.toLowerCase());
+        const start = Math.max(0, at - 18);
+        return (start ? '…' : '') + text.slice(start, start + 100) + (text.length > start + 100 ? '…' : '');
+    },
+
     renderOverview(results, totalCount, keyword) {
         const container = document.getElementById('search-results-container');
-        container.innerHTML = '';
-
-        // 统计头图
-        const header = document.createElement('div');
-        header.className = 'search-stat-header';
-        header.innerHTML = `共找到 <strong>${totalCount}</strong> 条关于 “<strong>${this.escapeHtml(keyword)}</strong>” 的记录`;
-        container.appendChild(header);
-
-        // 列表
+        container.innerHTML = `<div class="search-stat-header">聊天记录 <span>${totalCount} 条</span></div>`;
         const list = document.createElement('div');
         list.className = 'search-group-list';
-
-        results.forEach(group => {
-            const item = document.createElement('div');
-            item.className = 'search-group-item';
-            
-            // 获取最新一条匹配消息作为预览
-            const previewMsg = group.messages[0].content;
-            
-            item.innerHTML = `
-                <img src="${group.avatar}" class="search-group-avatar" alt="avatar">
-                <div class="search-group-info">
-                    <div class="search-group-name">
-                        <span>${this.escapeHtml(group.name)}</span>
-                        <span class="search-group-count">${group.count}条</span>
-                    </div>
-                    <div class="search-group-preview">${this.escapeHtml(previewMsg)}</div>
-                </div>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            `;
-
-            item.addEventListener('click', () => {
-                this.renderDetail(group, keyword);
-            });
-
-            list.appendChild(item);
-        });
-
-        container.appendChild(list);
+        for (const group of results) {
+            const item = document.createElement('button');
+            item.type = 'button'; item.className = 'search-group-item';
+            item.innerHTML = `<img src="${this.safeAvatar(group.avatar)}" class="search-group-avatar" alt=""><div class="search-group-info"><div class="search-group-name"><span>${this.escapeHtml(group.name)}</span><time>${this.dateLabel(group.messages[0].timestamp)}</time></div><div class="search-group-preview">${this.highlightKeyword(this.snippet(group.messages[0].content,keyword),keyword)}</div><div class="search-group-count">共 ${group.count} 条相关的聊天记录</div></div>`;
+            item.onclick = () => this.renderDetail(group, keyword);
+            list.append(item);
+        }
+        container.append(list); container.scrollTop = 0;
     },
 
-    // 渲染详情页 (消息列表)
+    dateLabel(timestamp) {
+        const date = new Date(timestamp); if (Number.isNaN(date.getTime())) return '';
+        return (date.getFullYear() === new Date().getFullYear() ? '' : date.getFullYear()+'年') + (date.getMonth()+1)+'月'+date.getDate()+'日';
+    },
+
     renderDetail(group, keyword, isDirectMode = false) {
         const container = document.getElementById('search-results-container');
         container.innerHTML = '';
-
-        // 头部导航 (如果是从概览点进来的，需要返回按钮)
+        const header = document.createElement('div'); header.className = 'search-detail-header';
         if (!isDirectMode) {
-            const header = document.createElement('div');
-            header.className = 'search-detail-header';
-            header.innerHTML = `
-                <button class="search-back-btn">‹</button>
-                <div class="search-detail-title">${this.escapeHtml(group.name)} (${group.count}条)</div>
-            `;
-            header.querySelector('.search-back-btn').addEventListener('click', () => {
-                // 重新渲染概览
-                const keyword = document.getElementById('search-history-input').value.trim();
-                this.performSearch(keyword);
-            });
-            container.appendChild(header);
-        } else {
-             // 直达模式也显示个标题比较好
-            const header = document.createElement('div');
-            header.className = 'search-detail-header';
-            header.innerHTML = `
-                <div class="search-detail-title" style="margin-left:5px;">${this.escapeHtml(group.name)} (${group.count}条)</div>
-            `;
-            container.appendChild(header);
+            const back = document.createElement('button'); back.className='search-back-btn';back.textContent='返回';
+            back.onclick=()=>this.renderOverview(this.currentResults,this.currentResults.reduce((n,g)=>n+g.count,0),keyword);header.append(back);
         }
-
-        const list = document.createElement('div');
-        list.className = 'search-result-list';
-
-        group.messages.forEach(msg => {
-            const item = document.createElement('div');
-            item.className = 'search-result-item';
-            
-            const date = new Date(msg.timestamp);
-            const timeStr = `${date.getFullYear()}/${pad(date.getMonth()+1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-            
-            // 高亮关键词
-            const highlightedContent = this.highlightKeyword(msg.content, keyword);
-
-            // 获取显示名字
-            let displayName = '';
-            if (msg.role === 'user') {
-                displayName = group.myName || '我';
-            } else {
-                if (group.chatType === 'private') {
-                    displayName = group.name; 
-                } else {
-                    displayName = msg.senderId ? '成员' : '成员';
-                }
+        const title=document.createElement('span');title.className='search-detail-title';title.textContent=group.name;header.append(title);container.append(header);
+        const count=document.createElement('div');count.className='search-stat-header';count.textContent=group.count+' 条相关的聊天记录';container.append(count);
+        const list=document.createElement('div');list.className='search-result-list';
+        // Large result sets are appended in batches; the UI stays responsive.
+        let offset=0;
+        const append=()=>{
+            list.querySelector('.search-more')?.remove();
+            for(const msg of group.messages.slice(offset,offset+60)){
+                const member=group.members.find(m=>String(m.id)===String(msg.senderId));
+                const displayName=msg.role==='user'?(group.myName||'我'):(member?.nickname||member?.name||group.name);
+                const avatar=msg.role==='user'?group.myAvatar:(member?.avatar||group.avatar);
+                const item=document.createElement('button');item.type='button';item.className='search-result-item';
+                item.innerHTML=`<img class="search-group-avatar" src="${this.safeAvatar(avatar)}" alt=""><div class="search-group-info"><div class="search-result-header"><span class="search-result-name">${this.escapeHtml(displayName)}</span><time class="search-result-time">${this.dateLabel(msg.timestamp)}</time></div><div class="search-result-content">${this.highlightKeyword(this.snippet(msg.content,keyword),keyword)}</div>${msg.offlineNarrative?'<small class="search-mode-label">线下记录</small>':''}</div>`;
+                item.onclick=()=>this.jumpToMessage(msg,item);list.append(item);
             }
-
-            item.innerHTML = `
-                <div class="search-result-header">
-                    <span class="search-result-name">${this.escapeHtml(displayName)}</span>
-                    <span class="search-result-time">${timeStr}</span>
-                </div>
-                <div class="search-result-content">${highlightedContent}</div>
-            `;
-            
-            list.appendChild(item);
-        });
-
-        container.appendChild(list);
+            offset+=60;
+            if(offset<group.messages.length){const more=document.createElement('button');more.type='button';more.className='search-more';more.textContent='加载更多记录';more.onclick=append;list.append(more);}
+        };
+        append();container.append(list);container.scrollTop=0;
     },
 
-    // 关键词高亮处理
+    async jumpToMessage(msg, button) {
+        if(this.jumping)return;
+        if(typeof isGenerating!=='undefined'&&isGenerating){showToast('请等当前生成结束后再跳转');return;}
+        this.jumping=true;button.disabled=true;const searchSession=this.requestId;
+        try {
+            const chat=(msg.chatType==='private'?db.characters:db.groups).find(c=>c.id===msg.chatId);
+            if(!chat)throw Error('该聊天已不存在');
+            if(chat.activeArchiveId!==msg.archiveId)throw Error('聊天存档已切换，请重新搜索');
+            await PhoneBackup.hydrateChat(chat);
+            if(searchSession!==this.requestId)return;
+            if(chat.activeArchiveId!==msg.archiveId)throw Error('聊天存档已切换，请重新搜索');
+            const row=chat.history.find(m=>String(m.id)===String(msg.id));
+            if(!row)throw Error('这条记录已删除，请重新搜索');
+            const opened=await openChatRoom(chat.id,msg.chatType,()=>searchSession===this.requestId&&chat.activeArchiveId===msg.archiveId&&(typeof isGenerating==='undefined'||!isGenerating));
+            if(opened===false)return;
+            if(row.offlineNarrative||row.offlineSessionId||row.offlineArchiveId){
+                if(!window.KissOffline?.jumpToMessage)throw Error('请同时更新线下模块');
+                await window.KissOffline.jumpToMessage(chat,row.id);return;
+            }
+            renderMessages(false,false,row.id);
+            // Let the chat's initial bottom-scroll finish before centering the match.
+            await new Promise(resolve=>setTimeout(resolve,30));
+            if(currentChatId!==chat.id||currentChatType!==msg.chatType)return;
+            const node=[...messageArea.querySelectorAll('.message-wrapper[data-id]')].find(el=>String(el.dataset.id)===String(row.id));
+            if(!node)throw Error('该记录当前无法显示');
+            node.scrollIntoView({block:'center',behavior:'auto'});node.classList.add('search-message-focus');setTimeout(()=>node.classList.remove('search-message-focus'),2200);
+        } catch(error){showToast(error.message||'跳转失败');}
+        finally{this.jumping=false;button.disabled=false;}
+    },
+
     highlightKeyword(content, keyword) {
-        if (!keyword) return this.escapeHtml(content);
-        const safeContent = this.escapeHtml(content);
-        const safeKeyword = this.escapeHtml(keyword);
-        const regex = new RegExp(`(${safeKeyword})`, 'gi');
-        return safeContent.replace(regex, '<span class="keyword-highlight">$1</span>');
+        const text=String(content||'');if(!keyword)return this.escapeHtml(text);
+        const lower=text.toLowerCase(),needle=keyword.toLowerCase();let from=0,at,html='';
+        while((at=lower.indexOf(needle,from))!==-1){html+=this.escapeHtml(text.slice(from,at))+'<mark class="keyword-highlight">'+this.escapeHtml(text.slice(at,at+keyword.length))+'</mark>';from=at+keyword.length;}
+        return html+this.escapeHtml(text.slice(from));
     },
 
     // 打开筛选范围模态框
@@ -400,7 +398,7 @@ const SearchSystem = {
         if (id === 'all') {
             iconHtml = `<div class="scope-avatar" style="background:#ddd; display:flex; align-items:center; justify-content:center; color:#fff;">ALL</div>`;
         } else {
-            iconHtml = `<img src="${avatar}" class="scope-avatar" alt="avatar">`;
+            iconHtml = `<img src="${this.safeAvatar(avatar)}" class="scope-avatar" alt="avatar">`;
         }
 
         item.innerHTML = `
@@ -481,7 +479,7 @@ const SearchSystem = {
 
     escapeHtml(text) {
         if (!text) return '';
-        return text
+        return String(text)
             .replace(/&/g, "&amp;")   // 修复：替换为 &amp;
             .replace(/</g, "&lt;")    // 修复：替换为 &lt;
             .replace(/>/g, "&gt;")    // 修复：替换为 &gt;

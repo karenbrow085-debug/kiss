@@ -4,7 +4,7 @@ function isOfflineChatRecord(message) {
     return !!(message.offlineNarrative || message.offlineSessionId || message.offlineArchiveId || message.offlineBoundary);
 }
 
-function renderMessages(isLoadMore = false, forceScrollToBottom = false) {
+function renderMessages(isLoadMore = false, forceScrollToBottom = false, focusMessageId = null) {
     window.KissOffline?.refresh(forceScrollToBottom);
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
     if (!chat || !chat.history) return;
@@ -15,7 +15,12 @@ function renderMessages(isLoadMore = false, forceScrollToBottom = false) {
     // 确保 MESSAGES_PER_PAGE 存在
     const pageSize = (typeof MESSAGES_PER_PAGE !== 'undefined') ? MESSAGES_PER_PAGE : 20;
 
-    const end = totalMessages - (currentPage - 1) * pageSize;
+    if(forceScrollToBottom)currentPage=1;
+    if(forceScrollToBottom || window.kissHistoryFocus?.chatId!==chat.id || window.kissHistoryFocus?.type!==currentChatType)window.kissHistoryFocus=null;
+    if(focusMessageId!==null){const index=onlineHistory.findIndex(m=>String(m.id)===String(focusMessageId));if(index>=0){currentPage=1;window.kissHistoryFocus={chatId:chat.id,type:currentChatType,end:Math.min(totalMessages,index+Math.ceil(pageSize/2))};}}
+    const focusEnd=Math.min(totalMessages,window.kissHistoryFocus?.end??totalMessages);
+    currentPage=Math.min(Math.max(1,currentPage),Math.max(1,Math.ceil(focusEnd/pageSize)));
+    const end = focusEnd - (currentPage - 1) * pageSize;
     const start = Math.max(0, end - pageSize);
     const messagesToRender = onlineHistory.slice(start, end);
     if (!isLoadMore) messageArea.innerHTML = '';
@@ -113,13 +118,15 @@ function renderMessages(isLoadMore = false, forceScrollToBottom = false) {
     if (existingLoadBtn) existingLoadBtn.remove();
     messageArea.prepend(fragment);
     
-    if (totalMessages > currentPage * pageSize) {
+    if (focusEnd > currentPage * pageSize) {
         const loadMoreButton = document.createElement('button');
         loadMoreButton.id = 'load-more-btn';
         loadMoreButton.className = 'load-more-btn';
         loadMoreButton.textContent = '加载更早的消息';
         messageArea.prepend(loadMoreButton);
     }
+    document.getElementById('search-newer-messages')?.remove();
+    if(focusEnd<totalMessages){const newer=document.createElement('button');newer.id='search-newer-messages';newer.className='load-more-btn';newer.textContent='查看更新的消息';newer.onclick=()=>{window.kissHistoryFocus.end=Math.min(totalMessages,focusEnd+pageSize);currentPage=1;renderMessages(false,false);};messageArea.append(newer);}
     if (forceScrollToBottom) {
         setTimeout(() => {
             messageArea.scrollTop = messageArea.scrollHeight;

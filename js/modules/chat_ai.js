@@ -23,6 +23,7 @@ const aiGenerationControl = (() => {
         const controller = new AbortController();
         const task = {
             key, signal:controller.signal, cancelled:false, reader:null, timers:new Set(),
+            collectionContext:chatType==='private'?window.KissCollections?.capture(db.characters.find(c=>c.id===chatId)):null,
             check() { if (this.cancelled) throw abortError(); },
             waitFor(promise) {
                 this.check();
@@ -806,7 +807,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             fullResponse = fullResponse.substring(lastThinkingIndex + 11);
         }
 
-        if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat);
+        if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
 
         // --- 朋友圈指令解析 ---
         const momentPostWithImageRegex = /\[(.*?)\s*发布了一条带图动态[：:](.*?)\|([\s\S]+?)\]/;

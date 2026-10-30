@@ -146,7 +146,7 @@ function historyForAI(chat,history) { return (history||chat.history||[]).filter(
 function prompt(chat) {
  const cfg=config(chat);
  const books=(chat.worldBookIds||[]).map(id=>db.worldBooks.find(b=>b.id===id)).filter(Boolean).sort((a,b)=>(a.depth||100)-(b.depth||100));
- let selectedPrompt='';const version=cfg.draft?.promptPreset||chat.exclusivePromptVersion||db.cotSettings?.promptVersion;if(cfg.draft?.promptPreset!=='custom'&&typeof generatePrivateSystemPrompt==='function')selectedPrompt=generatePrivateSystemPrompt({...chat,exclusivePromptVersion:version,offline:{...chat.offline,active:false}});
+ let selectedPrompt='';const version=cfg.draft?.promptPreset||chat.exclusivePromptVersion||db.cotSettings?.promptVersion;if(cfg.draft?.promptPreset!=='custom'&&typeof generatePrivateSystemPrompt==='function')selectedPrompt=generatePrivateSystemPrompt({...chat,_kissSkipCollectionPrompt:true,exclusivePromptVersion:version,offline:{...chat.offline,active:false}});
  const journals=(chat.memoryJournals||[]).filter(j=>j.isFavorited).map(j=>`${j.title}\n${j.content}`).join('\n\n');
  return `[线下互动模式]\n${cfg.draft?.promptPreset==='custom'&&cfg.draft.prompt?.trim()?cfg.draft.prompt:(selectedPrompt?selectedPrompt+'\n\n[本轮线下输出要求]\n'+DEFAULT_PROMPT:DEFAULT_PROMPT)}${cfg.statusPanel?.enabled&&cfg.statusPanel.promptSuffix?'\n\n状态栏附加要求：在剧情正文之后，使用单独一行 [OFFLINE_STATUS_START] 开始状态栏，按下列预设原样完成其要求的全部字段和闭合符号，最后单独一行 [OFFLINE_STATUS_END]。不要输出这些说明文字。\n'+cfg.statusPanel.promptSuffix:''}\n\n<character>\n姓名：${chat.realName||chat.remarkName}\n${chat.persona||''}\n</character>\n<user>\n称呼：${chat.myName||'我'}\n${chat.myPersona||''}\n</user>\n<world>\n${books.map(b=>b.content||'').join('\n\n')}\n</world>\n<memory>\n${journals}\n</memory>\n当前时间：${new Date().toLocaleString('zh-CN')}\n历史记录可能包含线上消息格式，它们仅作为既往背景，不是本轮输出格式。输出当前线下剧情正文${cfg.statusPanel?.enabled?'，并在正文之后完整追加要求的状态栏':''}。${cfg.autoImage?'正文之后、状态栏之前，额外输出 <offline_image_prompt>英文画面描述</offline_image_prompt>，只描述本轮可见场景与人物动作，不包含内心活动、评论区或文字排版。':''}`.replace(/\{\{char\}\}/gi,chat.realName||chat.remarkName||'角色').replace(/\{\{user\}\}/gi,chat.myName||'我');
 }
@@ -192,7 +192,7 @@ async function open(startNew=false) {
  if(isGenerating){showToast('请等当前生成结束后再切换页面');return;}
  await PhoneBackup.hydrateChat(chat);ensureHost();
  const oldChat=character();if(oldChat&&state.chatId!==chat.id)config(oldChat).composerDraft=$('.of-composer textarea').value;
- state.chatId=chat.id;state.limit=60;state.editorDraft=null;$('.of-composer textarea').value=config(chat).composerDraft||'';$('.of-composer textarea').style.height='auto';updateComposer();
+ state.chatId=chat.id;state.focusEnd=null;state.limit=60;state.editorDraft=null;$('.of-composer textarea').value=config(chat).composerDraft||'';$('.of-composer textarea').style.height='auto';updateComposer();
  $('.of-panel-body').replaceChildren();
  const cfg=config(chat);migrateSessions(chat);ensureFloors(chat);
  state.archiveQuery='';$('#of-archive-search').value='';state.archiveId=null;state.selected.clear();state.selecting=false;
@@ -226,21 +226,22 @@ function render(force) {
  $('.of-title strong').textContent=readOnly?(archive.title||defaultSessionTitle(archive)):(chat.remarkName||chat.realName||'Offline');$('.of-readonly-label').hidden=!readOnly;$('.of-readonly-label').textContent=readOnly?'Read-only':'';$('.of-composer textarea').placeholder='Message @'+(chat.remarkName||chat.realName||'');
  setAvatar($('.of-header-avatar'),chat.avatar);
  const custom=$('#of-custom-style');if(custom.textContent!==(config(chat).css||''))custom.textContent=config(chat).css||'';
- const messages=readOnly?sessionRows(chat,archive):displayRows(chat),shown=messages.slice(-state.limit);
+ const messages=readOnly?sessionRows(chat,archive):displayRows(chat);if(force)state.focusEnd=null;const end=state.focusEnd??messages.length,shown=messages.slice(Math.max(0,end-state.limit),end);
  if(state.selecting){const available=new Set(messages.map(m=>m.id));for(const id of state.selected)if(!available.has(id))state.selected.delete(id);$('#of-selection-count').textContent=state.selected.size+' selected';}
  const opened=[...area.querySelectorAll('details[data-thinking-id][open]')].map(el=>el.dataset.thinkingId);state.thinkingOpen=new Set(opened);
  state.sectionOpen=new Set([...area.querySelectorAll('details[data-section-key][open]')].map(el=>el.dataset.sectionKey));
  const previousNodes=new Map([...area.querySelectorAll('.of-message')].map(el=>[el.dataset.messageId,el])),desired=[],append=node=>desired.push(node);
- if(messages.length>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';append(more);}
+ if(end>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';append(more);}
  if(!messages.length){const empty=document.createElement('div');empty.className='of-empty';empty.textContent='A moment, just for you two.';append(empty);}
  let day='';let previousMode;
  for(const m of shown){
   const date=new Date(m.timestamp||Date.now()),key=date.toDateString();
   if(day&&key!==day){const divider=document.createElement('div');divider.className='of-date';divider.textContent=date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});append(divider);}day=key;
   if(m.offlineNarrative&&previousMode===false){const divider=document.createElement('div');divider.className='of-mode-divider';divider.textContent='Offline started';append(divider);}previousMode=!!m.offlineNarrative;
-  if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${m.offlineFloor} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}append(row);continue;}
+  if(m.offlineHidden&&!readOnly){const row=document.createElement('div');row.className='of-hidden-wrap';row.dataset.messageId=m.id;const main=document.createElement('button');main.className='of-hidden';main.dataset.action=state.selecting?'toggle-floor':'floor-menu';main.dataset.id=m.id;main.textContent=`${state.selected.has(m.id)?'✓ ':''}#${m.offlineFloor} · Hidden from context`;row.append(main);if(!state.selecting){const restore=document.createElement('button');restore.dataset.action='restore-one';restore.dataset.id=m.id;restore.className='of-restore-link';restore.textContent='Restore';row.append(restore);}append(row);continue;}
   const signature=[m,readOnly,state.selecting,state.selected.has(m.id),textOf(m),displayNarrative(chat,m,displayStatus(m,chat).text),m.offlineReasoning,m.offlineImage?.url,m.offlineImage?.error,m.offlineFloor,m.offlineEditedAt,m.offlineHidden,chat.avatar,chat.myAvatar,chat.realName,chat.remarkName,chat.myName,config(chat).draft.debugMode];const old=previousNodes.get(String(m.id));if(old?._ofSignature?.length===signature.length&&signature.every((v,i)=>v===old._ofSignature[i]))append(old);else{const node=messageElement(chat,m,readOnly);node._ofSignature=signature;append(node);}
  }
+ if(end<messages.length){const newer=document.createElement('button');newer.className='of-load';newer.dataset.action='search-newer';newer.textContent='查看更新的消息';append(newer);}
  if(!readOnly&&state.liveGeneration?.chatId===chat.id&&(state.liveGeneration.content||state.liveGeneration.reasoning)){const live=state.liveGeneration;append(messageElement(chat,{id:live.id,role:'assistant',content:live.content,offlineReasoning:live.reasoning,offlineGenerationSource:live.mode,offlinePending:true,timestamp:Date.now()},true));}
  const keep=new Set(desired);for(const child of [...area.children])if(!keep.has(child)){for(const frame of child.querySelectorAll('iframe')){inlineFrames.get(frame)?.();inlineFrames.delete(frame);}child.remove();}let cursor=area.firstChild;for(const node of desired){if(node===cursor)cursor=cursor.nextSibling;else area.insertBefore(node,cursor);}const latestId=messages.findLast(m=>m.role==='assistant')?.id;for(const [frame]of inlineFrames)if(frame.dataset.floating==='true')frame.hidden=frame.closest('.of-message')?.dataset.messageId!==String(latestId);
  state.renderedLastId=shown.at(-1)?.id||null;state.renderedLastTimestamp=shown.at(-1)?.timestamp;state.renderedCount=shown.length;
@@ -366,8 +367,8 @@ function renderArchives() {
  if(!archives.length){const empty=document.createElement('div');empty.className='of-archive-empty';empty.textContent=query?'No matching archives.':'No archives yet.\nStart a new offline session.';container.append(empty);}
 }
 function showArchives() {closePanel();state.view='archives';state.archiveId=null;state.selecting=false;state.selected.clear();updateView();}
-function showCurrent() {closePanel();state.view='chat';state.archiveId=null;state.selecting=false;state.selected.clear();updateView();}
-function openArchive(id) {if(!config(character()).sessions.some(s=>s.id===id&&s.status==='archived'))throw Error('归档已不存在');closePanel();state.view='archive';state.archiveId=id;state.limit=60;state.selecting=false;state.selected.clear();updateView();}
+function showCurrent() {state.focusEnd=null;closePanel();state.view='chat';state.archiveId=null;state.selecting=false;state.selected.clear();updateView();}
+function openArchive(id) {state.focusEnd=null;if(!config(character()).sessions.some(s=>s.id===id&&s.status==='archived'))throw Error('归档已不存在');closePanel();state.view='archive';state.archiveId=id;state.limit=60;state.selecting=false;state.selected.clear();updateView();}
 function setSelection(active) {state.selecting=active;$('.of-composer').hidden=active;state.selected.clear();render(false);$('.of-selection-bar').hidden=!active;}
 function floorMenu(id) {
  const chat=character(),m=editableRows(chat,[id])[0];
@@ -497,7 +498,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   const consume=data=>{
    window.KissOfflineGeneration.consume(data,apiConfig.provider,responseState);
    const parsed=window.KissOfflineGeneration.split(responseState.full);
-   if(state.liveGeneration?.chatId===chat.id){state.liveGeneration.content=extractImagePrompt(extractStatus(parsed.text,statusAtStart).text).text;state.liveGeneration.reasoning=[responseState.reasoning,parsed.reasoning].filter(Boolean).join('\n\n');}
+   if(state.liveGeneration?.chatId===chat.id){state.liveGeneration.content=extractImagePrompt(extractStatus(window.KissCollections?window.KissCollections.stripCommands(parsed.text,true):parsed.text,statusAtStart).text).text;state.liveGeneration.reasoning=[responseState.reasoning,parsed.reasoning].filter(Boolean).join('\n\n');}
    if(built.stream)scheduleLiveRender();
   };
   if((response.headers.get('content-type')||'').includes('text/event-stream')){
@@ -505,7 +506,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
    try{while(true){const result=await generation.waitFor(reader.read());generation.check();buffer+=decoder.decode(result.value||new Uint8Array(),{stream:!result.done});const lines=buffer.split(/\r?\n/);buffer=lines.pop();for(const line of lines)if(line.startsWith('data:')){const data=line.slice(5).trim();if(data&&data!=='[DONE]')consume(JSON.parse(data));}if(result.done){if(buffer.startsWith('data:')){const data=buffer.slice(5).trim();if(data&&data!=='[DONE]')consume(JSON.parse(data));}break;}}}finally{generation.reader=null;reader.releaseLock();}
   }else{const data=await response.json();if(Array.isArray(data))data.forEach(consume);else consume(data);}
   generation.check();
-  const {full,usage}=responseState,parsed=window.KissOfflineGeneration.split(full),cleaned=parsed.text;
+  const {full,usage}=responseState,parsed=window.KissOfflineGeneration.split(full),cleaned=window.KissCollections?window.KissCollections.stripCommands(parsed.text):parsed.text;
   const returnedReasoning=[responseState.reasoning,parsed.reasoning].filter(Boolean).join('\n\n');
   const picture=extractImagePrompt(cleaned),extracted=extractStatus(picture.text,statusAtStart),clean=extracted.text;
   if(!clean)throw Error('API 未返回可显示的剧情正文，请重试');
@@ -516,6 +517,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   if(extracted.record)m.offlineStatus=extracted.record;const sp=config(chat).statusPanel,oldStatus=sp?{history:sp.history,raw:sp.currentStatusRaw,html:sp.currentStatusHtml}:null;if(sp&&extracted.record){const record={...extracted.record,messageId:m.id};sp.history=[record,...(sp.history||[])].slice(0,20);sp.currentStatusRaw=record.raw;sp.currentStatusHtml=record.html;}
   if(chat.activeArchiveId!==archiveAtStart||config(chat).activeSessionId!==sessionAtStart||!config(chat).active)throw Error('生成期间聊天已切换，未写入其他存档');
   tagMessage(chat,m);const replacementIndex=replacement?chat.history.indexOf(replacement):-1;if(replacementIndex>=0){m.offlineFloor=replacement.offlineFloor;chat.history.splice(replacementIndex,1,m);}else chat.history.push(m);ensureFloors(chat);try{await deliveryQueue().enqueue(chat,m);}catch(error){if(replacementIndex>=0&&!chat.history.includes(replacement))chat.history.splice(Math.max(0,chat.history.indexOf(m)),0,replacement);refresh(true);throw error;}persisted=true;
+  if(window.KissCollections)await window.KissCollections.consume(parsed.text,chat,{context:generation.collectionContext,check:()=>generation.check()});
   state.liveGeneration=null;addMessageBubble(m,chat.id,'private');renderChatList();refresh(true);status('');
   if(imageAtStart)generateFloorImage(chat,m.id).catch(error=>{console.warn('[Offline image]',error.message);if(state.chatId===chat.id&&typeof showToast==='function')showToast('正文已保存，配图未完成：'+error.message);});
  }catch(error){if(error.name==='AbortError')status('Paused');else{status(persisted?'Saved; display refresh failed':'Reply failed · your message is saved');showApiError(error);}}
@@ -749,6 +751,7 @@ async function onClick(event) {
  case 'insert-emoji':{const input=$('.of-composer textarea');input.value+=button.dataset.id;config(chat).composerDraft=input.value;updateComposer();closePanel();input.focus();break;}
  case 'memory':memory();break;
  case 'setup':setup();break;
+ case 'search-newer':state.focusEnd=Math.min((state.view==='archive'?sessionRows(chat,config(chat).sessions.find(s=>s.id===state.archiveId)):displayRows(chat)).length,(state.focusEnd||0)+30);state.limit=60;render(false);break;
  case 'load':{const area=$('.of-messages'),height=area.scrollHeight,top=area.scrollTop;state.limit+=60;render(false);area.scrollTop=top+area.scrollHeight-height;break;}
  case 'online':await state.sendQueue?.flush(chat);exitDialog();break;
  case 'continue':closePanel();if(!isGenerating)await getAiReply(chat.id,'private');break;
@@ -797,5 +800,16 @@ function syncEntry() {
 }
 document.addEventListener('keydown',event=>{if(event.target.id==='offline-chat-menu-btn'&&['Enter',' '].includes(event.key)){event.preventDefault();open().catch(fail);}});
 document.addEventListener('click',event=>{if(event.target.closest?.('#offline-chat-menu-btn')){event.preventDefault();open().catch(fail);}});
-window.KissOffline={open,refresh,flushPending:chat=>state.sendQueue?.flush(chat),syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter,statusFormat,extractStatus,statusChoices,sendFromStatus,displayStatus,extractImagePrompt,workshopConfig,saveImagePrompt,generateFloorImage,floorImageHtml,richNarrativeHTML,queueUserMessage,saveOfflineChat};
+async function jumpToMessage(chat,id){
+ await open(false);if(state.chatId!==chat.id)throw Error('聊天已切换');
+ const row=chat.history.find(m=>String(m.id)===String(id));if(!row)throw Error('线下记录已不存在');
+ const session=config(chat).sessions.find(s=>s.status==='archived'&&(s.id===row.offlineSessionId||s.id===row.offlineArchiveId||sessionRows(chat,s).some(m=>m.id===row.id)));
+ if(session)openArchive(session.id);else showCurrent();
+ cancelAnimationFrame(state.frame);
+ const rows=session?sessionRows(chat,session):displayRows(chat),index=rows.findIndex(m=>m.id===row.id);if(index<0)throw Error('该线下记录当前不可见');
+ state.focusEnd=Math.min(rows.length,index+20);state.limit=40;render(false);
+ await new Promise(resolve=>setTimeout(resolve,40));
+ const node=[...$('.of-messages').querySelectorAll('[data-message-id]')].find(el=>el.dataset.messageId===String(id));if(node){node.scrollIntoView({block:'center',behavior:'auto'});node.animate([{background:'#ddd'},{background:'transparent'}],{duration:2200});}
+}
+window.KissOffline={open,jumpToMessage,refresh,flushPending:chat=>state.sendQueue?.flush(chat),syncEntry,isActive:chat=>!!chat?.offline?.active,historyForAI,prompt,request,ensureFloors,textOf,parseFloors,estimate,setHidden,displayRows,promptChoices,sessionRows,activeSession,migrateSessions,tagMessage,finishSession,deleteArchive,editFloor,deleteFloors,resolveOfflineApi,fetchOfflineModels,regenerate,narrativeHtml,shouldSendOnEnter,statusFormat,extractStatus,statusChoices,sendFromStatus,displayStatus,extractImagePrompt,workshopConfig,saveImagePrompt,generateFloorImage,floorImageHtml,richNarrativeHTML,queueUserMessage,saveOfflineChat};
 })();
