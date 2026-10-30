@@ -45,5 +45,13 @@ function build(chat,history,apiConfig,basePrompt,trigger='normal'){
  }else built.requestBody.stream=stream;
  return {...built,stream,mode,presetId:mode==='tavern'?report.presetId:preset?.id};
 }
-root.KissOfflineGeneration={split,consume,build,contextChat};
+async function applyRequestRegex(built,chat){
+ if(built.mode!=='tavern'||!root.KissTavernRegex)return;
+ const preset=(db.tavernPresets||[]).find(p=>p.id===built.presetId);if(!preset)return;
+ const rows=built.requestBody.messages||built.requestBody.contents||[],fields=[];
+ rows.forEach((row,index)=>{const placement=row.role==='user'?1:['assistant','model'].includes(row.role)?2:0;if(!placement)return;const context={placement,depth:rows.length-index-1};if(typeof row.content==='string')fields.push({owner:row,key:'content',context});for(const part of row.parts||Array.isArray(row.content)&&row.content||[])if(typeof part.text==='string')fields.push({owner:part,key:'text',context});});
+ const result=await root.KissTavernRegex.apply(fields.map(f=>({text:f.owner[f.key],context:f.context})),preset,{target:'prompt',char:chat.realName||chat.remarkName||'角色',user:chat.myName||'我'});
+ if(result.items)fields.forEach((f,index)=>f.owner[f.key]=result.items[index]);if(result.warnings.length)console.warn('[Preset regex]',...result.warnings);
+}
+root.KissOfflineGeneration={split,consume,build,contextChat,applyRequestRegex};
 })(window);

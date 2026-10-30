@@ -71,7 +71,7 @@ function field(parent,label,value='',type='text',options) {
 function notice(parent,message) {parent.appendChild(text('p',message,'pt-notice'));}
 function askName(title,value='') {return new Promise(resolve=>{let answered=false;const d=dialog(title,a=>{a.name=a.field('名称',value);a.name.required=true;a.name.maxLength=150;},a=>{const name=a.name.value.trim();if(!name)throw Error('请输入名称');answered=true;resolve(name);},'确定',true);if(!d){resolve(null);return;}const close=d.close;d.close=()=>{if(!answered){answered=true;resolve(null);}close();}; // cancellation handlers use DOM removal observer below
  const observer=new MutationObserver(()=>{if(!d.el.isConnected){observer.disconnect();if(!answered){answered=true;resolve(null);}}});observer.observe(document.body,{childList:true});});}
-function confirmDialog(title,message) {return new Promise(resolve=>{let answered=false;const d=dialog(title,a=>notice(a.body,message),()=>{answered=true;resolve(true);},'确认',true);if(!d){resolve(false);return;}const observer=new MutationObserver(()=>{if(!d.el.isConnected){observer.disconnect();if(!answered)resolve(false);}});observer.observe(document.body,{childList:true});});}
+function confirmDialog(title,message) {return new Promise(resolve=>{let answered=false;const destructive=/删除|移除/.test(title);const d=dialog(title,a=>{if(destructive){a.el.classList.add('pt-confirm-delete');a.body.appendChild(text('div','−','pt-delete-mark'));}notice(a.body,message);},()=>{answered=true;resolve(true);},destructive?'确认删除':'确认',true);if(!d){resolve(false);return;}const observer=new MutationObserver(()=>{if(!d.el.isConnected){observer.disconnect();if(!answered)resolve(false);}});observer.observe(document.body,{childList:true});});}
 function refreshMode(mode) {
     if(mode!=='chat'&&mode!=='call')return;
     view=mode;
@@ -110,7 +110,7 @@ function report(p) {
         const missing=E.orderedPrompts(p,group(p)).filter(row=>row.prompt.missing&&row.enabled).map(row=>row.prompt.identifier);
         if(missing.length)issues.push('缺少已启用条目：'+missing.join('、')+'。使用前需补全、停用或移除引用。');
     }
-    if(p.data.extensions&&Object.keys(p.data.extensions).length) issues.push('扩展字段完整保留供导出；第三方脚本、正则插件和酒馆助手不在这里执行。');
+    if(p.data.extensions&&Object.keys(p.data.extensions).length) issues.push('扩展字段完整保留供导出；消息文本正则可在本预设中单独开关；第三方脚本和酒馆助手不在这里执行。');
     if(p.format!=='chat-completion') issues.push('此文件为文本补全采样器预设：可管理参数和导出，当前 404 对话接口不能按该模板生成。');
     return [...new Set(issues)];
 }
@@ -161,12 +161,47 @@ function render() {
     wrap.appendChild(select);body.appendChild(wrap);
     const p=active();if(!p)return;
     if(search&&!filtered.some(item=>item.id===p.id)){body.appendChild(text('div','请选择匹配的预设；当前预设未切换。','pt-empty'));return;}
-    const tools=text('div','','pt-preset-tools');action(tools,'参数设置',()=>parameters(p.id));action(tools,'预设信息',()=>showReport(p.id));body.appendChild(tools);
+    const tools=text('div','','pt-preset-tools');action(tools,'参数设置',()=>parameters(p.id));action(tools,'预设信息',()=>showReport(p.id));body.appendChild(tools);renderRegex(p,body);
     if(p.format!=='chat-completion'){body.appendChild(text('div','此格式仅管理、保存和导出参数；不作为聊天补全模板执行。','pt-warning'));return;}
     const head=text('div','','pt-section-head');const entries=E.orderedPrompts(p,group(p));head.appendChild(text('h2','条目序列'));action(head,'＋ 添加',()=>editItem(p.id));body.appendChild(head);
     const searchRow=text('div','','pt-search');const input=document.createElement('input');input.type='search';input.placeholder='搜索条目';input.setAttribute('aria-label','搜索条目');input.value=itemSearch;input.addEventListener('input',()=>{itemSearch=input.value;renderItems(p,list);});searchRow.appendChild(input);body.appendChild(searchRow);
     const list=text('div');list.id='pt-st-items';body.appendChild(list);renderItems(p,list);
 }
+
+function regexArray(record,path){const keys=path.split('.');let obj=record.data;for(const key of keys.slice(0,-1))obj=obj[key]||(obj[key]={});return obj[keys.at(-1)]||(obj[keys.at(-1)]=[]);}
+function renderRegex(p,parent){
+    const section=text('section','','pt-regex-section');
+    const head=text('div','','pt-section-head');head.appendChild(text('h2','预设正则'));action(head,'导入正则',()=>pickRegex(p.id));section.appendChild(head);
+    notice(section,'仅应用于当前预设，切换预设不会共用。');
+    const rows=global.KissTavernRegex?.entries(p)||[];
+    if(!rows.length)notice(section,'暂无附带正则，可单独导入 JSON。');
+    for(const row of rows){const line=text('div','','pt-regex-row');const open=action(line,row.script.scriptName||'未命名正则',()=>editRegex(p.id,row.key),'pt-regex-name');open.title='编辑正则';line.appendChild(toggle(!row.script.disabled,'启用正则：'+(row.script.scriptName||'未命名正则'),checked=>editRecord(p.id,r=>{regexArray(r,row.path)[row.index].disabled=!checked;})));section.appendChild(line);}
+    action(section,'＋ 新建正则',()=>editRegex(p.id),'pt-link');parent.appendChild(section);
+}
+function pickRegex(id){
+    const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.multiple=true;
+    input.onchange=()=>run(async()=>{const scripts=[];for(const file of input.files){if(file.size>1024*1024)throw Error('单个正则文件不能超过 1 MB');const value=JSON.parse(await file.text());const rows=Array.isArray(value)?value:Array.isArray(value.regex_scripts)?value.regex_scripts:[value];for(const row of rows){if(!row||typeof row.findRegex!=='string')throw Error('不是有效的酒馆正则文件');scripts.push(clone(row));}}if(!scripts.length)return;await editRecord(id,p=>regexArray(p,'extensions.regex_scripts').push(...scripts));toast('正则已导入当前预设');});input.click();
+}
+function editRegex(id,key){
+ const p=state().presets.find(x=>x.id===id);if(!p)return;const entry=global.KissTavernRegex.entries(p).find(x=>x.key===key),original=entry?.script;
+ dialog(original?'编辑正则':'新建正则',a=>{
+    a.name=a.field('正则名称',original?.scriptName||'');a.find=a.field('查找表达式',original?.findRegex||'','textarea');a.find.required=true;a.replace=a.field('替换内容',original?.replaceString||'','textarea');
+    a.scope=a.field('应用范围',original?.markdownOnly&&original?.promptOnly?'both':original?.markdownOnly?'display':original?.promptOnly?'prompt':'both','text',[['display','仅消息显示'],['prompt','仅发送给 AI'],['both','显示与发送']]);
+    a.placement=a.field('消息位置',(original?.placement||[2]).join(','));notice(a.body,'1 为用户消息，2 为 AI 回复；其他位置保留设置，暂不执行。');
+    a.enabled=a.field('启用',!original?.disabled,'checkbox');a.edited=a.field('编辑消息时运行',original?.runOnEdit!==false,'checkbox');
+    a.min=a.field('最小深度',original?.minDepth??-1,'number');a.max=a.field('最大深度',original?.maxDepth??-1,'number');
+    a.trim=a.field('移除匹配中的文本（每行一项）',(original?.trimStrings||[]).join('\n'),'textarea');
+    a.macros=a.field('查找中的角色变量',original?.substituteRegex||0,'text',[[0,'不替换'],[1,'直接替换'],[2,'转义后替换']]);
+    if(original)action(a.body,'删除此正则',async()=>{if(!await confirmDialog('删除正则','仅从当前预设删除此正则，其他预设不受影响。'))return;await editRecord(id,r=>regexArray(r,entry.path).splice(entry.index,1));a.close();},'pt-delete-entry');
+ },a=>editRecord(id,r=>{
+    const raw=a.find.value,lit=raw.match(/^\/([\s\S]*)\/([dgimsuvy]*)$/);try{new RegExp(lit?lit[1]:raw,lit?lit[2]:'g');}catch{throw Error('查找表达式无效');}
+    const placement=a.placement.value.split(',').map(v=>Number(v.trim()));if(!placement.length||placement.some(v=>!Number.isInteger(v)||v<1||v>6))throw Error('消息位置请填写 1 至 6，用逗号分隔');
+    const min=Number(a.min.value),max=Number(a.max.value);if(!Number.isInteger(min)||!Number.isInteger(max)||min< -1||max< -1||max>=0&&min>max)throw Error('深度范围无效，-1 表示不限');
+    const script={...(original||{}),id:original?.id||uid(),scriptName:a.name.value.trim()||'未命名正则',findRegex:raw,replaceString:a.replace.value,placement,disabled:!a.enabled.checked,runOnEdit:a.edited.checked,minDepth:min,maxDepth:max,trimStrings:a.trim.value.split('\n').filter(Boolean),substituteRegex:Number(a.macros.value),markdownOnly:a.scope.value==='display',promptOnly:a.scope.value==='prompt'};
+    const rows=regexArray(r,entry?.path||'extensions.regex_scripts');if(entry)rows[entry.index]=script;else rows.push(script);
+ }));
+}
+
 function toggle(checked,label,change,id) {
     const wrap=text('label','','kkt-switch');const input=document.createElement('input');input.type='checkbox';input.checked=!!checked;input.setAttribute('aria-label',label);if(id)input.id=id;
     input.addEventListener('change',async()=>{const next=input.checked;input.disabled=true;try{await change(next);}catch(e){input.checked=!next;toast(e.message||'保存失败');}finally{input.disabled=false;}});wrap.append(input,text('span','','kkt-slider'));return wrap;
@@ -206,7 +241,7 @@ function editItem(id,identifier) {
         a.depth=a.field('距聊天末尾深度',original?.injection_depth??4,'number');a.depth.min=0;a.depth.max=10000;
         a.order=a.field('同深度插入顺序',original?.injection_order??100,'number');
         a.triggers=a.field('生成时机',original?.injection_trigger?.join(',')||'');notice(a.body,'留空为全部；可填写 normal,continue,regenerate,swipe,impersonate,quiet。动态插入点由当前角色、世界书和记录填入。');
-        if(original)action(a.body,'删除此条目',async()=>{if(!await confirmDialog('删除条目','从此预设中删除该条目？'))return;await editRecord(id,r=>{r.data.prompts=r.data.prompts.filter(x=>x.identifier!==identifier);updateOrders(r,refs=>refs.filter(x=>x.identifier!==identifier));});a.close();});
+        if(original)action(a.body,'删除此条目',async()=>{if(!await confirmDialog('删除条目','从此预设中删除该条目？'))return;await editRecord(id,r=>{r.data.prompts=r.data.prompts.filter(x=>x.identifier!==identifier);updateOrders(r,refs=>refs.filter(x=>x.identifier!==identifier));});a.close();},'pt-delete-entry');
     },a=>editRecord(id,r=>{
         const name=a.name.value.trim();if(!name)throw Error('请输入条目名称');
         const marker=a.marker.value==='marker',key=marker?a.identifier.value:(original?.marker?uid():identifier||uid());
@@ -291,6 +326,6 @@ function init() {
     $('pt-import-file').onchange=async e=>{try{await importFiles([...e.target.files]);}catch(error){toast('导入失败：'+error.message);}finally{e.target.value='';}};
     $('pt-export').onclick=()=>{const p=active();if(p)download(p);};$('pt-new').onclick=()=>run(createPreset);$('pt-manage').onclick=manage;
 }
-global.KissPromptUI={refreshMode,attachCotSort,destroyCotSort,moveCot,askName,confirmDialog,showTavern,render,parameters,importFiles,commit,showXmlHelp};
+global.KissPromptUI={refreshMode,attachCotSort,destroyCotSort,moveCot,askName,confirmDialog,showTavern,render,parameters,importFiles,commit,showXmlHelp,editRegex,pickRegex};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);
