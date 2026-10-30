@@ -441,6 +441,7 @@ function initApiPresets() {
     if (customModelInput) {
         customModelInput.addEventListener('input', async (e) => {
             db.workshopSettings.novelaiModel = e.target.value.trim();
+            window.dispatchEvent(new Event('kiss-nai-model-changed'));
             await saveData();
         });
     }
@@ -599,16 +600,7 @@ function initPromptPresets() {
 
 // --- 模型拉取 ---
 function populateNovelAIModels(modelSelect) {
-    const models = [
-        { id: 'nai-diffusion-4-curated', name: 'NovelAI Diffusion V4 Curated' },
-        { id: 'nai-diffusion-4-full', name: 'NovelAI Diffusion V4 Full' },
-        { id: 'nai-diffusion-4-5-curated', name: 'NovelAI Diffusion V4.5 Curated' },
-        { id: 'nai-diffusion-4-5-full', name: 'NovelAI Diffusion V4.5 Full' },
-        { id: 'nai-diffusion-3', name: 'NovelAI Diffusion V3' },
-        { id: 'nai-diffusion-2', name: 'NovelAI Diffusion V2' },
-        { id: 'nai-diffusion-furry', name: 'NovelAI Diffusion Furry' },
-        { id: 'safe-diffusion', name: 'Safe Diffusion' }
-    ];
+    const models = window.KissNovelAIModels.list;
     
     modelSelect.innerHTML = '<option value="">请选择模型</option>';
     models.forEach(m => {
@@ -620,12 +612,20 @@ function populateNovelAIModels(modelSelect) {
     
     // 恢复之前选中的模型
     if (db.workshopSettings && db.workshopSettings.novelaiModel) {
-        modelSelect.value = db.workshopSettings.novelaiModel;
+        const savedModel = window.KissNovelAIModels.model(db.workshopSettings.novelaiModel).id;
+        if (!models.some(m => m.id === savedModel)) { const option = document.createElement('option'); option.value = savedModel; option.textContent = savedModel + '（自定义）'; modelSelect.append(option); }
+        modelSelect.value = savedModel;
     }
 }
 
 function populateGPTModels(modelSelect) {
     const models = [
+        { id: 'gpt-image-2.5-sunburst', name: 'GPT Image 2.5 Sunburst' },
+        { id: 'gpt-image-2.5-flare', name: 'GPT Image 2.5 Flare' },
+        { id: 'gpt-image-2', name: 'GPT Image 2' },
+        { id: 'gpt-image-1.5', name: 'GPT Image 1.5' },
+        { id: 'gpt-image-1-mini', name: 'GPT Image 1 Mini' },
+        { id: 'chatgpt-image-latest', name: 'ChatGPT Image' },
         { id: 'dall-e-3', name: 'DALL·E 3' },
         { id: 'dall-e-2', name: 'DALL·E 2' }
     ];
@@ -640,6 +640,10 @@ function populateGPTModels(modelSelect) {
     
     // 恢复之前选中的模型
     if (db.workshopSettings && db.workshopSettings.gptModel) {
+        const current = db.workshopSettings.gptModel;
+        if (![...modelSelect.options].some(option => option.value === current)) {
+            modelSelect.add(new Option(current, current));
+        }
         modelSelect.value = db.workshopSettings.gptModel;
     }
 }
@@ -701,6 +705,7 @@ function initWorkshopModels() {
         
         if (provider === 'novelai') {
             db.workshopSettings.novelaiModel = e.target.value;
+            window.dispatchEvent(new Event('kiss-nai-model-changed'));
         } else if (provider === 'gpt') {
             db.workshopSettings.gptModel = e.target.value;
         }

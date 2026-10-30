@@ -29,8 +29,14 @@ function initWorkshopVibe() {
 
     const vibeData = db.workshopSettings.vibe;
 
+    document.getElementById('workshop-vibe-model-notice')?.remove();
+    const notice = document.createElement('p');notice.id='workshop-vibe-model-notice';notice.style.cssText='font-size:12px;line-height:1.6;color:#777;margin:0 0 12px';notice.setAttribute('role','status');body.prepend(notice);
+    const updateNotice=()=>{const m=window.KissNovelAIModels.model(db.workshopSettings.novelaiModel);notice.hidden=m.vibe!==false;notice.textContent=m.version===4?'当前 NAI 5 按不支持 Vibe 的兼容模式处理，本次不发送 Vibe；素材与设置保留。':'此模型不发送 Vibe 参数，素材与设置保留。';};
+    if(window.__kissVibeModelNotice)window.removeEventListener('kiss-nai-model-changed',window.__kissVibeModelNotice);
+    window.__kissVibeModelNotice=updateNotice;window.addEventListener('kiss-nai-model-changed',updateNotice);
     // 渲染 UI
     const renderUI = () => {
+        updateNotice();
         toggle.checked = vibeData.enabled;
         body.style.display = vibeData.enabled ? 'block' : 'none';
 
@@ -235,6 +241,7 @@ function initWorkshopVibe() {
                     vibeData.activeImageId = null;
                 } else {
                     vibeData.activeImageId = item.id;
+                    if(item.type==='single'&&item.encodings){if(item.infoExtracted!==undefined)vibeData.infoExtracted=item.infoExtracted;if(item.refStrength!==undefined)vibeData.refStrength=item.refStrength;}
                 }
                 await saveData();
                 renderUI();
@@ -269,6 +276,7 @@ function initWorkshopVibe() {
     // 事件绑定
     toggle.addEventListener('change', async (e) => {
         vibeData.enabled = e.target.checked;
+        updateNotice();
         body.style.display = vibeData.enabled ? 'block' : 'none';
         await saveData();
     });
@@ -281,46 +289,14 @@ function initWorkshopVibe() {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             try {
-                if (file.name.endsWith('.json')) {
+                if (/\.(json|naiv4vibe|naiv4vibebundle)$/i.test(file.name)) {
                     // 处理 JSON 预设组
                     const text = await file.text();
                     const data = JSON.parse(text);
                     
-                    if (data.groups && data.vibeData) {
-                        for (const groupName in data.groups) {
-                            const group = data.groups[groupName];
-                            if (group.vibes && Array.isArray(group.vibes)) {
-                                const groupImages = [];
-                                for (const vibe of group.vibes) {
-                                    const vData = data.vibeData[vibe.vibeDataId];
-                                    if (vData && vData.encodings && vData.encodings['v4-5full']) {
-                                        const encodingData = Object.values(vData.encodings['v4-5full'])[0];
-                                        if (encodingData && encodingData.encoding) {
-                                            groupImages.push({
-                                                vibeDataId: vibe.vibeDataId,
-                                                encoding: encodingData.encoding,
-                                                thumbnail: vData.thumbnail || '',
-                                                infoExtracted: encodingData.params ? encodingData.params.information_extracted : 1.0,
-                                                refStrength: vibe.strength !== undefined ? vibe.strength : 0.6
-                                            });
-                                        }
-                                    }
-                                }
-                                
-                                if (groupImages.length > 0) {
-                                    db.workshopSettings.vibeLibrary.push({
-                                        id: 'vibe_group_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 5),
-                                        type: 'group',
-                                        name: groupName,
-                                        images: groupImages
-                                    });
-                                    addedCount++;
-                                }
-                            }
-                        }
-                    } else {
-                        showToast('无效的 Vibe JSON 格式');
-                    }
+                    const imported = window.KissNovelAIModels.importVibes(data, file.name);
+                    db.workshopSettings.vibeLibrary.push(...imported);
+                    addedCount += imported.length;
                 } else {
                     // 处理普通图片
                     const base64 = await compressImage(file, 800, 0.8);

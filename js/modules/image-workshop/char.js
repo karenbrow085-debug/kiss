@@ -36,21 +36,25 @@ function initWorkshopCharManagement() {
 
             itemDiv.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <img src="${char.avatar}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    <img style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                     <div style="flex: 1;">
-                        <div style="font-weight: bold; font-size: 14px;">${char.remarkName || char.name || '未知角色'}</div>
-                        <div style="font-size: 12px; color: #666;">变量: <code>{{${char.realName}}}</code></div>
+                        <div data-char-name style="font-weight: bold; font-size: 14px;"></div>
+                        <div style="font-size: 12px; color: #666;">变量: <code data-char-variable></code></div>
                     </div>
                     <button class="icon-btn-simple danger remove-char-btn" title="移除" style="padding: 4px;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                     </button>
                 </div>
-                <textarea class="char-prompt-input" rows="3" style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 8px; font-size: 12px;" placeholder="输入该角色的专属跑图词...">${boundChar.prompt || ''}</textarea>
+                <textarea class="char-prompt-input" rows="3" style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 8px; font-size: 12px;" placeholder="输入该角色的专属跑图词..."></textarea>
             `;
 
             // 绑定事件
             const removeBtn = itemDiv.querySelector('.remove-char-btn');
             const promptInput = itemDiv.querySelector('.char-prompt-input');
+            itemDiv.querySelector('img').src=char.avatar || '';
+            itemDiv.querySelector('[data-char-name]').textContent=char.remarkName || char.name || '未知角色';
+            itemDiv.querySelector('[data-char-variable]').textContent='{{'+char.realName+'}}';
+            promptInput.value=boundChar.prompt || '';
 
             removeBtn.addEventListener('click', async () => {
                 if (confirm(`确定要从工坊移除角色 ${char.remarkName || char.name || '未知角色'} 吗？`)) {
@@ -87,14 +91,18 @@ function initWorkshopCharManagement() {
                 li.className = 'list-item';
                 li.innerHTML = `
                     <label style="display: flex; align-items: center; width: 100%; cursor: pointer; gap: 10px;">
-                        <input type="checkbox" value="${char.id}" class="char-select-checkbox">
-                        <img src="${char.avatar}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                        <input type="checkbox" class="char-select-checkbox">
+                        <img style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                         <div style="flex: 1;">
-                            <div style="font-weight: bold;">${char.remarkName || char.name || '未知角色'}</div>
-                            <div style="font-size: 12px; color: #666;">${char.realName}</div>
+                            <div data-char-name style="font-weight: bold;"></div>
+                            <div data-char-variable style="font-size: 12px; color: #666;"></div>
                         </div>
                     </label>
                 `;
+                li.querySelector('input').value=char.id;
+                li.querySelector('img').src=char.avatar || '';
+                li.querySelector('[data-char-name]').textContent=char.remarkName || char.name || '未知角色';
+                li.querySelector('[data-char-variable]').textContent=char.realName || '';
                 charSelectionList.appendChild(li);
             });
         }

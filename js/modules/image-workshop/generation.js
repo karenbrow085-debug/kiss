@@ -2,6 +2,18 @@
 let currentGeneratedImage = null;
 let currentGeneratedPayload = null;
 
+// Freeze request controls without copying the whole Vibe library. Its encoding
+// cache stays shared so the existing cache/persistence path continues to work.
+function snapshotWorkshopImageSettings(settings) {
+    return {...settings,
+        apiPresets:Object.fromEntries(Object.entries(settings.apiPresets || {}).map(([provider,rows]) => [provider,(rows || []).map(row => ({...row}))])),
+        activeApiPresetId:{...settings.activeApiPresetId},
+        boundCharacters:(settings.boundCharacters || []).map(bound => ({...bound,faceLock:bound.faceLock ? {...bound.faceLock} : undefined})),
+        gptTags:(settings.gptTags || []).map(tag => ({...tag})),
+        vibe:settings.vibe ? {...settings.vibe} : undefined
+    };
+}
+
 function initWorkshopGeneration() {
     const generateBtn = document.getElementById('workshop-generate-btn');
     const saveCacheBtn = document.getElementById('workshop-save-cache-btn');
@@ -17,10 +29,15 @@ function initWorkshopGeneration() {
                 showToast('没有可保存的图片');
                 return;
             }
-            await saveToHistory(currentGeneratedImage, currentGeneratedPayload);
-            showToast('已保存到缓存');
-            // 保存后隐藏保存按钮，避免重复保存
-            saveCacheBtn.style.display = 'none';
+            if (saveCacheBtn.disabled) return;
+            const image=currentGeneratedImage, payload=currentGeneratedPayload;
+            saveCacheBtn.disabled=true;
+            try {
+                await saveToHistory(image,payload);
+                showToast('已保存到缓存');
+                if (currentGeneratedImage===image && currentGeneratedPayload===payload) saveCacheBtn.style.display='none';
+            } catch(error) { showToast('缓存保存失败，请重试'); }
+            finally { saveCacheBtn.disabled=false; }
         });
     }
 
@@ -37,7 +54,7 @@ function initWorkshopGeneration() {
                 a.href = currentGeneratedImage;
                 a.target = '_blank'; // URL 可能跨域，最好在新窗口打开
             } else {
-                a.href = `data:image/png;base64,${currentGeneratedImage}`;
+                a.href = currentGeneratedImage.startsWith('data:image/') ? currentGeneratedImage : `data:image/png;base64,${currentGeneratedImage}`;
                 a.download = `workshop_${Date.now()}.png`;
             }
             document.body.appendChild(a);
@@ -53,6 +70,7 @@ function initWorkshopGeneration() {
         }
         
         const settings = db.workshopSettings;
+        if (!settings) { showToast('请先配置绘图工坊'); return; }
         const provider = settings.provider || 'novelai';
         
         // 从当前激活的预设中获取 URL 和 Key
@@ -121,20 +139,18 @@ function initWorkshopGeneration() {
             if (styleSelect) settings.gptStyle = styleSelect.value;
         }
         
-        await saveData();
-        
+        const requestSettings=snapshotWorkshopImageSettings(settings);
         isGenerating = true;
         const originalText = generateBtn.innerHTML;
         generateBtn.innerHTML = '⏳ 生成中...';
         generateBtn.disabled = true;
         
         try {
-            const { imageData, payload } = await window.executeImageGeneration(settings);
+            if (await saveData() === false) throw new Error('配置未保存成功，请重试');
+            const { imageData, payload } = await window.executeImageGeneration(requestSettings);
             
             // 暂存数据并渲染图片
-            currentGeneratedImage = imageData;
-            currentGeneratedPayload = payload;
-            renderPreviewImage(imageData);
+            renderPreviewImage(imageData,payload);
             
             // 显示操作按钮
             if (previewActions) {
@@ -157,6 +173,7 @@ function initWorkshopGeneration() {
 
 // --- 统一生图调用函数 ---
 window.executeImageGeneration = async function(settings, customPrompt = null) {
+    settings=snapshotWorkshopImageSettings(settings);
     const provider = settings.provider || 'novelai';
     
     // 从当前激活的预设中获取 URL 和 Key
@@ -176,6 +193,9 @@ window.executeImageGeneration = async function(settings, customPrompt = null) {
     if (!apiKey) apiKey = settings[provider + 'ApiKey'];
     
     const model = settings[provider + 'Model'];
+    window.KissWorkshopFaceLock?.validate(settings, provider === 'gpt'
+        ? (customPrompt || settings.gptTestPrompt || '')
+        : [settings.positivePrompt, customPrompt !== null ? customPrompt : settings.characterPrompt].filter(Boolean).join(', '));
 
     if (!apiUrl || !apiKey || !model) {
         throw new Error(`未配置 ${provider.toUpperCase()} API，请先在工坊中完成设置`);
@@ -187,21 +207,22 @@ window.executeImageGeneration = async function(settings, customPrompt = null) {
     let responseFormat = activePreset?.responseFormat || 'auto';
 
     if (provider === 'gpt') {
-        if (finalApiUrl.endsWith('/')) {
-            finalApiUrl = finalApiUrl.slice(0, -1);
-        }
-        if (!finalApiUrl.endsWith('/v1/images/generations')) {
-            if (!finalApiUrl.endsWith('/v1')) {
-                finalApiUrl += '/v1/images/generations';
-            } else {
-                finalApiUrl += '/images/generations';
-            }
-        }
+        const configuredGptUrl = apiUrl;
+        finalApiUrl=normalizeOpenAIImageUrl(apiUrl);
         
         payload = await buildGPTPayload(settings, customPrompt || settings.gptTestPrompt);
-        console.log('【统一生图】发送给 GPT 的完整 Payload:', JSON.stringify(payload, null, 2));
-        
-        response = await fetch(finalApiUrl, {
+        const faceRequest = await window.KissWorkshopFaceLock?.gptRequest(settings,
+            customPrompt || settings.gptTestPrompt || '', payload, configuredGptUrl);
+        if (faceRequest) {
+            // The browser supplies the multipart boundary; never force JSON headers.
+            payload = {...faceRequest.fields};
+            responseFormat = 'json';
+            response = await fetch(faceRequest.url, {
+                method:'POST',headers:{'Authorization':`Bearer ${apiKey}`},body:faceRequest.body
+            });
+        } else {
+            console.log('【统一生图】发送给 GPT 的完整 Payload:', JSON.stringify(payload, null, 2));
+            response = await fetch(finalApiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -209,19 +230,21 @@ window.executeImageGeneration = async function(settings, customPrompt = null) {
             },
             body: JSON.stringify(payload)
         });
+        }
     } else if (provider === 'novelai') {
         const protocol = activePreset?.protocol || 'novelai';
+        if (protocol === 'openai' && settings.vibe?.enabled && settings.vibe.activeImageId && window.KissNovelAIModels.model(settings.novelaiModel).vibe !== false) throw new Error('当前 OpenAI 生图协议不能传递 NAI Vibe，请改用 NAI 原生协议节点');
         const novelaiPayload = await buildNovelAIPayload(settings, customPrompt);
         payload = protocol === 'openai'
             ? buildNovelAIOpenAICompatiblePayload(novelaiPayload)
             : novelaiPayload;
         console.log('【统一生图】发送给 NovelAI 的最终提示词:', novelaiPayload.input);
-        console.log(`【统一生图】接口协议: ${protocol}，完整 Payload:`, JSON.stringify(payload, null, 2));
+        console.log('【统一生图】请求参数:', {protocol,model:payload.model,width:novelaiPayload.parameters.width,height:novelaiPayload.parameters.height,
+            faceReferences:novelaiPayload.parameters.director_reference_images?.length || 0,vibeReferences:novelaiPayload.parameters.reference_image_multiple?.length || 0});
 
         if (protocol === 'novelai') {
             const baseUrl = apiUrl.replace(/\/ai\/generate-image-stream$/, '').replace(/\/ai\/generate-image$/, '').replace(/\/$/, '');
-            const useNonStream = responseFormat === 'binary'
-                || (responseFormat === 'auto' && /\/ai\/generate-image\/?$/.test(apiUrl));
+            const useNonStream = responseFormat === 'binary' || responseFormat === 'auto';
             if (useNonStream) {
                 finalApiUrl = `${baseUrl}/ai/generate-image`;
                 responseFormat = 'binary';
@@ -259,6 +282,9 @@ window.executeImageGeneration = async function(settings, customPrompt = null) {
 
     if (!response.ok) {
         const errorText = await response.text();
+        if (provider === 'gpt' && window.KissWorkshopFaceLock?.matching(settings, customPrompt || settings.gptTestPrompt || '').length && [400,404,405,415,422].includes(response.status)) {
+            throw new Error(`GPT 锁脸请求失败 (${response.status})：节点需支持 /images/edits 和 multipart 图片上传，模型需支持参考图。不会自动退回无锁脸生图。${errorText}`);
+        }
         throw new Error(`生图 API 请求失败 (${response.status}): ${errorText}`);
     }
 
@@ -502,11 +528,10 @@ window.parseImageResponse = async function(response, expectedFormat = 'auto') {
 };
 
 function normalizeOpenAIImageUrl(apiUrl) {
-    let url = apiUrl.replace(/\/$/, '');
-    if (url.endsWith('/v1/images/generations')) return url;
-    if (url.endsWith('/images/generations')) return url;
-    if (url.endsWith('/v1')) return `${url}/images/generations`;
-    return `${url}/v1/images/generations`;
+    if (window.KissWorkshopFaceLock?.imageEndpoint) return window.KissWorkshopFaceLock.imageEndpoint(apiUrl,'generations');
+    const url=new URL(apiUrl),path=url.pathname.replace(/\/+$/,'');
+    url.pathname=/\/images\/(generations|edits)$/.test(path) ? path.replace(/(generations|edits)$/,'generations') : path+(path.endsWith('/v1')?'':'/v1')+'/images/generations';
+    url.hash='';return url.href;
 }
 
 function buildNovelAIOpenAICompatiblePayload(novelaiPayload) {
@@ -514,7 +539,7 @@ function buildNovelAIOpenAICompatiblePayload(novelaiPayload) {
     const height = novelaiPayload.parameters?.height || 1024;
     return {
         model: novelaiPayload.model,
-        prompt: novelaiPayload.input,
+        prompt: [novelaiPayload.input,...(novelaiPayload.parameters?.v4_prompt?.caption?.char_captions || []).map((face,index) => face.char_caption ? `Facial features for person ${index+1}: ${face.char_caption}` : '')].filter(Boolean).join('\n'),
         n: 1,
         size: `${width}x${height}`,
         response_format: 'b64_json'
@@ -531,7 +556,7 @@ async function buildGPTPayload(settings, rawPrompt) {
         settings.gptTags.forEach(tag => {
             if (tag.enabled !== false && tag.name && tag.prompt && finalPrompt.includes(tag.name)) {
                 // 移除标签
-                finalPrompt = finalPrompt.replace(new RegExp(tag.name, 'g'), '');
+                finalPrompt = finalPrompt.split(tag.name).join('');
                 // 收集风格提示词
                 stylePrompts.push(tag.prompt);
             }
@@ -543,8 +568,7 @@ async function buildGPTPayload(settings, rawPrompt) {
         settings.boundCharacters.forEach(boundChar => {
             const char = db.characters.find(c => c.id === boundChar.charId);
             if (char && boundChar.prompt) {
-                const regex = new RegExp(`\\{\\{${char.realName}\\}\\}`, 'g');
-                finalPrompt = finalPrompt.replace(regex, boundChar.prompt);
+                finalPrompt = finalPrompt.split('{{'+char.realName+'}}').join(boundChar.prompt);
             }
         });
     }
@@ -570,6 +594,13 @@ async function buildGPTPayload(settings, rawPrompt) {
     if (payload.model === "dall-e-3") {
         if (settings.gptQuality) payload.quality = settings.gptQuality;
         if (settings.gptStyle) payload.style = settings.gptStyle;
+    }
+    if (window.KissWorkshopFaceLock?.gptSupported(payload.model)) {
+        delete payload.response_format;
+        if (/^gpt-image-1(?:[.-]|$)/i.test(payload.model)) {
+            payload.size = ({'1024x1792':'1024x1536','1792x1024':'1536x1024'}[payload.size] || payload.size);
+        }
+        if (settings.gptQuality) payload.quality = ({hd:'high',standard:'medium'}[settings.gptQuality] || settings.gptQuality);
     }
     
     return payload;
@@ -606,7 +637,7 @@ async function buildNovelAIPayload(settings, customCharacterPrompt = null) {
 
     const payload = {
         input: finalPositive, 
-        model: settings.novelaiModel,
+        model: window.KissNovelAIModels.model(settings.novelaiModel).id,
         action: "generate",
         parameters: {
             width: width,
@@ -622,18 +653,25 @@ async function buildNovelAIPayload(settings, customCharacterPrompt = null) {
             const char = db.characters.find(c => c.id === boundChar.charId);
             if (char && boundChar.prompt) {
                 // 匹配 {{角色真名}}
-                const regex = new RegExp(`\\{\\{${char.realName}\\}\\}`, 'g');
-                finalPositive = finalPositive.replace(regex, boundChar.prompt);
+                finalPositive = finalPositive.split('{{'+char.realName+'}}').join(boundChar.prompt);
             }
         });
     }
 
-    if (settings.novelaiModel && settings.novelaiModel.includes('diffusion-4')) {
-        payload.parameters.params_version = 3;
+    const modelInfo = window.KissNovelAIModels.model(settings.novelaiModel);
+    const faceBindings = window.KissWorkshopFaceLock?.textBindings(settings,
+        [settings.positivePrompt, customCharacterPrompt !== null ? customCharacterPrompt : settings.characterPrompt].filter(Boolean).join(', ')) || [];
+    if (faceBindings.length && !modelInfo.version) {
+        // Legacy NAI models accept prompt text, not v4 character-caption objects.
+        finalPositive += ', ' + faceBindings.map(face => face.description).join(', ');
+    }
+    payload.input = finalPositive;
+    if (modelInfo.version) {
+        payload.parameters.params_version = modelInfo.version;
         payload.parameters.v4_prompt = {
             caption: {
                 base_caption: finalPositive,
-                char_captions: []
+                char_captions: faceBindings.map(face => ({char_caption:face.description,centers:[]}))
             },
             use_coords: false,
             use_order: true
@@ -641,71 +679,20 @@ async function buildNovelAIPayload(settings, customCharacterPrompt = null) {
         payload.parameters.v4_negative_prompt = {
             caption: {
                 base_caption: finalNegative,
-                char_captions: []
+                char_captions: faceBindings.map(() => ({char_caption:'',centers:[]}))
             }
         };
     }
     
-    // --- 核心修复：处理 Vibe 数据 (多图支持) ---
-    if (settings.vibe && settings.vibe.enabled && settings.vibe.activeImageId) {
-        const activeLibItem = (settings.vibeLibrary || []).find(l => l.id === settings.vibe.activeImageId);
-        if (activeLibItem) {
-            const refImages = [];
-            const refInfoExtracted = [];
-            const refStrength = [];
-
-            if (activeLibItem.type === 'group' && activeLibItem.images && activeLibItem.images.length > 0) {
-                // 处理预设组
-                for (const img of activeLibItem.images) {
-                    if (img.encoding) {
-                        refImages.push(img.encoding);
-                        refInfoExtracted.push(img.infoExtracted !== undefined ? img.infoExtracted : 1.0);
-                        refStrength.push(img.refStrength !== undefined ? img.refStrength : 0.6);
-                    }
-                }
-            } else {
-                // 处理单图
-                if (activeLibItem.encoding) {
-                    refImages.push(activeLibItem.encoding);
-                    refInfoExtracted.push(settings.vibe.infoExtracted !== undefined ? settings.vibe.infoExtracted : 1.0);
-                    refStrength.push(settings.vibe.refStrength !== undefined ? settings.vibe.refStrength : 0.6);
-                } else if (activeLibItem.base64) {
-                    let b64 = activeLibItem.base64;
-                    if (b64.includes(',')) {
-                        b64 = b64.split(',')[1];
-                    }
-                    
-                    if (b64.startsWith('/9j/')) {
-                        b64 = await new Promise((resolve) => {
-                            const img = new Image();
-                            img.onload = () => {
-                                const canvas = document.createElement('canvas');
-                                canvas.width = img.width;
-                                canvas.height = img.height;
-                                const ctx = canvas.getContext('2d');
-                                ctx.drawImage(img, 0, 0);
-                                resolve(canvas.toDataURL('image/png').split(',')[1]);
-                            };
-                            img.src = 'data:image/jpeg;base64,' + b64;
-                        });
-                    }
-                    
-                    b64 = b64.replace(/\r?\n|\r|\s/g, '');
-                    
-                    refImages.push(b64);
-                    refInfoExtracted.push(settings.vibe.infoExtracted !== undefined ? settings.vibe.infoExtracted : 1.0);
-                    refStrength.push(settings.vibe.refStrength !== undefined ? settings.vibe.refStrength : 0.6);
-                }
-            }
-
-            if (refImages.length > 0) {
-                payload.parameters.reference_image_multiple = refImages;
-                payload.parameters.reference_information_extracted_multiple = refInfoExtracted;
-                payload.parameters.reference_strength_multiple = refStrength;
-            }
-        }
+    await window.KissWorkshopFaceLock?.apply(settings,
+        [settings.positivePrompt, customCharacterPrompt !== null ? customCharacterPrompt : settings.characterPrompt].filter(Boolean).join(', '), payload.parameters);
+    const references = await window.KissNovelAIModels.references(settings, payload.model);
+    if (references.length) {
+        payload.parameters.reference_image_multiple = references.map(r => r.encoding);
+        payload.parameters.reference_information_extracted_multiple = references.map(r => r.info);
+        payload.parameters.reference_strength_multiple = references.map(r => r.strength);
     }
-    
+
     return payload;
 }
 
@@ -720,9 +707,11 @@ function arrayBufferToB64(buffer) {
     return window.btoa(binary);
 }
 
-function renderPreviewImage(imageData) {
+function renderPreviewImage(imageData, payload = null, options = {}) {
     const previewArea = document.getElementById('workshop-preview-area');
     if (!previewArea) return;
+    currentGeneratedImage=imageData;
+    currentGeneratedPayload=payload;
     
     let src = '';
     if (imageData.startsWith('http') || imageData.startsWith('data:')) {
@@ -731,5 +720,10 @@ function renderPreviewImage(imageData) {
         src = `data:image/png;base64,${imageData}`;
     }
     
-    previewArea.innerHTML = `<img src="${src}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">`;
+    const image=document.createElement('img');image.src=src;image.alt='绘图作品';
+    image.style.cssText='max-width:100%;max-height:100%;object-fit:contain;border-radius:8px';
+    previewArea.replaceChildren(image);
+    const actions=document.getElementById('workshop-preview-actions');if(actions)actions.style.display='flex';
+    const save=document.getElementById('workshop-save-cache-btn');if(save)save.style.display=payload && !options.saved ? 'block' : 'none';
+    document.getElementById('drawing-workshop-screen')?.dispatchEvent(new Event('workshop-preview-ready'));
 }
