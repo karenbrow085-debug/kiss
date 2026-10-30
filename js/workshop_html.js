@@ -248,7 +248,7 @@ function injectWorkshopHTML() {
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                         <div class="kkt-item-label" style="font-weight: bold;">Vibe 图库</div>
                                         <div style="display: flex; gap: 5px;">
-                                            <input type="file" id="workshop-vibe-upload-input" accept="image/*,.json" multiple style="display: none;">
+                                            <input type="file" id="workshop-vibe-upload-input" accept="image/*,.json,.naiv4vibe,.naiv4vibebundle" multiple style="display: none;">
                                             <button class="btn btn-small btn-primary" onclick="document.getElementById('workshop-vibe-upload-input').click()">+ 上传素材</button>
                                         </div>
                                     </div>

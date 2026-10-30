@@ -186,4 +186,6 @@ function initDrawingWorkshop() {
     
     // 初始化角色管理
     initWorkshopCharManagement();
+    initWorkshopAtelier();
+    window.KissWorkshopFaceLock.init();
 }
