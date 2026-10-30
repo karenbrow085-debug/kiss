@@ -173,7 +173,7 @@ async function runtimeChat(row) {
  // Only decode metadata. Old messages and archive snapshots stay on disk.
  for(const k of Object.keys(out))if(k!=='history'&&k!=='archives')out[k]=await transform(out[k],true);
  const journal=await dexieDB.safeMeta.get('chat-outbox:'+row.id);
- if(journal?.archiveId===row.activeArchiveId&&journal.messages?.length){const full=await unpackHistory(row.history,true),ids=new Set(full.map(m=>m.id));for(const m of journal.messages)if(!ids.has(m.id)){full.push(await transform(m,true));ids.add(m.id);}out.history=full;cold.delete(out);}
+ if(journal?.archiveId===row.activeArchiveId&&journal?.messages?.length){const full=await unpackHistory(row.history,true),ids=new Set(full.map(m=>m.id));for(const m of journal.messages)if(!ids.has(m.id)){full.push(await transform(m,true));ids.add(m.id);}out.history=full;cold.delete(out);}
  return out;
 }
 async function hydrateChat(chat) {
@@ -397,7 +397,7 @@ async function writeChat(key,packed,chat){
   packed.__kissWriteRevision=revision+1;await dexieDB[key].put(packed);
  });writeVersions.set(chat,packed.__kissWriteRevision);
  const pending=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);
- if(pending?.messages?.length&&pending.archiveId===packed.activeArchiveId){const ids=new Set((await unpackHistory(packed.history,false)).map(m=>m.id));await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{const current=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);if(current?.archiveId===packed.activeArchiveId)await dexieDB.safeMeta.put({...current,messages:current.messages.filter(m=>!ids.has(m.id))});});}
+ if(pending?.messages?.length&&pending.archiveId===packed.activeArchiveId){const ids=new Set((await unpackHistory(packed.history,false)).map(m=>m.id));await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{const current=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);if(current?.messages?.length&&current.archiveId===packed.activeArchiveId)await dexieDB.safeMeta.put({...current,messages:current.messages.filter(m=>!ids.has(m.id))});});}
 }
 function stageMessage(chat,message){
  const archiveId=chat.activeArchiveId,value=clone(message),key='chat-outbox:'+chat.id;
