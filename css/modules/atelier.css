@@ -1,0 +1,152 @@
+/* Scoped to the drawing workshop: other KISS screens keep their own theme. */
+#drawing-workshop-screen[data-atelier] {
+    --primary-color:#7eacbf; --atelier-ink:#181a1d; --atelier-line:#e2e5e9;
+    --atelier-muted:#8a909b; background:#fafbfc; color:var(--atelier-ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","Microsoft YaHei",sans-serif;
+}
+#drawing-workshop-screen[data-atelier] * { box-sizing:border-box; }
+#drawing-workshop-screen[data-atelier] .app-header { min-height:48px; padding:4px 16px; padding-top:max(4px,env(safe-area-inset-top,0px)); background:#fafbfc; border-bottom:1px solid var(--atelier-line); box-shadow:none; flex-shrink:0; }
+#drawing-workshop-screen[data-atelier] .back-btn { color:#151719; background:none; border:0; border-radius:0; width:28px; font-size:28px; }
+#drawing-workshop-screen .atelier-app-title { flex:1; text-align:center; font-family:serif; font-size:15px; letter-spacing:3px; font-weight:400; }
+#drawing-workshop-screen[data-atelier] .placeholder { width:28px; }
+#drawing-workshop-screen[data-atelier] #drawing-workshop-content { display:flex; flex-direction:column; overflow:hidden; min-height:0; padding:0!important; background:#fafbfc!important; }
+#drawing-workshop-screen .atelier-banner { flex:none; height:108px; position:relative; padding:16px 20px; background:#f0f2f2 url('../../assets/atelier/daylight.png') center/cover; border-bottom:1px solid var(--atelier-line); }
+#drawing-workshop-screen .atelier-wordmark { font:38px/1.2 Georgia,"Times New Roman",serif; color:#111; letter-spacing:-1.5px; }
+#drawing-workshop-screen .atelier-kicker { margin-top:5px; font:7px/1.4 Georgia,serif; letter-spacing:3px; color:#5d6370; }
+#drawing-workshop-screen .atelier-caption { position:absolute; right:20px; bottom:12px; font:9px/1.7 serif; letter-spacing:1px; text-align:right; color:#555c64; }
+#drawing-workshop-screen[data-atelier] .workshop-tab-content, #drawing-workshop-screen .atelier-works { flex:1; min-height:0; height:auto!important; overflow:auto!important; padding:12px 18px 8px!important; scrollbar-width:thin; overscroll-behavior:contain; animation:none; }
+#drawing-workshop-screen .atelier-works[hidden] { display:none!important; }
+#drawing-workshop-screen[data-atelier] .workshop-section { border-radius:0!important; background:transparent!important; box-shadow:none!important; margin:0 0 14px!important; overflow:visible!important; }
+#drawing-workshop-screen[data-atelier] .workshop-section-header { padding:8px 0!important; border-bottom:1px solid var(--atelier-line)!important; gap:8px; }
+#drawing-workshop-screen[data-atelier] .workshop-section-title { font-size:13px!important; font-weight:600!important; gap:0!important; color:var(--atelier-ink); }
+#drawing-workshop-screen[data-atelier] .workshop-section-title > svg { display:none; }
+#drawing-workshop-screen[data-atelier] .workshop-section-body { padding:8px 0!important; }
+#drawing-workshop-screen[data-atelier] .kkt-group { background:transparent!important; padding:0!important; box-shadow:none!important; }
+#drawing-workshop-screen[data-atelier] .kkt-item { min-height:43px; padding:7px 0!important; border-bottom:1px solid #eceef1; gap:10px; background:transparent; }
+#drawing-workshop-screen[data-atelier] .kkt-item-label { font-size:12px!important; font-weight:500; flex-shrink:0; }
+#drawing-workshop-screen[data-atelier] .kkt-item-control { min-width:0; flex:1; justify-content:flex-end; }
+#drawing-workshop-screen[data-atelier] .kkt-arrow { display:none!important; }
+#drawing-workshop-screen[data-atelier] input:not([type=radio]):not([type=checkbox]):not([type=range]):not([type=file]),
+#drawing-workshop-screen[data-atelier] select,#drawing-workshop-screen[data-atelier] textarea {
+    color:#292d33!important; background:transparent!important; border:1px solid var(--atelier-line)!important; border-radius:6px!important;
+    font-family:inherit!important; font-size:12px!important; font-weight:400!important; padding:8px 10px!important; min-width:0; max-width:100%; box-shadow:none!important;
+}
+#drawing-workshop-screen[data-atelier] select { direction:ltr!important; text-align:left!important; appearance:none!important; padding-right:10px!important; }
+#drawing-workshop-screen[data-atelier] textarea { min-height:76px!important; line-height:1.6; resize:vertical; }
+#drawing-workshop-screen[data-atelier] input:focus-visible,#drawing-workshop-screen[data-atelier] select:focus-visible,#drawing-workshop-screen[data-atelier] textarea:focus-visible { outline:2px solid #afcbd8; outline-offset:1px; }
+#drawing-workshop-screen[data-atelier] .icon-btn-simple { color:#424853!important; background:none!important; min-width:28px; min-height:30px; padding:4px!important; border:0; }
+#drawing-workshop-screen[data-atelier] .icon-btn-simple svg { width:16px; height:16px; }
+#drawing-workshop-screen[data-atelier] .btn { font-size:12px!important; font-weight:500!important; line-height:1.3; padding:9px 14px!important; border:1px solid #d7dce2!important; border-radius:8px!important; box-shadow:none!important; background:transparent!important; color:#252a31!important; min-height:34px; margin-top:0; }
+#drawing-workshop-screen[data-atelier] .btn-primary { color:#fff!important; background:#141617!important; border-color:#141617!important; border-radius:22px!important; }
+#drawing-workshop-screen[data-atelier] button { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+#drawing-workshop-screen[data-atelier] button:disabled { opacity:.5; cursor:wait; }
+#drawing-workshop-screen[data-atelier] .radio-group-pills { display:flex; gap:8px; flex-wrap:wrap; background:none; padding:0; }
+#drawing-workshop-screen[data-atelier] .radio-group-pills input { position:absolute; opacity:0; width:1px; height:1px; }
+#drawing-workshop-screen[data-atelier] .radio-group-pills label { color:#727986!important; border:1px solid var(--atelier-line)!important; border-radius:6px!important; padding:10px 16px!important; font-size:12px!important; background:transparent!important; min-height:36px; text-align:center; }
+#drawing-workshop-screen[data-atelier] .radio-group-pills input:checked + label { color:#658fa4!important; border-color:#92b6c8!important; background:#edf4f8!important; box-shadow:none; }
+#drawing-workshop-screen[data-atelier] .radio-group-pills input:focus-visible + label { outline:2px solid #7eacbf; outline-offset:2px; }
+#drawing-workshop-screen[data-atelier] .atelier-provider { border:0; padding:0 0 10px!important; min-height:38px; }
+#drawing-workshop-screen .atelier-provider > .kkt-item-label { display:none; }
+#drawing-workshop-screen .atelier-provider .kkt-item-control { justify-content:stretch; }
+#drawing-workshop-screen .atelier-provider .radio-group-pills { display:grid; grid-template-columns:1fr 1fr; width:100%; gap:0; background:#edeff2!important; border-radius:22px; padding:2px; }
+#drawing-workshop-screen[data-atelier] .atelier-provider label { border:0!important; min-height:30px; padding:7px 10px!important; border-radius:20px!important; }
+#drawing-workshop-screen[data-atelier] .atelier-provider input:checked + label { background:#141617!important; color:#fff!important; border:0!important; }
+#drawing-workshop-screen[data-atelier] .workshop-sub-tabs { position:sticky; top:-12px; z-index:3; padding:8px 0 0!important; margin:0 0 12px!important; background:#fafbfc!important; border-radius:0!important; border-bottom:1px solid var(--atelier-line); box-shadow:none!important; gap:0; }
+#drawing-workshop-screen[data-atelier] .workshop-sub-tab { flex:1; padding:8px 4px 10px; border-bottom:2px solid transparent; gap:0!important; color:#797f8b!important; }
+#drawing-workshop-screen[data-atelier] .workshop-sub-tab.active { color:#181a1d!important; border-bottom-color:#171a1d; }
+#drawing-workshop-screen[data-atelier] .workshop-sub-tab span { font-size:12px!important; font-weight:500!important; }
+#drawing-workshop-screen .workshop-sub-tab .icon-circle { display:none!important; }
+#drawing-workshop-screen[data-atelier] .kkt-switch { flex-shrink:0; }
+#drawing-workshop-screen[data-atelier] .kkt-switch input:checked + .kkt-slider { background:#85adbf!important; }
+#drawing-workshop-screen[data-atelier] input[type=range] { accent-color:#80a8bd; background:#e2e6ec; }
+#drawing-workshop-screen[data-atelier] input[type=range]::-webkit-slider-thumb { background:#7d9fb2; width:12px; height:12px; box-shadow:none; }
+#drawing-workshop-screen .atelier-generate-dock { position:sticky; bottom:-8px; background:linear-gradient(transparent,#fafbfc 20%); padding:14px 0 7px; z-index:2; }
+#drawing-workshop-screen[data-atelier] #workshop-generate-btn { min-height:40px; margin:0!important; font-size:13px!important; }
+#drawing-workshop-screen .atelier-nav { display:flex; justify-content:space-around; flex:none; border-top:1px solid var(--atelier-line); padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px)); background:#fafbfc; }
+#drawing-workshop-screen[data-atelier] .atelier-nav button { display:flex; flex:1; flex-direction:column; align-items:center; gap:3px; min-height:40px; border:0!important; background:none; font-size:9px!important; color:#89909c!important; padding:2px!important; font-weight:400; }
+#drawing-workshop-screen[data-atelier] .atelier-nav button.active { color:#16191b!important; }
+#drawing-workshop-screen[data-atelier] .atelier-nav button.active svg { stroke-width:1.9; }
+#drawing-workshop-screen[data-atelier] #workshop-preview-area { min-height:180px!important; border:1px solid var(--atelier-line)!important; border-radius:6px!important; background:#f1f3f5!important; padding:0; font-size:12px; }
+#drawing-workshop-screen[data-atelier] #workshop-preview-area img { display:block; width:100%; height:auto; max-height:none!important; border-radius:4px!important; }
+#drawing-workshop-screen[data-atelier] #workshop-preview-actions { position:static!important; margin:10px 0 0; gap:8px; }
+#drawing-workshop-screen #workshop-preview-actions button { flex:1; }
+#drawing-workshop-screen[data-atelier] #workshop-history-gallery { grid-template-columns:repeat(3,minmax(0,1fr))!important; padding:10px 0!important; gap:6px!important; }
+#drawing-workshop-screen[data-atelier] #workshop-vibe-library-grid { gap:7px!important; }
+#drawing-workshop-screen[data-atelier] #workshop-gpt-tags-list > div,
+#drawing-workshop-screen[data-atelier] #workshop-llm-prompt-list > div,
+#drawing-workshop-screen[data-atelier] #workshop-gpt-llm-prompt-list > div { border:0!important; border-bottom:1px solid var(--atelier-line)!important; border-radius:0!important; padding:10px 0!important; background:transparent!important; }
+#drawing-workshop-screen[data-atelier] #workshop-char-list { gap:0!important; }
+#drawing-workshop-screen[data-atelier] #workshop-char-list > div { border:0!important; border-bottom:1px solid var(--atelier-line)!important; border-radius:0!important; padding:12px 0!important; background:transparent!important; }
+#drawing-workshop-screen[data-atelier] #workshop-char-list > div > div > img { width:65px!important; height:72px!important; border-radius:5px!important; }
+#drawing-workshop-screen[data-atelier] .atelier-help { font-size:11px!important; line-height:1.6!important; padding:8px 0!important; background:transparent!important; border:0!important; border-radius:0!important; color:#8a909b!important; }
+#drawing-workshop-screen[data-atelier] .atelier-lock-open { border:1px solid #d5e1e8; color:#6d95aa; background:#f4f8fa; border-radius:5px; font-size:11px; padding:5px 8px; }
+#drawing-workshop-screen .atelier-lock-panel { position:absolute; inset:0; background:#fafbfc; z-index:105; display:flex; flex-direction:column; }
+#drawing-workshop-screen .atelier-lock-panel[hidden] { display:none; }
+#drawing-workshop-screen .atelier-lock-header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--atelier-line); font-size:14px; }
+#drawing-workshop-screen .atelier-lock-header button { border:0; background:none; color:inherit; padding:6px; font-size:12px; }
+#drawing-workshop-screen .atelier-lock-header strong { flex:1; text-align:center; font-weight:500; }
+#drawing-workshop-screen .atelier-lock-content { padding:18px; overflow:auto; flex:1; }
+#drawing-workshop-screen .atelier-lock-portrait { width:100%; max-height:300px; object-fit:contain; background:#eef0f3; border-radius:6px; }
+#drawing-workshop-screen .atelier-lock-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--atelier-line); font-size:12px; }
+#drawing-workshop-screen .atelier-lock-row input[type=range] { flex:1; width:100px; }
+#drawing-workshop-screen .atelier-lock-note { font-size:11px; line-height:1.7; color:#808895; margin:12px 0; }
+#drawing-workshop-screen .atelier-lock-actions { display:flex; gap:8px; padding:10px 0; }
+#drawing-workshop-screen .atelier-api-section .workshop-section-header { border:0!important; }
+#drawing-workshop-screen .atelier-api-section .workshop-section-header > div:last-child { min-width:0; }
+#drawing-workshop-screen .atelier-api-section .workshop-section-body { padding-top:0!important; }
+#drawing-workshop-screen[data-atelier] .atelier-api-section .kkt-item { border:0; padding:5px 0!important; min-height:38px; }
+#drawing-workshop-screen .atelier-api-input { display:flex; align-items:center; gap:12px; font-size:11px; color:#7a8290; }
+#drawing-workshop-screen .atelier-api-input > span { width:36px; flex:none; }
+#drawing-workshop-screen .atelier-api-input input { flex:1; width:0!important; }
+#drawing-workshop-screen .atelier-api-advanced { border-top:1px solid var(--atelier-line); margin-top:4px; font-size:11px; color:#89919c; }
+#drawing-workshop-screen .atelier-api-advanced summary { cursor:pointer; list-style:none; padding:8px 0 4px; text-align:right; }
+#drawing-workshop-screen .atelier-api-advanced summary::-webkit-details-marker { display:none; }
+#drawing-workshop-screen #workshop-fetch-models-btn { margin-left:5px; padding:6px 8px!important; min-height:30px; white-space:nowrap; }
+#drawing-workshop-screen .atelier-lock-panel .kkt-switch { width:40px; height:23px; }
+#drawing-workshop-screen .atelier-lock-panel input[type=checkbox] { accent-color:#85adbf; }
+#drawing-workshop-screen[data-atelier] #workshop-char-list .char-prompt-input { display:none; }
+#drawing-workshop-screen[data-atelier] #workshop-char-list .atelier-char-editing .char-prompt-input { display:block; margin:8px 0; }
+#drawing-workshop-screen .atelier-char-preview { color:#8b93a0; font-size:11px; line-height:1.5; margin:6px 0 10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+#drawing-workshop-screen .atelier-char-edit { padding:4px; min-width:28px; min-height:30px; border:0; background:none; color:#606875; font-size:11px; }
+#drawing-workshop-screen #workshop-char-tab .workshop-section-title { font-weight:500!important; }
+#drawing-workshop-screen[data-atelier] #workshop-positive-prompt,
+#drawing-workshop-screen[data-atelier] #workshop-character-prompt,
+#drawing-workshop-screen[data-atelier] #workshop-negative-prompt { height:84px; margin-bottom:8px!important; }
+#drawing-workshop-screen #workshop-llm-prompt-list > div,
+#drawing-workshop-screen #workshop-gpt-llm-prompt-list > div { margin-bottom:0!important; }
+#drawing-workshop-screen #workshop-llm-prompt-list > div > div:first-child,
+#drawing-workshop-screen #workshop-gpt-llm-prompt-list > div > div:first-child { padding:6px 0!important; }
+#drawing-workshop-screen #workshop-llm-prompt-list svg,
+#drawing-workshop-screen #workshop-gpt-llm-prompt-list svg { color:#565e69!important; }
+#drawing-workshop-screen[data-atelier] #workshop-vibe-library-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+#workshop-add-char-modal .modal-window { background:#fafbfc; border:1px solid #e2e5e9; border-radius:14px; box-shadow:0 12px 40px #17222e15; }
+#workshop-add-char-modal h3 { font-size:15px; font-weight:500; }
+#workshop-add-char-modal .btn { border-radius:20px; font-size:13px; box-shadow:none; }
+#workshop-add-char-modal .btn-primary { background:#151719; color:white; }
+#drawing-workshop-screen .atelier-lock-panel .kkt-switch { position:relative; display:inline-block; flex:none; }
+#drawing-workshop-screen .atelier-lock-panel .kkt-switch input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; z-index:2; cursor:pointer; }
+#drawing-workshop-screen .atelier-lock-panel .kkt-slider { position:absolute; inset:0; border-radius:20px; background:#ced3d8; }
+#drawing-workshop-screen .atelier-lock-panel .kkt-slider:before { content:''; position:absolute; width:19px; height:19px; left:2px; top:2px; bottom:auto; border-radius:50%; background:white; box-shadow:none; transform:none; }
+#drawing-workshop-screen .atelier-lock-panel input:checked + .kkt-slider { background:#85adbf!important; }
+#drawing-workshop-screen .atelier-lock-panel input:checked + .kkt-slider:before { transform:translateX(17px); }
+#drawing-workshop-screen .atelier-lock-panel input[type=range] { appearance:none; -webkit-appearance:none; height:3px; border:0; background:#e0e5eb; border-radius:4px; }
+#drawing-workshop-screen .atelier-lock-panel input[type=range]::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:12px; height:12px; border:0; border-radius:50%; background:#7d9fb2; }
+#drawing-workshop-screen .atelier-lock-panel input[type=range]::-moz-range-thumb { width:12px; height:12px; border:0; border-radius:50%; background:#7d9fb2; }
+#drawing-workshop-screen .atelier-lock-panel [hidden] { display:none!important; }
+#drawing-workshop-screen .atelier-face-crop { position:absolute; inset:0; overflow:auto; z-index:2; background:#fafbfc; padding:0 16px 16px; }
+#drawing-workshop-screen .atelier-face-crop .atelier-lock-header { position:sticky; top:0; z-index:3; margin:0 -16px; background:#fafbfc; }
+#drawing-workshop-screen .atelier-crop-stage { position:relative; display:table; width:max-content; max-width:100%; margin:14px auto; overflow:hidden; background:#edf0f3; }
+#drawing-workshop-screen .atelier-crop-stage > img { display:block; width:auto; height:auto; max-width:100%; max-height:calc(100dvh - 290px); }
+#drawing-workshop-screen .atelier-crop-box { position:absolute; border:1px solid white; outline:1px solid #749bb3; box-shadow:0 0 0 10000px #10172080; touch-action:none; cursor:move; }
+#drawing-workshop-screen .atelier-crop-handle { position:absolute; width:26px; height:26px; bottom:-8px; right:-8px; border:2px solid #fff; border-radius:50%; background:#739ab0; padding:0; touch-action:none; cursor:nwse-resize; }
+#drawing-workshop-screen .atelier-crop-nudge { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+#drawing-workshop-screen .atelier-crop-nudge button { background:none; border:1px solid #dde2e7; border-radius:6px; padding:7px 12px; font-size:11px; color:#66717c; }
+#drawing-workshop-screen .atelier-face-description { display:block; font-size:12px; line-height:1.7; }
+#drawing-workshop-screen .atelier-face-description textarea { display:block; width:100%; margin-top:6px; }
+#drawing-workshop-screen [data-photo-area] > summary { padding:10px 0; cursor:pointer; list-style:none; font-size:12px; border-bottom:1px solid var(--atelier-line); }
+#drawing-workshop-screen [data-photo-area] > summary::-webkit-details-marker { display:none; }
+#drawing-workshop-screen [data-photo-area] .atelier-lock-portrait { margin-top:10px; }
+#drawing-workshop-screen .atelier-face-mode { font-size:10px; margin:3px 0 9px; color:#758c99; }
+#drawing-workshop-screen .atelier-lock-panel > .atelier-lock-header,
+#drawing-workshop-screen .atelier-face-crop .atelier-lock-header { padding-top:max(14px,env(safe-area-inset-top,0px)); }
+@media(max-height:650px) { #drawing-workshop-screen .atelier-banner { height:82px; padding-top:10px; } #drawing-workshop-screen .atelier-wordmark { font-size:31px; } }
