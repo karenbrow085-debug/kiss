@@ -4,7 +4,7 @@ window.openCharacterStatusPanel = function(char, overridePanel, viewerOptions={}
  const content=document.getElementById('char-status-content'),overlay=document.getElementById('char-status-overlay');if(!content||!overlay)return;
  overlay._statusDispose?.();
  const options={panel:panelData,offline:!!overridePanel,...viewerOptions},disposals=[],frames=new Map();let disposed=false,currentIndex=0,resizeTimer,observerTimer;
- overlay.dataset.offline=String(options.offline);overlay.dataset.readonly=String(!!options.readOnly);overlay.classList.remove('status-expanded');
+ overlay.dataset.offline=String(options.offline);overlay.dataset.readonly=String(!!options.readOnly);overlay.classList.remove('status-expanded');overlay.classList.toggle('status-tools-collapsed',overlay.dataset.toolsCollapsed==='true');
  const parent=document.querySelector('.phone-screen')||document.getElementById('chat-room-screen')?.parentNode||document.body;if(overlay.parentNode!==parent)parent.append(overlay);
  content.replaceChildren();
  const slides=panelData.history?.length?[...panelData.history].reverse():panelData.currentStatusHtml?[{html:panelData.currentStatusHtml,timestamp:Date.now()}]:[];
@@ -18,6 +18,10 @@ window.openCharacterStatusPanel = function(char, overridePanel, viewerOptions={}
   const schedule=()=>{clearTimeout(timer);timer=setTimeout(measure,60);};
   function measure(){if(disposed||!frame.isConnected)return;
    if(viewportLayout){frame.style.height=viewportHeight()+'px';return;}
+   // Always measure against the same viewport, never against our previous output.
+   // Percentage heights plus padding/margins otherwise add another gap on each pass.
+   const slide=frame.closest('.status-slide'),scrollTop=slide?.scrollTop||0;
+   frame.style.height=viewportHeight()+'px';
    try{const doc=frame.contentDocument,body=doc?.body;if(!body)return;
     let bottom=0;const win=frame.contentWindow,bodyStyle=win.getComputedStyle(body);
     // Range captures text and inline content without treating the iframe viewport as content.
@@ -25,7 +29,7 @@ window.openCharacterStatusPanel = function(char, overridePanel, viewerOptions={}
     let inspected=0;for(const el of body.querySelectorAll('*')){if(++inspected>5000)break;if(['SCRIPT','STYLE','LINK','META'].includes(el.tagName))continue;const style=win.getComputedStyle(el);if(style.display==='none'||style.position==='fixed')continue;const r=el.getBoundingClientRect();bottom=Math.max(bottom,r.bottom+win.scrollY+(parseFloat(style.marginBottom)||0));}
     bottom+=parseFloat(bodyStyle.paddingBottom)||0;
     const height=Math.max(1,Math.min(60000,Math.ceil(bottom)));if(Math.abs(frame.getBoundingClientRect().height-height)>1)frame.style.height=height+'px';
-   }catch{frame.style.height=viewportHeight()+'px';}
+   }catch{frame.style.height=viewportHeight()+'px';}finally{if(slide)slide.scrollTop=scrollTop;}
   }
   frame.className='status-template-frame';frame.title='状态内容';frame.style.height=viewportLayout?viewportHeight()+'px':'1px';
   frame.addEventListener('load',()=>{stop();if(disposed)return;try{const doc=frame.contentDocument;if(!doc?.body)return;
@@ -56,6 +60,11 @@ window.openCharacterStatusPanel = function(char, overridePanel, viewerOptions={}
  expand.onclick=()=>toggle();expand.disabled=!slides.length;tools.prepend(expand);label();
  tools.addEventListener('click',()=>{expand.disabled=!slides.length||swiper.hidden;});
  if(options.readOnly){const close=document.createElement('button');close.type='button';close.textContent='关闭';close.onclick=()=>overlay.classList.remove('visible');tools.append(close);}
+ const toolbar=content.querySelector('.sh-toolbar');if(toolbar)toolbar.id='status-action-toolbar';
+ const fold=document.createElement('button');fold.type='button';fold.className='sh-tools-toggle';fold.setAttribute('aria-controls','status-action-toolbar');
+ function labelTools(){const collapsed=overlay.classList.contains('status-tools-collapsed');fold.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${collapsed?'m6 15 6-6 6 6':'m6 9 6 6 6-6'}"/></svg>`;fold.setAttribute('aria-label',collapsed?'展开工具栏':'收起工具栏');fold.setAttribute('title',collapsed?'展开工具栏':'收起工具栏');fold.setAttribute('aria-expanded',String(!collapsed));}
+ fold.onclick=()=>{const index=currentIndex,saved=[...swiper.children].map(el=>[el,el.scrollTop]);const collapsed=!overlay.classList.contains('status-tools-collapsed');overlay.dataset.toolsCollapsed=String(collapsed);overlay.classList.toggle('status-tools-collapsed',collapsed);labelTools();resize(index);requestAnimationFrame(()=>{if(!disposed)for(const [el,top]of saved)el.scrollTop=top;});};
+ tools.append(fold);labelTools();
  function resize(index=currentIndex){if(disposed)return;swiper.style.scrollBehavior='auto';swiper.scrollLeft=index*swiper.clientWidth;for(const {measure}of frames.values())measure();clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(!disposed)swiper.style.scrollBehavior='smooth';},100);}
  const onResize=()=>resize();window.addEventListener('resize',onResize);const observer=new ResizeObserver(()=>{clearTimeout(observerTimer);observerTimer=setTimeout(onResize,60);});observer.observe(content);
  const keydown=e=>{if(e.key==='Escape'&&overlay.classList.contains('visible')){e.preventDefault();if(overlay.classList.contains('status-expanded'))toggle(false);else overlay.classList.remove('visible');}};document.addEventListener('keydown',keydown);

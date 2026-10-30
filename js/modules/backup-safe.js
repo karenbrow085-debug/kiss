@@ -396,12 +396,55 @@ async function writeChat(key,packed,chat){
   if(previous)await dexieDB.safeMeta.put({key:'chat-checkpoint:'+key+':'+packed.id,createdAt:Date.now(),chat:previous});
   packed.__kissWriteRevision=revision+1;await dexieDB[key].put(packed);
  });writeVersions.set(chat,packed.__kissWriteRevision);
- const pending=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);
- if(pending?.messages?.length&&pending.archiveId===packed.activeArchiveId){const ids=new Set((await unpackHistory(packed.history,false)).map(m=>m.id));await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{const current=await dexieDB.safeMeta.get('chat-outbox:'+packed.id);if(current?.messages?.length&&current.archiveId===packed.activeArchiveId)await dexieDB.safeMeta.put({...current,messages:current.messages.filter(m=>!ids.has(m.id))});});}
+ await acknowledgeOutbox(packed);
+}
+// A redundant main archive can be folded into the root chat during saving.
+// Retire its journal only after its message IDs are proven present on disk.
+async function acknowledgeOutbox(packed){
+ const key='chat-outbox:'+packed.id,pending=await dexieDB.safeMeta.get(key);if(!pending?.messages?.length)return;
+ const archive=packed.archives?.find(a=>a.id===pending.archiveId);
+ let history=packed.history;
+ if(pending.archiveId!==packed.activeArchiveId&&archive){
+  if(archive.dataStoredOnChat===true)return; // ambiguous inactive pointer: keep the journal
+  const data=archive.data?.[A]?await get(archive.data[A]):archive.data;
+  history=data?.history;if(!history)return;
+ }
+ const ids=new Set((await unpackHistory(history,false)).map(m=>m.id));
+ await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{
+  const current=await dexieDB.safeMeta.get(key);
+  if(current?.archiveId!==pending.archiveId||!current?.messages?.length)return;
+  const messages=current.messages.filter(m=>!ids.has(m.id));
+  if(messages.length!==current.messages.length)await dexieDB.safeMeta.put({...current,messages});
+ });
 }
 function stageMessage(chat,message){
+ // Normalize before recording the branch, using the same rule as saveChat/save.
+ if(typeof syncChatActiveArchive==='function')syncChatActiveArchive(chat);
  const archiveId=chat.activeArchiveId,value=clone(message),key='chat-outbox:'+chat.id;
- const job=serial.then(async()=>{if(busy||global.kissCleanupLocked)throw Error('数据正在整理，消息尚未保存');const encoded=await transform(value);await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{const old=await dexieDB.safeMeta.get(key);if(old?.messages?.length&&old.archiveId!==archiveId)throw Error('上一存档仍有未保存消息，请先重试保存');const messages=(old?.messages||[]).filter(m=>m.id!==value.id);messages.push(encoded);await dexieDB.safeMeta.put({key,archiveId,messages,createdAt:Date.now()});});});serial=job.catch(()=>{});return job;
+ const job=serial.then(async()=>{
+  if(busy||global.kissCleanupLocked)throw Error('数据正在整理，消息尚未保存');
+  const old=await dexieDB.safeMeta.get(key);
+  if(old?.messages?.length&&old.archiveId!==archiveId){
+   const tableKey=(db.characters||[]).includes(chat)?'characters':(db.groups||[]).includes(chat)?'groups':null;
+   const saved=tableKey&&await dexieDB[tableKey].get(chat.id);
+   if(saved)await acknowledgeOutbox(saved);
+   const remaining=await dexieDB.safeMeta.get(key);
+   const liveIds=new Set((Array.isArray(chat.history)?chat.history:[]).map(m=>m.id));
+   // An archive alias was removed, but its pending messages are still in this live history.
+   // Commit that history first; writeChat acknowledges the journal only after the transaction.
+   if(tableKey&&remaining?.messages?.length&&remaining.archiveId!==archiveId&&chat.activeArchiveId===archiveId&&
+      !chat.archives?.some(a=>a.id===remaining.archiveId)&&remaining.messages.every(m=>liveIds.has(m.id))){
+    await writeChat(tableKey,await diskChat(chat),chat);
+   }
+  }
+  const encoded=await transform(value);
+  await dexieDB.transaction('rw',dexieDB.safeMeta,async()=>{
+   const pending=await dexieDB.safeMeta.get(key);
+   if(pending?.messages?.length&&pending.archiveId!==archiveId)throw Error('上一存档仍有未保存消息，请先重试保存');
+   const messages=(pending?.messages||[]).filter(m=>m.id!==value.id);messages.push(encoded);
+   await dexieDB.safeMeta.put({key,archiveId,messages,createdAt:Date.now()});
+  });
+ });serial=job.catch(()=>{});return job;
 }
 
 function saveChat(chat){
