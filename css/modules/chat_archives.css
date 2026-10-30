@@ -46,3 +46,33 @@
 .archive-help{margin:-8px 19px 0;color:var(--archive-muted);font-size:10px;line-height:1.65}
 @media(max-width:340px){.archive-record-tools{gap:7px}.archive-record-tools button{font-size:11px;gap:4px}.archive-card-footer{padding-left:12px}.archive-card-footer time{font-size:9px;gap:3px}.archive-actions button{padding-inline:4px}}
 @media(prefers-color-scheme:dark){.chat-archive-panel{--archive-bg:#19191b;--archive-ink:#eeeef0;--archive-muted:#9b9ba3;--archive-line:#414147;--archive-soft:#29292e}}
+/* Match the approved folder preview; prevent inherited bold body text. */
+.chat-archive-panel{font-weight:400;line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.archive-panel-header{min-height:calc(64px + env(safe-area-inset-top));padding-inline:18px}
+.archive-panel-header h2{font-size:18px;font-weight:600}
+.archive-record-tools{padding-top:8px;gap:12px}
+.archive-record-tools button{min-height:43px;font-size:13px;font-weight:400;gap:8px}
+.archive-record-tools svg{width:22px;height:22px}
+.archive-section-heading{margin-top:27px;margin-bottom:18px}
+.archive-section-heading h3{font-size:18px;font-weight:600}
+.archive-section-heading>span{font-size:12px;font-weight:400}
+.chat-archive-card{margin:0 0 14px;padding-top:37px;border:0;border-radius:0;background:transparent;isolation:isolate}
+.chat-archive-card::before{display:none}
+.archive-folder-outline{position:absolute;inset:0;z-index:-1;width:100%!important;height:100%!important;overflow:visible;pointer-events:none}
+.archive-folder-outline path{fill:var(--archive-bg);stroke:var(--archive-line);stroke-width:1;vector-effect:non-scaling-stroke}
+.archive-folder-tab{top:4px;left:18px;font-size:12px;color:var(--archive-muted);font-weight:400}
+.archive-folder-tab i{width:8px;height:8px}
+.archive-card-main{padding:0 21px 23px}
+.chat-archive-card.active .archive-card-main::before{top:-13px;bottom:0;width:4px}
+.archive-name-row{min-height:29px}
+.archive-name-row strong{font-size:20px;font-weight:600}
+.archive-meta{margin-top:5px;font-size:13px;font-weight:400}
+.archive-origin{font-weight:400}
+.archive-card-footer{position:relative;min-height:44px;padding:3px 16px 3px 21px;margin-inline:1px}
+.archive-card-footer time{font-size:12px;font-weight:400;gap:7px;white-space:nowrap}
+.archive-card-footer time svg{width:18px;height:18px}
+.archive-actions button{font-size:14px;font-weight:400;padding-inline:5px}
+.archive-more summary{font-size:23px;color:#777980}
+.archive-more-menu button{display:block;width:100%;text-align:left}
+.archive-help{margin:0 19px;font-size:11px;font-weight:400}
+@media(max-width:340px){.archive-record-tools{gap:8px}.archive-record-tools button{font-size:12px;gap:5px}.archive-record-tools svg{width:19px;height:19px}.archive-card-footer{padding-left:15px;padding-right:9px}.archive-card-footer time{font-size:10px;gap:4px}.archive-actions button{font-size:12px}.archive-card-main{padding-left:17px}}
