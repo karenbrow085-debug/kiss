@@ -512,14 +512,17 @@ async function openChatRoom(chatId, type) {
     });
 }
 
+let chatSendStaging=false;const pendingOnlineSends=new WeakMap();
 async function sendMessage() {
     const text = messageInput.value.trim();
-    if (!text || isGenerating) return;
+    if (!text || isGenerating || chatSendStaging) return;
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
 
     if (!chat) return;
     if(window.PhoneBackup?.isPinned(chat)){showToast('存档正在处理，输入内容已保留');return;}
-    messageInput.value = '';
+    const sendChatType=currentChatType;let releaseSend=()=>{};chatSendStaging=true;try{
+    await PhoneBackup.hydrateChat(chat);if(currentChatId!==chat.id||currentChatType!==sendChatType)throw Error('聊天已切换，输入内容已保留');if(window.PhoneBackup?.isPinned(chat))throw Error('存档正在处理，输入内容已保留');releaseSend=window.PhoneBackup?.pinChat?.(chat)||(()=>{});
+    const pending=pendingOnlineSends.get(chat);if(pending?.text===text&&chat.history?.includes(pending.message)){await PhoneBackup.stageMessage(chat,pending.message);await PhoneBackup.saveChat(chat);pendingOnlineSends.delete(chat);if(currentChatId===chat.id&&messageInput.value.trim()===text)messageInput.value='';renderChatList();return;}
     if (!chat.history) chat.history = [];
 
     if (db.apiSettings && db.apiSettings.timePerceptionEnabled) {
@@ -570,7 +573,7 @@ async function sendMessage() {
     }
 
     const message = {
-        id: `msg_${Date.now()}`,
+        id: `msg_${globalThis.crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)}`,
         role: 'user',
         content: messageContent,
         parts: [{type: 'text', text: messageContent}],
@@ -588,7 +591,7 @@ async function sendMessage() {
     if (currentChatType === 'group') {
         message.senderId = 'user_me';
     }
-    chat.history.push(message);
+    pendingOnlineSends.set(chat,{text,message});chat.history.push(message);
     addMessageBubble(message, currentChatId, currentChatType);
     triggerHapticFeedback('success');
 
@@ -596,12 +599,14 @@ async function sendMessage() {
         promptForBackupIfNeeded('history_milestone');
     }
 
-    await saveData();
+    await window.PhoneBackup?.stageMessage?.(chat,message);if(currentChatId===chat.id&&currentChatType===sendChatType&&messageInput.value.trim()===text)messageInput.value='';
+    await PhoneBackup.saveChat(chat);pendingOnlineSends.delete(chat);
     renderChatList();
 
     if (currentQuoteInfo) {
         cancelQuoteReply();
     }
+    }catch(error){showToast('消息尚未保存，请保留页面重试：'+error.message);throw error;}finally{releaseSend();chatSendStaging=false;}
 }
 
 // 备份提示
@@ -610,3 +615,4 @@ function promptForBackupIfNeeded(triggerType) {
         showToast('uwu提醒您：记得备份噢');
     }
 }
+
