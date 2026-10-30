@@ -334,7 +334,9 @@ async function switchChatArchiveImpl(archiveId) {
 
 async function renameChatArchiveImpl(archiveId) {
     const chat = getCurrentChatEntity();
-    const archive = chat?.archives.find(item => item.id === archiveId);
+    if (!chat) return;
+    if (!archiveId) { ensureChatArchives(chat); archiveId = chat.activeArchiveId; }
+    const archive = chat.archives?.find(item => item.id === archiveId);
     if (!archive) return;
     const name = prompt('修改存档名称', archive.name);
     if (name === null || !name.trim()) return;
@@ -409,11 +411,11 @@ function renderArchiveManager() {
             const origin = archive.origin ? `<div class="archive-origin">来自：${escapeHtml(archive.origin.archiveName || '其他存档')}</div>` : '';
             return `
                 <article class="chat-archive-card ${active ? 'active' : ''}" data-archive-id="${archive.id || ''}">
-                    <div class="archive-folder-tab">${active ? '<i></i>使用中' : '存档'}</div>
+                    <svg class="archive-folder-outline" viewBox="0 0 354 148" preserveAspectRatio="none" aria-hidden="true"><path d="M.5 20V13Q.5 .5 13 .5H80Q88 .5 93 9L99 17Q101 20 107 20H341Q353.5 20 353.5 33V135Q353.5 147.5 341 147.5H13Q.5 147.5 .5 135Z"/></svg><div class="archive-folder-tab">${active ? '<i></i>使用中' : '存档'}</div>
                     <div class="archive-card-main">
                         <div class="archive-name-row">
                             <strong>${escapeHtml(archive.name)}</strong>
-                            ${archive.id && archives.length > 1 ? '<details class="archive-more"><summary aria-label="更多存档操作">···</summary><div class="archive-more-menu"><button type="button" data-action="delete" class="danger">删除存档</button></div></details>' : ''}
+                            <details class="archive-more"><summary aria-label="更多存档操作">···</summary><div class="archive-more-menu"><button type="button" data-action="rename">修改名称</button>${archive.id && archives.length > 1 ? '<button type="button" data-action="delete" class="danger">删除存档</button>' : ''}</div></details>
                         </div>
                         <div class="archive-meta">${messageCount} 条消息 · ${journalCount} 篇日记</div>
                         ${origin}
@@ -422,7 +424,7 @@ function renderArchiveManager() {
                         <time>${archiveUiIcon('clock')}${formatArchiveTime(archive.updatedAt)}</time>
                         <div class="archive-actions">
                             ${active ? '' : '<button type="button" data-action="switch" class="archive-enter">进入</button>'}
-                            ${archive.id ? '<button type="button" data-action="rename">改名</button>' : ''}
+                            <button type="button" data-action="rename">改名</button>
                         </div>
                     </footer>
                 </article>`;
