@@ -2,6 +2,7 @@
 (() => {
 'use strict';
 const ID = 'kiss-offline-screen';
+if(!globalSettingKeys.includes('offlineNightMode'))globalSettingKeys.push('offlineNightMode');
 const DEFAULT_PROMPT = '当前为线下现实互动。用户输入代表其动作、神态、对白或推动剧情的指令。根据双方人设、环境和已有事件，以完整连贯的长文继续剧情，兼顾动作、对白和细节；为用户保留回应空间，不替用户决定或说话。不要输出短信包装格式、语音、转账、表情包或手机操作指令。每轮输出一条完整剧情，篇幅服从用户要求，不强制字数。对白使用中文引号；明确的心理活动用 *斜体标记*，需要强调时用 **粗体标记**，普通叙述直接书写。不要为了格式额外添加心理描写。';
 const ICONS = {
  image:'<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.5"/><path d="m4 17 5-5 4 4 3-3 5 5"/>',
@@ -153,14 +154,15 @@ function ensureHost() {
  if(state.host)return;
  const host=document.createElement('section'); host.id=ID;host.className='screen';host.setAttribute('aria-label','Offline conversation');
  document.getElementById('chat-room-screen').parentNode.append(host);state.host=host;state.root=host.attachShadow({mode:'open'});if(/Android/i.test(globalThis.navigator?.userAgent||''))host.dataset.platform='android';
- state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261030-native-5"><style id="of-custom-style"></style>
+ state.root.innerHTML=`<link rel="stylesheet" href="css/modules/offline.css?v=20261031-offline-night-1"><style id="of-custom-style"></style>
  <div class="of-page"><header class="of-header"><button data-action="back" aria-label="Back">${icon('back')}</button><button class="of-header-profile" data-action="status-view" aria-label="View status"><img class="of-header-avatar" alt=""><i></i></button><button class="of-title" data-action="menu"><span class="of-title-copy" style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><strong></strong><span class="of-presence" style="position:static;inset:auto;background:none;padding:0" role="status" aria-live="polite"></span></span><span class="of-title-chevron">${icon('chevron')}</span><small class="of-readonly-label" hidden></small></button><button data-action="style" aria-label="Appearance">${icon('phone')}</button><button data-action="memory" aria-label="Memory and floors">${icon('video')}</button><button data-action="setup" aria-label="Conversation setup">${icon('search')}</button></header>
  <div class="of-selection-bar" hidden><button data-action="cancel-selection">Cancel</button><span id="of-selection-count">0 selected</span><button class="of-danger-text" data-action="delete-selected">Delete</button></div><main class="of-messages" aria-label="Conversation"></main>
  <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Generate reply">${icon('send')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
- state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261030-native-5';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261031-offline-night-1';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
+ applyNightMode();
  if(typeof ResizeObserver!=='undefined')new ResizeObserver(entries=>{const size=entries[0].borderBoxSize?.[0]?.blockSize||entries[0].target.getBoundingClientRect().height;if(size)$('.of-page').style.setProperty('--of-composer-height',size+'px');}).observe($('.of-composer'));
  state.root.addEventListener('click',onClick);
  installGestures();
@@ -216,7 +218,7 @@ function refresh(force=false) {
  cancelAnimationFrame(state.frame);state.frame=requestAnimationFrame(()=>render(force));
 }
 function render(force) {
- const chat=character();if(!chat)return;ensureFloors(chat);
+ const chat=character();if(!chat)return;applyNightMode();ensureFloors(chat);
  if(state.view==='archives'){renderArchives();return;}
  const readOnly=state.view==='archive',archive=readOnly?config(chat).sessions.find(s=>s.id===state.archiveId):null;
  if(readOnly&&!archive){showArchives();return;}
@@ -607,10 +609,22 @@ function viewStatus(){const chat=character(),sp=config(chat).statusPanel||{histo
 
 async function sendFromStatus(text){const chat=character(),input=$('.of-composer textarea'),previous=input.value;input.value=text;const saved=send();input.value=previous;config(chat).composerDraft=previous;sizeInputSoon(input);await saved;await saveOfflineChat(chat);}
 
+function applyNightMode(){
+ const theme=db.offlineNightMode===true?'dark':'light';
+ if(state.host)state.host.dataset.theme=theme;
+ if(state.panelRoot)state.panelRoot.host.dataset.theme=theme;
+}
+async function changeNightMode(event){
+ const toggle=event.currentTarget,previous=db.offlineNightMode;
+ toggle.disabled=true;
+ try{await persistGlobalChange(()=>{db.offlineNightMode=toggle.checked;applyNightMode();},()=>{if(previous===undefined)delete db.offlineNightMode;else db.offlineNightMode=previous;applyNightMode();toggle.checked=previous===true;});}
+ catch(error){fail(error);}finally{toggle.disabled=false;}
+}
 function presets(){db.offlineStylePresets ||= [];return db.offlineStylePresets;}
 function cssEditor() {
- panel('CSS 编辑器',`<div class="of-section-title"><span>页面样式</span><span><button data-action="style-presets">预设库</button><button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></span></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">存为预设</button><button data-action="reset-css" class="of-text-button">重置</button></div>`);
+ panel('CSS 编辑器',`<div class="of-settings-group of-theme-setting"><label class="of-inline-field" for="of-night-mode"><span>夜间模式</span><input id="of-night-mode" type="checkbox" class="of-switch" role="switch" aria-label="线下夜间模式" ${db.offlineNightMode===true?'checked':''}></label></div><div class="of-section-title"><span>页面样式</span><span><button data-action="style-presets">预设库</button><button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></span></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">存为预设</button><button data-action="reset-css" class="of-text-button">重置</button></div>`);
  $('#of-css').value=state.editorDraft??config(character()).css??'';
+ $('#of-night-mode').addEventListener('change',changeNightMode);
 }
 function toolRow(action,label,mark,id='') {return `<button class="of-tool-row" data-action="${action}" ${id?'data-id="'+escape(id)+'"':''}><span class="of-tool-icon">${icon(mark)}</span><span>${label}</span></button>`;}
 function appearance() {cssEditor();}
@@ -775,8 +789,9 @@ function syncEntry() {
  const chat=currentChatType==='private'?db.characters?.find(c=>c.id===currentChatId):null;
  if(entry){const label=entry.querySelector('.expansion-item-name');if(label)label.textContent='线下';entry.setAttribute('aria-label','线下');}
  let badge=document.getElementById('offline-active-entry');
- if(!chat?.offline?.active){badge?.remove();return;}
- const header=document.getElementById('chat-room-header-default');if(!header)return;
+ const room=document.getElementById('chat-room-screen'),header=document.getElementById('chat-room-header-default');
+ const selecting=(typeof isInMultiSelectMode!=='undefined'&&isInMultiSelectMode)||room?.classList.contains('multi-select-active');
+ if(!chat?.offline?.active||selecting||!header||header.hidden||header.style.display==='none'){badge?.remove();return;}
  if(!badge){badge=document.createElement('div');badge.id='offline-active-entry';badge.style.cssText='flex:0 0 auto;width:100%;position:relative;z-index:1';
  const root=badge.attachShadow({mode:'open'});root.innerHTML=`<style>:host{display:block}button{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;border:0;border-bottom:1px solid #e8e8ec;background:#f4f4f7;color:#666673;padding:8px 16px;font:12px/18px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;text-align:left;cursor:pointer}i{height:6px;width:6px;border-radius:50%;background:#9394ae;box-shadow:0 0 0 3px #e8e8f0}span{flex:1}small{font:inherit;color:#90909c}svg{width:12px;height:12px}</style><button type="button" aria-label="正在线下中，返回线下"><i></i><span>正在线下中</span><small>返回线下</small>${icon('chevron')}</button>`;root.querySelector('button').addEventListener('click',()=>open().catch(fail));header.after(badge);}
 }

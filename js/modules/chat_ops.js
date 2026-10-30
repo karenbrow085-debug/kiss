@@ -523,6 +523,7 @@ function enterMultiSelectMode(initialMessageId, mode = 'delete') {
     }
     
     chatRoomScreen.classList.add('multi-select-active');
+    window.KissOffline?.syncEntry();
     selectedMessageIds.clear();
     if (initialMessageId) {
         toggleMessageSelection(initialMessageId);
@@ -539,6 +540,7 @@ function exitMultiSelectMode() {
     document.getElementById('capture-mode-bar').classList.remove('visible');
     
     chatRoomScreen.classList.remove('multi-select-active');
+    window.KissOffline?.syncEntry();
     selectedMessageIds.forEach(id => {
         const el = messageArea.querySelector(`.message-wrapper[data-id="${id}"]`);
         if (el) el.classList.remove('multi-select-selected');
