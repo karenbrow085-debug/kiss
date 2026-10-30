@@ -118,12 +118,24 @@ async function runScan(options={}){
  const records=[],cacheRows=[],sizes={},details={},groups={},overview={chats:0,contacts:0,worldbooks:0,personas:0,wallpapers:0,fonts:0,settings:0,other:0,monoApp:0,morrowApp:0,hearuApp:0,total:0};
  let cacheUnknown=0;const retained=options.retainSelected;
  const mainCategory=cat=>/^(thought|chat404|media404|video404|voice404|cards404|sticker404|calls|memories)$/.test(cat)?'chats':cat==='persona'?'contacts':cat==='world'?'worldbooks':cat==='userpersona'?'personas':/^(beauty|images|stickers|widgets)$/.test(cat)?'wallpapers':cat==='fonts'?'fonts':/^(gallery|workshop|books)$/.test(cat)?'other':'settings';
+ // The overview follows backup ownership. Cleanup detail categories remain unchanged.
+ const overviewCategory=(r,u)=>{
+  if(r.store==='dexie'&&r.table==='globalSettings')return C.backupCategory(r.row.key)||'other';
+  if(r.store==='dexie'&&(r.table==='characters'||r.table==='groups')){
+   if(u.cat==='status'||u.cat==='cot'||u.cat==='audio')return 'chats';
+   if(u.path.some(k=>['statusPanel','peekData','offline','shopData','vectorMemory'].includes(k)))return 'chats';
+   if(u.path.at(-1)==='chatBg')return 'wallpapers';
+   const category=mainCategory(u.cat);return category==='settings'?'contacts':category;
+  }
+  // Local-only values and auxiliary tables do not belong to the settings export.
+  const category=mainCategory(u.cat);return category==='settings'?'other':category;
+ };
  const add=(cat,n,label)=>{sizes[cat]=(sizes[cat]||0)+n;const name=label.replace(/ #\d+$/, '').replace(/\.\d+(?=\.|$)/g,'.*');const map=groups[cat]||=(new Map());const group=map.has(name)||map.size<160?name:'其他明细';const entry=map.get(group)||{label:group,bytes:0,count:0};entry.bytes+=n;entry.count++;map.set(group,entry);};
  if(!retained||[...retained].some(cat=>cat!=='cacheImages'&&cat!=='cacheOther'))await visitStorageRecords(async r=>{
   const measure=C.createSizeCounter(),raw= r.store==='app'?r.row.row:r.row;let sum=0;
-  for(let i=0;i<r.units.length;i++){const u=r.units[i],bytes=measure(u.value);sum+=bytes;add(u.cat,bytes,u.label);if(r.store!=='app')overview[mainCategory(u.cat)]+=bytes;if(i%128===127)await scanPause();}
+  for(let i=0;i<r.units.length;i++){const u=r.units[i],bytes=measure(u.value);sum+=bytes;add(u.cat,bytes,u.label);if(r.store!=='app')overview[overviewCategory(r,u)]+=bytes;if(i%128===127)await scanPause();}
   const overhead=Math.max(0,measure(raw)-sum);add('structure',overhead,'结构开销');
-  if(r.store==='app'){const app=r.row.app;overview[app==='mono'?'monoApp':app==='morrow'?'morrowApp':'hearuApp']+=measure(raw);}else overview.settings+=overhead;
+  if(r.store==='app'){const app=r.row.app;overview[app==='mono'?'monoApp':app==='morrow'?'morrowApp':'hearuApp']+=measure(raw);}else overview[overviewCategory(r,{cat:'structure',path:[]})]+=overhead;
   if(retained&&r.units.some(u=>u.cat!=='structure'&&retained.has(u.cat)))records.push(r);
  },{flush:!!retained});
  if(retained&&['cacheImages','cacheOther'].some(cat=>retained.has(cat))){const cache=await scanBrowserCaches();cacheRows.push(...cache.cacheRows);cacheUnknown=cache.cacheUnknown;for(const cat of ['cacheImages','cacheOther'])for(const item of cache.details[cat]||[])add(cat,item.bytes,item.label);}

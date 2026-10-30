@@ -110,8 +110,8 @@ function renderStorageUI() {
     if (!totalEl || !barChart || !legendContainer || !backupOptions) return;
 
     totalEl.textContent = formatBytes(currentStorageSizes.total);
-    const caption=document.querySelector('.storage-total-label');if(caption)caption.textContent='分类内容估算 · 未压缩';
-    if(!document.getElementById('storage-size-explanation')){const note=document.createElement('p');note.id='storage-size-explanation';note.style.cssText='font-size:12px;line-height:1.7;color:#85858b;margin:16px 0 0';note.textContent='此处估算未压缩的数据内容，并非浏览器实际占用。基础设置含预设、状态栏和其他设置；下载备份会进行 gzip 压缩，文件大小通常更小。';legendContainer.after(note);}
+    const caption=document.querySelector('.storage-total-label');if(caption)caption.textContent='分类数据大小';
+    document.getElementById('storage-size-explanation')?.remove();
 
     // Render Bar Chart
     barChart.innerHTML = '';
@@ -354,8 +354,7 @@ async function handleExport() {
                 'widgetTemplates', 'addedWidgets', 'backupReminderSettings', 'stUnlocked', 'stPresetUnlocked', 'stickerMatchSettings',
                     'homePresets', 'activeHomePresetId', 'homePresetUndo'
             ];
-            const separate=new Set(['characters','groups','worldBooks','myStickers','myPersonaPresets','homeSignature','activePersonaId','wallpaper','bubbleCssPresets','globalCss','globalCssPresets','moreProfileCardBg','themeSettings','themePresets','fontUrl','fontPresets','appData']);
-            settingsKeys.push(...globalSettingKeys.filter(key=>!separate.has(key)));
+            settingsKeys.push(...globalSettingKeys.filter(key=>window.KissToolsCore.backupCategory(key)==='settings'));
             [...new Set(settingsKeys)].forEach(key => {
                 exportData.modules[key] = db[key];
             });

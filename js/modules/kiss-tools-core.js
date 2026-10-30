@@ -74,6 +74,18 @@ function fieldCategory(key,scope){
  if(/callHistory/i.test(key))return 'calls';
  return 'preferences';
 }
+// Match the top-level fields used by selective export in storage.js.
+const backupGroups={
+ worldbooks:['worldBooks'],personas:['myPersonaPresets','homeSignature','activePersonaId'],
+ wallpapers:['wallpaper','bubbleCssPresets','globalCss','globalCssPresets','myStickers','moreProfileCardBg','themeSettings','themePresets'],
+ fonts:['fontUrl','fontPresets']
+};
+function backupCategory(key){
+ if(key==='characters'||key==='groups')return 'contacts';
+ if(key==='appData'||key.startsWith('_export'))return null;
+ for(const [category,keys]of Object.entries(backupGroups))if(keys.includes(key))return category;
+ return 'settings';
+}
 // Measure the JSON representation without materializing another full JSON string or UTF-8 buffer.
 function jsonStringBytes(s){if(!/[^\x20-\x21\x23-\x5b\x5d-\x7f]/.test(s))return s.length+2;let bytes=2;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);if(c===34||c===92||c===8||c===9||c===10||c===12||c===13)bytes+=2;else if(c<32)bytes+=6;else if(c<128)bytes++;else if(c<2048)bytes+=2;else if(c>=0xd800&&c<=0xdbff){const d=s.charCodeAt(i+1);if(d>=0xdc00&&d<=0xdfff){bytes+=4;i++}else bytes+=6;}else if(c>=0xdc00&&c<=0xdfff)bytes+=6;else bytes+=3;}return bytes;}
 function createSizeCounter(){
@@ -136,5 +148,5 @@ function cleanRecord(record,units,selected){
  deletions.sort((a,b)=>JSON.stringify(a.slice(0,-1)).localeCompare(JSON.stringify(b.slice(0,-1))) || b.at(-1)-a.at(-1));
  for(const p of deletions){let node=copy;for(const k of p.slice(0,-1))node=node[k];node.splice(p.at(-1),1);}return copy;
 }
-root.KissToolsCore={symbolKey,score,matches,resolve,catalog,fieldCategory,byteSize,createSizeCounter,recordUnits,cleanRecord,reset};
+root.KissToolsCore={backupCategory,symbolKey,score,matches,resolve,catalog,fieldCategory,byteSize,createSizeCounter,recordUnits,cleanRecord,reset};
 })(typeof window==='undefined'?globalThis:window);
