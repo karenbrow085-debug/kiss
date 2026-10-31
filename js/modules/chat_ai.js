@@ -958,6 +958,9 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         }
 
         let firstMessageProcessed = false;
+        // A response may repeat its status block across several parsed segments.
+        // Scope this set to the response, so later turns can retain the same status.
+        const recordedStatuses = new Set();
 
         for (const item of messages) {
             generation?.check();
@@ -1077,12 +1080,15 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
                         // Save to history
                         if (!char.statusPanel.history) char.statusPanel.history = [];
                         
-                        // Add new status to the beginning
-                        char.statusPanel.history.unshift({
-                            raw: rawStatus,
-                            html: html,
-                            timestamp: Date.now()
-                        });
+                        const statusKey = JSON.stringify([rawStatus, html]);
+                        if (!recordedStatuses.has(statusKey)) {
+                            char.statusPanel.history.unshift({
+                                raw: rawStatus,
+                                html: html,
+                                timestamp: Date.now()
+                            });
+                            recordedStatuses.add(statusKey);
+                        }
 
                         // Keep only last 20 items
                         if (char.statusPanel.history.length > 20) {
@@ -1376,3 +1382,4 @@ async function handleRegenerate() {
   if(chat.activeArchiveId===archiveId&&!replied){const ids=new Set(chat.history.map(m=>m.id));chat.history.push(...originalTail.filter(m=>m.id==null?!chat.history.includes(m):!ids.has(m.id)));await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatId===currentChatId&&chatType===currentChatType)renderMessages(false,true);}
  }
 }
+
