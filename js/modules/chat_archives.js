@@ -2,10 +2,11 @@
 
 const CHAT_ARCHIVE_META_KEYS = new Set([
     'id', 'archives', 'activeArchiveId', 'isPinned', 'unreadCount', '__phoneHistory',
-    'realName', 'remarkName', 'name', 'avatar', 'folderId', 'folderIds'
+    'realName', 'remarkName', 'name', 'avatar', 'folderId', 'folderIds', '__kissWriteRevision'
 ]);
 
 let chatArchiveOperationBusy = false, chatArchiveOperationSaved = false;
+let archiveImportPending = null, archiveImportReading = false, archiveImportEpoch = 0;
 async function withChatArchiveOperation(action) {
     if(chatArchiveOperationBusy)return showToast('存档正在处理，请稍候');
     if(typeof isGenerating!=='undefined'&&isGenerating)return showToast('请等待回复生成结束后再操作存档');
@@ -388,6 +389,7 @@ function archiveUiIcon(name) {
         plus: '<path d="M12 5v14M5 12h14"/>',
         clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
         check: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5l1.7 1.7 3.3-3.4"/>',
+        import: '<path d="M5 14v6h14v-6M12 3v12m-4-4 4 4 4-4"/>',
         export: '<path d="M7 3h7l4 4v6M14 3v5h4M7 3H5v18h6M16 14v7m-3-3 3 3 3-3"/>'
     };
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`;
@@ -438,6 +440,7 @@ function renderArchiveManager() {
 function openArchiveManager() {
     const overlay = document.getElementById('chat-archive-overlay');
     if (!overlay) return;
+    resetArchiveImport();
     renderArchiveManager();
     const check=document.getElementById('chat-record-check-result');if(check)check.textContent='';
     overlay.classList.add('visible');
@@ -446,6 +449,7 @@ function openArchiveManager() {
 
 function closeArchiveManager() {
     const overlay = document.getElementById('chat-archive-overlay');
+    resetArchiveImport();
     overlay?.classList.remove('visible');
     overlay?.setAttribute('aria-hidden', 'true');
 }
@@ -461,9 +465,20 @@ function injectArchiveUi() {
                         <button type="button" id="create-chat-archive" aria-label="新建空白存档">${archiveUiIcon('plus')}</button>
                     </header>
                     <div class="archive-record-tools">
-                        <button type="button" id="check-chat-records">${archiveUiIcon('check')}<span>检查完整记录</span></button>
-                        <button type="button" id="export-chat-safety">${archiveUiIcon('export')}<span>导出保护副本</span></button>
+                        <button type="button" id="import-chat-safety">${archiveUiIcon('import')}<span>导入存档</span></button>
+                        <button type="button" id="export-chat-safety">${archiveUiIcon('export')}<span>导出副本</span></button>
                     </div>
+                    <input type="file" id="import-chat-safety-file" accept=".json,application/json" hidden>
+                    <section id="archive-import-review" class="archive-import-review" hidden aria-label="导入预览">
+                        <div class="archive-import-heading"><span>导入预览</span><button type="button" id="cancel-archive-import" aria-label="取消导入">${archiveUiIcon('close')}</button></div>
+                        <p id="archive-import-filename"></p>
+                        <label for="archive-import-snapshot">选择记录</label>
+                        <select id="archive-import-snapshot"></select>
+                        <label class="archive-import-pending"><input type="checkbox" id="archive-import-pending" checked><span>同时恢复待保存消息</span></label>
+                        <p class="archive-import-hint">添加为新存档，保留当前聊天。</p>
+                        <button type="button" id="confirm-archive-import">添加到我的存档</button>
+                    </section>
+                    <div class="archive-check-row"><button type="button" id="check-chat-records">${archiveUiIcon('check')}<span>检查完整记录</span></button></div>
                     <p id="chat-record-check-result" role="status"></p>
                     <div class="archive-section-heading"><h3>我的存档</h3><span id="chat-archive-count"></span></div>
                     <div id="chat-archive-list" class="chat-archive-list"></div>
@@ -485,14 +500,91 @@ function injectArchiveUi() {
     }
 }
 
+
+function resetArchiveImport() {
+    archiveImportEpoch++;
+    archiveImportPending = null;
+    const review = document.getElementById('archive-import-review');
+    if (review) review.hidden = true;
+    const input = document.getElementById('import-chat-safety-file');
+    if (input) input.value = '';
+}
+async function readArchiveImportFile(event) {
+    const file = event.target.files?.[0], chat = getCurrentChatEntity();
+    if (!file || !chat || archiveImportReading) return;
+    resetArchiveImport();
+    const epoch = archiveImportEpoch;
+    const out = document.getElementById('chat-record-check-result');
+    archiveImportReading = true;
+    out.textContent = '正在读取存档…';
+    try {
+        const prepared = await PhoneBackup.prepareChatSafety(file, chat);
+        if (epoch !== archiveImportEpoch || getCurrentChatEntity() !== chat || !document.getElementById('chat-archive-overlay')?.classList.contains('visible')) return;
+        archiveImportPending = { prepared, chat };
+        document.getElementById('archive-import-filename').textContent = file.name;
+        const select = document.getElementById('archive-import-snapshot');
+        select.replaceChildren();
+        for (const snapshot of prepared.snapshots) {
+            const option = document.createElement('option');
+            option.value = snapshot.key;
+            option.textContent = snapshot.label + ' · ' + snapshot.count + ' 条消息';
+            select.append(option);
+        }
+        select.value = prepared.snapshots.some(item => item.key === 'liveChat') ? 'liveChat' : 'chat';
+        const pending = document.getElementById('archive-import-pending');
+        pending.checked = true;
+        pending.closest('label').hidden = !prepared.pendingMessages?.messages?.length;
+        document.getElementById('archive-import-review').hidden = false;
+        out.textContent = '';
+    } catch (error) {
+        if (epoch === archiveImportEpoch && getCurrentChatEntity() === chat) out.textContent = '无法导入：' + error.message;
+    } finally {
+        archiveImportReading = false;
+        event.target.value = '';
+    }
+}
+async function confirmArchiveImport() {
+    const pending = archiveImportPending;
+    if (!pending || getCurrentChatEntity() !== pending.chat) return resetArchiveImport();
+    const button = document.getElementById('confirm-archive-import');
+    if (button.disabled) return;
+    const snapshot = document.getElementById('archive-import-snapshot').value;
+    const includePending = document.getElementById('archive-import-pending').checked;
+    button.disabled = true;
+    button.textContent = '正在导入…';
+    try {
+        await withChatArchiveOperation(async chat => {
+            if (chat !== pending.chat) throw Error('聊天已切换，请重新选择文件');
+            const archives = await PhoneBackup.makeSafetyArchives(pending.prepared, snapshot, includePending);
+            if (getCurrentChatEntity() !== chat) throw Error('聊天已切换，请重新导入');
+            getActiveArchive(chat);
+            chat.archives.push(...archives);
+            await persistChatArchives(chat);
+            resetArchiveImport();
+            renderArchiveManager();
+            showToast('已添加 ' + archives.length + ' 个存档');
+        });
+    } finally {
+        button.disabled = false;
+        button.textContent = '添加到我的存档';
+    }
+}
+
 function setupChatArchiveSystem() {
     injectArchiveUi();
+    document.getElementById('import-chat-safety')?.addEventListener('click', () => {
+        if (archiveImportReading || chatArchiveOperationBusy) return showToast('存档正在处理，请稍候');
+        document.getElementById('import-chat-safety-file')?.click();
+    });
+    document.getElementById('import-chat-safety-file')?.addEventListener('change', readArchiveImportFile);
+    document.getElementById('cancel-archive-import')?.addEventListener('click', resetArchiveImport);
+    document.getElementById('confirm-archive-import')?.addEventListener('click', confirmArchiveImport);
     document.getElementById('check-chat-records')?.addEventListener('click',async()=>{
         const chat=getCurrentChatEntity(),out=document.getElementById('chat-record-check-result');if(!chat||!out)return;
         try{const report=await PhoneBackup.inspectChat(chat);out.textContent='当前聊天完整记录：'+report.currentMessageCount+' 条；磁盘当前存档：'+report.persistedMessageCount+' 条。'+(report.cold?'\n内存目前只加载了 '+report.memoryPreviewCount+' 条预览，完整记录仍由数据块读取。':'')+'\n此检查未改动记录；存档条数包含全部类型消息，数据管理按文字、图片等分别统计。';}catch(error){out.textContent='检查未完成：'+error.message+'。未清除任何记录。';}
     });
     document.getElementById('export-chat-safety')?.addEventListener('click',async()=>{
-        const chat=getCurrentChatEntity();if(!chat)return;try{await PhoneBackup.exportChatSafety(chat);showToast('已导出磁盘聊天保护副本；请保留原件，不要直接导入覆盖');}catch(error){showToast('保护副本导出失败：'+error.message);}
+        const chat=getCurrentChatEntity();if(!chat)return;try{await PhoneBackup.exportChatSafety(chat);showToast('聊天副本已导出，可在此页面导入为新存档');}catch(error){showToast('保护副本导出失败：'+error.message);}
     });
     document.getElementById('chat-archives-btn')?.addEventListener('click', openArchiveManager);
     document.getElementById('close-chat-archives')?.addEventListener('click', closeArchiveManager);

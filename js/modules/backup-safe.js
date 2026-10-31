@@ -205,7 +205,8 @@ function evictOthers(keep) {
    const history=chat.history,length=history.length,last=history.at(-1),branch=chat.activeArchiveId,epoch=accessEpoch.get(chat)||0;
    const unchanged=()=>!generationInProgress()&&!isActiveChat(chat)&&!pins.has(chat)&&!pending.has(chat)&&!cold.has(chat)&&chat.history===history&&history.length===length&&history.at(-1)===last&&chat.activeArchiveId===branch&&(accessEpoch.get(chat)||0)===epoch;
    const row=await diskChat(chat);if(!unchanged())continue;
-   await dexieDB[db.characters.includes(chat)?'characters':'groups'].put(row);
+   // Eviction is a write too: preserve optimistic concurrency and update the live revision.
+   await writeChat(db.characters.includes(chat)?'characters':'groups',row,chat);
    if(!unchanged())continue;
    const ref=row.history;if(!ref?.[H])continue;
    chat.history=clone(ref.tail);cold.set(chat,{ref,preview:chat.history,length:chat.history.length,signature:JSON.stringify(chat.history)});
@@ -229,10 +230,66 @@ async function exportChatSafety(chat) {
  const report=await inspectChat(chat),parts=[new Blob(['{"format":"kiss-chat-safety-v1","createdAt":'+Date.now()+',"report":'+JSON.stringify(report)+',"chat":'])];
  let chunks=[],size=0;
  for await(const piece of json(row)){chunks.push(piece);size+=piece.length;if(size>=262144){parts.push(new Blob(chunks));chunks=[];size=0;await pause();}}
- if(chunks.length)parts.push(new Blob(chunks));for(const [name,metaKey] of [['previousSavedChat','chat-checkpoint:'+key+':'+chat.id],['pendingMessages','chat-outbox:'+chat.id]]){const stored=await dexieDB.safeMeta.get(metaKey);if(stored){parts.push(new Blob([','+JSON.stringify(name)+':']));for await(const piece of json(name==='previousSavedChat'?stored.chat:stored))parts.push(new Blob([piece]));}}parts.push(new Blob(['}']));
+ if(chunks.length)parts.push(new Blob(chunks));
+ let live;try{live=await diskChat(chat);}catch(error){/* The persisted backup must remain exportable during a conflict. */}
+ if(live){parts.push(new Blob([',"liveChat":']));for await(const piece of json(live))parts.push(new Blob([piece]));}
+ parts.push(new Blob([',"chatType":'+JSON.stringify(key)]));
+ for(const [name,metaKey] of [['previousSavedChat','chat-checkpoint:'+key+':'+chat.id],['pendingMessages','chat-outbox:'+chat.id]]){const stored=await dexieDB.safeMeta.get(metaKey);if(stored){parts.push(new Blob([','+JSON.stringify(name)+':']));for await(const piece of json(name==='previousSavedChat'?stored.chat:stored))parts.push(new Blob([piece]));}}parts.push(new Blob(['}']));
  download(new Blob(parts,{type:'application/json'}),'KISS-聊天保护副本-'+Date.now()+'.json');
  return report;
 }
+
+// Parse the same portable file produced by exportChatSafety. Never write chat rows here.
+async function prepareChatSafety(file,chat) {
+ const result=await readFile(file,{chatSafety:true});
+ const key=(db.characters||[]).includes(chat)?'characters':(db.groups||[]).includes(chat)?'groups':null;
+ if(!key||String(result.chat?.id)!==String(chat.id)||result.chatType&&result.chatType!==key)throw Error('这个副本属于其他聊天，请到对应聊天的存档页面导入');
+ const snapshots=[];
+ for(const [name,label] of [['chat','已保存记录'],['liveChat','导出时的页面记录'],['previousSavedChat','上一次保存记录']]){
+  const row=result[name];if(!row)continue;
+  if(!object(row)||String(row.id)!==String(chat.id)||!(Array.isArray(row.history)||row.history?.[H]))throw Error('副本中的聊天记录不完整');
+  if(row.archives!==undefined&&!Array.isArray(row.archives))throw Error('副本中的存档列表格式错误');
+  snapshots.push({key:name,label,chat:row,count:row.history?.count??row.history.length});
+ }
+ const journal=result.pendingMessages;
+ if(journal&&(!object(journal)||!Array.isArray(journal.messages)))throw Error('待保存消息格式错误');
+ return {chatId:chat.id,chatType:key,snapshots,pendingMessages:journal};
+}
+async function makeSafetyArchives(prepared,snapshotKey,includePending=true) {
+ const snapshot=prepared.snapshots.find(item=>item.key===snapshotKey);if(!snapshot)throw Error('请选择要导入的记录');
+ const row=snapshot.chat,meta=new Set(['id','archives','activeArchiveId','isPinned','unreadCount','realName','remarkName','name','avatar','folderId','folderIds','__kissWriteRevision']);
+ const data=Object.fromEntries(Object.entries(row).filter(([key])=>!meta.has(key)));
+ const main=row.archives?.find(item=>item.id===row.activeArchiveId);
+ const candidates=[{name:main?.name||'聊天记录',originalId:row.activeArchiveId,data}];
+ for(const archive of row.archives||[]){
+  if(archive.dataStoredOnChat===true&&archive.id===row.activeArchiveId)continue;
+  let data=archive.data?.[A]?await get(archive.data[A]):archive.data;
+  if(!object(data)||!(Array.isArray(data.history)||data.history?.[H])){
+   if(data&&Object.keys(data).length)throw Error('副本中有无法读取的存档，未导入任何记录');
+   continue;
+  }
+  data=Object.fromEntries(Object.entries(data).filter(([key])=>!meta.has(key)));
+  candidates.push({name:typeof archive.name==='string'?archive.name:'聊天记录',originalId:archive.id,data});
+ }
+ if(includePending&&prepared.pendingMessages?.messages?.length){
+  const journal=prepared.pendingMessages;
+  let target=candidates.find(item=>item.originalId===journal.archiveId);
+  if(!target){target={name:'待保存消息',data:{...data,history:[]}};candidates.push(target);}
+  const history=await unpackHistory(target.data.history,false);
+  for(const message of journal.messages){
+   if(!object(message))throw Error('待保存消息格式错误');
+   // Preserve divergent or ID-less messages rather than silently dropping them.
+   if(!history.some(item=>JSON.stringify(item)===JSON.stringify(message))){
+    const copy=clone(message);if(copy.id&&history.some(item=>item?.id===copy.id))copy.id=uid();history.push(copy);
+   }
+  }
+  target.data={...target.data,history:await packHistory(history)};
+ }
+ const now=Date.now(),archives=[];
+ for(const candidate of candidates)archives.push({id:'archive_'+uid(),name:'导入 · '+candidate.name,createdAt:now,updatedAt:now,origin:null,data:await packArchiveData(candidate.data)});
+ return archives;
+}
+
 // Incremental JSON reader. No whole-file .text(), joined legacy strings, or full-db clone.
 class JSONReader {
  constructor(stream,reduce){this.reader=stream.pipeThrough(new TextDecoderStream()).getReader();this.buf='';this.pos=0;this.done=false;this.reduce=reduce;this.depth=0;}
@@ -261,8 +318,8 @@ class JSONReader {
  async close(){await this.reader.cancel();this.reader.releaseLock();}
 }
 const OMIT=Symbol('omit');
-function historyPath(path){if(path.at(-1)!=='history')return false;const p=path[0]==='modules'?path.slice(1):path;return p.length===3&&['characters','groups'].includes(p[0])||p.at(-2)==='data'&&p.at(-4)==='archives';}
-async function readFile(blob) {
+function historyPath(path){if(path.at(-1)!=='history')return false;const p=path[0]==='modules'?path.slice(1):path;if(['chat','liveChat','previousSavedChat'].includes(p[0])&&p.length===2)return true;return p.length===3&&['characters','groups'].includes(p[0])||p.at(-2)==='data'&&p.at(-4)==='archives';}
+async function readFile(blob,options={}) {
  const magic=new Uint8Array(await blob.slice(0,2).arrayBuffer());let stream=blob.stream();
  if(magic[0]===31&&magic[1]===139){if(typeof DecompressionStream==='undefined')throw Error('当前浏览器不支持解压，请升级浏览器后重试');stream=stream.pipeThrough(new DecompressionStream('gzip'));}
  const histories=new Map();let reader,parsed=0;
@@ -314,7 +371,8 @@ async function readFile(blob) {
   }else {if(await reader.peek())throw Error('JSON 备份后存在多余内容');data=first;}
   if(object(data?.modules))data={...data.modules,_exportVersion:data._exportVersion||data.modules._exportVersion};
   if(!object(data))throw Error('备份根节点格式错误');
-  if(data.format==='kiss-chat-safety-v1')throw Error('这是聊天保护副本，供诊断与定向恢复使用；不能作为完整备份导入覆盖。');
+  if(data.format==='kiss-chat-safety-v1'){if(options.chatSafety)return data;throw Error('这是聊天保护副本，请在聊天的存档管理中导入。');}
+  if(options.chatSafety)throw Error('请选择存档管理导出的聊天副本；完整备份请在数据管理中导入');
   // Older OVO partial exports group settings/theater fields in containers.
   if(object(data.globalSettings)){Object.assign(data,data.globalSettings);delete data.globalSettings;}
   if(object(data.theaterData)){Object.assign(data,data.theaterData);delete data.theaterData;}
@@ -392,7 +450,7 @@ const queuedChatSaves=new WeakMap();
 async function writeChat(key,packed,chat){
  await dexieDB.transaction('rw',dexieDB[key],dexieDB.safeMeta,async()=>{
   const previous=await dexieDB[key].get(packed.id),revision=Number(previous?.__kissWriteRevision)||0;
-  if(writeVersions.has(chat)&&writeVersions.get(chat)!==revision)throw Error('另一个页面已更新此聊天，已阻止旧页面覆盖记录；请先导出保护副本再重新打开');
+  if(writeVersions.has(chat)&&writeVersions.get(chat)!==revision)throw Error('聊天保存版本发生冲突，本次未覆盖记录。请先在存档管理中导出副本，再重新打开页面');
   if(previous)await dexieDB.safeMeta.put({key:'chat-checkpoint:'+key+':'+packed.id,createdAt:Date.now(),chat:previous});
   packed.__kissWriteRevision=revision+1;await dexieDB[key].put(packed);
  });writeVersions.set(chat,packed.__kissWriteRevision);
@@ -604,6 +662,6 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,prepareChatSafety,makeSafetyArchives,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);
 
