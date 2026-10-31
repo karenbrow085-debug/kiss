@@ -542,112 +542,49 @@ function filterHistoryForAI(chat, historySlice, ignoreContextDisabled = false) {
         });
     }
 
-    // 3. 状态栏移除逻辑
-    if (chat.statusPanel && chat.statusPanel.enabled && chat.statusPanel.regexPattern) {
-        const currentRegexStr = chat.statusPanel.regexPattern;
-        const limit = chat.statusPanel.historyLimit !== undefined ? chat.statusPanel.historyLimit : 3;
-        const validityDepth = 50;
-        let statusCount = 0;
-        const totalSliceLength = filteredHistory.length;
-
-        let currentRegexParsed = currentRegexStr;
-        const regexMatch = currentRegexStr.match(/^\/(.*?)\/([a-z]*)$/);
-        if (regexMatch) {
-            currentRegexParsed = regexMatch[1];
-        }
-
-        // 3.1 预处理
-        filteredHistory = filteredHistory.filter((msg, index) => {
-            if (msg.isStatusUpdate) {
-                const depth = totalSliceLength - 1 - index;
-                if (depth >= validityDepth) return false;
-                if (!msg.statusSnapshot) return false;
-                if (msg.statusSnapshot.regex !== currentRegexParsed) return false;
-                return true;
-            }
-            return true;
-        });
-
-        // 3.2 遍历处理
-        for (let i = filteredHistory.length - 1; i >= 0; i--) {
-            const msg = filteredHistory[i];
-            const currentDepth = filteredHistory.length - 1 - i;
-            
-            if (msg.isStatusUpdate) {
-                if (statusCount < limit) {
-                    statusCount++;
-                } else {
-                    msg.content = '';
-                    msg.parts = [];
-                }
-                continue;
-            }
-
-            let pattern = chat.statusPanel.regexPattern;
-            let flags = 'gs';
-            const matchParts = pattern.match(/^\/(.*?)\/([a-z]*)$/);
-            if (matchParts) {
-                pattern = matchParts[1];
-                flags = matchParts[2] || 'gs';
+    // Status history stays on the device; raw status blocks are never replayed to AI.
+    // Clean only assistant output, using its original format as well as current formats.
+    filteredHistory = filteredHistory.filter(msg => {
+        if (msg.role !== 'assistant') return true;
+        const patterns = [...new Set([
+            msg.statusSnapshot?.regex,
+            chat.statusPanel?.regexPattern,
+            (msg.offlineNarrative || msg.offlineSessionId || msg.offlineStatus) && chat.offline?.statusPanel?.regexPattern
+        ].filter(p => typeof p === 'string' && p))];
+        const regexes = [];
+        for (const value of patterns) {
+            try {
+                const literal = value.match(/^\/(.*?)\/([a-z]*)$/s);
+                const pattern = literal ? literal[1] : value;
+                let flags = literal ? literal[2] : '';
                 if (!flags.includes('g')) flags += 'g';
                 if (!flags.includes('s')) flags += 's';
-            }
-            let regex;
-            try {
-                regex = new RegExp(pattern, flags);
-            } catch (e) {
-                console.error("Invalid regex in status panel settings:", e);
-                continue;
-            }
-
-            if (msg.role === 'assistant') {
-                const originalContent = msg.content || '';
-                const newContent = originalContent.replace(regex, '').trim();
-                const contentHasMatch = (newContent !== originalContent);
-
-                let partsHasMatch = false;
-                let newParts = undefined;
-                
-                if (msg.parts && Array.isArray(msg.parts)) {
-                    newParts = msg.parts.map(p => {
-                        if (p.type === 'text') {
-                            try {
-                                const partRegex = new RegExp(pattern, flags);
-                                const newText = p.text.replace(partRegex, '').trim();
-                                if (newText !== p.text) partsHasMatch = true;
-                                return { ...p, text: newText };
-                            } catch (e) {
-                                return p;
-                            }
-                        }
-                        return p;
-                    }).filter(p => {
-                        if (p.type === 'text') return p.text !== '';
-                        return true;
-                    });
-                }
-
-                if (contentHasMatch || partsHasMatch) {
-                    if (currentDepth < validityDepth && statusCount < limit) {
-                        statusCount++;
-                    } else {
-                        if (contentHasMatch) msg.content = newContent;
-                        if (partsHasMatch && newParts) msg.parts = newParts;
-                        if (!msg.content && (!msg.parts || msg.parts.length === 0)) {
-                            msg.content = '';
-                        }
-                    }
-                }
-            }
+                regexes.push(new RegExp(pattern, flags));
+            } catch (error) { console.warn('Invalid status context regex:', error); }
         }
-
-        // 3.3 最终过滤
-        filteredHistory = filteredHistory.filter(msg => {
-            const hasContent = msg.content && msg.content.trim() !== '';
-            const hasParts = msg.parts && msg.parts.length > 0;
-            return hasContent || hasParts;
-        });
-    }
+        let removed = false;
+        function clean(value) {
+            if (typeof value !== 'string') return value;
+            let next = value.replace(/\[OFFLINE_STATUS_START\][\s\S]*?(?:\[OFFLINE_STATUS_END\]|$)/gi, '');
+            if (msg.offlineStatus?.raw) next = next.split(msg.offlineStatus.raw).join('');
+            for (const regex of regexes) {
+                regex.lastIndex = 0;
+                next = next.replace(regex, '');
+            }
+            if (next !== value) removed = true;
+            return next.trim();
+        }
+        msg.content = clean(msg.content);
+        if (Array.isArray(msg.parts)) {
+            msg.parts = msg.parts.map(part =>
+                part.type === 'text' || part.type === 'html'
+                    ? {...part, text: clean(part.text)} : part
+            ).filter(part => !['text', 'html'].includes(part.type) || !!part.text);
+        }
+        // Older pure status messages can outlive their preset or its regex.
+        if (msg.isStatusUpdate && !removed) return false;
+        return !!(typeof msg.content === 'string' && msg.content.trim()) || !!msg.parts?.length;
+    });
 
     return filteredHistory;
 }
@@ -923,3 +860,4 @@ window.formatTimeGap = formatTimeGap;
 window.filterHistoryForAI = filterHistoryForAI;
 window.showToast = showToast;
 window.playSound = (typeof playSound !== 'undefined') ? playSound : null; // 防止循环依赖
+
