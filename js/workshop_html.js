@@ -295,9 +295,9 @@ function injectWorkshopHTML() {
                                 </div>
                                 
                                   <div class="kkt-item" style="flex-direction: column; align-items: stretch; border-bottom: none; padding-bottom: 0; margin-top: 10px;">
-                                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                      <div class="atelier-preset-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                           <div class="kkt-item-label" style="font-weight: bold;">提示词预设条目</div>
-                                          <div style="display: flex; gap: 5px; align-items: center;">
+                                          <div class="atelier-preset-tools" style="display: flex; gap: 5px; align-items: center;">
                                               <select id="workshop-llm-preset-group-select" style="padding: 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px; max-width: 120px;">
                                                   <!-- JS populated -->
                                               </select>
@@ -458,9 +458,9 @@ function injectWorkshopHTML() {
                                 </div>
                                 
                                 <div class="kkt-item" style="flex-direction: column; align-items: stretch; border-bottom: none; padding-bottom: 0; margin-top: 10px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <div class="atelier-preset-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                         <div class="kkt-item-label" style="font-weight: bold;">提示词预设条目</div>
-                                        <div style="display: flex; gap: 5px; align-items: center;">
+                                        <div class="atelier-preset-tools" style="display: flex; gap: 5px; align-items: center;">
                                             <select id="workshop-gpt-llm-preset-group-select" style="padding: 4px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px; max-width: 120px;">
                                                 <!-- JS populated -->
                                             </select>
