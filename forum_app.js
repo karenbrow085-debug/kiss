@@ -6692,6 +6692,8 @@ async function forumModel(conv,system,messages,signal) {
 }
 async function forumGenerateFor(id,reroll=false,legacyPending=false) {
   const conv=forumGetConv(id);if(!conv)return;if(forumDMTasks.has(id))return showToast('此对话正在生成');
+  let rerollNote=null;
+  if(reroll){const feedback=window.KissReroll;if(!feedback)return showToast('重生成模块未加载，请刷新页面');const signature=feedback.fingerprint(conv.messages),account=feedback.account();const guard=()=>forumGetConv(id)===conv&&!forumDMTasks.has(id)&&feedback.account()===account&&currentDMConversationId===id&&feedback.fingerprint(conv.messages)===signature;rerollNote=await feedback.ask({subtitle:'MONO 私信 · 只用于这一次重新回复',guard});if(rerollNote===null||!guard())return;}
   const controller=new AbortController(),task={controller};forumDMTasks.set(id,task);const timer=setTimeout(()=>controller.abort(),90000);
   const snapshot=structuredClone(conv.messages || []);let kept=snapshot;
   if(reroll){let index=kept.length;while(index>0 && kept[index-1].sender==='other')index--;kept=kept.slice(0,index);}
@@ -6701,6 +6703,7 @@ async function forumGenerateFor(id,reroll=false,legacyPending=false) {
     const pool=forumStickers(id.startsWith('ai_')?id.slice(3):null);
     const system=forumHostContext(conv)+'\n'+(legacyPending?forumLegacyPendingPrompt({...conv,messages:kept}):forumOriginalDMPrompt({...conv,messages:kept}))+'\n[论坛私信输出协议]\n保留上文角色设定与思维链，不执行404消息动作。可以从此列表选择表情包：'+pool.map(s=>s.name).join('、')+'。最终回复用JSON：{"messages":[{"text":"消息"},{"sticker":"表情包名称"}]}。只使用普通文本和已有表情包，不输出HTML、界面包装、转账或404动作。内部思考不显示在气泡里。\n[论坛独立记忆总结]\n'+(conv.summaries?.at(-1)?.content || '尚无总结')+monoDMFeatureProtocol()+monoDMReplyProtocol(conv,kept.slice(-limit));
     const history=kept.slice(-limit).map(m=>({role:m.sender==='user'?'user':'assistant',content:monoDMHistoryContent(m)}));
+    const guidance=window.KissReroll?.instruction(rerollNote);if(guidance){const last=history.at(-1);if(last?.role==='user')last.content+='\n\n'+guidance;else history.push({role:'user',content:guidance});}
     const raw=await forumModel(conv,system,history,controller.signal);if(controller.signal.aborted || forumDMTasks.get(id)!==task)return;
     if(JSON.stringify(conv.messages || [])!==fingerprint)throw Error('对话已变化，本次回复未写入，请重新生成');
     const replies=forumParseReply(raw,conv);await monoDeliverReplies(conv,replies,kept,task);
