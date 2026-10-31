@@ -76,3 +76,26 @@
 .archive-more-menu button{display:block;width:100%;text-align:left}
 .archive-help{margin:0 19px;font-size:11px;font-weight:400}
 @media(max-width:340px){.archive-record-tools{gap:8px}.archive-record-tools button{font-size:12px;gap:5px}.archive-record-tools svg{width:19px;height:19px}.archive-card-footer{padding-left:15px;padding-right:9px}.archive-card-footer time{font-size:10px;gap:4px}.archive-actions button{font-size:12px}.archive-card-main{padding-left:17px}}
+
+/* Balanced import/export actions and an in-place, non-destructive import preview. */
+.chat-archive-panel [hidden]{display:none!important}
+.archive-record-tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:12px}
+.archive-record-tools button{height:46px;min-width:0;border-color:var(--archive-line);border-radius:12px;gap:8px;font-size:13px}
+.archive-record-tools button:first-child{background:var(--archive-ink);color:var(--archive-bg);border-color:var(--archive-ink)}
+.archive-record-tools svg{width:19px;height:19px}
+.archive-check-row{display:flex;justify-content:flex-end;padding:8px 18px 0}
+.archive-check-row button{display:flex;align-items:center;gap:5px;padding:7px 1px;border:0;background:none;color:var(--archive-muted);font-size:11px;font-weight:400}
+.archive-check-row svg{width:15px;height:15px}
+.archive-import-review{margin:14px 18px 0;padding:16px;border:1px solid var(--archive-line);border-radius:14px;background:var(--archive-bg);font-size:12px}
+.archive-import-heading{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600}
+.archive-import-heading button{display:grid;place-items:center;width:30px;height:30px;border:0;background:var(--archive-soft);border-radius:50%;padding:7px}
+.archive-import-heading button svg{width:16px;height:16px}
+#archive-import-filename{margin:7px 0 18px;color:var(--archive-muted);overflow-wrap:anywhere;font-size:11px;font-weight:400}
+.archive-import-review label{display:block;margin-bottom:7px;font-weight:400}
+.archive-import-review select{display:block;width:100%;min-width:0;min-height:42px;padding:9px;border:1px solid var(--archive-line);border-radius:9px;color:var(--archive-ink);background:var(--archive-bg);font:inherit}
+.archive-import-review .archive-import-pending{display:flex;align-items:center;gap:7px;margin-top:14px;font-size:12px}
+.archive-import-pending input{width:16px;height:16px;margin:0;accent-color:var(--archive-ink)}
+.archive-import-hint{margin:14px 0;color:var(--archive-muted);font-size:11px;line-height:1.5;font-weight:400}
+#confirm-archive-import{width:100%;min-height:42px;border:0;border-radius:10px;background:var(--archive-ink);color:var(--archive-bg);font-size:13px;font-weight:500}
+#confirm-archive-import:disabled{opacity:.5}
+@media(max-width:340px){.archive-record-tools button{font-size:12px;gap:6px}.archive-import-review{padding:13px}}
