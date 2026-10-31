@@ -612,6 +612,7 @@ function initDatabase() {
 const saveData = async () => window.PhoneBackup.save();
 
 const loadData = async () => {
+    const loadToken = await PhoneBackup.beginDataLoad();
     // Keyset reads avoid concurrent full-table copies; histories stay on disk.
     const characters = await PhoneBackup.loadRows('characters');
     const groups = await PhoneBackup.loadRows('groups');
@@ -736,8 +737,9 @@ const loadData = async () => {
             if (data.groups) await dexieDB.groups.bulkPut(data.groups);
         });
         localStorage.removeItem('gemini-chat-app-db');
-        await loadData();
+        return await loadData();
     }
+    await PhoneBackup.completeDataLoad(loadToken);
 };
 
 // 存储分析工具
