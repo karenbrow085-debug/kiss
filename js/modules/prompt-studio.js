@@ -288,7 +288,7 @@ function parameters(id) {
     }));
 }
 function manage() {
-    dialog('酒馆预设管理',a=>{
+    dialog('酒馆预设管理',a=>{a.el.classList.add('kc-tavern-library');
         state().presets.forEach(p=>{const row=text('div','','pt-library-row');row.appendChild(text('span',p.name));action(row,'重命名',async()=>{const name=await askName('重命名预设',p.name);if(name)await editRecord(p.id,r=>{r.name=name;});manage();},'');action(row,'复制',async()=>{await commit(s=>{const copy=clone(s.presets.find(r=>r.id===p.id));copy.id=uid();copy.name+=' 副本';s.presets.push(copy);});manage();},'');action(row,'删除',async()=>{if(!await confirmDialog('删除预设','删除「'+p.name+'」及其独立参数？'))return;await commit(s=>{s.presets=s.presets.filter(r=>r.id!==p.id);if(s.settings.activePresetId===p.id){s.settings.activePresetId=null;s.settings.enabled=false;}});manage();},'');a.body.appendChild(row);});
     });
 }

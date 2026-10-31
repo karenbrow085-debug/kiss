@@ -1065,22 +1065,22 @@ function openCotPresetManageModal() {
     const modal = document.getElementById('cot-preset-manage-modal');
     const list = document.getElementById('cot-preset-list-container');
     list.innerHTML = '';
+    const count=modal.querySelector('.kc-preset-count');if(count)count.textContent=db.cotPresets.length+' 个预设';
 
     db.cotPresets.forEach((preset, index) => {
         const row = document.createElement('div');
-        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0;';
+        row.className='kc-preset-row';
         
         let isActive = false;
         if (currentCotMode === 'chat' && preset.id === db.cotSettings.activePresetId) isActive = true;
         if (currentCotMode === 'call' && preset.id === db.cotSettings.activeCallPresetId) isActive = true;
 
         const nameDiv = document.createElement('div');
-        nameDiv.textContent = preset.name + (isActive ? ' (当前)' : '');
-        nameDiv.style.fontWeight = isActive ? 'bold' : 'normal';
+        nameDiv.className='kc-preset-name';nameDiv.textContent=preset.name;nameDiv.title=preset.name;
+        if(isActive){const badge=document.createElement('span');badge.className='kc-preset-active';badge.textContent='使用中';nameDiv.append(badge);}
 
         const btnGroup = document.createElement('div');
-        btnGroup.style.display = 'flex';
-        btnGroup.style.gap = '5px';
+        btnGroup.className='kc-preset-actions';
 
         const renameBtn = createIconBtn('✎', async () => {
             const newName = window.KissPromptUI ? await window.KissPromptUI.askName('重命名预设', preset.name) : prompt('请输入新名称：', preset.name);
@@ -1123,6 +1123,8 @@ function openCotPresetManageModal() {
             loadCotSettings();
         }, true);
 
+        const icons={rename:'m15 4 5 5M4 16l-1 5 5-1L21 7l-5-5Z',export:'M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5',remove:'M5 7h14M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6m4-6v6'};
+        for(const [button,key,label] of [[renameBtn,'rename','重命名预设'],[exportBtn,'export','导出预设'],[deleteBtn,'remove','删除预设']]){button.type='button';button.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[key]}"/></svg>`;button.title=label;button.setAttribute('aria-label',label);}
         btnGroup.appendChild(renameBtn);
         btnGroup.appendChild(exportBtn);
         btnGroup.appendChild(deleteBtn);
