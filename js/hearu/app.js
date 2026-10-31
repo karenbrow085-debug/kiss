@@ -432,6 +432,8 @@ async function describeSong() {
     songId = String(target.song?.songId || "");
   if (!songId) throw Error("先选一首歌");
   if (busy.has(id)) return;
+  let rerollNote=null;
+  if(target.song?.note){const feedback=window.KissReroll;if(!feedback)throw Error('重生成模块未加载，请刷新页面');const account=feedback.account(),before=target.song.note;const guard=()=>room===target&&roleId===id&&!busy.has(id)&&feedback.account()===account&&String(target.song?.songId)===songId&&target.song.note===before;rerollNote=await feedback.ask({subtitle:'HearU 选曲留言 · 只用于这一次重新生成',guard});if(rerollNote===null||!guard())return;}
   const c = character(id),
     task = generationTask(id);
   task.kind = "thought";
@@ -451,7 +453,7 @@ async function describeSong() {
     const output = parseModelOutput(
       await modelText(
         c,
-        `你是${c.realName || name(c)}。人设：${c.persona || ""}。和用户一起听${song.title} · ${song.artist}。当前已有留言：${target.song.note || ""}。给用户留一句自然、具体、符合你的品味的话，并选你最喜欢的真实歌词行。下面是真实歌词（index是行号）：${JSON.stringify(song.lyrics || [])}。仅返回JSON {"note":"你为什么想让用户听这首歌","favoriteLineIndex":真实行号或null}。没有歌词就null，禁止虚构歌词。`,
+        (window.KissReroll?.instruction(rerollNote)||'')+`你是${c.realName || name(c)}。人设：${c.persona || ""}。和用户一起听${song.title} · ${song.artist}。当前已有留言：${target.song.note || ""}。给用户留一句自然、具体、符合你的品味的话，并选你最喜欢的真实歌词行。下面是真实歌词（index是行号）：${JSON.stringify(song.lyrics || [])}。仅返回JSON {"note":"你为什么想让用户听这首歌","favoriteLineIndex":真实行号或null}。没有歌词就null，禁止虚构歌词。`,
         target.messages
           .slice(-8)
           .map(messageForModel)
@@ -1467,6 +1469,16 @@ async function generateReply(reroll = false) {
     id = roleId,
     c = character(id);
   if (busy.has(id)){if(generations.get(id)?.kind==='dj')stopGeneration(id);else return;}
+  if(reroll&&!target.lastTurnId)throw Error('还没有可重 roll 的回复');
+  let rerollNote=null;
+  if(reroll){const feedback=window.KissReroll;if(!feedback)throw Error('重生成模块未加载，请刷新页面');const signature=feedback.fingerprint(target.messages),account=feedback.account(),turn=target.lastTurnId;const guard=()=>room===target&&roleId===id&&!busy.has(id)&&feedback.account()===account&&target.lastTurnId===turn&&feedback.fingerprint(target.messages)===signature;rerollNote=await feedback.ask({subtitle:'HearU · 只用于这一次重新回复',guard});if(rerollNote===null||!guard())return;}
+  if(!target.messages.some(m=>m.role==='user'))throw Error('先发送消息或音乐卡片');
+  ensureLibraries(target);
+  const rerollBackup=reroll?{messages:target.messages.slice(),queue:target.queue.slice(),libraries:{ta:target.libraries.ta.slice()},lastTurnId:target.lastTurnId}:null;
+  // Create the task before deleting anything; setup failures leave the old turn untouched.
+  const task=generationTask(id);task.kind='chat';
+  if(reroll){const account=window.KissReroll.account(),baseCheck=task.check;task.check=()=>{baseCheck.call(task);if(window.KissReroll.account()!==account)throw new DOMException('当前身份已切换','AbortError');};}
+  try {
   if (reroll) {
     if (!target.lastTurnId) throw Error("还没有可重 roll 的回复");
     const old = target.lastTurnId;
@@ -1481,9 +1493,7 @@ async function generateReply(reroll = false) {
     throw Error("先发送消息或音乐卡片");
   const pendingUsers = target.messages.filter(m=>m.role === "user");
   const historyForReply = target.messages.slice(-Math.max(1,c.maxMemory || 30)).map(messageForModel);
-  const task = generationTask(id);
-  task.kind = "chat";
-  try {
+
     await storeRoom(target);
     task.check();
     renderRoom();
@@ -1491,7 +1501,7 @@ async function generateReply(reroll = false) {
     let output = null;
     for (let round = 0; round < 5; round++) {
       task.check();
-      const system = `你是${c.realName || name(c)}。人设：${c.persona || ""}。用户是${c.myName || "我"}。在 HearU 一起听歌，自然短句聊天。可参考只读的 404 过往记忆与 HearU 独立历史，区分两个场景。当前歌曲与前后歌词：${JSON.stringify(nowPlaying(target))}。当前角色的独立专属歌单：${JSON.stringify(sharedPlaylistContext(target))}。你也可随时根据自己的品味管理这份歌单：playlist_get查询；playlist_add(songId或query,note)添加，note必须是你自己的具体添加理由；playlist_remove(songId,note)删除，只移除这份歌单的歌曲，不影响播放、待播或网易云。这三个动作也可放进actions；不要每轮强行添加/删除，也不要声称成功而未执行。你能用一个音乐工具的动作：now_playing；seek(lineIndex)跳到当前歌曲的真实歌词行；lyrics(songId)获得整首带翻译/行号的歌词；search(query)；queue；share(songId或query,lineIndices可选,note)分享歌卡；play_next；queue_add；play_now。后三者接受songId或query和note。play_now正在听则切歌，未播放则准备好供用户点击。你可按自身品味和当前氛围主动选歌/切歌，不必等用户提出点歌请求；每次选歌留下短句 note 和 favoriteLineIndex（你偏爱的一句歌词的真实行号，先用 lyrics 查完整歌词，不得编造歌词），不要每轮机械切歌。待播列表删歌、排序和播放模式只归用户；专属歌单删除按上述playlist_remove协议执行。需要信息时只输出JSON {"toolCalls":[{"type":"search","query":"歌名 歌手"}]}，工具结果会在下一轮给你。拿到资料后输出JSON {"messages":[{"text":"角色原话","translation":"简体中文，普通话中文留空"}],"userTranslation":"本轮用户外语或粤语的简体中文翻译，普通话中文留空","actions":[{"type":"share","songId":"真实id","note":"给用户的话","favoriteLineIndex":0}]}。messages可多条；actions可为空。你可以偶尔发送当前角色在404绑定分组中的表情包，允许名称为${JSON.stringify(nativeStickers(c).map(s=>s.name))}，使用messages中的对象{"sticker":"精确名称"}，可另发text对象。禁止使用未绑定、不存在的表情包或生成图片URL。外语/粤语角色用相应语言并附翻译，原文只放text，中文译文单独放translation；不要把译文写进text的括号里。不得伪造歌词或歌卡。尽量通过search核对歌曲。${observations.length ? "工具实际结果：" + JSON.stringify(observations) : ""}`;
+      const system = (window.KissReroll?.instruction(rerollNote)||'')+`你是${c.realName || name(c)}。人设：${c.persona || ""}。用户是${c.myName || "我"}。在 HearU 一起听歌，自然短句聊天。可参考只读的 404 过往记忆与 HearU 独立历史，区分两个场景。当前歌曲与前后歌词：${JSON.stringify(nowPlaying(target))}。当前角色的独立专属歌单：${JSON.stringify(sharedPlaylistContext(target))}。你也可随时根据自己的品味管理这份歌单：playlist_get查询；playlist_add(songId或query,note)添加，note必须是你自己的具体添加理由；playlist_remove(songId,note)删除，只移除这份歌单的歌曲，不影响播放、待播或网易云。这三个动作也可放进actions；不要每轮强行添加/删除，也不要声称成功而未执行。你能用一个音乐工具的动作：now_playing；seek(lineIndex)跳到当前歌曲的真实歌词行；lyrics(songId)获得整首带翻译/行号的歌词；search(query)；queue；share(songId或query,lineIndices可选,note)分享歌卡；play_next；queue_add；play_now。后三者接受songId或query和note。play_now正在听则切歌，未播放则准备好供用户点击。你可按自身品味和当前氛围主动选歌/切歌，不必等用户提出点歌请求；每次选歌留下短句 note 和 favoriteLineIndex（你偏爱的一句歌词的真实行号，先用 lyrics 查完整歌词，不得编造歌词），不要每轮机械切歌。待播列表删歌、排序和播放模式只归用户；专属歌单删除按上述playlist_remove协议执行。需要信息时只输出JSON {"toolCalls":[{"type":"search","query":"歌名 歌手"}]}，工具结果会在下一轮给你。拿到资料后输出JSON {"messages":[{"text":"角色原话","translation":"简体中文，普通话中文留空"}],"userTranslation":"本轮用户外语或粤语的简体中文翻译，普通话中文留空","actions":[{"type":"share","songId":"真实id","note":"给用户的话","favoriteLineIndex":0}]}。messages可多条；actions可为空。你可以偶尔发送当前角色在404绑定分组中的表情包，允许名称为${JSON.stringify(nativeStickers(c).map(s=>s.name))}，使用messages中的对象{"sticker":"精确名称"}，可另发text对象。禁止使用未绑定、不存在的表情包或生成图片URL。外语/粤语角色用相应语言并附翻译，原文只放text，中文译文单独放translation；不要把译文写进text的括号里。不得伪造歌词或歌卡。尽量通过search核对歌曲。${observations.length ? "工具实际结果：" + JSON.stringify(observations) : ""}`;
       task.replyStage='模型请求';const raw=await modelText(c,system,historyForReply,task.controller.signal);
       task.check();
       task.replyStage='回复格式检查';try{output=parseModelOutput(raw,true);}catch(formatError){
@@ -1579,6 +1589,10 @@ async function generateReply(reroll = false) {
     if(target.messages.some(m=>m.role === "assistant" && m.turnId === task.turnId)){for(const user of pendingUsers)user.readAt ||= Date.now();}
     await storeRoom(target);
   } catch (e) {
+    if(rerollBackup&&!target.messages.some(m=>m.role==='assistant'&&m.turnId===task.turnId)){
+      const restore=(current,previous)=>{const result=current.slice();for(let i=0;i<previous.length;i++){const row=previous[i];const present=result.includes(row)||(row.id!=null&&result.some(x=>x.id===row.id));if(row.turnId===rerollBackup.lastTurnId&&!present)result.splice(Math.min(i,result.length),0,row);}return result;};
+      target.messages=restore(target.messages,rerollBackup.messages);target.queue=restore(target.queue,rerollBackup.queue);ensureLibraries(target);target.libraries.ta=restore(target.libraries.ta,rerollBackup.libraries?.ta||[]);if(target.lastTurnId===task.turnId||target.lastTurnId===rerollBackup.lastTurnId)target.lastTurnId=rerollBackup.lastTurnId;await storeRoom(target);
+    }
     if(e.name!=='AbortError'){
       const reason=String(e.message || '未知错误').replace(/https?:\/\/[^\s]+/g,'[请求地址]').slice(0,500);
       target.replyErrors=[...(target.replyErrors || []),{at:Date.now(),reason,stage:task.replyStage || '回复处理',formatReasons:task.formatReasons || []}].slice(-8);
