@@ -53,6 +53,7 @@ const defaultSelfTranslation=()=>uiLanguage==='ja'?DEFAULT_SELF_TRANSLATION:t('s
 function cycleUiLanguage(){
  const next=UI_LANGUAGES[(UI_LANGUAGES.indexOf(uiLanguage)+1)%UI_LANGUAGES.length];
  uiLanguage=next;
+ window.dispatchEvent(new CustomEvent('kiss-ui-language-change',{detail:{language:next}}));
  try{localStorage.setItem(UI_LOCALE_KEY,next);}catch{if(typeof showToast==='function')showToast(t('storageFail'));}
  schedule();
  requestAnimationFrame(()=>document.querySelector('.ku-head-friends [data-ku="language"]')?.focus({preventScroll:true}));
@@ -404,5 +405,5 @@ for(const name of ['pointerup','pointercancel'])document.addEventListener(name,f
 document.addEventListener('click',e=>{const el=e.target.closest('.ku-comment-swipe');if(el&&Number(el.dataset.swipedUntil)>Date.now()&&!e.target.closest('.ku-comment-delete')){e.preventDefault();e.stopPropagation();return;}if(!el)closeCommentSwipes();},true);
 document.addEventListener('wheel',()=>closeCommentSwipes(),{passive:true});
 document.addEventListener('keydown',e=>{const el=e.target.closest('.ku-comment-swipe');if(el&&e.key==='ArrowLeft'){e.preventDefault();closeCommentSwipes(el);el.classList.add('is-open');el.querySelector('.ku-comment-delete')?.focus();}else if(el&&e.key==='ArrowRight'){e.preventDefault();closeCommentSwipes();el.focus();}else if(e.key==='Escape')closeCommentSwipes();});
-window.KissPagesUI={refresh:schedule,hasCustomCss:externalCss,clearLegacyDynamics};schedule();
+window.KissPagesUI={getLanguage:()=>uiLanguage,refresh:schedule,hasCustomCss:externalCss,clearLegacyDynamics};schedule();
 })();

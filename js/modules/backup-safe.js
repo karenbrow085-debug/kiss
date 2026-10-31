@@ -13,6 +13,8 @@ const mimeByURL=new Map();
 const pins = new WeakMap(), accessEpoch = new WeakMap(), writeVersions=new WeakMap();
 const cold = new WeakMap(), urls = new Map(), reverse = new Map(), pending = new WeakMap();
 let busy = false, serial = Promise.resolve(), queuedSave = null;
+let dataLoaded=false, loadSequence=0, settingsGeneration=null;
+const SETTINGS_GENERATION='settings-write-generation';
 const knownAssets=new Set();
 const uid=()=>global.crypto?.randomUUID?.()||Array.from(global.crypto?.getRandomValues?.(new Uint8Array(16))||Uint8Array.from({length:16},()=>Math.random()*256),b=>b.toString(16).padStart(2,'0')).join('');
 const pause = () => new Promise(r => setTimeout(r, 0));
@@ -199,7 +201,7 @@ function isActiveChat(chat) {
 function generationInProgress(){return typeof isGenerating!=='undefined'?!!isGenerating:!!global.isGenerating;}
 function evictOthers(keep) {
  const run=async()=>{
-  if(generationInProgress())return;
+  if(!dataLoaded||generationInProgress())return;
   for(const chat of [...(db.characters||[]),...(db.groups||[])]){
    if(chat===keep||isActiveChat(chat)||pins.has(chat)||pending.has(chat)||cold.has(chat)||!Array.isArray(chat.history))continue;
    const history=chat.history,length=history.length,last=history.at(-1),branch=chat.activeArchiveId,epoch=accessEpoch.get(chat)||0;
@@ -441,18 +443,76 @@ async function selectPrepared(data,selected) {
  if(Object.keys(out).every(key=>key.startsWith('_export')))throw Error('文件未包含所选分类的数据，当前记录未改动');
  Object.defineProperty(out,'__phonePrepared',{value:true});return out;
 }
+
+function assertDataLoaded(){if(!dataLoaded)throw Error('数据尚未完整加载，已停止保存空白或默认设置；请重新打开页面');}
+async function beginDataLoad(){
+ dataLoaded=false;const sequence=++loadSequence;
+ await serial;
+ const row=await dexieDB.safeMeta.get(SETTINGS_GENERATION);
+ return {sequence,generation:Number(row?.generation)||0};
+}
+async function completeDataLoad(token){
+ const row=await dexieDB.safeMeta.get(SETTINGS_GENERATION),generation=Number(row?.generation)||0;
+ if(token.sequence!==loadSequence||generation!==token.generation)throw Error('加载期间设置已更新，当前页面未保存，请重新打开');
+ settingsGeneration=generation;dataLoaded=true;
+}
+// All ordinary setting writes share a queue and compare the version read by this page.
+// Keep the last different value for each key, so unchanged saves do not erase a useful checkpoint.
+async function assertSettingsCurrent(){
+ assertDataLoaded();const state=await dexieDB.safeMeta.get(SETTINGS_GENERATION);
+ if((Number(state?.generation)||0)!==settingsGeneration)throw Error('设置已在其他页面更新，已停止当前页面保存，请重新打开');
+}
+async function writeSettings(patch){
+ assertDataLoaded();const rows=[];
+ for(const [key,value]of Object.entries(patch)){
+  assertKey(key);if(CORE.includes(key)||key.startsWith('_export'))throw Error('不能将聊天表写入设置');
+  if(value!==undefined)rows.push({key,value:await compact(value,key)});
+ }
+ assertDataLoaded();
+ let committedGeneration;
+ await dexieDB.transaction('rw',dexieDB.globalSettings,dexieDB.safeMeta,async()=>{
+  assertDataLoaded();
+  const state=await dexieDB.safeMeta.get(SETTINGS_GENERATION),generation=Number(state?.generation)||0;
+  const changes=[];
+  for(const row of rows){const previous=await dexieDB.globalSettings.get(row.key);if(!previous||JSON.stringify(previous.value)!==JSON.stringify(row.value))changes.push({row,previous});}
+  if(changes.length&&generation!==settingsGeneration)throw Error('设置已在其他页面更新，已阻止旧页面覆盖；请重新打开当前页面');
+  for(const {row,previous}of changes){
+   if(previous)await dexieDB.safeMeta.put({key:'settings-checkpoint:'+row.key,createdAt:Date.now(),setting:previous});
+   await dexieDB.globalSettings.put(row);
+  }
+  committedGeneration=generation+(changes.length?1:0);
+  if(changes.length)await dexieDB.safeMeta.put({key:SETTINGS_GENERATION,generation:committedGeneration,updatedAt:Date.now()});
+ });
+ settingsGeneration=committedGeneration;
+}
+function saveSettings(patch){
+ const snapshot=clone(patch);
+ const job=serial.then(async()=>{
+  if(busy||global.kissCleanupLocked)throw Error('数据正在整理，请稍后重试');
+  await writeSettings(snapshot);
+  // Publish the committed values before the next queued full save runs.
+  Object.assign(db,snapshot);
+  for(const key of Object.keys(snapshot))if(!globalSettingKeys.includes(key))globalSettingKeys.push(key);
+ });
+ serial=job.catch(()=>{});return job;
+}
+
 async function save() {
+ assertDataLoaded();
  if(busy||global.kissCleanupLocked)throw Error('数据正在整理，未保存，请稍后重试');
  if(queuedSave)return queuedSave;
  const run=async()=>{
   queuedSave=null;
+  assertDataLoaded();
   if(busy||global.kissCleanupLocked)throw Error('数据正在整理，未保存，请稍后重试');
+  await assertSettingsCurrent();
   if(typeof syncAllActiveArchives==='function')syncAllActiveArchives();
   // Pack each row separately. Cold histories remain references and never get overwritten by previews.
   let yieldedAt=performance.now();
   const yieldToUI=async()=>{if(performance.now()-yieldedAt>8){await pause();yieldedAt=performance.now();}};
   for(const key of CORE)for(const row of db[key]||[]){await yieldToUI();const packed=['characters','groups'].includes(key)?await diskChat(row):await compact(row);if(['characters','groups'].includes(key))await writeChat(key,packed,row);else await dexieDB[key].put(packed);}
-  for(const key of globalSettingKeys)if(db[key]!==undefined){await yieldToUI();await dexieDB.globalSettings.put({key,value:await compact(db[key],key)});}
+  const patch={};for(const key of globalSettingKeys)if(db[key]!==undefined){await yieldToUI();patch[key]=db[key];}
+  await writeSettings(patch);
  };
  const job=serial.then(async()=>{await pause();return run();});queuedSave=job;serial=job.catch(()=>{});return job;
 }
@@ -517,10 +577,11 @@ function stageMessage(chat,message){
 }
 
 function saveChat(chat){
+ if(!dataLoaded)return Promise.reject(Error('数据尚未完整加载，聊天暂未写入'));
  if(!chat||typeof chat!=='object')return Promise.reject(Error('聊天不存在'));
  if(queuedChatSaves.has(chat))return queuedChatSaves.get(chat);
  const job=serial.then(async()=>{
-  queuedChatSaves.delete(chat);await pause();
+  queuedChatSaves.delete(chat);await pause();assertDataLoaded();
   if(busy||global.kissCleanupLocked)throw Error('数据正在整理，请稍后重试保存');
   const key=(db.characters||[]).includes(chat)?'characters':(db.groups||[]).includes(chat)?'groups':null;
   if(!key)throw Error('当前账号或聊天已切换，未写入其他账号');
@@ -538,8 +599,8 @@ function saveHomeSettings(keys) {
  const job=serial.then(async()=>{
   if(busy||global.kissCleanupLocked)throw Error('数据正在整理，请稍后再试');
   const rows=[];
-  for(const key of wanted)if(db[key]!==undefined)rows.push({key,value:await compact(db[key],key)});
-  await dexieDB.transaction('rw',dexieDB.globalSettings,()=>dexieDB.globalSettings.bulkPut(rows));
+  for(const key of wanted)if(db[key]!==undefined)rows.push({key,value:db[key]});
+  await writeSettings(Object.fromEntries(rows.map(row=>[row.key,row.value])));
  });
  serial=job.catch(()=>{});return job;
 }
@@ -576,7 +637,8 @@ async function collectUnused() {
 }
 async function importData(input) {
  if(busy)return {success:false,error:'正在处理备份，请稍后'};
- await save();if(busy)return {success:false,error:'正在处理备份，请稍后'};
+ if(dataLoaded)await save();else await serial;
+ if(busy)return {success:false,error:'正在处理备份，请稍后'};
  busy=true;await serial;const wasLocked=global.kissCleanupLocked;global.kissCleanupLocked=true;
  let rollbackApps=null,appsChanged=false;
  try{
@@ -597,8 +659,11 @@ async function importData(input) {
   await dexieDB.transaction('rw',tables,async()=>{
    for(const key of CORE)if(data[key]!==undefined){await dexieDB[key].clear();for(const row of data[key])await dexieDB[key].put(row);}
    for(const key of keys)if(!CORE.includes(key))await dexieDB.globalSettings.put({key,value:data[key]});
+   const previous=await dexieDB.safeMeta.get(SETTINGS_GENERATION);
+   await dexieDB.safeMeta.put({key:SETTINGS_GENERATION,generation:(Number(previous?.generation)||0)+1,updatedAt:Date.now()});
    await dexieDB.safeMeta.delete('app-restore');
   });
+  dataLoaded=false;
   // Prevent timers from saving the old in-memory db before the caller's refresh.
   for(const key of keys)if(!CORE.includes(key)&&!globalSettingKeys.includes(key))globalSettingKeys.push(key);
   try{await collectUnused();}catch(e){console.warn('备份缓存将在下次导入后清理',e.message);}
@@ -663,6 +728,7 @@ async function exportBlob(data=null) {
 }
 function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
 function recovery(error) {
+ dataLoaded=false;
  const panel=document.createElement('div');panel.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#f4f3ef;color:#202020;padding:70px 24px;font:15px system-ui;overflow:auto';
  const title=document.createElement('h2');title.textContent='数据恢复';const p=document.createElement('p');p.textContent=error?'启动未完成：'+error.message:'上次启动未完成。可以重新导入备份；当前数据不会自动清除。';
  const input=document.createElement('input');input.type='file';input.accept='.ee,.json,.bin,application/octet-stream';
@@ -676,6 +742,6 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,prepareChatSafety,makeSafetyArchives,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,beginDataLoad,completeDataLoad,saveSettings,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,prepareChatSafety,makeSafetyArchives,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);
 

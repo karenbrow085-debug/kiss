@@ -97,12 +97,7 @@
     // 只写相关设置；保存失败时不改内存中的数据，也不写聊天表。
     async function commit(patch) {
         assert(typeof dexieDB !== 'undefined' && dexieDB, '数据库尚未加载');
-        await dexieDB.transaction('rw', dexieDB.globalSettings, async () => {
-            for (const [key, value] of Object.entries(patch)) {
-                await dexieDB.globalSettings.put({ key, value: clone(value) });
-            }
-        });
-        Object.assign(db, patch);
+        await PhoneBackup.saveSettings(patch);
     }
     function mergeTemplates(snapshot) {
         const result = clone(db.widgetTemplates || []);
