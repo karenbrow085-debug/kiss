@@ -6,8 +6,8 @@
 .kr-feedback-sheet h2{font-size:18px;font-weight:550;line-height:1.5;margin:7px 0 0;letter-spacing:.03em;color:#262628}
 .kr-feedback-sheet button{font:inherit;cursor:pointer;border:0;box-shadow:none;-webkit-tap-highlight-color:transparent}
 .kr-feedback-sheet .kr-feedback-x{flex:0 0 29px;width:29px;height:29px;padding:0;border:1px solid #eee;border-radius:8px;background:#fff;color:#888;font:22px/1 Arial,sans-serif}
-.kr-feedback-subtitle{font-size:11px;line-height:1.7;color:#96969d;margin:10px 0 21px}
-.kr-feedback-fields{display:flex;flex-direction:column;gap:16px}
+
+.kr-feedback-fields{margin-top:20px;display:flex;flex-direction:column;gap:16px}
 .kr-feedback-fields label{font-size:12px;line-height:1.5;color:#44444a;font-weight:500}
 .kr-feedback-fields label>span{font-size:10px;color:#aaaab1;float:right;font-weight:400}
 .kr-feedback-fields textarea{appearance:none;display:block;width:100%;font:400 14px/1.7 var(--font-family,-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif);color:#36363b;padding:11px 12px;margin:7px 0 0;border:1px solid #e8e8ec;border-radius:8px;background:#fafafa;box-shadow:none;outline:0;resize:vertical;min-height:70px;max-height:230px;-webkit-user-select:text;user-select:text}
@@ -18,4 +18,4 @@
 .kr-feedback-sheet footer>.kr-feedback-submit{background:#262629;border-color:#262629;color:#fff}
 .kr-feedback-error{font-size:11px;color:#98575b;line-height:1.6;margin:12px 0 0}
 .kr-feedback-error[hidden]{display:none}
-@media(max-height:530px){.kr-feedback-overlay{padding:10px}.kr-feedback-sheet{max-height:calc(100dvh - 20px);padding:16px}.kr-feedback-fields{gap:10px}.kr-feedback-subtitle{margin-bottom:12px}.kr-feedback-fields textarea{min-height:55px}.kr-feedback-sheet footer{margin-top:12px}}
+@media(max-height:530px){.kr-feedback-overlay{padding:10px}.kr-feedback-sheet{max-height:calc(100dvh - 20px);padding:16px}.kr-feedback-fields{gap:10px}.kr-feedback-fields textarea{min-height:55px}.kr-feedback-sheet footer{margin-top:12px}}
