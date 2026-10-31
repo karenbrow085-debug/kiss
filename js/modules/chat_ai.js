@@ -115,7 +115,7 @@ document.addEventListener('keydown',event => {
 });
 
 // AI 交互逻辑
-async function getAiReply(chatId, chatType, isBackground = false, generationType = 'normal') {
+async function getAiReply(chatId, chatType, isBackground = false, generationType = 'normal', rerollNote = null) {
     if (isGenerating && !isBackground) return; 
     
     if (!isBackground) {
@@ -153,7 +153,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
     }
 
     if (chatType === 'private' && window.KissOffline?.isActive(chat)) {
-        return window.KissOffline.request(chat, apiConfig, isBackground);
+        return window.KissOffline.request(chat, apiConfig, isBackground, null, rerollNote);
     }
 
     let {url, key, model, provider, streamEnabled} = apiConfig; 
@@ -634,6 +634,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             await window.KissMCPRuntime.prepare({chat,chatType,body:requestBody,provider,endpoint,headers,generation});
             generation.check();
         }
+        window.KissReroll?.inject(requestBody,provider,rerollNote);
         const response = await generation.waitFor(fetch(endpoint, {
             method: 'POST',
             headers: headers,
@@ -1353,26 +1354,25 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
 }
 
 async function handleRegenerate() {
-    if (isGenerating) return;
-
-    const chat = (currentChatType === 'private')
-        ? db.characters.find(c => c.id === currentChatId)
-        : db.groups.find(g => g.id === currentChatId);
-
-    if (!chat || !chat.history || chat.history.length === 0) {
-        showToast('没有可供重新生成的内容。');
-        return;
-    }
-
-    const lastUserMessageIndex = chat.history.map(m => m.role).lastIndexOf('user');
-
-    if (lastUserMessageIndex === -1 || lastUserMessageIndex === chat.history.length - 1) {
-        showToast('AI尚未回复，无法重新生成。');
-        return;
-    }
-
-    const originalTail=chat.history.slice(lastUserMessageIndex+1),archiveId=chat.activeArchiveId,chatId=currentChatId,chatType=currentChatType;
-    chat.history.splice(lastUserMessageIndex+1);
-    try{await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatType==='private')recalculateChatStatus(chat);currentPage=1;renderMessages(false,true);await getAiReply(chatId,chatType,false,'regenerate');}
-    finally{const replied=chat.history.slice(lastUserMessageIndex+1).some(m=>m.role==='assistant'&&!m.isThinking);if(chat.activeArchiveId===archiveId&&!replied){const ids=new Set(chat.history.map(m=>m.id));chat.history.push(...originalTail.filter(m=>m.id==null?!chat.history.includes(m):!ids.has(m.id)));await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatId===currentChatId&&chatType===currentChatType)renderMessages(false,true);}}
+ if(isGenerating)return;
+ const chatId=currentChatId,chatType=currentChatType,chat=(chatType==='private'?db.characters:db.groups).find(c=>c.id===chatId);
+ if(!chat)return;
+ if(chatType==='private'&&window.KissOffline?.isActive(chat))return window.KissOffline.regenerate(chat);
+ await PhoneBackup.hydrateChat(chat);
+ const visible=m=>!m.offlineNarrative&&!m.offlineSessionId&&!m.offlineArchiveId&&!m.offlineBoundary&&!m.offlineHidden;
+ const lastUserMessageIndex=chat.history.findLastIndex(m=>m.role==='user'&&visible(m));
+ const originalTail=chat.history.slice(lastUserMessageIndex+1).filter(visible);
+ if(lastUserMessageIndex<0||!originalTail.some(m=>m.role==='assistant'&&!m.isThinking)){showToast('没有可供重新生成的回复。');return;}
+ const feedback=window.KissReroll;if(!feedback){showToast('重生成模块未加载，请刷新完整更新后的页面');return;}
+ const token=feedback.capture(chat),fingerprint=feedback.fingerprint(chat.history);
+ const guard=()=>feedback.valid(chat,token)&&currentChatId===chatId&&currentChatType===chatType&&!isGenerating&&feedback.fingerprint(chat.history)===fingerprint;
+ const rerollNote=await feedback.ask({subtitle:chatType==='group'?'群聊 · 仅用于这一次重新回复':'聊天 · 仅用于这一次重新回复',guard});
+ if(rerollNote===null||!guard())return;
+ const archiveId=chat.activeArchiveId,idsToRemove=new Set(originalTail);
+ chat.history=chat.history.filter(m=>!idsToRemove.has(m));
+ try{await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatType==='private')recalculateChatStatus(chat);currentPage=1;renderMessages(false,true);await getAiReply(chatId,chatType,false,'regenerate',rerollNote);}
+ finally{
+  const replied=chat.history.slice(lastUserMessageIndex+1).some(m=>visible(m)&&m.role==='assistant'&&!m.isThinking);
+  if(chat.activeArchiveId===archiveId&&!replied){const ids=new Set(chat.history.map(m=>m.id));chat.history.push(...originalTail.filter(m=>m.id==null?!chat.history.includes(m):!ids.has(m.id)));await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatId===currentChatId&&chatType===currentChatType)renderMessages(false,true);}
+ }
 }

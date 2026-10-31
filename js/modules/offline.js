@@ -474,7 +474,7 @@ async function callReply() {
  try{if($('.of-composer textarea').value.trim()){const saved=await send();if(!saved)return;}await state.sendQueue?.flush(chat);await getAiReply(chat.id,'private');}
  finally{state.callPending=false;}
 }
-async function request(chat,apiConfig,isBackground=false,replacement=null) {
+async function request(chat,apiConfig,isBackground=false,replacement=null,rerollNote=null) {
  if(window.PhoneBackup?.isPinned(chat))return false;
  apiConfig=resolveOfflineApi(chat,apiConfig);if(!apiConfig.url||!apiConfig.key||!apiConfig.model){showApiError(Error('请配置 API 地址、密钥和模型'));return false;}
  if(state.busy||isGenerating&&!isBackground)return;
@@ -482,6 +482,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
  state.busy=true;if(!isBackground){isGenerating=true;getReplyBtn.disabled=true;regenerateBtn.disabled=true;status('Typing…');}
  const archiveAtStart=chat.activeArchiveId,sessionAtStart=config(chat).activeSessionId;let persisted=false;const imageAtStart=!!config(chat).autoImage,statusAtStart=config(chat).statusPanel?{...config(chat).statusPanel}:null;
  try{
+  if(replacement)await state.sendQueue?.flush(chat);generation.check();
   const limit=config(chat).draft.generationSource==='tavern'?Infinity:(Number(chat.maxMemory)>0?Number(chat.maxMemory):30);
   let history=historyForAI(chat).filter(m=>m.id!==replacement?.id).filter(m=>!m.isContextDisabled&&!m.isThinking&&!m.isStatusUpdate&&!['mcp-request','mcp-activity'].includes(m.type)).slice(-limit);
   history=filterHistoryForAI(chat,history);
@@ -492,7 +493,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   state.liveGeneration={chatId:chat.id,id:'of-pending',mode:built.mode,content:'',reasoning:'',started:start};
   const blocked=typeof BLOCKED_API_DOMAINS!=='undefined'?BLOCKED_API_DOMAINS:[];
   if(blocked.some(domain=>endpoint.includes(domain)))throw Error('当前 API 站点已被屏蔽');
-  await window.KissOfflineGeneration.applyRequestRegex(built,chat);generation.check();
+  await window.KissOfflineGeneration.applyRequestRegex(built,chat);generation.check();window.KissReroll?.inject(built.requestBody,apiConfig.provider,rerollNote);
   const response=await fetch(endpoint,{method:'POST',headers:built.headers,body:JSON.stringify(built.requestBody),signal:generation.signal});
   if(!response.ok)throw Error(`API ${response.status}: ${(await response.text()).slice(0,180)}`);
   const consume=data=>{
@@ -514,9 +515,22 @@ async function request(chat,apiConfig,isBackground=false,replacement=null) {
   m.offlineGenerationSource=built.mode;if(built.presetId)m.offlinePresetId=built.presetId;if(returnedReasoning)m.offlineReasoning=returnedReasoning;
   if(extracted.pending)m.offlineStatusPending=extracted.pending;
   if(imageAtStart)m.offlineImage={prompt:picture.prompt||defaultImagePrompt(chat,clean)};
-  if(extracted.record)m.offlineStatus=extracted.record;const sp=config(chat).statusPanel,oldStatus=sp?{history:sp.history,raw:sp.currentStatusRaw,html:sp.currentStatusHtml}:null;if(sp&&extracted.record){const record={...extracted.record,messageId:m.id};sp.history=[record,...(sp.history||[])].slice(0,20);sp.currentStatusRaw=record.raw;sp.currentStatusHtml=record.html;}
   if(chat.activeArchiveId!==archiveAtStart||config(chat).activeSessionId!==sessionAtStart||!config(chat).active)throw Error('生成期间聊天已切换，未写入其他存档');
-  tagMessage(chat,m);const replacementIndex=replacement?chat.history.indexOf(replacement):-1;if(replacementIndex>=0){m.offlineFloor=replacement.offlineFloor;chat.history.splice(replacementIndex,1,m);}else chat.history.push(m);ensureFloors(chat);try{await deliveryQueue().enqueue(chat,m);}catch(error){if(replacementIndex>=0&&!chat.history.includes(replacement))chat.history.splice(Math.max(0,chat.history.indexOf(m)),0,replacement);refresh(true);throw error;}persisted=true;
+  if(generation.collectionContext&&window.KissCollections&&!window.KissCollections.validContext(chat,generation.collectionContext))throw new DOMException('当前身份或存档已切换','AbortError');
+  const replacementIndex=replacement?chat.history.indexOf(replacement):-1;
+  if(replacement&&replacementIndex<0)throw Error('要重回的楼层已经变化，原记录未替换');
+  if(extracted.record)m.offlineStatus=extracted.record;
+  const sp=config(chat).statusPanel,oldStatus=sp?{history:sp.history,raw:sp.currentStatusRaw,html:sp.currentStatusHtml}:null;
+  if(sp&&extracted.record){const record={...extracted.record,messageId:m.id};sp.history=[record,...(sp.history||[])].slice(0,20);sp.currentStatusRaw=record.raw;sp.currentStatusHtml=record.html;}
+  tagMessage(chat,m);
+  if(replacement){m.offlineFloor=replacement.offlineFloor;chat.history.splice(replacementIndex,1,m);}else chat.history.push(m);
+  ensureFloors(chat);
+  try{if(replacement)await saveOfflineChat(chat);else await deliveryQueue().enqueue(chat,m);}
+  catch(error){
+   if(replacement){const at=chat.history.indexOf(m);if(at>=0)chat.history.splice(at,1,replacement);else if(!chat.history.includes(replacement))chat.history.splice(Math.min(replacementIndex,chat.history.length),0,replacement);if(sp&&oldStatus){sp.history=oldStatus.history;sp.currentStatusRaw=oldStatus.raw;sp.currentStatusHtml=oldStatus.html;}}
+   refresh(true);throw error;
+  }
+  persisted=true;
   if(window.KissCollections)await window.KissCollections.consume(parsed.text,chat,{context:generation.collectionContext,check:()=>generation.check()});
   state.liveGeneration=null;addMessageBubble(m,chat.id,'private');renderChatList();refresh(true);status('');
   if(imageAtStart)generateFloorImage(chat,m.id).catch(error=>{console.warn('[Offline image]',error.message);if(state.chatId===chat.id&&typeof showToast==='function')showToast('正文已保存，配图未完成：'+error.message);});
@@ -541,7 +555,12 @@ async function fetchOfflineModels(chat,presetName) {
  try{for(let page=0;page<20;page++){const response=await fetch(url.href,{headers,signal:controller.signal});if(!response.ok)throw Error('模型拉取失败（HTTP '+response.status+'）');const data=await response.json(),rows=Array.isArray(data)?data:data.data||data.models||[];models.push(...rows.filter(r=>!r.supportedGenerationMethods||r.supportedGenerationMethods.includes('generateContent')).map(r=>typeof r==='string'?r:r.id||r.name).filter(Boolean).map(n=>n.replace(/^models\//,'')));if(data.nextPageToken){url.searchParams.set('pageToken',data.nextPageToken);continue;}if(data.has_more&&data.last_id){url.searchParams.set('after_id',data.last_id);continue;}break;}if(!models.length)throw Error('未返回模型，可手动填写');return [...new Set(models)];}finally{clearTimeout(timer);}
 }
 async function regenerate(chat) {
- if(isGenerating||state.busy)throw Error('请先暂停当前生成');const session=activeSession(chat),last=session&&sessionRows(chat,session).at(-1);if(!last||last.role!=='assistant')throw Error('本次线下暂无可重新生成的回复');return request(chat,resolveOfflineApi(chat),false,last);
+ if(isGenerating||state.busy)throw Error('请先暂停当前生成');const session=activeSession(chat),last=session&&sessionRows(chat,session).at(-1);if(!last||last.role!=='assistant')throw Error('本次线下暂无可重新生成的回复');
+ const feedback=window.KissReroll;if(!feedback)throw Error('重生成模块未加载，请刷新页面');
+ const token=feedback.capture(chat),signature=feedback.fingerprint(chat.history),original=last.content;
+ const guard=()=>feedback.valid(chat,token)&&currentChatId===chat.id&&!state.busy&&!isGenerating&&last.content===original&&feedback.fingerprint(chat.history)===signature;
+ const note=await feedback.ask({subtitle:'线下 · 结合当前思维链或酒馆预设重新生成',guard});if(note===null||!guard())return false;
+ return request(chat,resolveOfflineApi(chat),false,last,note);
 }
 function statusFormat(chat,presetId) {
  const source=presetId==='__online__'?chat.statusPanel:(db.statusBarPresets||[]).find(p=>String(p.id)===String(presetId));if(!source)throw Error('状态栏预设不存在，请重新选择');

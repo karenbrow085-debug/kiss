@@ -683,27 +683,21 @@ const VideoCallModule = {
         }
     },
 
+    cancelPendingReplies: function() {
+        for(const timer of this.state.replyTimers||[])clearTimeout(timer);
+        this.state.replyTimers=new Set();this.state.replyPlaybackId=(this.state.replyPlaybackId||0)+1;
+    },
     parseAndAddAiResponse: function(fullText) {
-        const regex = /\[(.*?)[：:]([\s\S]+?)\]/g;
-        let match;
-        let delay = 500;
-
-        while ((match = regex.exec(fullText)) !== null) {
-            const tag = match[1];
-            let content = match[2];
-            content = content.trim();
-            
-            let type = 'voice';
-            if (tag.includes('画面') || tag.includes('环境') || tag.includes('动作')) {
-                type = 'visual';
-            }
-            
-            setTimeout(() => {
-                this.addMessage('ai', type, content);
-            }, delay);
-            
-            delay += 2000; 
+        const regex=/\[(.*?)[：:]([\s\S]+?)\]/g;
+        const chat=this.state.currentChat,context=this.state.currentCallContext,token=window.KissReroll?.capture(chat),playback=this.state.replyPlaybackId||0;
+        this.state.replyTimers||=new Set();let match,delay=500,count=0;
+        while((match=regex.exec(String(fullText)))!==null){
+            const content=match[2].trim();if(!content)continue;
+            const type=/画面|环境|动作/.test(match[1])?'visual':'voice';
+            const timer=setTimeout(()=>{this.state.replyTimers.delete(timer);if(!this.state.isCallActive||this.state.currentChat!==chat||this.state.currentCallContext!==context||(this.state.replyPlaybackId||0)!==playback||(token&&!window.KissReroll.valid(chat,token)))return;this.addMessage('ai',type,content);},delay);
+            this.state.replyTimers.add(timer);delay+=2000;count++;
         }
+        return count;
     },
 
     addMessage: function(who, type, content) {
@@ -835,11 +829,18 @@ const VideoCallModule = {
         setTimeout(() => document.addEventListener('click', closeMenu), 0);
     },
 
-    handleRegenerate: function() {
+    handleRegenerate: async function() {
         if (this.state.isGenerating) {
             showToast("正在生成中，请稍候...");
             return;
         }
+
+        if(this.state.isAiSpeaking){showToast('对方正在说话，请稍候');return;}
+        const feedback=window.KissReroll;if(!feedback)return showToast('重生成模块未加载，请刷新页面');
+        const chat=this.state.currentChat,context=this.state.currentCallContext,token=feedback.capture(chat),signature=feedback.fingerprint(context);
+        const guard=()=>this.state.isCallActive&&this.state.currentChat===chat&&this.state.currentCallContext===context&&!this.state.isGenerating&&!this.state.isAiSpeaking&&feedback.valid(chat,token)&&feedback.fingerprint(context)===signature;
+        const rerollNote=await feedback.ask({subtitle:'通话 · 结合通话思维链重新回应',guard});if(rerollNote===null||!guard())return;
+        this.cancelPendingReplies();
 
         // 1. 找到最后一条 User 消息的索引
         let lastUserIndex = -1;
@@ -862,25 +863,28 @@ const VideoCallModule = {
         
         // 如果最后一条就是 User 消息，说明没有 AI 回复可撤回，直接触发生成即可
         if (startIndexToDelete >= this.state.currentCallContext.length) {
-            this.triggerAiReply();
+            await this.triggerAiReply(rerollNote);
             return;
         }
 
+        const oldTail=context.slice(startIndexToDelete);
         // 2. 删除数据
         this.state.currentCallContext.splice(startIndexToDelete);
 
         // 3. 删除 DOM
         const container = document.getElementById('vc-chat-container');
         const msgs = container.querySelectorAll('.vc-msg-row');
+        const oldNodes=[...msgs].slice(startIndexToDelete);
         for (let i = startIndexToDelete; i < msgs.length; i++) {
             if (msgs[i]) msgs[i].remove();
         }
 
-        // 4. 重新触发生成
-        this.triggerAiReply();
+        // 4. 重新触发生成；失败时保留此前的回复。
+        const received=await this.triggerAiReply(rerollNote);
+        if(!received&&this.state.isCallActive&&this.state.currentChat===chat&&this.state.currentCallContext===context){context.splice(startIndexToDelete,0,...oldTail);const before=container.querySelectorAll('.vc-msg-row')[startIndexToDelete]||null;for(const node of oldNodes)container.insertBefore(node,before);}
     },
 
-    triggerAiReply: async function() {
+    triggerAiReply: async function(rerollNote = null) {
         // 1. 检查是否正在生成 (优先提示)
         if (this.state.isGenerating) {
             showToast("信号正在传输中...");
@@ -893,6 +897,8 @@ const VideoCallModule = {
             return;
         }
 
+        const replyChat=this.state.currentChat,replyContext=this.state.currentCallContext,replyToken=window.KissReroll?.capture(replyChat);
+        let received=false;
         this.state.isGenerating = true;
         this.state.isAiSpeaking = true; // 同时也标记为 speaking 以防其他操作干扰
         
@@ -910,10 +916,11 @@ const VideoCallModule = {
                 let fullText = "";
                 await getCallReply(this.state.currentChat, this.state.callType, this.state.currentCallContext, (chunk) => {
                     fullText += chunk;
-                });
+                },rerollNote);
                 
-                if (fullText) {
-                    this.parseAndAddAiResponse(fullText);
+                if (fullText&&this.state.isCallActive&&this.state.currentChat===replyChat&&this.state.currentCallContext===replyContext&&(!replyToken||window.KissReroll.valid(replyChat,replyToken))) {
+                    received=this.parseAndAddAiResponse(fullText)>0;
+                    if(!received)showToast('回复格式不完整，原回复已保留');
                 }
             }
         } catch (e) {
@@ -925,6 +932,7 @@ const VideoCallModule = {
             this.state.isGenerating = false;
             this.state.isAiSpeaking = false; 
         }
+        return received;
     },
 
     sendUserAction: async function(text) {
@@ -952,6 +960,7 @@ const VideoCallModule = {
     },
 
     endCall: async function(isLoading = false) {
+        this.cancelPendingReplies();
         this.state.isCallActive = false;
         this.state.isMinimized = false;
         

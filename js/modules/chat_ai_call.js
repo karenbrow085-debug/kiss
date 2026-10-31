@@ -1,6 +1,6 @@
 // --- 视频/语音通话专用 AI 逻辑 ---
 
-async function getCallReply(chat, callType, callContext, onStreamUpdate) {
+async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollNote = null) {
     let apiConfig = db.apiSettings;
     
     // 检查是否启用了专属模型
@@ -382,6 +382,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate) {
         Authorization: `Bearer ${key}`
     };
 
+    window.KissReroll?.inject(requestBody,provider,rerollNote);
     console.log('[VideoCall] Request Body:', JSON.stringify(requestBody, null, 2));
 
     try {
