@@ -276,3 +276,14 @@
 .ku-post-actions .ku-repeat,.ku-view .ku-repeat{fill:currentColor;stroke:none}
 .ku-mode .ku-profile-card-fields select{width:100%;box-sizing:border-box;font:inherit;font-size:13px;color:#273246;border:1px solid #e5e9ef;border-radius:8px;background:#f8fafc;padding:9px}
 @media(prefers-reduced-motion:reduce){.ku-comment-track,.ku-comment-delete{transition:none}}
+
+/* The date is the quiet four-edition switch; retain the existing header rhythm. */
+.ku-head-friends button.ku-date{appearance:none;border:0;background:transparent;color:inherit;font-family:inherit;line-height:1.5;min-height:34px;margin-top:12px;padding:7px 0 7px 5px;cursor:pointer;text-align:right;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.ku-head-friends button.ku-date:focus-visible{outline:1px solid currentColor;outline-offset:4px;border-radius:4px}
+.ku-head-friends .ku-head-copy{overflow:hidden}
+.ku-head-friends .ku-head-copy h1{overflow-wrap:anywhere}
+.ku-head-friends .ku-head-copy p{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-width:100%;overflow:hidden}
+.ku-view[lang="en"] .ku-head-menu h1{font-size:calc(24px * var(--app-font-scale,1))}
+.ku-view[lang="ko"] .ku-head-copy h1{letter-spacing:-.03em}
+.ku-view[lang="en"] .ku-tool span,.ku-view[lang="ko"] .ku-tool span{overflow-wrap:anywhere}
+.ku-view[lang="en"] .ku-friend-tabs button,.ku-view[lang="ko"] .ku-friend-tabs button{font-size:calc(11px * var(--app-font-scale,1))}
