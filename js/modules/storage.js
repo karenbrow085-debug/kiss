@@ -275,6 +275,9 @@ async function handleExport() {
             modules: {}
         };
 
+        // Record the selected scope so absent categories cannot be restored as empty data.
+        exportData.modules._exportCategories = Object.entries(selectedModules).filter(([, enabled]) => enabled).map(([key]) => key);
+
         // 1. Chats & Contacts
         if (selectedModules.chats || selectedModules.contacts) {
             exportData.modules.characters = [];
@@ -293,7 +296,7 @@ async function handleExport() {
                     exportChar = { id: char.id, name: char.name, history: exportChar.history, callHistory: char.callHistory, archives: exportChar.archives, activeArchiveId: char.activeArchiveId };
                 }
                 // 始终不导出 gallery
-                exportChar.gallery = [];
+                delete exportChar.gallery;
                 exportData.modules.characters.push(exportChar);
             }
 

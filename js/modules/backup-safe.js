@@ -369,10 +369,12 @@ async function readFile(blob,options={}) {
    }
    if(!footer)throw Error('备份缺少完成标记');data._exportVersion=first.exportVersion;data._exportTimestamp=first.exportTimestamp;data._exportTables=first.exportTables;
   }else {if(await reader.peek())throw Error('JSON 备份后存在多余内容');data=first;}
-  if(object(data?.modules))data={...data.modules,_exportVersion:data._exportVersion||data.modules._exportVersion};
+  if(object(data?.modules))data={...data.modules,_exportVersion:data._exportVersion||data.modules._exportVersion,_exportCategories:data._exportCategories||data.modules._exportCategories};
   if(!object(data))throw Error('备份根节点格式错误');
   if(data.format==='kiss-chat-safety-v1'){if(options.chatSafety)return data;throw Error('这是聊天保护副本，请在聊天的存档管理中导入。');}
   if(options.chatSafety)throw Error('请选择存档管理导出的聊天副本；完整备份请在数据管理中导入');
+  if(data.format==='kiss-cleanup-safety-v1')throw Error('这是清理前保护副本，不能作为完整备份导入；未覆盖当前数据');
+  if(data._exportCategories!==undefined)validateExportCategories(data._exportCategories);
   // Older OVO partial exports group settings/theater fields in containers.
   if(object(data.globalSettings)){Object.assign(data,data.globalSettings);delete data.globalSettings;}
   if(object(data.theaterData)){Object.assign(data,data.theaterData);delete data.theaterData;}
@@ -409,7 +411,15 @@ async function readFile(blob,options={}) {
   return data;
  }finally{await reader.close();}
 }
+const BACKUP_CATEGORIES=['chats','contacts','worldbooks','personas','wallpapers','fonts','settings','monoApp','morrowApp','hearuApp'];
+function validateExportCategories(categories){
+ if(!Array.isArray(categories)||!categories.length||categories.some(cat=>!BACKUP_CATEGORIES.includes(cat))||new Set(categories).size!==categories.length)throw Error('备份的分类范围无效，未导入任何数据');
+ return categories;
+}
 async function selectPrepared(data,selected) {
+ // Intersect the user's selection with what the file actually contains.
+ if(data._exportCategories){const scope=new Set(validateExportCategories(data._exportCategories));selected=Object.fromEntries(Object.entries(selected).map(([cat,on])=>[cat,!!on&&scope.has(cat)]));}
+
  const out={_exportVersion:'3.0'};
  const groups={personas:['myPersonaPresets','homeSignature','activePersonaId'],worldbooks:['worldBooks'],wallpapers:['wallpaper','bubbleCssPresets','globalCss','globalCssPresets','myStickers','moreProfileCardBg','themeSettings','themePresets'],fonts:['fontUrl','fontPresets']};
  const categoryKeys=new Set(Object.values(groups).flat());
@@ -419,15 +429,16 @@ async function selectPrepared(data,selected) {
   const merged=new Map();for(const c of db[key]||[])merged.set(c.id,await diskChat(c));
   for(const c of data[key]){
    const prev=merged.get(c.id);if(!prev&&!selected.contacts)continue;
-   let next=selected.contacts?{...c}: {...prev};
+   let next=selected.contacts?{...prev,...c}: {...prev};
    const hist=['history','archives','activeArchiveId','callHistory'];
    if(!selected.chats){for(const k of hist){if(prev&&prev[k]!==undefined)next[k]=prev[k];else delete next[k];}}
-   else if(!selected.contacts){for(const k of hist)if(c[k]!==undefined)next[k]=c[k];}
+   else {for(const k of hist){if(c[k]!==undefined)next[k]=c[k];else delete next[k];}}
    merged.set(c.id,next);
   }
   out[key]=[...merged.values()];
  }
  if(data.appData){if(global.KissAppData){const chosen=new Set(Object.entries(selected).filter(([,v])=>v).map(([k])=>k));if(Object.keys(global.KissAppData.groups).some(k=>chosen.has(k)))out.appData=await compact(global.KissAppData.select(data.appData,chosen));}else if(selected.settings)out.appData=data.appData;}
+ if(Object.keys(out).every(key=>key.startsWith('_export')))throw Error('文件未包含所选分类的数据，当前记录未改动');
  Object.defineProperty(out,'__phonePrepared',{value:true});return out;
 }
 async function save() {
@@ -570,6 +581,8 @@ async function importData(input) {
  let rollbackApps=null,appsChanged=false;
  try{
   let data=input;if(!input?.__phonePrepared){const blob=new Blob([JSON.stringify(input)]);data=await readFile(blob);}
+  // The full-backup entry point must honor selective files too.
+  if(data._exportCategories)data=await selectPrepared(data,Object.fromEntries(BACKUP_CATEGORIES.map(cat=>[cat,true])));
   const keys=Object.keys(data).filter(k=>!k.startsWith('_export')&&k!=='__phonePrepared');for(const k of keys)assertKey(k);
   if(data.appData&&global.KissAppData){
    const apps=data.appData;global.KissAppData.validate(apps);await global.KissAppData.flush();
@@ -618,6 +631,7 @@ function publicChat(row) {
 }
 async function* exportJSON(data=null) {
  yield '{"_exportVersion":"3.0","_exportTimestamp":'+Date.now();
+ if(data?._exportCategories)yield ',"_exportCategories":'+JSON.stringify(validateExportCategories(data._exportCategories));
  const keys=data?Object.keys(data):[...CORE,...globalSettingKeys];const unique=[...new Set(keys)].filter(k=>!(k==='appData'&&!data&&global.KissAppData));
  for(const key of unique){if(key.startsWith('_export'))continue;const value=data?data[key]:db[key];if(value===undefined)continue;
   yield ','+JSON.stringify(key)+':';
