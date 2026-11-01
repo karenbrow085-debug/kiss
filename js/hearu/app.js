@@ -1117,7 +1117,7 @@ async function hearuSendModel(config, system, history, signal) {
     else body.temperature = Number(config.temperature);
   }
   try {
-    const response = await fetch(endpoint.url, { method:'POST', headers, body:JSON.stringify(body), signal:controller.signal });
+    const response = await fetch(endpoint.url, { method:'POST', headers, body:JSON.stringify(window.KissBilingual?.prepareBody(body) || body), signal:controller.signal });
     const raw = (await response.text()).replace(/^\uFEFF/, '').trim();
     if (controller.signal.aborted) throw controller.signal.reason || new DOMException('已取消', 'AbortError');
     const status = 'HTTP ' + response.status;

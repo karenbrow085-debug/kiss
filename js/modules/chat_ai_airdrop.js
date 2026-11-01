@@ -285,7 +285,7 @@ async function generateTagsFromDescription(chat, messageId) {
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(window.KissBilingual?.prepareBody(requestBody) || requestBody)
     });
 
     if (!response.ok) {

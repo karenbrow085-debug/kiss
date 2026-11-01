@@ -216,6 +216,6 @@ function generateHhSystemPrompt(character, version, callType = '') {
         if (character.statusPanel?.enabled && character.statusPanel.promptSuffix) pieces.push(`<状态栏格式>\n${character.statusPanel.promptSuffix}\n</状态栏格式>`);
         if ([book('limit_break'), book('before'), book('after')].some(text => text.includes('<orange>'))) pieces.push('支持纯HTML和行内CSS卡片，使用世界书约定的HTML模块格式。');
     }
-    if (character.bilingualModeEnabled) pieces.push(`角色母语非中文时，${callType ? '声音' : '普通消息'}必须使用[${name}的${callType ? '声音' : '消息'}：外语原文「中文翻译」]。中文翻译是系统翻译，角色主动说中文时按人设水平使用普通格式。${offline ? '叙事与环境描述用中文；外语对白紧跟「中文翻译」。' : ''}`);
+    if (window.KissBilingual?.enabled(character) ?? character.bilingualModeEnabled) pieces.push(`角色母语非中文时，${callType ? '声音' : '普通消息'}必须使用[${name}的${callType ? '声音' : '消息'}：外语原文「中文翻译」]。中文翻译是系统翻译，角色主动说中文时按人设水平使用普通格式。${offline ? '叙事与环境描述用中文；外语对白紧跟「中文翻译」。' : ''}`);
     return bindNames(pieces.filter(Boolean).join('\n\n'));
 }

@@ -84,33 +84,6 @@
 #kiss-magazine-start .qm-cover-foot { bottom: max(4.8%, calc(env(safe-area-inset-bottom, 0px) + 14px)); }
 #kiss-magazine-start .qm-bottom { bottom: max(3.5%, calc(env(safe-area-inset-bottom, 0px) + 12px)); }
 #kiss-magazine-start.is-leaving { opacity: 0; }
-#kiss-magazine-start .qm-curved-paper {
-  position: absolute; inset: 0; transform-style: preserve-3d;
-  pointer-events: none; z-index: 10;
-}
-#kiss-magazine-start .qm-paper-strip {
-  position: absolute; top: 0; left: 0; height: 100%;
-  transform-origin: left center; transform-style: preserve-3d;
-  will-change: transform;
-}
-#kiss-magazine-start .qm-paper-face {
-  position: absolute; inset: 0; overflow: hidden;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  background: #fafaf7;
-}
-#kiss-magazine-start .qm-paper-recto { transform: translateZ(.02px); }
-#kiss-magazine-start .qm-paper-verso { transform: rotateY(180deg) translateZ(.02px); }
-#kiss-magazine-start .qm-paper-face::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: transparent;
-}
-#kiss-magazine-start .qm-paper-face .qm-back::after { display: none; }
-#kiss-magazine-start.has-curved-paper .qm-turn { visibility: hidden; }
-#kiss-magazine-start .qm-paper-shadow {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 58%; z-index: 2;
-  background: linear-gradient(90deg, rgba(35, 34, 28, .15), transparent);
-  filter: blur(12px); opacity: 0; pointer-events: none;
-}
 #kiss-magazine-start .qm-book::before,
 #kiss-magazine-start .qm-book::after {
   content: ''; position: absolute; top: 0; bottom: 0;
@@ -176,3 +149,11 @@
   #kiss-magazine-start .qm-book::before,
   #kiss-magazine-start .qm-book::after { display: none; }
 }
+
+/* One continuous page, with no duplicate strip textures or seams. */
+#kiss-magazine-start .qm-turn{will-change:transform;backface-visibility:visible;transform-style:preserve-3d}
+#kiss-magazine-start .qm-front,#kiss-magazine-start .qm-back{-webkit-backface-visibility:hidden;backface-visibility:hidden;transform-style:flat}
+#kiss-magazine-start .qm-front{transform:translateZ(.1px)}
+#kiss-magazine-start .qm-back{transform:rotateY(180deg) translateZ(.1px)}
+#kiss-magazine-start .qm-book{will-change:transform}
+@keyframes kissmag-spread{0%,5%{transform:translateX(0) scale(1)}48%,62%{transform:translateX(25%) scale(.5)}100%{transform:translateX(0) scale(1)}}

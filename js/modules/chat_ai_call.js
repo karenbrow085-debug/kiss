@@ -72,7 +72,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
         }
         systemPrompt += `2.声音: [${chat.realName}的声音：${chat.realName}说话的内容]\n`;
         
-        if (chat.bilingualModeEnabled) {
+        if (window.KissBilingual?.enabled(chat) ?? chat.bilingualModeEnabled) {
             systemPrompt += `3.双语声音: [${chat.realName}的声音：外语原文「中文翻译」]\n  - 当${chat.realName}的母语为中文以外的语言时，你的声音回复**必须**严格遵循双语消息格式。⭐️此条规则的优先级最高！！⭐️\n  - 中文翻译文本视为系统自翻译，不视为角色的原话；当你的角色想要说中文时，需要根据你的角色设定自行判断对于中文的熟悉程度来造句，并使用普通声音的格式。\n  - 仅有声音消息需要翻译，画面/环境音消息还是以中文输出。\n`;
         }
         systemPrompt += `</消息格式库>\n\n`;
@@ -212,7 +212,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
         systemPrompt += `${callType === 'video' ? '你需要同时描述画面/环境音和你的语音内容。' : '你需要描述环境音和你的语音内容。'}\n`;
         systemPrompt += `2. 描述画面/环境音时，请使用描述性语言，第三人称视角，客观平然。`;
 
-        if (chat.bilingualModeEnabled) {
+        if (window.KissBilingual?.enabled(chat) ?? chat.bilingualModeEnabled) {
             systemPrompt += `\n3. 【双语模式】\n`;
             systemPrompt += `当你的角色的母语为中文以外的语言时，你的**声音消息**回复**必须**严格遵循双语模式下的普通消息格式：[${chat.realName}的声音：{外语原文}「中文翻译」],例如: [${chat.realName}的声音：Of course, I'd love to.「当然，我很乐意。」],中文翻译文本视为系统自翻译，不视为角色的原话;当你的角色想要说中文时，需要根据你的角色设定自行判断对于中文的熟悉程度来造句，并使用普通声音消息的标准格式: [${chat.realName}的声音：{中文消息内容}] 。这条规则的优先级非常高，请务必遵守。格式为：[${chat.realName}的声音：{外语原文}「中文翻译」]。\n`;
             systemPrompt += `例如：[${chat.realName}的声音：Hello, how are you?「你好，最近怎么样？」]\n`;
@@ -390,7 +390,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(window.KissBilingual?.prepareBody(requestBody) || requestBody)
         });
 
         if (!response.ok) {
@@ -611,7 +611,7 @@ async function generateCallSummary(chat, callContext) {
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(window.KissBilingual?.prepareBody(requestBody) || requestBody)
         });
         const data = await response.json();
         let text = "";

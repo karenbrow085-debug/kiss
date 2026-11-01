@@ -523,7 +523,7 @@ function filterHistoryForAI(chat, historySlice, ignoreContextDisabled = false) {
     });
 
     // 2. 双语模式格式标准化
-    if (chat.bilingualModeEnabled) {
+    if (window.KissBilingual?.enabled(chat) ?? chat.bilingualModeEnabled) {
         filteredHistory.forEach(msg => {
             if (msg.role === 'assistant') {
                 if (msg.content) {
@@ -655,6 +655,7 @@ function resolveWorkshopLlmApiConfig() {
 }
 
 function buildChatApiRequest(apiConfig, messages, options = {}) {
+    messages = window.KissBilingual?.prepareMessages(messages) || messages;
     const { provider, model } = apiConfig;
     const key = apiConfig.key || '';
     const url = (apiConfig.url || '').replace(/\/$/, '');
@@ -712,6 +713,7 @@ function buildChatApiRequest(apiConfig, messages, options = {}) {
 
 // 通用 AI 响应获取函数 (支持流式和非流式自动切换)
 async function fetchAiResponse(settings, requestBody, headers, endpoint, forceStream = false) {
+    requestBody = window.KissBilingual?.prepareBody(requestBody) || requestBody;
     const { provider } = settings;
     const streamEnabled = forceStream || settings.streamEnabled;
 

@@ -42,7 +42,7 @@ function generatePrivateSystemPrompt(character) {
         prompt += `4.语音消息: [${character.realName}的语音：语音内容]\n`;
         prompt += `5.引用消息: [${character.realName}引用“引用的内容”并回复：回复的内容]\n  - 当${character.myName}发送多条消息且包含多个信息点时，灵活运用引用消息，单条回复无需引用。\n  - 在进行引用消息的前提下前后回复顺序颠倒。\n  - 可以进行多次引用。\n`;
         
-        if (character.bilingualModeEnabled) {
+        if (window.KissBilingual?.enabled(character) ?? character.bilingualModeEnabled) {
             prompt += `6.双语消息: [${character.realName}的消息：外语原文「中文翻译」]\n  - 当${character.realName}的母语为中文以外的语言时，你的消息回复**必须**严格遵循双语消息格式，该消息等同于普通消息。⭐️此条规则的优先级最高！！⭐️\n  - 中文翻译文本视为系统自翻译，不视为角色的原话；当你的角色想要说中文时，需要根据你的角色设定自行判断对于中文的熟悉程度来造句，并使用普通消息的格式。\n`;
         }
         
@@ -310,7 +310,7 @@ v) 更新签名：[${character.realName}更新了个性签名：xxx]。`;
     prompt += `<output_formats>\n`
     prompt += `17. 你的输出格式必须严格遵循以下格式：${outputFormats}\n`;
     prompt += `</output_formats>\n`
-    if (character.bilingualModeEnabled) {
+    if (window.KissBilingual?.enabled(character) ?? character.bilingualModeEnabled) {
     prompt += `✨双语模式特别指令✨：当你的角色的母语为中文以外的语言时，你的消息回复**必须**严格遵循双语模式下的普通消息格式：[${character.realName}的消息：{外语原文}「中文翻译」],例如: [${character.realName}的消息：Of course, I'd love to.「当然，我很乐意。」],中文翻译文本视为系统自翻译，不视为角色的原话;当你的角色想要说中文时，需要根据你的角色设定自行判断对于中文的熟悉程度来造句，并使用普通消息的标准格式: [${character.realName}的消息：{中文消息内容}] 。这条规则的优先级非常高，请务必遵守。\n`;
 }
     const minReply = character.replyCountMin || 3;

@@ -190,7 +190,7 @@ function createMessageBubbleElement(message, isContinuous = false) {
         }
     }
 
-    const isBilingualMode = chat.bilingualModeEnabled;
+    const isBilingualMode = window.KissBilingual?.enabled(chat) ?? chat.bilingualModeEnabled;
     let bilingualMatch = null;
     // 增加 && !isThinking，防止思考内容被当成双语消息解析
     if (isBilingualMode && role === 'assistant' && !isThinking) {

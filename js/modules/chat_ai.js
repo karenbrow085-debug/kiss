@@ -640,7 +640,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         const response = await generation.waitFor(fetch(endpoint, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify(window.KissBilingual?.prepareBody(requestBody) || requestBody),
             signal: generation.signal
         }));
         generation.check();

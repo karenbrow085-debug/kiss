@@ -96,7 +96,7 @@ async function helperGenerate(chat,options){
  const api=resolveOfflineApi(chat),history=historyForAI(chat).filter(m=>['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:textOf(m)}));if(options.user_input)history.push({role:'user',content:String(options.user_input)});
  const built=window.KissOfflineGeneration.build(chat,history,api,prompt);await window.KissOfflineGeneration.applyRequestRegex(built,chat);const blocked=typeof BLOCKED_API_DOMAINS==='undefined'?[]:BLOCKED_API_DOMAINS;if(blocked.some(domain=>built.endpoint.includes(domain)))throw Error('API 站点不可用');
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);state.busy=true;
- try{const response=await fetch(built.endpoint,{method:'POST',headers:built.headers,body:JSON.stringify(built.requestBody),signal:controller.signal});if(!response.ok)throw Error('生成失败 HTTP '+response.status);const output={full:'',reasoning:'',usage:null};
+ try{const response=await fetch(built.endpoint,{method:'POST',headers:built.headers,body:JSON.stringify(window.KissBilingual?.prepareBody(built.requestBody) || built.requestBody),signal:controller.signal});if(!response.ok)throw Error('生成失败 HTTP '+response.status);const output={full:'',reasoning:'',usage:null};
  if((response.headers.get('content-type')||'').includes('text/event-stream')){const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';try{for(;;){const chunk=await reader.read();buffer+=decoder.decode(chunk.value||new Uint8Array(),{stream:!chunk.done});const lines=buffer.split(/\r?\n/);buffer=lines.pop();for(const line of [...lines,...(chunk.done?[buffer]:[])])if(line.startsWith('data:')){const text=line.slice(5).trim();if(text&&text!=='[DONE]')window.KissOfflineGeneration.consume(JSON.parse(text),api.provider,output);}if(chunk.done)break;}}finally{reader.releaseLock();}}else{const data=await response.json();for(const row of Array.isArray(data)?data:[data])window.KissOfflineGeneration.consume(row,api.provider,output);}return output.full;
  }finally{clearTimeout(timer);state.busy=false;}
 }
@@ -494,7 +494,7 @@ async function request(chat,apiConfig,isBackground=false,replacement=null,reroll
   const blocked=typeof BLOCKED_API_DOMAINS!=='undefined'?BLOCKED_API_DOMAINS:[];
   if(blocked.some(domain=>endpoint.includes(domain)))throw Error('当前 API 站点已被屏蔽');
   await window.KissOfflineGeneration.applyRequestRegex(built,chat);generation.check();window.KissReroll?.inject(built.requestBody,apiConfig.provider,rerollNote);
-  const response=await fetch(endpoint,{method:'POST',headers:built.headers,body:JSON.stringify(built.requestBody),signal:generation.signal});
+  const response=await fetch(endpoint,{method:'POST',headers:built.headers,body:JSON.stringify(window.KissBilingual?.prepareBody(built.requestBody) || built.requestBody),signal:generation.signal});
   if(!response.ok)throw Error(`API ${response.status}: ${(await response.text()).slice(0,180)}`);
   const consume=data=>{
    window.KissOfflineGeneration.consume(data,apiConfig.provider,responseState);
