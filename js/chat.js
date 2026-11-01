@@ -526,6 +526,7 @@ async function sendMessage() {
     if(window.PhoneBackup?.isPinned(chat)){showToast('存档正在处理，输入内容已保留');return;}
     const sendChatType=currentChatType;let releaseSend=()=>{};chatSendStaging=true;try{
     await PhoneBackup.hydrateChat(chat);if(currentChatId!==chat.id||currentChatType!==sendChatType)throw Error('聊天已切换，输入内容已保留');if(window.PhoneBackup?.isPinned(chat))throw Error('存档正在处理，输入内容已保留');releaseSend=window.PhoneBackup?.pinChat?.(chat)||(()=>{});
+    if(sendChatType==='private'&&!window.KissOffline?.isActive(chat)&&await window.KissSocial?.rejectSend(chat,text)){if(messageInput.value.trim()===text)messageInput.value='';return;}
     const pending=pendingOnlineSends.get(chat);if(pending?.text===text&&chat.history?.includes(pending.message)){await PhoneBackup.stageMessage(chat,pending.message);await PhoneBackup.saveChat(chat);pendingOnlineSends.delete(chat);if(currentChatId===chat.id&&messageInput.value.trim()===text)messageInput.value='';renderChatList();return;}
     if (!chat.history) chat.history = [];
 
@@ -606,6 +607,7 @@ async function sendMessage() {
     await window.PhoneBackup?.stageMessage?.(chat,message);if(currentChatId===chat.id&&currentChatType===sendChatType&&messageInput.value.trim()===text)messageInput.value='';
     await PhoneBackup.saveChat(chat);pendingOnlineSends.delete(chat);
     renderChatList();
+    if(sendChatType==='private')window.KissSocial?.tick(chat);
 
     if (currentQuoteInfo) {
         cancelQuoteReply();
