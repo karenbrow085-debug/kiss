@@ -316,3 +316,154 @@
 #chat-settings-screen.ksv-settings :is(input,textarea,select):focus-visible{border-bottom-color:#8b94aa!important}
 #chat-settings-screen.ksv-settings *{-webkit-tap-highlight-color:transparent}
 @media(max-height:600px){#chat-settings-screen.ksv-settings .ksv-collage{aspect-ratio:auto;height:70px}#chat-settings-screen.ksv-settings .ksv-heading{min-height:48px}#chat-settings-screen.ksv-settings .ksv-settings-scroll{padding-top:12px}}
+
+/* v7 reference calibration. The section-body wrapper owns rows and local details. */
+#chat-settings-screen.ksv-settings{--ksv-line:#e9ebf0;--ksv-shadow:0 3px 13px #1d22300a}
+#chat-settings-screen.ksv-settings .ksv-fixed-top{background:transparent;isolation:isolate}
+#chat-settings-screen.ksv-settings .ksv-hero{padding:13px 9px 24px;border-radius:23px;margin:0 0 13px}
+#chat-settings-screen.ksv-settings .ksv-heading{min-height:58px;padding:0 0 7px;gap:9px;align-items:flex-start}
+#chat-settings-screen.ksv-settings .ksv-heading-copy h1{font-size:clamp(19px,5.4cqw,31px);font-weight:500;margin:3px 0 5px;letter-spacing:.3px}
+#chat-settings-screen.ksv-settings .ksv-heading-copy p{font-size:clamp(10px,2.8cqw,16px);letter-spacing:.4px}
+#chat-settings-screen.ksv-settings .back-btn{width:25px!important;min-width:25px!important;height:34px!important;margin:8px 0 0;display:grid;place-items:center}
+#chat-settings-screen.ksv-settings .back-btn svg{width:17px;height:27px}
+#chat-settings-screen.ksv-settings .ksv-pair{width:30%;margin-top:-6px}
+#chat-settings-screen.ksv-settings .ksv-pair img{width:65%;border:3px solid #fff;box-shadow:0 2px 7px #3a3d481e}
+#chat-settings-screen.ksv-settings .ksv-star{display:inline-block;width:17px;height:25px;color:#a2a6b5;vertical-align:middle;pointer-events:none;flex:none}
+#chat-settings-screen.ksv-settings .ksv-glint{position:absolute;width:31px;height:38px;right:31%;bottom:5px}
+#chat-settings-screen.ksv-settings .ksv-glint>.ksv-star{position:absolute;bottom:0;left:2px;width:20px;height:31px}
+#chat-settings-screen.ksv-settings .ksv-glint>.ksv-star-small{width:7px;height:11px;left:23px;bottom:0}
+#chat-settings-screen.ksv-settings .ksv-glint>.ksv-star-tiny{width:5px;height:7px;left:22px;bottom:31px}
+#chat-settings-screen.ksv-settings .ksv-banner-sparkle{left:7px;bottom:-20px;line-height:0}
+#chat-settings-screen.ksv-settings .ksv-banner-sparkle .ksv-star{width:25px;height:37px}
+#chat-settings-screen.ksv-settings .ksv-collage{aspect-ratio:3/1}
+#chat-settings-screen.ksv-settings .ksv-nameplate{bottom:-15px;padding:7px 17px;min-height:28px;font-size:11px;letter-spacing:1px;left:37%;gap:9px}
+#chat-settings-screen.ksv-settings .settings-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0;padding:0 1px 7px;background:transparent!important;box-shadow:none!important;border:0!important;backdrop-filter:none}
+#chat-settings-screen.ksv-settings .settings-tab-item{display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 2px!important;height:38px;border:1px solid #ffffffb3;background:linear-gradient(135deg,#ffffffc9,#ffffff6b)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 3px 10px #2f354409;border-radius:30px;font-size:13px;font-weight:400}
+#chat-settings-screen.ksv-settings .settings-tab-item.active{background:linear-gradient(135deg,#fffffff2,#ffffffa3)!important;font-weight:500}
+#chat-settings-screen.ksv-settings .settings-tab-item.active:before{margin:0;font-size:16px;line-height:1}
+#chat-settings-screen.ksv-settings .ksv-settings-scroll{padding-top:14px}
+#chat-settings-screen.ksv-settings .ksv-section{padding:8px 10px 10px;margin:0 0 12px!important;border-radius:18px}
+#chat-settings-screen.ksv-settings .ksv-section-heading{font-size:13px;letter-spacing:0;font-weight:500;min-height:29px;margin:0;padding:0 0 6px;gap:8px;border-bottom:.5px solid var(--ksv-line)}
+#chat-settings-screen.ksv-settings .ksv-collapse{font-size:10px;min-height:25px;padding:3px 0;line-height:1.4}
+#chat-settings-screen.ksv-settings .ksv-section.ksv-collapsed{padding:10px}
+#chat-settings-screen.ksv-settings .ksv-collapsed>.ksv-section-heading{margin:0;padding:0;min-height:24px}
+#chat-settings-screen.ksv-settings .kkt-item{min-height:44px;padding:9px 1px!important;gap:10px;border-bottom:.5px solid var(--ksv-line);justify-content:flex-start}
+#chat-settings-screen.ksv-settings .kkt-item-label{display:block!important;min-width:0;flex:1;font-size:13px!important;font-weight:500;line-height:1.4;text-align:left;margin:0!important;padding:0!important}
+#chat-settings-screen.ksv-settings .kkt-item-label>small{display:block;font-size:9.5px!important;font-weight:400;line-height:1.45;margin:3px 0 0;color:#989eae;text-align:left}
+#chat-settings-screen.ksv-settings .kkt-item-control{flex:none;margin-left:auto;max-width:62%;gap:6px;font-size:12px;justify-content:flex-end}
+#chat-settings-screen.ksv-settings .ksv-conversation-row{display:flex!important;flex-direction:row!important;gap:11px;min-height:51px;padding:10px 1px!important}
+#chat-settings-screen.ksv-settings .ksv-conversation-row>.kkt-item-label{display:block!important;flex:1;min-width:0;max-width:none;white-space:normal}
+#chat-settings-screen.ksv-settings .ksv-conversation-icon{display:flex;align-items:center;justify-content:center;width:19px;height:22px;margin:0;flex:none}
+#chat-settings-screen.ksv-settings .ksv-conversation-icon svg{width:19px;height:22px;stroke-width:1.4}
+#chat-settings-screen.ksv-settings .ksv-conversation-row>.kkt-item-control{margin:0;flex:none;max-width:none}
+#chat-settings-screen.ksv-settings .ksv-conversation-row input[type=number]{width:60px!important;min-height:32px;text-align:center}
+#chat-settings-screen.ksv-settings .ksv-inline{margin:0 0 7px 10px!important;padding:9px 0 10px 17px!important;border:0!important;border-left:1px solid #d2d5de!important;border-radius:0!important;min-height:0;box-shadow:none!important;background:transparent!important}
+#chat-settings-screen.ksv-settings .kkt-item.ksv-inline{display:flex!important;min-height:43px;border-bottom:0!important}
+#chat-settings-screen.ksv-settings .kkt-item.ksv-inline[hidden]{display:none!important}
+#chat-settings-screen.ksv-settings .ksv-inline>.kkt-item-label{font-size:12px!important;flex:1;line-height:1.45;min-width:0}
+#chat-settings-screen.ksv-settings .ksv-inline>.kkt-item-control{max-width:63%;flex:none}
+#chat-settings-screen.ksv-settings .ksv-inline input[type=number]{width:52px!important}
+#chat-settings-screen.ksv-settings .ksv-inline textarea{height:auto!important;min-height:56px!important;font-size:11px!important}
+#chat-settings-screen.ksv-settings .ksv-inline .kkt-item{border:0;padding:6px 0!important}
+#chat-settings-screen.ksv-settings .ksv-feature-row{min-height:48px;padding:9px 1px!important;gap:11px;outline:0!important;border:0!important;border-bottom:.5px solid var(--ksv-line)!important;background:transparent!important}
+#chat-settings-screen.ksv-settings .feature-card-body{display:block!important;margin:0!important;text-align:left;flex:1;min-width:0}
+#chat-settings-screen.ksv-settings .feature-card-title{font-size:13px!important;font-weight:500;line-height:1.4}
+#chat-settings-screen.ksv-settings .feature-card-desc{font-size:9.5px!important;line-height:1.45;margin-top:3px}
+#chat-settings-screen.ksv-settings .feature-card-icon,#chat-settings-screen.ksv-settings .feature-card-icon svg{width:19px;height:22px;stroke-width:1.5}
+#chat-settings-screen.ksv-settings .feature-grid>.ksv-feature-row:last-child{border-bottom:0!important}
+#chat-settings-screen.ksv-settings :is(.feature-card,.ksv-feature-row,.kkt-switch,.kkt-slider):is(:focus,:focus-visible,:focus-within),#chat-settings-screen.ksv-settings .kkt-switch input:focus-visible+.kkt-slider{outline:0!important;box-shadow:none!important}
+#chat-settings-screen.ksv-settings :is(button,input,select,textarea,[tabindex]):is(:focus,:focus-visible){outline:0!important;box-shadow:none!important}
+#chat-settings-screen.ksv-settings .kkt-switch{width:36px!important;min-width:36px!important;height:21px!important;transform:none}
+#chat-settings-screen.ksv-settings .kkt-slider:before{width:17px!important;height:17px!important;top:2px!important;left:2px!important}
+#chat-settings-screen.ksv-settings .kkt-switch input:checked+.kkt-slider:before{left:17px!important;transform:none!important}
+#chat-settings-screen.ksv-settings .ksv-basic-board{position:relative;margin:16px 0 12px;padding:9px 9px 7px;border-radius:20px;background:linear-gradient(125deg,#fff,#fbfcfe);border:1px solid #f0f1f4;box-shadow:var(--ksv-shadow)}
+#chat-settings-screen.ksv-settings .ksv-basic-board .ksv-clock-section{padding:8px 3px 9px;margin:0 0 9px!important;background:transparent;border:0;box-shadow:none}
+#chat-settings-screen.ksv-settings .ksv-basic-board .ksv-clock-section>.ksv-section-heading{position:relative;display:flex;width:max-content;max-width:95%;align-items:center;margin:-30px auto 12px;padding:7px 14px;border:0;background:linear-gradient(#fff,#f8f9fc);border-radius:22px;box-shadow:0 2px 9px #2d33400a;font-size:11px;line-height:1.5;gap:8px;white-space:normal}
+#chat-settings-screen.ksv-settings .ksv-clock-title-copy{font:inherit;white-space:nowrap;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#chat-settings-screen.ksv-settings .ksv-clock-section>.ksv-section-heading:before,#chat-settings-screen.ksv-settings .ksv-clock-section>.ksv-section-heading:after{content:none}
+#chat-settings-screen.ksv-settings .ksv-clock-section .ksv-collapse{font-size:9px;min-height:18px;padding:1px 0;line-height:1.4}
+#chat-settings-screen.ksv-settings .ksv-clock-heading-star{position:absolute;right:-35px;top:11px;width:17px;height:25px}
+#chat-settings-screen.ksv-settings .ksv-heart-pin{position:absolute;width:42px;height:89px;left:-21px;top:0;z-index:3;pointer-events:none;filter:drop-shadow(0 1px 1px #62656a40)}
+#chat-settings-screen.ksv-settings .ksv-clocks{gap:22px;padding:0 0 20px}
+#chat-settings-screen.ksv-settings .ksv-clock{position:relative;padding:12px 2px 22px;border:1px solid #eceef1;border-radius:16px;background:linear-gradient(135deg,#fff,#fafbfd)}
+#chat-settings-screen.ksv-settings .ksv-clock h3{font-size:13px;line-height:1.5;margin:0 0 3px;font-weight:500;color:#151a2a}
+#chat-settings-screen.ksv-settings .ksv-clock h3 .ksv-star{width:8px;height:13px;margin-left:3px}
+#chat-settings-screen.ksv-settings .ksv-clock strong{font:600 clamp(29px,10.4cqw,49px)/1.2 Arial,sans-serif;letter-spacing:-1.1px;color:#030406;margin:4px 0 3px}
+#chat-settings-screen.ksv-settings .ksv-clock>span:not(.ksv-clock-sparkle){font-size:11px;line-height:1.5;letter-spacing:.6px}
+#chat-settings-screen.ksv-settings .ksv-clock>small{font-size:9px;line-height:1.3;padding:2px 10px;margin:6px 0 0;background:#f3f5f9;color:#7e88a1}
+#chat-settings-screen.ksv-settings .ksv-clock-sparkle{position:absolute;right:14px;bottom:42px;width:12px;height:21px}
+#chat-settings-screen.ksv-settings .ksv-clock-sparkle .ksv-star{width:12px;height:21px}
+#chat-settings-screen.ksv-settings .ksv-clock:after{left:10px;bottom:48px;font-size:16px}
+#chat-settings-screen.ksv-settings .ksv-clock:last-of-type:after{left:auto;right:10px}
+#chat-settings-screen.ksv-settings .ksv-hearts{left:50%;top:45%;width:39px;height:34px;transform:translate(-50%,-50%) rotate(-9deg);filter:drop-shadow(0 2px 1px #7e828a33)}
+#chat-settings-screen.ksv-settings .ksv-hearts svg{width:39px;height:34px;fill:none;stroke:none}
+#chat-settings-screen.ksv-settings .ksv-connection{bottom:20px;left:17%;right:17%}
+#chat-settings-screen.ksv-settings .ksv-connection>span{font-size:11px;min-width:64px;text-align:center;padding:7px 12px}
+#chat-settings-screen.ksv-settings .ksv-basic-board .ksv-profile{margin:0!important;padding:0 2px 2px;border:0;box-shadow:none;background:transparent}
+#chat-settings-screen.ksv-settings .ksv-basic-board .ksv-profile>.ksv-section-heading{display:grid;grid-template-columns:62px 1fr 38px;gap:4px;min-height:36px;padding:4px 6px;margin:0 0 11px;border-radius:3px;border:1px solid #e4e5e9;background:linear-gradient(110deg,#fefefe,#ededef);box-shadow:0 2px 5px #34364117;align-items:center}
+#chat-settings-screen.ksv-settings .ksv-profile>.ksv-section-heading>.ksv-profile-tag{font-size:10px;font-weight:400;text-align:center;padding:5px 8px;border:1px solid #dcdde4;border-radius:3px;background:linear-gradient(#fff,#f0f1f5);line-height:1.4}
+#chat-settings-screen.ksv-settings .ksv-profile>.ksv-section-heading>.ksv-profile-title{padding:0;margin:0;text-align:center;background:none;border:0;font-size:14px;line-height:1.4;letter-spacing:.3px;color:#171c30}
+#chat-settings-screen.ksv-settings .ksv-profile>.ksv-section-heading>.ksv-collapse{background:transparent;border:0;padding:2px;margin:0;font-size:9px;min-height:20px}
+#chat-settings-screen.ksv-settings .ksv-identities{display:grid;grid-template-columns:1fr 1fr;padding:1px 0 12px;gap:0;border-bottom:.5px solid #e7e8ed}
+#chat-settings-screen.ksv-settings .ksv-identity{gap:8px;padding:0 4px;min-width:0;align-items:center}
+#chat-settings-screen.ksv-settings img.ksv-id-avatar{width:50px!important;height:50px!important;min-width:50px;border-radius:6px!important;border:2px solid white;box-shadow:0 0 0 1px #e5e5e9}
+#chat-settings-screen.ksv-settings .ksv-id-copy b{font-size:13px;font-weight:500;line-height:1.5}
+#chat-settings-screen.ksv-settings .ksv-id-copy small{font-size:9px;line-height:1.5;color:#a7aabb}
+#chat-settings-screen.ksv-settings .ksv-edit{font-size:9px;line-height:1.4;margin-left:auto;padding:0;background:none;border:0}
+#chat-settings-screen.ksv-settings .ksv-profile-actions{padding:10px 0 4px}
+#chat-settings-screen.ksv-settings .ksv-profile-actions button{padding:2px 5px;font-size:13px;line-height:1.6}
+#chat-settings-screen.ksv-settings .ksv-profile-actions button:after{font-size:9px;font-weight:400;letter-spacing:.4px;margin-top:1px;line-height:1.6}
+#chat-settings-screen.ksv-settings .ksv-books-link{margin:3px auto 0;font-size:9px;padding:4px;color:#969caf}
+#chat-settings-screen.ksv-settings .ksv-save{position:relative;margin:9px auto 8px!important;padding:7px 17px!important;min-height:38px;width:62%;gap:10px;font-size:13px!important}
+#chat-settings-screen.ksv-settings .ksv-save b{font:inherit;white-space:nowrap}
+#chat-settings-screen.ksv-settings .ksv-save:before,#chat-settings-screen.ksv-settings .ksv-save:after{content:none}
+#chat-settings-screen.ksv-settings .ksv-save>.ksv-save-check{width:24px;height:24px;flex:none;display:grid;place-items:center;background:linear-gradient(135deg,#d6d7dd,#b8bac4)}
+#chat-settings-screen.ksv-settings .ksv-save-check svg{width:21px;height:21px}
+#chat-settings-screen.ksv-settings .ksv-save>.ksv-save-sparkle{position:absolute;width:18px;height:28px;top:5px;background:none}
+#chat-settings-screen.ksv-settings .ksv-save-sparkle.left{left:-42px}
+#chat-settings-screen.ksv-settings .ksv-save-sparkle.right{right:-42px}
+#chat-settings-screen.ksv-settings .ksv-credit{display:none!important}
+.bps-overlay .bps-categories{display:flex;gap:7px;padding:12px 20px 0;flex:none}
+.bps-overlay .bps-categories button{appearance:none!important;border:1px solid #dedee1!important;border-radius:20px!important;padding:7px 13px!important;background:#f8f8f8!important;color:#777!important;box-shadow:none!important;font:inherit;font-size:12px!important;min-height:31px}
+.bps-overlay .bps-categories button[aria-selected=true]{background:#171719!important;color:white!important;border-color:#171719!important}
+.bps-overlay .bps-favorite{background:none!important;border:0!important;box-shadow:none!important;color:#888!important;font-size:19px;padding:8px!important;flex:none}
+.bps-overlay .bps-favorite[aria-pressed=true]{color:#111!important}
+.bps-overlay button:focus,.bps-overlay input:focus{outline:0!important;box-shadow:none!important}
+#bubble-presets-modal.bps-manage-overlay{z-index:2147483646!important;padding:16px!important;box-sizing:border-box;background:#0005!important;color:#111;font:inherit}
+#bubble-presets-modal .bps-dialog{max-width:380px;width:100%;max-height:calc(100dvh - 32px);background:white!important;border:1px solid #e6e6e6;border-radius:20px;box-shadow:0 16px 60px #0002;overflow:hidden;display:flex;flex-direction:column;padding:0}
+#bubble-presets-modal .bps-header{padding:20px 20px 14px}
+#bubble-presets-modal .bps-title{font-size:19px!important;font-weight:650;color:#111!important;margin:0}
+#bubble-presets-modal #bubble-presets-list{max-height:46dvh;margin:0;padding:0 12px 10px;overflow:auto;min-height:0}
+#bubble-presets-modal .bps-manage-row{padding:11px 0;gap:8px;display:flex;align-items:center;border-bottom:1px solid #eee}
+#bubble-presets-modal .bps-manage-name{padding:3px 5px!important;font-size:13px!important;line-height:1.5;flex:1;min-width:0;color:#111!important;overflow-wrap:anywhere}
+#bubble-presets-modal .bps-manage-actions{display:flex;gap:5px;flex:none;align-items:center}
+#bubble-presets-modal .bps-manage-actions button,#bubble-presets-modal .bps-rename-editor button{font:inherit;font-size:11px!important;line-height:1.4;min-width:0;min-height:31px;margin:0;padding:7px 9px!important;border-radius:18px!important;white-space:nowrap;box-shadow:none!important}
+#bubble-presets-modal .bps-apply{background:#171719!important;color:white!important;border:1px solid #171719!important}
+#bubble-presets-modal .bps-secondary{background:#f5f5f6!important;color:#555!important;border:1px solid #e8e8eb!important}
+#bubble-presets-modal .bps-delete{background:white!important;color:#777!important;border:1px solid #e8e8eb!important}
+#bubble-presets-modal .bps-rename-editor{display:flex;width:100%;gap:5px;align-items:center}
+#bubble-presets-modal .bps-rename-input{min-width:0;flex:1;max-width:100%;border:1px solid #ddd!important;border-radius:8px;font:inherit;font-size:13px;padding:7px;background:#fff!important;color:#111!important}
+#contacts-screen .ksv-friend-title-line{display:flex;align-items:center;gap:9px;min-width:0}
+#contacts-screen .ksv-friend-title-line h1{min-width:0}
+#contacts-screen .ksv-friends-title-button{position:relative;flex:none;width:28px;height:29px;padding:3px;margin-top:4px;border:0;border-radius:50%;background:none;color:inherit;box-shadow:none;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:0}
+#contacts-screen .ksv-request-badge{position:absolute;right:-6px;top:-4px;display:flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 4px;box-sizing:border-box;background:#272a31;color:#fff;border:1.5px solid #f7f8fa;border-radius:10px;font:500 9px/1 Arial,sans-serif}
+#contacts-screen .ksv-request-badge[hidden]{display:none!important}
+.ku-mode #chat-list-screen .ku-head-chats .ku-back{position:static;opacity:1;visibility:visible;align-self:flex-end;width:22px;min-width:22px;height:31px;margin:0 -4px 1px -7px}
+.ku-mode #chat-list-screen .ku-head-chats{gap:9px}
+@media(max-width:480px){#bubble-presets-modal.bps-manage-overlay{align-items:flex-end!important;padding:12px!important;padding-bottom:max(12px,env(safe-area-inset-bottom))!important}#bubble-presets-modal .bps-dialog{max-width:100%;border-radius:22px}#bubble-presets-modal #bubble-presets-list{max-height:42dvh}}
+@media(max-width:350px){#chat-settings-screen.ksv-settings .ksv-id-avatar{width:42px!important;height:42px!important;min-width:42px}#chat-settings-screen.ksv-settings .ksv-identity{gap:5px}#chat-settings-screen.ksv-settings .ksv-edit{display:inline-block}#chat-settings-screen.ksv-settings .ksv-heading{gap:5px}#chat-settings-screen.ksv-settings .ksv-heading-copy h1{font-size:18px}#chat-settings-screen.ksv-settings .ksv-glint{right:30%;transform:scale(.8)}#chat-settings-screen.ksv-settings .ksv-clock-title-copy{font-size:10px}}
+@media(max-height:600px){#chat-settings-screen.ksv-settings .ksv-heading{min-height:48px;padding-bottom:3px}#chat-settings-screen.ksv-settings .ksv-hero{padding-top:9px;margin-bottom:9px}#chat-settings-screen.ksv-settings .settings-tab-item{height:32px;padding:6px 2px!important}}
+@container chat-settings (min-width:500px){#chat-settings-screen.ksv-settings .ksv-heading{min-height:98px;padding-bottom:12px}#chat-settings-screen.ksv-settings .ksv-hero{padding:19px 15px 32px}#chat-settings-screen.ksv-settings .ksv-glint{bottom:16px;transform:scale(1.3)}#chat-settings-screen.ksv-settings .settings-tab-item{height:48px;font-size:16px}#chat-settings-screen.ksv-settings .ksv-nameplate{font-size:15px;bottom:-18px;padding:10px 22px}}
+
+/* Parent and its local details are one item; the connector ends with an L. */
+#chat-settings-screen.ksv-settings .ksv-linked-setting>.ksv-conversation-row{border-bottom:0!important}
+#chat-settings-screen.ksv-settings .ksv-linked-setting{position:relative}
+#chat-settings-screen.ksv-settings .ksv-linked-setting:not(:last-child):after{content:'';display:block;margin-left:31px;border-bottom:.5px solid var(--ksv-line)}
+#chat-settings-screen.ksv-settings .ksv-inline{position:relative;margin:0 0 8px!important;padding:9px 1px 13px 31px!important;border:0!important;background:transparent!important}
+#chat-settings-screen.ksv-settings .ksv-inline:before{content:'';position:absolute;left:9px;top:3px;bottom:15px;width:11px;border-left:1px solid #bfc3ce;border-bottom:1px solid #bfc3ce;pointer-events:none}
+#chat-settings-screen.ksv-settings .ksv-linked-detail.kkt-item{padding:9px 1px 14px 31px!important;min-height:52px;margin:0!important;border:0!important;gap:10px}
+#chat-settings-screen.ksv-settings .ksv-linked-detail>.kkt-item-label{font-size:12px!important;line-height:1.45;flex:1;min-width:0}
+#chat-settings-screen.ksv-settings .ksv-linked-detail .ksv-detail-note{font-size:9.5px!important;line-height:1.45;margin-top:3px;font-weight:400;color:#989eae}
+#chat-settings-screen.ksv-settings .ksv-linked-detail>.kkt-item-control{max-width:54%;flex:none}
+#chat-settings-screen.ksv-settings .ksv-feature-row:has(+.ksv-feature-details.open),#chat-settings-screen.ksv-settings .kkt-item:has(+.ksv-inline:not([hidden])){border-bottom:0!important}
+#chat-settings-screen.ksv-settings .ksv-inline[hidden]:before{display:none}
