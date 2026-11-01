@@ -14,6 +14,9 @@
   let phase = 'cover';
   let holdStarted = false;
   let animationFallback;
+  let paperCurl;
+  let preparedPaper;
+  const preparePaper=()=>preparedPaper||(preparedPaper=window.KissPaperCurl?.create(root).catch(()=>null));
   let desktopObserver;
   const timers = new Set();
 
@@ -74,9 +77,12 @@
     wait(2500),
   ]);
 
+  assetsReady.then(()=>{if(phase==='cover'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)preparePaper();});
+
   function cleanUp() {
     if (phase === 'done') return;
     setPhase('done');
+    paperCurl?.dispose();
     for (const id of timers) window.clearTimeout(id);
     timers.clear();
     if (desktopObserver) desktopObserver.disconnect();
@@ -105,9 +111,10 @@
   async function holdAfterZoom() {
     if (holdStarted || phase === 'done') return;
     holdStarted = true;
+    paperCurl?.finish();
     clearTimer(animationFallback);
     setPhase('hold');
-    await wait(2000);
+    await wait(750);
     await enterDesktop();
   }
 
@@ -121,16 +128,20 @@
     cover.disabled = true;
     await assetsReady;
     if (!root.isConnected) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!reduced&&window.KissPaperCurl){let timedOut=false;const timeout=timer(()=>{timedOut=true;},1600);const prepared=preparePaper();paperCurl=await Promise.race([prepared,wait(1600)]);clearTimer(timeout);if(timedOut&&!paperCurl)prepared.then(scene=>scene?.dispose());}
+    if(!root.isConnected){paperCurl?.dispose();return;}
     setPhase('opening');
     root.classList.add('is-opening');
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    paperCurl?.start(1750,160);
     // One continuous recto/verso sheet: no independently rotated strips.
     animationFallback = timer(() => {
       // Recover if a device suppresses animationend. Still reveal the exact right page.
       book.style.transform = 'translateX(0) scale(1)';
       turn.style.transform = 'rotateY(-180deg)';
+      paperCurl?.finish();
       holdAfterZoom();
-    }, reduced ? 100 : 3400);
+    }, reduced ? 100 : 3500);
   }
 
   if (!cover || !book || !turn) {

@@ -595,11 +595,19 @@ function initTextareaSearchReplace(toolbarId, textareaId) {
         }
     });
 
+    function setReplaceOpen(open) {
+        replaceRow.hidden = !open;
+        replaceRow.style.display = open ? 'flex' : 'none';
+        expandReplaceBtn.classList.toggle('open', open);
+        expandReplaceBtn.setAttribute('aria-expanded', String(open));
+        expandReplaceBtn.title = open ? '收起替换' : '展开替换';
+        if (toolbar.closest('.ksv-settings')) expandReplaceBtn.textContent = open ? '收起替換' : '展開替換';
+    }
+    setReplaceOpen(replaceRow.style.display !== 'none');
     expandReplaceBtn.addEventListener('click', () => {
-        const isHidden = replaceRow.style.display === 'none';
-        replaceRow.style.display = isHidden ? 'flex' : 'none';
-        expandReplaceBtn.classList.toggle('open', isHidden);
-        if (isHidden) replaceInput.focus();
+        const open = replaceRow.hidden;
+        setReplaceOpen(open);
+        if (open) replaceInput.focus();
     });
 
     // 2. 搜索逻辑

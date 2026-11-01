@@ -1,0 +1,4 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const box={window:{}};vm.createContext(box);vm.runInContext(fs.readFileSync('morrow-assets/magazine-start-v1/magazine-curl.js','utf8'),box);const point=box.window.KissPaperCurl.point;
+test('sheet starts flat on the right and ends flat on the left with a fixed spine',()=>{for(let v of [0,.5,1])for(let u of [0,.1,.5,1]){let a=point(u,v,0),b=point(u,v,1);assert(Math.abs(a.x-u)<1e-8);assert(Math.abs(a.z)<1e-8);assert(Math.abs(b.x+u)<1e-8);assert(Math.abs(b.z)<1e-8);}for(let p of [0,.2,.5,.8,1])assert(Math.abs(point(0,.5,p).x)<1e-8);});
+test('continuous curved sheet keeps its paper length without separated strips',()=>{for(let p of [.1,.3,.5,.7,.9]){let length=0,last=point(0,.5,p);for(let i=1;i<=1000;i++){let q=point(i/1000,.5,p);length+=Math.hypot(q.x-last.x,q.z-last.z);last=q;}assert(Math.abs(length-1)<1e-5);assert(point(1,.5,p).z>0);}});
