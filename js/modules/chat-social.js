@@ -34,11 +34,11 @@ function renderEvent(m) {
 function decorateFailed(wrapper,row,message,c) {
  if(!message.deliveryFailed||message.role!=='user'||row.querySelector('.kiss-delivery-failed'))return;
  wrapper.classList.add('kiss-undelivered');
- const button=document.createElement('button');button.type='button';button.className='kiss-delivery-failed';button.setAttribute('aria-label','消息被拒收，发送朋友验证');
+ const button=document.createElement('button');button.type='button';button.className='kiss-delivery-failed';button.setAttribute('aria-label','尚未送达，发送朋友验证');
  button.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 6.8v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>';
  button.onclick=e=>{e.stopPropagation();requestUser(c);};
  const bubble=row.querySelector('.message-bubble,.image-bubble,.voice-bubble');row.insertBefore(button,bubble);
- wrapper.querySelectorAll('.kiss-delivery-label').forEach(label=>label.remove());
+ const label=document.createElement('span');label.className='kiss-delivery-label';label.textContent='尚未送达';wrapper.append(label);
 }
 const replyBusy=new Set();
 const friendName=c=>c.remarkName||c.realName||'朋友';
@@ -47,7 +47,7 @@ function friendPage(title,html,back) {
  const old=document.getElementById('kiss-friend-page'),previous=old?._ksfPrevious||document.activeElement;old?.remove();document.getElementById('kiss-social-modal')?.remove();
  const page=document.createElement('section');page.id='kiss-friend-page';page.className='ksf-page';page.setAttribute('role','dialog');page.setAttribute('aria-modal','true');page.setAttribute('aria-label',title||'朋友申请详情');page._ksfPrevious=previous;
  const close=()=>{if(!page.isConnected)return;page.remove();previous?.focus?.();};
- page.innerHTML=`<header class="ksf-header"><button type="button" class="ksf-back" aria-label="返回"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button>${title?`<h2>${esc(title)}</h2>`:''}<span class="ksf-header-spacer" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span></header><main class="ksf-main" tabindex="-1">${html}</main>`;
+ page.innerHTML=`<header class="ksf-header"><button type="button" class="ksf-back" aria-label="返回"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button>${title?`<h2>${esc(title)}</h2>`:''}<span class="ksf-header-spacer"></span></header><main class="ksf-main" tabindex="-1">${html}</main>`;
  page.querySelector('.ksf-back').onclick=back||close;
  page.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();(back||close)();}if(e.key==='Tab'){const items=[...page.querySelectorAll('button,input,textarea,select')].filter(n=>!n.disabled&&n.getClientRects().length),first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}});
  document.body.append(page);page.querySelector('.ksf-main').focus({preventScroll:true});return {page,close};
@@ -56,9 +56,8 @@ function requestThread(r){return Array.isArray(r.messages)&&r.messages.length?r.
 function threadMarkup(c,r){return requestThread(r).map(m=>`<p><span>${m.from==='user'?'我':esc(friendName(c))}：</span>${esc(m.text)}</p>`).join('');}
 function showRequest(c,r,chatId,verify=false){
  const pending=r.status==='pending',incoming=r.from==='ai';
- const {page}=friendPage(verify?'朋友验证':'',`<section class="ksf-profile">${friendAvatar(c)}<div><h3>${esc(friendName(c))}</h3><p class="ksf-profile-links"><span>备注名</span><span>朋友权限</span></p></div></section><section class="ksf-verification"><div class="ksf-thread">${threadMarkup(c,r)}</div>${r.status!=='accepted'?'<button type="button" class="ksf-reply" data-reply>回复</button>':''}<form class="ksf-reply-form" hidden><label>验证消息<textarea maxlength="300" rows="3" placeholder="填写回复内容"></textarea></label><p class="ksf-error" role="status"></p><button type="submit">发送</button><button type="button" data-cancel>取消</button></form></section><section class="ksf-info">${c.signature?`<p><span>签名</span><b>${esc(c.signature)}</b></p>`:''}<p><span>来源</span><b>${incoming?'对方通过搜索账号添加':'通过搜索账号添加对方'}</b></p></section>${verify&&pending&&incoming?'<section class="ksf-verify-actions"><button type="button" data-accept="1">通过验证</button><button type="button" data-accept="0">暂不接受</button></section>':`<section class="ksf-result">${pending&&incoming?'<button type="button" data-verify>前往验证</button>':`<p>${esc({pending:'等待对方验证',accepted:'已通过朋友验证',declined:incoming?'暂未通过验证':'对方暂未通过验证'}[r.status]||'')}</p>${pending&&!incoming?'<button type="button" class="ksf-check" data-check>检查验证结果</button>':''}`}</section>`}`,()=>verify?showRequest(c,r,chatId):openRequests(chatId));
+ const {page}=friendPage(verify?'朋友验证':'',`<section class="ksf-profile">${friendAvatar(c)}<div><h3>${esc(friendName(c))}</h3><p>${esc(c.realName||'')}</p></div></section><section class="ksf-verification"><div class="ksf-thread">${threadMarkup(c,r)}</div>${r.status!=='accepted'?'<button type="button" class="ksf-reply" data-reply>回复</button>':''}<form class="ksf-reply-form" hidden><label>验证消息<textarea maxlength="300" rows="3" placeholder="填写回复内容"></textarea></label><p class="ksf-error" role="status"></p><button type="submit">发送</button><button type="button" data-cancel>取消</button></form></section><section class="ksf-info"><h4>朋友资料</h4>${c.signature?`<p><span>签名</span><b>${esc(c.signature)}</b></p>`:''}<p><span>来源</span><b>${incoming?'对方通过朋友验证添加':'通过朋友验证添加对方'}</b></p></section>${verify&&pending&&incoming?'<section class="ksf-verify-actions"><button type="button" data-accept="1">通过验证</button><button type="button" data-accept="0">暂不接受</button></section>':`<section class="ksf-result">${pending&&incoming?'<button type="button" data-verify>前往验证</button>':`<p>${esc({pending:'等待对方验证',accepted:'已通过朋友验证',declined:incoming?'暂未通过验证':'对方暂未通过验证'}[r.status]||'')}</p>${pending&&!incoming?'<button type="button" class="ksf-check" data-check>检查验证结果</button>':''}`}</section>`}`,()=>verify?showRequest(c,r,chatId):openRequests(chatId));
  page.dataset.requestId=r.id;
- const footer=document.createElement('footer');footer.className='ksf-footer';footer.innerHTML='<span>加入黑名单</span><i aria-hidden="true"></i><span>投诉</span>';footer.setAttribute('aria-label','朋友资料装饰栏');page.querySelector('main').append(footer);
  page.querySelector('[data-verify]')?.addEventListener('click',()=>showRequest(c,r,chatId,true));
  page.querySelector('[data-check]')?.addEventListener('click',async function(){this.disabled=true;try{await decideRequest(c,r);if(page.isConnected)showRequest(c,r,chatId);}catch(e){showToast(e.message);this.disabled=false;}});
  const form=page.querySelector('form'),reply=page.querySelector('[data-reply]');
@@ -172,14 +171,13 @@ function updateBadge() {
  buttons.forEach(btn=>{const label='新的朋友'+(n?'，'+n+' 条未读申请':'');if(btn.getAttribute('aria-label')!==label)btn.setAttribute('aria-label',label);let badge=btn.querySelector('.ksv-request-badge');if(n&&!badge){badge=document.createElement('span');badge.className='ksv-request-badge';btn.append(badge);}if(badge){const text=n>99?'99+':String(n);if(badge.textContent!==text)badge.textContent=text;if(badge.hidden!==(n===0))badge.hidden=n===0;}});
 }
 function ensureFriendEntries(){
- const chatTitle=document.querySelector('#chat-list-screen > .app-header h1');
- if(chatTitle&&!chatTitle.dataset.kissTitleBack){chatTitle.dataset.kissTitleBack='1';chatTitle.tabIndex=0;chatTitle.setAttribute('role','button');chatTitle.title='返回桌面';chatTitle.onclick=()=>switchScreen('home-screen');chatTitle.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chatTitle.click();}};}
  const screen=document.getElementById('contacts-screen');if(!screen)return;
- screen.querySelectorAll('.ksv-friends-title-button,main > [data-kiss-new-friends],.ku-friend-scroll > [data-kiss-new-friends]').forEach(n=>n.remove());
- for(const heading of screen.querySelectorAll('.ku-head-friends .ku-head-copy h1,.app-header h1,.app-header h2')){
-  if(heading.hasAttribute('data-kiss-new-friends'))continue;
-  heading.setAttribute('data-kiss-new-friends','');heading.setAttribute('role','button');heading.tabIndex=0;heading.title='新的朋友';
-  heading.onclick=()=>openRequests();heading.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openRequests();}};
+ screen.querySelectorAll('main > [data-kiss-new-friends],.ku-friend-scroll > [data-kiss-new-friends]').forEach(n=>n.remove());
+ const defaultHeader=screen.querySelector('.ku-head-friends .ku-head-copy'),legacyHeader=screen.querySelector('.app-header');
+ for(const [host,id] of [[defaultHeader,'ksv-new-friends-default'],[legacyHeader,'ksv-new-friends']]){
+  if(!host||host.querySelector('[data-kiss-new-friends]'))continue;
+  const b=document.createElement('button');b.id=id;b.type='button';b.className='ksv-friends-title-button';b.setAttribute('data-kiss-new-friends','');b.title='新的朋友';b.innerHTML='<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><path d="M2.5 21v-3a6.5 6.5 0 0 1 13 0v3M19 7v8m-4-4h8"/></svg>';b.onclick=()=>openRequests();
+  const heading=host.querySelector('h1,h2');if(heading){let line=heading.parentElement;if(!line.classList.contains('ksv-friend-title-line')){line=document.createElement('div');line.className='ksv-friend-title-line';heading.before(line);line.append(heading);}line.append(b);}else host.append(b);
  }
  updateBadge();
 }
