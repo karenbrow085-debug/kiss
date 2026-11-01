@@ -1009,6 +1009,7 @@ function hearuApiConfig(c = {}) {
       source = '角色专属预设：' + c.exclusiveApiPreset;
     }
   }
+  config = window.KissExclusiveModels?.config(c, config) || config;
   if (window.AppApi?.active('hearu')) {
     config = window.AppApi.resolve('hearu', config);
     const p = window.AppApi.profile('hearu');
