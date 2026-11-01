@@ -117,7 +117,7 @@ const bubblePresetSearchUI = (() => {
         button.onclick = () => { source = select; returnFocus = button; input.value = ''; modal.hidden = false; button.setAttribute('aria-expanded','true'); render(); input.focus({preventScroll:true}); };
         sync(select);
     }
-    return {attach};
+    return {attach,ensure:ensureModal};
 })();
 
 function populateBubblePresetSelect(selectId) {
@@ -283,71 +283,37 @@ function saveCurrentTextareaAsPreset() {
 }
 
 function openManagePresetsModal() {
+    bubblePresetSearchUI.ensure();
     const modal = document.getElementById('bubble-presets-modal');
-    const list = document.getElementById('bubble-presets-list');
-    if (!modal || !list) return;
-    list.innerHTML = '';
-    const presets = _getBubblePresets();
-    if (!presets.length) list.innerHTML = '<p style="color:#888;margin:6px 0;">暂无预设</p>';
-    presets.forEach((p, idx) => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.justifyContent = 'space-between';
-        row.style.alignItems = 'center';
-        row.style.padding = '8px 0';
-        row.style.borderBottom = '1px solid #f0f0f0';
-        const nameDiv = document.createElement('div');
-        nameDiv.style.flex = '1';
-        nameDiv.style.whiteSpace = 'nowrap';
-        nameDiv.style.overflow = 'hidden';
-        nameDiv.style.textOverflow = 'ellipsis';
-        nameDiv.textContent = p.name;
-        row.appendChild(nameDiv);
-
-        const btnWrap = document.createElement('div');
-        btnWrap.style.display = 'flex';
-        btnWrap.style.gap = '6px';
-
-        const applyBtn = document.createElement('button');
-        applyBtn.className = 'btn btn-primary';
-        applyBtn.style.padding = '6px 8px;border-radius:8px';
-        applyBtn.textContent = '应用';
-        applyBtn.onclick = function(){ applyPresetToCurrentChat(p.name); modal.style.display = 'none'; };
-
-        const renameBtn = document.createElement('button');
-        renameBtn.className = 'btn';
-        renameBtn.style.padding = '6px 8px;border-radius:8px';
-        renameBtn.textContent = '重命名';
-        renameBtn.onclick = function(){
-            const newName = prompt('输入新名称：', p.name);
-            if (!newName) return;
-            const presetsAll = _getBubblePresets();
-            presetsAll[idx].name = newName;
-            _saveBubblePresets(presetsAll);
-            openManagePresetsModal(); 
-            populateBubblePresetSelect('bubble-preset-select'); populateBubblePresetSelect('group-bubble-preset-select');
-        };
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn btn-danger';
-        delBtn.style.padding = '6px 8px;border-radius:8px';
-        delBtn.textContent = '删除';
-        delBtn.onclick = function(){
-            if (!confirm('确定删除预设 \"' + p.name + '\" ?')) return;
-            const presetsAll = _getBubblePresets();
-            presetsAll.splice(idx, 1);
-            _saveBubblePresets(presetsAll);
-            openManagePresetsModal();
-            populateBubblePresetSelect('bubble-preset-select'); populateBubblePresetSelect('group-bubble-preset-select');
-        };
-
-        btnWrap.appendChild(applyBtn);
-        btnWrap.appendChild(renameBtn);
-        btnWrap.appendChild(delBtn);
-        row.appendChild(btnWrap);
-        list.appendChild(row);
-    });
-    modal.style.display = 'flex';
+    if (!modal) return;
+    const focusBefore=document.activeElement;
+    modal.classList.add('bps-overlay','bps-manage-overlay');
+    modal.innerHTML=`<section class="bps-dialog" role="dialog" aria-modal="true" aria-labelledby="bps-manage-title"><header class="bps-header"><div><div class="bps-kicker">YOUR COLLECTION</div><h2 class="bps-title" id="bps-manage-title">管理美化预设</h2></div><button class="bps-icon bps-close" type="button" aria-label="关闭管理预设">×</button></header><div class="bps-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input class="bps-input" type="search" placeholder="搜索美化预设…" aria-label="搜索管理中的美化预设" autocomplete="off"></div><div class="bps-count" aria-live="polite"></div><div id="bubble-presets-list" class="bps-list"></div><footer class="bps-footer">管理已保存的美化 · 支持搜索、应用和重命名</footer></section>`;
+    const list=modal.querySelector('.bps-list'),input=modal.querySelector('.bps-input');
+    const close=()=>{modal.style.display='none';if(focusBefore?.isConnected)focusBefore.focus({preventScroll:true});};
+    modal.querySelector('.bps-close').onclick=close;modal.onclick=e=>{if(e.target===modal)close();};
+    modal.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();close();}if(e.key==='Tab'){const items=[...modal.querySelectorAll('button,input')].filter(n=>!n.disabled&&n.getClientRects().length);const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
+    const makeButton=(text,cls,action)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=text;b.onclick=action;return b;};
+    const normalize=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/\s/g,'');
+    function render(){
+      const all=_getBubblePresets(),query=normalize(input.value),presets=all.filter(p=>normalize(p.name).includes(query));
+      modal.querySelector('.bps-count').textContent=presets.length+' / '+all.length+' PRESETS';list.replaceChildren();
+      if(!presets.length){const empty=document.createElement('div');empty.className='bps-empty';empty.textContent=all.length?'没有匹配的预设':'还没有保存美化预设';list.append(empty);return;}
+      for(const p of presets){
+        const row=document.createElement('div');row.className='bps-row bps-manage-row';
+        const name=document.createElement('div');name.className='bps-name bps-manage-name';name.textContent=p.name;name.title=p.name;
+        const actions=document.createElement('div');actions.className='bps-manage-actions';
+        const apply=makeButton('应用','bps-apply',()=>{applyPresetToCurrentChat(p.name);close();});apply.setAttribute('aria-label','应用 '+p.name);
+        const rename=makeButton('重命名','bps-secondary',()=>{
+          const editor=document.createElement('div');editor.className='bps-rename-editor';const field=document.createElement('input');field.type='text';field.className='bps-rename-input';field.value=p.name;field.setAttribute('aria-label','预设新名称');
+          const save=makeButton('保存','bps-apply',async()=>{const next=field.value.trim();if(!next)return showToast('请输入名称');if(_getBubblePresets().some(q=>q!==p&&q.name===next))return showToast('已有同名预设');const old=p.name;p.name=next;save.disabled=true;try{await saveData();for(const id of ['bubble-preset-select','group-bubble-preset-select']){const select=document.getElementById(id),chosen=select?.value===old;populateBubblePresetSelect(id);if(chosen&&select){select.value=next;select.dispatchEvent(new Event('change'));}}render();}catch(e){p.name=old;save.disabled=false;showToast('重命名未保存，请重试');}});
+          editor.append(field,save,makeButton('取消','bps-secondary',render));row.replaceChildren(editor);field.focus();field.select();
+        });rename.setAttribute('aria-label','重命名 '+p.name);
+        const del=makeButton('删除','bps-secondary bps-delete',async()=>{if(!confirm('确定删除预设“'+p.name+'”？'))return;const before=_getBubblePresets(),next=before.filter(q=>q!==p);db.bubbleCssPresets=next;del.disabled=true;try{await saveData();populateBubblePresetSelect('bubble-preset-select');populateBubblePresetSelect('group-bubble-preset-select');render();}catch(e){db.bubbleCssPresets=before;del.disabled=false;showToast('删除未保存，请重试');}});del.setAttribute('aria-label','删除 '+p.name);
+        actions.append(apply,rename,del);row.append(name,actions);list.append(row);
+      }
+    }
+    input.oninput=render;render();modal.style.display='flex';input.focus({preventScroll:true});
 }
 
 function _getMyPersonaPresets() {

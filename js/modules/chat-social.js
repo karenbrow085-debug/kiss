@@ -26,7 +26,7 @@ async function event(c,text,kind='notice',extra={}) {
 }
 function renderEvent(m) {
  const row=document.createElement('div');row.className='message-wrapper system-notification kiss-social-event';row.dataset.id=m.id;
- const text=document.createElement('span');text.textContent=m.content;row.append(text);
+ const text=document.createElement('span');text.textContent=m.kissEvent==='pat'?patEventText(m,current()):m.content;row.append(text);
  if(m.kissEvent==='rejected'){const b=document.createElement('button');b.type='button';b.textContent='发送朋友验证';b.onclick=()=>requestUser(current());row.append(b);}
  return row;
 }
@@ -101,26 +101,51 @@ async function review(c,r,accept) {
  await event(c,accept?'你已通过对方的朋友验证。':'你暂未通过对方的朋友验证。');openRequests();
 }
 function openRequests(chatId) {
+ const seenAt=Date.now();for(const c of db.characters.filter(c=>!chatId||c.id===chatId)){const unseen=(state(c).requests||[]).filter(r=>r.from==='ai'&&r.status==='pending'&&!r.seenAt);if(!unseen.length)continue;unseen.forEach(r=>r.seenAt=seenAt);persist(c).catch(e=>{unseen.forEach(r=>{if(r.seenAt===seenAt)delete r.seenAt;});updateBadge();showToast('申请已读状态未保存，请重试');});}updateBadge();
  const rows=db.characters.flatMap(c=>(state(c).requests||[]).map(r=>({c,r}))).filter(x=>!chatId||x.c.id===chatId).sort((a,b)=>b.r.createdAt-a.r.createdAt);
  const {overlay}=modal('新的朋友',`<div class="ksv-requests">${rows.length?rows.map(({c,r})=>`<article><b>${esc(c.remarkName||c.realName)} <small>${r.from==='ai'?'发来的申请':'我发出的申请'}</small></b><p>${esc(r.text)}</p><small>${esc(r.reply||({pending:'等待验证',accepted:'已通过',declined:'未通过'}[r.status]))}</small>${r.status==='pending'?`<div class="ksv-actions">${r.from==='ai'?`<button data-review="${esc(r.id)}" data-char="${esc(c.id)}" data-accept="1">接受</button><button data-review="${esc(r.id)}" data-char="${esc(c.id)}" data-accept="0">暂不接受</button>`:`<button data-retry="${esc(r.id)}" data-char="${esc(c.id)}">检查验证结果</button>`}</div>`:''}</article>`).join(''):'<p>暂无朋友验证申请</p>'}</div>`);
  overlay.querySelectorAll('[data-review]').forEach(b=>b.onclick=async()=>{b.disabled=true;const c=db.characters.find(c=>c.id===b.dataset.char),r=state(c).requests.find(r=>r.id===b.dataset.review);try{await review(c,r,b.dataset.accept==='1');}catch(e){showToast(e.message);b.disabled=false;}});
  overlay.querySelectorAll('[data-retry]').forEach(b=>b.onclick=async()=>{b.disabled=true;const c=db.characters.find(c=>c.id===b.dataset.char),r=state(c).requests.find(r=>r.id===b.dataset.retry);try{await decideRequest(c,r);openRequests(chatId);}catch(e){showToast(e.message);b.disabled=false;}});
 }
+function unreadRequests(c){return (c.friendship?.requests||[]).filter(r=>r.from==='ai'&&r.status==='pending'&&!r.seenAt).length;}
 function updateBadge() {
  const buttons=document.querySelectorAll?[...document.querySelectorAll('[data-kiss-new-friends]')]:[document.getElementById('ksv-new-friends')].filter(Boolean);
- const n=db.characters.reduce((n,c)=>n+(Array.isArray(c.friendship?.requests)?c.friendship.requests:[]).filter(r=>r.from==='ai'&&r.status==='pending').length,0),text='新的朋友'+(n?' · '+n:'');
- buttons.forEach(btn=>{if(btn.textContent!==text)btn.textContent=text;});
+ const n=db.characters.reduce((n,c)=>n+unreadRequests(c),0);
+ buttons.forEach(btn=>{const label='新的朋友'+(n?'，'+n+' 条未读申请':'');if(btn.getAttribute('aria-label')!==label)btn.setAttribute('aria-label',label);let badge=btn.querySelector('.ksv-request-badge');if(n&&!badge){badge=document.createElement('span');badge.className='ksv-request-badge';btn.append(badge);}if(badge){const text=n>99?'99+':String(n);if(badge.textContent!==text)badge.textContent=text;if(badge.hidden!==(n===0))badge.hidden=n===0;}});
 }
 function ensureFriendEntries(){
  const screen=document.getElementById('contacts-screen');if(!screen)return;
- for(const selector of ['main','.ku-friend-scroll']){const host=screen.querySelector(selector);if(!host||host.querySelector('[data-kiss-new-friends]'))continue;const b=document.createElement('button');b.id=selector==='main'?'ksv-new-friends':'ksv-new-friends-default';b.type='button';b.className='ksv-new-friends';b.setAttribute('data-kiss-new-friends','');b.onclick=()=>openRequests();host.prepend(b);}
+ screen.querySelectorAll('main > [data-kiss-new-friends],.ku-friend-scroll > [data-kiss-new-friends]').forEach(n=>n.remove());
+ const defaultHeader=screen.querySelector('.ku-head-friends .ku-head-copy'),legacyHeader=screen.querySelector('.app-header');
+ for(const [host,id] of [[defaultHeader,'ksv-new-friends-default'],[legacyHeader,'ksv-new-friends']]){
+  if(!host||host.querySelector('[data-kiss-new-friends]'))continue;
+  const b=document.createElement('button');b.id=id;b.type='button';b.className='ksv-friends-title-button';b.setAttribute('data-kiss-new-friends','');b.title='新的朋友';b.innerHTML='<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><path d="M2.5 21v-3a6.5 6.5 0 0 1 13 0v3M19 7v8m-4-4h8"/></svg>';b.onclick=()=>openRequests();
+  const heading=host.querySelector('h1,h2');if(heading){let line=heading.parentElement;if(!line.classList.contains('ksv-friend-title-line')){line=document.createElement('div');line.className='ksv-friend-title-line';heading.before(line);line.append(heading);}line.append(b);}else host.append(b);
+ }
  updateBadge();
+}
+function patText(c,target,actor='user',suffix){
+ const name=c.remarkName||c.realName||'对方',who=actor==='user'?'我':name;
+ const receiver=actor===target?'自己':target==='user'?'我':'“'+name+'”';
+ return who+'拍了拍'+receiver+(suffix?'的'+suffix:'');
+}
+function patEventText(m,c){
+ if(!c)return m.content;
+ if(m.patActor&&m.patTarget)return patText(c,m.patTarget,m.patActor,m.patSuffix);
+ // Display old saved events with the same first-person wording, without rewriting history.
+ const name=c.remarkName||c.realName||'对方',users=[c.myName,c.myRemarkName,'我'].filter(Boolean);
+ for(const actor of [...users,name]){const prefix=actor+' 拍了拍 ';if(!String(m.content).startsWith(prefix))continue;let rest=m.content.slice(prefix.length),side=users.includes(actor)?'user':'ai',target;
+  if(rest.startsWith('自己')){rest=rest.slice(2);target=side;}
+  else if(rest.startsWith(name)){rest=rest.slice(name.length);target='ai';}
+  else {const user=users.find(n=>rest.startsWith(n));if(!user)continue;rest=rest.slice(user.length);target='user';}
+  return patText(c,target,side,rest.startsWith('的')?rest.slice(1):rest);
+ }
+ return m.content;
 }
 async function pat(c,target,actor='user') {
  if(!c||c.patSettings?.enabled===false||blocked(c))return;
- const cfg=c.patSettings||{},actorName=actor==='user'?(c.myName||'我'):(c.remarkName||c.realName),targetName=target==='user'?(c.myName||'我'):(c.remarkName||c.realName);
- const suffix=target==='user'?cfg.userSuffix:cfg.aiSuffix;
- await event(c,`${actorName} 拍了拍 ${actor===target?'自己':targetName}${suffix?'的'+suffix:''}`,'pat');
+ const cfg=c.patSettings||{},suffix=(target==='user'?cfg.userSuffix:cfg.aiSuffix)||'';
+ await event(c,patText(c,target,actor,suffix),'pat',{patActor:actor,patTarget:target,patSuffix:suffix});
 }
 function context(c) {
  if(c._kissSkipCollectionPrompt||window.KissOffline?.isActive(c))return '';
@@ -178,5 +203,5 @@ const originalCall=window.getCallReply;
 if(typeof originalCall==='function')window.getCallReply=function(c,...args){if(blocked(c)&&!window.KissOffline?.isActive(c))return Promise.reject(Error('好友验证通过后才能通话'));return originalCall.call(this,c,...args);};
 document.addEventListener('DOMContentLoaded',setup);
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-target=contacts-screen]'))setTimeout(updateBadge,0);});
-window.KissSocial={state,eligible,online,pending,blocked,rejectSend,renderEvent,context,consume,pat,choosePat,blockUser,requestUser,openRequests,considerAiRequest,decideRequest,review,summarize,tick,modal,esc,persist,updateBadge};
+window.KissSocial={state,eligible,online,pending,blocked,rejectSend,renderEvent,context,consume,pat,choosePat,blockUser,requestUser,openRequests,considerAiRequest,decideRequest,review,summarize,tick,modal,esc,persist,updateBadge,unreadRequests,patText,patEventText};
 })();
