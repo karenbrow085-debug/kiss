@@ -62,7 +62,7 @@ function cycleUiLanguage(){
 const collapsed = new Set();
 function externalCss(){const style=$('#global-css-style');return (style?style.textContent:(typeof db!=='undefined'?db.globalCss:'' )||'').replace(/\/\*[\s\S]*?\*\//g,'').trim().length>0;}
 function header(title, kind='') {
- return `<header class="ku-head ku-head-${kind}">${button(icon('back'),'home','ku-back')}<div class="ku-head-copy">${kind==='menu'?'':'<span class="ku-wordmark">K I S S</span>'}<h1>${title}</h1>${kind==='friends'?`<p>${E(t('subtitle'))}</p>`:''}</div>${kind==='friends'?`<button type="button" class="ku-date" data-ku="language" aria-label="${E(t('switchLabel'))} · ${UI_LANGUAGE_NAMES[uiLanguage]}" title="${UI_LANGUAGE_NAMES[uiLanguage]} → ${UI_LANGUAGE_NAMES[UI_LANGUAGES[(UI_LANGUAGES.indexOf(uiLanguage)+1)%4]]}"><time>${E(nowJP())}</time></button>`:kind==='menu'?'<span class="ku-wordmark">K I S S</span>':`<div class="ku-head-actions">${button(E(t('group')),'group')}${button(E(t('settings')),'settings')}</div>`}</header>`;
+ return `<header class="ku-head ku-head-${kind}">${kind==='chats'?'':button(icon('back'),'home','ku-back')}<div class="ku-head-copy">${kind==='menu'?'':'<span class="ku-wordmark">K I S S</span>'}<h1${kind==='chats'?` class="ku-title-home" data-ku="home" role="button" tabindex="0" aria-label="${E(UI_COPY[uiLanguage].a11y[0])}"`: ''}>${title}</h1>${kind==='friends'?`<p>${E(t('subtitle'))}</p>`:''}</div>${kind==='friends'?`<button type="button" class="ku-date" data-ku="language" aria-label="${E(t('switchLabel'))} · ${UI_LANGUAGE_NAMES[uiLanguage]}" title="${UI_LANGUAGE_NAMES[uiLanguage]} → ${UI_LANGUAGE_NAMES[UI_LANGUAGES[(UI_LANGUAGES.indexOf(uiLanguage)+1)%4]]}"><time>${E(nowJP())}</time></button>`:kind==='menu'?'<span class="ku-wordmark">K I S S</span>':`<div class="ku-head-actions">${button(E(t('group')),'group')}${button(E(t('settings')),'settings')}</div>`}</header>`;
 }
 function folderMarkup(tabs) {
  const items=tabs.filter(x=>!x.classList.contains('tab-manage')).map((x,i)=>({label:i===0?t('all'):x.textContent,index:i,active:x.classList.contains('active')}));
@@ -335,6 +335,7 @@ function editFolderButton(b){
 }
 function onContext(e){const folder=e.target.closest('.ku-folder');if(folder){e.preventDefault();editFolderButton(folder);return;}const row=e.target.closest('[data-ku^="chat:"]');if(!row)return;e.preventDefault();const [,id,type='private']=row.dataset.ku.split(':');handleChatListLongPress(id,type,e.clientX,e.clientY);}
 
+document.addEventListener('keydown',e=>{if(e.target.matches?.('.ku-title-home')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.target.click();}});
 function onClick(e){const b=e.target.closest('[data-ku]');if(!b)return;const [action,id,extra]=b.dataset.ku.split(':');
 if(action==='language'){cycleUiLanguage();return;}
 if(['postmenu','comment','bookmark','share','like','audio','musicedit'].includes(action)){postAction(action,postData.get(id+':'+extra),b);return;}
