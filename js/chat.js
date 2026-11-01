@@ -324,6 +324,8 @@ function setupChatRoom() {
         }
     });
     
+    let suppressBubbleClickUntil=0;
+    messageArea.addEventListener('click',e=>{if(Date.now()<suppressBubbleClickUntil){e.preventDefault();e.stopImmediatePropagation();}},true);
     messageArea.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         if (e.target.id === 'load-more-btn' || isInMultiSelectMode) return;
@@ -332,15 +334,19 @@ function setupChatRoom() {
         handleMessageLongPress(messageWrapper, e.clientX, e.clientY);
     });
     messageArea.addEventListener('touchstart', (e) => {
+        clearTimeout(longPressTimer);
+        if(e.touches.length!==1)return;
         if (e.target.id === 'load-more-btn') return;
         const messageWrapper = e.target.closest('.message-wrapper');
         if (!messageWrapper) return;
         longPressTimer = setTimeout(() => {
             const touch = e.touches[0];
+            suppressBubbleClickUntil=Date.now()+700;
             handleMessageLongPress(messageWrapper, touch.clientX, touch.clientY);
         }, 400);
     });
     messageArea.addEventListener('touchend', () => clearTimeout(longPressTimer));
+    messageArea.addEventListener('touchcancel', () => clearTimeout(longPressTimer));
     messageArea.addEventListener('touchmove', () => clearTimeout(longPressTimer));
     
     const messageEditForm = document.getElementById('message-edit-form');

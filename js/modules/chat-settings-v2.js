@@ -21,7 +21,7 @@ function mount(container){
  // Keep original profile image/upload IDs inside the shared identity composition.
  profile.hidden=true;profile.classList.add('ksv-legacy-profile');
  const tabs=container.querySelector('.settings-tabs');tabs.setAttribute('role','tablist');tabs.querySelectorAll('.settings-tab-item').forEach(t=>{t.setAttribute('role','tab');t.tabIndex=0;t.setAttribute('aria-selected',String(t.classList.contains('active')));t.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t.click();}});t.addEventListener('click',()=>{tabs.querySelectorAll('[role=tab]').forEach(x=>x.setAttribute('aria-selected',String(x===t)));});});
- buildBasic();buildFunctions();buildStyle();buildExclusive();setupCollapses();
+ buildBasic();buildFunctions();buildStyle();buildExclusive();window.KissSettingsExtras?.mount(container);setupCollapses();
  const fixed=el('div','ksv-fixed-top'),scroll=el('div','ksv-settings-scroll');fixed.append(hero,tabs);scroll.append($('chat-settings-form'));shell.append(fixed,scroll);tabs.addEventListener('click',()=>{scroll.scrollTop=0;});
  const save=container.querySelector('#chat-settings-form > button[type=submit]');save.classList.add('ksv-save');save.innerHTML=star('ksv-save-sparkle left')+'<span class="ksv-save-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span><b>保存所有更改</b>'+star('ksv-save-sparkle right');save.setAttribute('aria-label','保存所有更改');
  container.addEventListener('change',e=>{syncInline();updateClocks();syncPortraits();if(e.target.closest('#setting-tab-style'))refreshPreview();});container.addEventListener('input',e=>{if(e.target.matches('#setting-char-realname,#setting-char-remark,#setting-my-name,#setting-my-remark-name'))syncPortraits();if(e.target.matches('#setting-avatar-radius'))refreshPreview();});
@@ -148,7 +148,7 @@ function updateClocks(){
  if(KissClock.valid(c.timeZone)&&KissClock.valid(u.timeZone)){const delta=(KissClock.offset(c,now)-KissClock.offset(u,now))/60;$('ksv-time-diff').textContent=(delta>0?'+':'')+Number(delta.toFixed(2))+'h';}
 }
 function syncBackground(){const thumb=$('ksv-bg-thumb'),c=getChar();if(thumb){thumb.style.backgroundImage=c?.chatBg?'url('+JSON.stringify(c.chatBg)+')':'';thumb.classList.toggle('has-background',!!c?.chatBg);}}
-function load(c){loadProfileCopy(c);$('ksv-bilingual-global').checked=!!KissBilingual.settings().global;$('ksv-translation-auto').checked=!!KissBilingual.settings().autoExpand;KissBilingual.refresh();modelRequest++;modelRows=[];$('ksv-fetch-models').disabled=false;$('setting-exclusive-api-preset-select').options[0].textContent='跟隨桌面 API';$('ksv-exclusive-model').value=c.exclusiveApiModel||'';$('ksv-model-search').value='';renderModels();loadCities(c);syncPortraits();syncBackground();updateClocks();loadSocial(c);root.querySelector('.ksv-code-editor')?.updateLines?.();if(c.autoJournal?.enabled)KissSocial.tick(c);}
+function load(c){window.KissSettingsExtras?.load(c);loadProfileCopy(c);$('ksv-bilingual-global').checked=!!KissBilingual.settings().global;$('ksv-translation-auto').checked=!!KissBilingual.settings().autoExpand;KissBilingual.refresh();modelRequest++;modelRows=[];$('ksv-fetch-models').disabled=false;$('setting-exclusive-api-preset-select').options[0].textContent='跟隨桌面 API';$('ksv-exclusive-model').value=c.exclusiveApiModel||'';$('ksv-model-search').value='';renderModels();loadCities(c);syncPortraits();syncBackground();updateClocks();loadSocial(c);root.querySelector('.ksv-code-editor')?.updateLines?.();if(c.autoJournal?.enabled)KissSocial.tick(c);}
 function loadSocial(c,statusOnly=false){if(!root||c.id!==currentChatId)return;const cfg=c.autoJournal||{},pat=c.patSettings||{},f=KissSocial.state(c);
  if(!statusOnly){$('ksv-auto-journal').checked=!!cfg.enabled;$('ksv-summary-every').value=cfg.every||100;$('ksv-summary-mode').value=cfg.mode||'summary';$('ksv-summary-custom').value=cfg.customPrompt||'';
  }
@@ -156,7 +156,7 @@ function loadSocial(c,statusOnly=false){if(!root||c.id!==currentChatId)return;co
  if(!statusOnly){$('ksv-pat-enabled').checked=pat.enabled!==false;$('ksv-pat-user').value=pat.userSuffix||'';}$('ksv-pat-ai').textContent=pat.aiSuffix||'由角色選擇';$('ksv-user-blocked').checked=!!f.userBlocked;$('ksv-block-friend').textContent=f.userBlocked?'解除拉黑':'拉黑角色';if(!statusOnly)$('ksv-allow-ai-block').checked=f.allowAiBlock!==false;$('ksv-friend-status').textContent=f.aiBlocked?'對方已將你加入黑名單':f.userBlocked?'你已將對方加入黑名單':'好友關係正常';$('ksv-request-friend').hidden=!f.aiBlocked;$('ksv-check-incoming').hidden=!f.userBlocked;syncInline();
 }
 function validate(){const n=Number($('ksv-summary-every')?.value);if($('ksv-auto-journal')?.checked&&(!Number.isInteger(n)||n<10||n>2000)){showToast('自动总结条数须为 10—2000 的整数');return false;}if($('ksv-auto-journal')?.checked&&$('ksv-summary-mode').value==='custom'&&!$('ksv-summary-custom').value.trim()){showToast('请填写自定义总结要求');return false;}return true;}
-function read(c){c.exclusiveApiModel=$('ksv-exclusive-model').value.trim();const old=c.autoJournal||{},enabled=$('ksv-auto-journal').checked,rows=KissSocial.online(c);c.autoJournal={...old,enabled,every:Number($('ksv-summary-every').value)||100,mode:$('ksv-summary-mode').value,customPrompt:$('ksv-summary-custom').value.trim()};if(enabled&&!old.enabled){const last=rows.at(-1);c.autoJournal.anchor=last?{id:last.id,timestamp:last.timestamp}:null;}
+function read(c){window.KissSettingsExtras?.read(c);c.exclusiveApiModel=$('ksv-exclusive-model').value.trim();const old=c.autoJournal||{},enabled=$('ksv-auto-journal').checked,rows=KissSocial.online(c);c.autoJournal={...old,enabled,every:Number($('ksv-summary-every').value)||100,mode:$('ksv-summary-mode').value,customPrompt:$('ksv-summary-custom').value.trim()};if(enabled&&!old.enabled){const last=rows.at(-1);c.autoJournal.anchor=last?{id:last.id,timestamp:last.timestamp}:null;}
  c.patSettings={...c.patSettings,enabled:$('ksv-pat-enabled').checked,userSuffix:$('ksv-pat-user').value.trim().slice(0,30)};KissSocial.state(c).allowAiBlock=$('ksv-allow-ai-block').checked;
 }
 function refreshPreview(){const preview=$('private-bubble-css-preview');if(preview)updateBubbleCssPreview(preview,$('setting-custom-bubble-css').value,!$('setting-use-custom-css').checked,colorThemes[$('setting-theme-color').value]||colorThemes.white_silver);}
@@ -223,19 +223,8 @@ async function resolveZones(){for(const id of ['setting-role-timezone','setting-
 
 const originalPreview=window.updateBubbleCssPreview;
 window.updateBubbleCssPreview=function(box,css,useDefault,theme){
- originalPreview(box,css,useDefault,theme);
- if(box.id!=='private-bubble-css-preview'||!root)return;
- const c=getChar(),received=box.querySelector('.received'),sent=box.querySelector('.sent');if(!c||!received||!sent)return;
- for(const [bubble,who] of [[received,'char'],[sent,'my']]){
-  const r=el('div','ksv-preview-row '+who),img=document.createElement('img'),text=el('div','ksv-preview-copy');
-  img.src=$(who==='char'?'setting-char-avatar-preview':'setting-my-avatar-preview').src;img.alt=who==='char'?'角色':'我';img.style.borderRadius=($('setting-avatar-radius')?.value||0)+'%';
-  if($('setting-avatar-mode')?.value==='hidden')img.hidden=true;
-  if(who==='char'){const name=el('small','ksv-preview-name');name.textContent=($('setting-char-remark').value||$('setting-char-realname').value||c.realName)+($('setting-show-status')?.checked?' · 在線':'');text.append(name);}
-  bubble.textContent=who==='char'?'今天也想和你說說話。':'我在聽。';text.append(bubble);
-  if($('setting-show-timestamp')?.checked){const time=el('small','ksv-preview-time');time.textContent='01:05';text.append(time);}
-  r.append(img,text);box.append(r);
- }
- root.querySelector('.ksv-code-editor')?.updateLines?.();
+ if(box.id==='private-bubble-css-preview'&&root&&window.KissSettingsExtras){KissSettingsExtras.preview(box,css,useDefault,theme);root.querySelector('.ksv-code-editor')?.updateLines?.();}
+ else originalPreview(box,css,useDefault,theme);
 };
 window.KissSettingsV2={mount,load,loadSocial,read,validate,updateClocks,syncBackground,headerIdentity,resolveZones,resolvedCity};
 })();

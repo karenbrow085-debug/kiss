@@ -1,0 +1,72 @@
+/* 404 refinements, scoped to the requested controls. */
+#chat-settings-screen .kx-avatar-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:34px;padding:7px 16px;margin:0 0 12px;border:1px solid #e0e4ec;border-radius:20px;color:#596176;background:linear-gradient(#fff,#f3f5f9);box-shadow:0 3px 9px #36445808;font:400 12px/1.4 inherit;cursor:pointer}
+#chat-settings-screen .kx-avatar-button:before{content:'＋';font-size:15px;font-weight:300}
+.kx-avatar{display:grid;gap:12px;color:#454d60;font-size:12px}
+.kx-avatar>img{width:82px;height:82px;border-radius:50%;border:3px solid white;outline:1px solid #daddE5;object-fit:cover;justify-self:center;box-shadow:0 5px 14px #303c5010}
+.kx-avatar>p{margin:0;text-align:center;color:#949aa8;font-size:11px;line-height:1.6}
+.kx-avatar label{display:grid;gap:7px;font-size:11px;color:#7b8294}
+.kx-avatar .kx-upload{position:relative;display:block;overflow:hidden;text-align:center;padding:12px;border:1px dashed #cfd5e0;border-radius:13px;background:#f8f9fc;color:#505c74;cursor:pointer}
+.kx-upload input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.kx-avatar input[type=url],.kr-search{box-sizing:border-box;width:100%;min-width:0;padding:11px 12px;border:1px solid #e0e4ec;background:#f9fafc;border-radius:11px;color:#353d51;font:inherit}
+.kx-avatar button,.kx-actions button{padding:9px 16px;border:1px solid #e0e4eb;border-radius:20px;background:#f6f7fa;color:#586278;font:inherit;cursor:pointer}
+.kx-avatar button[type=submit]{background:#363d4a;color:white;border-color:#363d4a}
+.kx-avatar button:disabled{opacity:.4;cursor:wait}
+.kx-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:3px}
+#chat-settings-screen #setting-char-sticker-groups-container{border:0!important;padding:2px 0!important;display:flex;flex-wrap:wrap;gap:7px;max-height:175px!important;box-sizing:border-box;background:transparent;scrollbar-width:thin}
+#chat-settings-screen #setting-char-sticker-groups-container .sticker-group-tag{display:inline-flex;align-items:center;gap:5px;min-height:30px;margin:0!important;padding:6px 12px!important;border:1px solid #e4e7ed;border-radius:10px!important;background:#f5f6f9!important;color:#8a91a0!important;box-shadow:none!important;font-size:11px!important;line-height:1.4;cursor:pointer;box-sizing:border-box}
+#chat-settings-screen #setting-char-sticker-groups-container .sticker-group-tag.selected{background:#eceff5!important;border-color:#bcc5d5;color:#46536e!important}
+#chat-settings-screen #setting-char-sticker-groups-container .sticker-group-tag.selected:before{content:'✓';font-size:10px;color:#64718a}
+#chat-settings-screen #setting-char-sticker-groups-container .sticker-group-tag[hidden]{display:none!important}
+.kx-sticker-tools{display:flex;align-items:center;gap:7px;width:100%;flex-wrap:wrap;margin:1px 0 12px;box-sizing:border-box}
+.kx-sticker-tools input{flex:1;min-width:85px;width:100px;padding:7px 9px!important;font-size:10px!important;text-align:left!important;background:#f8f9fb!important;border:1px solid #e5e8ef!important;border-radius:9px!important}
+.kx-sticker-tools small{font-size:9px;color:#a0a6b2;white-space:nowrap}
+.kx-sticker-tools button{border:0;background:transparent;padding:5px 1px;font-size:10px;color:#68768f;cursor:pointer}
+#chat-settings-screen #private-bubble-css-preview.kx-chat-preview{position:relative!important;display:block!important;width:100%!important;height:300px!important;min-height:0!important;padding:0!important;border:1px solid #e4e7ed;border-radius:17px;overflow:hidden;cursor:zoom-in;background:#f5f6f9;box-sizing:border-box;isolation:isolate}
+.kx-chat-preview:after{content:'轻触查看完整页面';position:absolute;right:10px;bottom:8px;font:9px/1.4 Arial;color:#778196;background:#ffffffc9;padding:4px 7px;border-radius:12px;pointer-events:none}
+.kx-chat-preview iframe{display:block;border:0;width:100%;height:100%;pointer-events:none}
+.kx-preview-overlay.ksv-overlay{padding:8px!important;box-sizing:border-box}
+.kx-preview-overlay .ksv-dialog{display:flex;flex-direction:column;width:min(100%,440px)!important;height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)!important;margin:0!important;border-radius:20px!important;overflow:hidden}
+.kx-preview-overlay .ksv-dialog>header{flex:none;padding:11px 14px!important;min-height:24px}
+.kx-preview-overlay .ksv-dialog>header h2{font-size:12px!important}
+.kx-preview-overlay .ksv-dialog-body{flex:1;min-height:0;padding:0!important;overflow:hidden}
+.kx-full-chat,.kx-full-chat iframe{width:100%;height:100%;border:0;display:block}
+.kx-full-chat iframe{pointer-events:none}
+.kx-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #edf0f5;font-size:12px;color:#363e51}
+.kx-setting .kkt-switch{flex:none;margin:0}
+.kx-help{font-size:10px;line-height:1.7;color:#959dad;margin:8px 0 14px}
+.kx-reaction-details[hidden]{display:none!important}
+.kx-reaction-styles{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:7px 0}
+.kx-reaction-styles button{min-width:0;padding:17px 7px 11px;border:1px solid #e6e9ef;border-radius:14px;background:#f9fafc;color:#7b8497;font:inherit;cursor:pointer;text-align:center}
+.kx-reaction-styles button[aria-pressed=true]{background:#f0f3f8;border-color:#aebbd1;color:#35435d;box-shadow:inset 0 0 0 1px #cbd3e13d}
+.kx-reaction-styles b,.kx-reaction-styles small{display:block;font-size:11px;font-weight:400;margin-top:9px}
+.kx-reaction-styles small{font-size:8px;margin-top:4px;color:#9ca4b3}
+.kx-style-sample{position:relative;display:inline-block;background:#e0e5ee;color:#637088;padding:9px 19px;border-radius:15px;font-size:11px}
+.kx-style-sample i{position:absolute;right:-6px;top:-10px;background:#fafbff;border:1px solid white;border-radius:13px;padding:2px 6px;font-style:normal;font-size:14px;box-shadow:0 2px 5px #26365018}
+.kx-style-sample.circle i{width:20px;height:20px;display:grid;place-items:center;padding:0;border-radius:50%;font-size:13px}
+#chat-settings-screen .kx-count-label input{width:64px!important;padding:7px 8px!important;border:1px solid #e2e6ed;border-radius:9px!important;text-align:center;background:#fafbfe;font-size:12px}
+/* Reaction badges stay attached to a bubble without changing its shape. */
+#chat-room-screen .kr-anchor{position:relative;overflow:visible}
+#chat-room-screen .kr-reacted{padding-top:12px}
+#chat-room-screen .kr-dock{position:absolute;display:flex;gap:3px;top:-15px;right:-6px;z-index:2;line-height:1}
+#chat-room-screen .kr-badge{position:relative;display:grid;place-items:center;min-width:31px;height:27px;padding:2px 7px;border:2px solid #fff;border-radius:16px;background:linear-gradient(145deg,#fff,#edf0f6);box-shadow:0 2px 5px #28354a21;font:18px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;cursor:pointer;color:#313845}
+#chat-room-screen .kr-imessage .kr-badge:after{content:'';position:absolute;right:0;bottom:-3px;width:5px;height:5px;border-radius:50%;background:#f0f2f7;border:1px solid white}
+#chat-room-screen .kr-circle .kr-badge{width:23px;min-width:23px;height:23px;border-width:1.5px;padding:0;border-radius:50%;font-size:15px}
+#chat-room-screen .kr-circle{top:-10px;right:-5px}
+.context-menu.kr-menu{width:275px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow:auto;border:1px solid #ffffffd9;border-radius:18px;background:#fafbffed;box-shadow:0 12px 40px #28334c30;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-sizing:border-box}
+.kr-menu .context-menu-item{padding:11px 15px;font-size:12px;border-color:#e8ebf1}
+.kr-quick{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-around;gap:2px;padding:10px 7px;background:#f7f9fef5;border-bottom:1px solid #e8ebf2}
+.kr-choice{display:grid;place-items:center;border:0;background:transparent;color:#69738a;border-radius:10px;width:34px;height:35px;flex:none;font:24px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;cursor:pointer}
+.kr-choice:hover,.kr-choice:focus-visible,.kr-choice.is-selected{background:#e5ebf6;outline:1px solid #c2cde2}
+.kr-picker{display:flex;flex-direction:column;gap:11px;min-height:0}
+.kr-hint,.kr-count{font-size:10px;line-height:1.5;color:#939cac;margin:0}
+.kr-categories{display:flex;gap:6px;overflow:auto;scrollbar-width:thin;padding:0 0 5px;flex:none}
+.kr-categories button,.kr-more{flex:none;border:1px solid #e5e9f0;background:#f7f9fc;border-radius:14px;color:#7c889e;padding:6px 10px;font:10px/1.4 Arial;cursor:pointer}
+.kr-categories button[aria-pressed=true]{color:#3e4e6c;border-color:#b9c6dc;background:#edf2fa}
+.kr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(35px,1fr));gap:3px;max-height:38dvh;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;min-height:105px;padding:3px}
+.kr-grid .kr-choice{width:100%;font-size:25px;height:38px}
+.kr-more[hidden]{display:none}
+@media(max-width:350px){.kx-sticker-tools small{order:3}.kr-grid{grid-template-columns:repeat(6,1fr)}}
+.ksv-dialog .kr-picker .kr-choice{border:0;border-radius:9px;background:transparent;padding:0;font:25px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;min-width:0;height:38px;color:#4b5670}
+.ksv-dialog .kr-picker .kr-choice:hover,.ksv-dialog .kr-picker .kr-choice:focus-visible,.ksv-dialog .kr-picker .kr-choice.is-selected{background:#e5ebf6;outline:1px solid #c2cde2}
+.ksv-dialog .kr-categories button{font-size:10px;padding:6px 10px}
+.ksv-dialog .kr-picker .kr-more{font-size:10px;padding:8px 10px}

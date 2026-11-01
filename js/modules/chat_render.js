@@ -361,14 +361,17 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
             const quoteDiv = document.createElement('div');
             quoteDiv.className = 'quoted-message';
             const sanitizedQuotedText = DOMPurify.sanitize(quote.content, { ALLOWED_TAGS: [] });
-            quoteDiv.innerHTML = `<span class="quoted-sender">回复 ${quotedSenderName}</span><p class="quoted-text">${sanitizedQuotedText}</p>`;
+            quoteDiv.innerHTML = '<span class="quoted-sender"></span><p class="quoted-text"></p>';
+                quoteDiv.querySelector('.quoted-sender').textContent = '回复 ' + quotedSenderName;
+                quoteDiv.querySelector('.quoted-text').textContent = quote.content || '';
             
             // 将引用气泡插入到双语主气泡的前面 (CSS绝对定位会自动处理位置)
             bubbleElement.prepend(quoteDiv);
         }
         // ---------------------------------------------------
         
-        return wrapper;
+        window.KissReactions?.decorate(wrapper,message,chat);
+    return wrapper;
     }
 
     const timeSkipRegex = /\[system-display:([\s\S]+?)\]/;
@@ -439,7 +442,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         bubble.textContent = content; 
         bubbleRow.appendChild(bubble);
         wrapper.appendChild(bubbleRow);
-        return wrapper;
+        window.KissReactions?.decorate(wrapper,message,chat);
+    return wrapper;
     }
 
     if (isWithdrawn) {
@@ -456,7 +460,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
                 }
             });
         }
-        return wrapper;
+        window.KissReactions?.decorate(wrapper,message,chat);
+    return wrapper;
     }
     // 【新增】 && !isThinking —— 只有当不是思考过程时，才允许渲染成系统通知气泡
     if ((timeSkipMatch || inviteMatch || renameMatch || (updateStatusMatch && chat.showStatusUpdateMsg) || callInviteMatch || callRejectMatch) && !isThinking) {
@@ -470,7 +475,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         if (callInviteMatch) bubbleText = `${callInviteMatch[1]}向${callInviteMatch[2]}发起了${callInviteMatch[3]}通话`;
         if (callRejectMatch) bubbleText = `${callRejectMatch[1]}拒绝了${callRejectMatch[2]}的${callRejectMatch[3]}通话`;
         wrapper.innerHTML = `<div class="system-notification-bubble">${bubbleText}</div>`;
-        return wrapper;
+        window.KissReactions?.decorate(wrapper,message,chat);
+    return wrapper;
     }
 
     const isSent = (role === 'user');
@@ -671,7 +677,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
             });
         }
         
-        return wrapper; // 直接返回，跳过后续的气泡组装逻辑
+        window.KissReactions?.decorate(wrapper,message,chat);
+    return wrapper; // 直接返回，跳过后续的气泡组装逻辑
 
     } else if (shopOrderMatchNew) {
         // 新版小票渲染 (普通订单)
@@ -1081,7 +1088,9 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
                 const quoteDiv = document.createElement('div');
                 quoteDiv.className = 'quoted-message';
                 const sanitizedQuotedText = DOMPurify.sanitize(quote.content, { ALLOWED_TAGS: [] });
-                quoteDiv.innerHTML = `<span class="quoted-sender">回复 ${quotedSenderName}</span><p class="quoted-text">${sanitizedQuotedText}</p>`;
+                quoteDiv.innerHTML = '<span class="quoted-sender"></span><p class="quoted-text"></p>';
+                quoteDiv.querySelector('.quoted-sender').textContent = '回复 ' + quotedSenderName;
+                quoteDiv.querySelector('.quoted-text').textContent = quote.content || '';
                 bubbleElement.prepend(quoteDiv);
             }
             contentContainer.appendChild(bubbleElement);
@@ -1111,7 +1120,9 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
                 const quoteDiv = document.createElement('div');
                 quoteDiv.className = 'quoted-message';
                 const sanitizedQuotedText = DOMPurify.sanitize(quote.content, { ALLOWED_TAGS: [] });
-                quoteDiv.innerHTML = `<span class="quoted-sender">回复 ${quotedSenderName}</span><p class="quoted-text">${sanitizedQuotedText}</p>`;
+                quoteDiv.innerHTML = '<span class="quoted-sender"></span><p class="quoted-text"></p>';
+                quoteDiv.querySelector('.quoted-sender').textContent = '回复 ' + quotedSenderName;
+                quoteDiv.querySelector('.quoted-text').textContent = quote.content || '';
                 bubbleElement.prepend(quoteDiv);
             }
             bubbleRow.appendChild(bubbleElement);
@@ -1119,6 +1130,7 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
     }
     if (isSent && message.deliveryFailed) window.KissSocial?.decorateFailed(wrapper, bubbleRow, message, chat);
     wrapper.prepend(bubbleRow);
+    window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper;
 }
 

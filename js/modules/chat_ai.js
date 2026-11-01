@@ -205,6 +205,8 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             }
         }
 
+        generation.reactionContext = window.KissReactions?.context(chat);
+        systemPrompt += generation.reactionContext?.prompt || '';
         systemPrompt += window.KissVoiceScript?.directionPrompt(chat,chatType)||'';
 
         let historySlice = (window.KissOffline ? window.KissOffline.historyForAI(chat) : chat.history).slice(-chat.maxMemory);
@@ -813,6 +815,8 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
 
         if(targetChatType === 'private' && window.KissSocial){fullResponse=await KissSocial.consume(fullResponse,chat);if(KissSocial.blocked(chat))return;}
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
+
+        if(window.KissReactions) fullResponse=await KissReactions.consume(fullResponse,chat,generation?.reactionContext,()=>generation?.check());
 
         // --- 朋友圈指令解析 ---
         const momentPostWithImageRegex = /\[(.*?)\s*发布了一条带图动态[：:](.*?)\|([\s\S]+?)\]/;
