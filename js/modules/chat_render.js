@@ -1117,6 +1117,7 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
             bubbleRow.appendChild(bubbleElement);
         }
     }
+    if (isSent && message.deliveryFailed) window.KissSocial?.decorateFailed(wrapper, bubbleRow, message, chat);
     wrapper.prepend(bubbleRow);
     return wrapper;
 }
