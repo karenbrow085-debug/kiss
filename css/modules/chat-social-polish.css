@@ -1,0 +1,17 @@
+/* Previously finished friend requests and title actions. */
+.ku-mode .ku-title-home{cursor:pointer}
+#contacts-screen [data-kiss-new-friends]{position:relative;width:max-content;max-width:100%;cursor:pointer;overflow:visible!important}
+#contacts-screen [data-kiss-new-friends] .ksv-request-badge{right:-17px;top:0}
+#contacts-screen [data-kiss-new-friends]:focus-visible,.ku-title-home:focus-visible{outline:1px solid #8594ac;outline-offset:5px;border-radius:3px}
+#chat-room-screen .kiss-delivery-label{display:none!important}
+/* WeChat-style verification decoration: simple typography and generous white space. */
+.ksf-header-spacer{display:grid;place-items:center;color:#252525}.ksf-header-spacer svg{width:23px;height:23px;fill:currentColor}
+.ksf-profile{padding:32px 23px 23px;gap:19px}.ksf-profile h3{font-size:22px;margin-bottom:9px}
+.ksf-profile .ksf-profile-links{display:flex;gap:17px;color:#576b95;font-size:15px;font-weight:500;line-height:1.5}
+.ksf-info{padding:17px 16px;border-top-width:9px}.ksf-info p{margin:0;font-size:16px;gap:20px;align-items:center}.ksf-info p>span{flex-basis:72px;color:#222;font-weight:500}.ksf-info b{color:#858585;font-weight:500}
+.ksf-footer{display:flex;align-items:center;justify-content:center;gap:12px;min-height:140px;padding:50px 20px 22px;margin-top:auto;color:#576b95;font-size:14px;font-weight:500;background:#ededed}
+.ksf-footer i{height:15px;border-left:1px solid #576b95;opacity:.7}
+.ksf-main:has(>.ksf-verification){display:flex;flex-direction:column;background:#ededed}.ksf-verification{flex:none}.ksf-profile,.ksf-info,.ksf-result,.ksf-verify-actions{flex:none}
+
+#chat-list-screen .app-header h1[data-kiss-title-back]{cursor:pointer}
+#chat-list-screen>.app-header .hidden-back-btn{display:none!important}
