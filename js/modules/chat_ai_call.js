@@ -19,6 +19,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
             };
         }
     }
+    apiConfig = window.KissExclusiveModels?.config(chat, apiConfig) || apiConfig;
     apiConfig = resolveAuxiliaryApiConfig('callReply', apiConfig);
 
     let {url, key, model, provider, streamEnabled} = apiConfig;
@@ -537,6 +538,7 @@ async function generateCallSummary(chat, callContext) {
             };
         }
     }
+    apiConfig = window.KissExclusiveModels?.config(chat, apiConfig) || apiConfig;
     apiConfig = resolveAuxiliaryApiConfig('callSummary', apiConfig);
 
     let {url, key, model, provider} = apiConfig;

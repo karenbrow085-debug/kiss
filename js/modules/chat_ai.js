@@ -153,6 +153,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         }
     }
 
+    apiConfig = window.KissExclusiveModels?.config(chat, apiConfig) || apiConfig;
     if (chatType === 'private' && window.KissOffline?.isActive(chat)) {
         return window.KissOffline.request(chat, apiConfig, isBackground, null, rerollNote);
     }

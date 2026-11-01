@@ -49,7 +49,7 @@ async function call(c,instruction,route='chat') {
  await window.PhoneBackup?.hydrateChat?.(c);
  const preset=c.exclusiveApiEnabled&&(db.apiPresets||[]).find(p=>p.name===c.exclusiveApiPreset),data=preset?.data;
  const primary=data?{...db.apiSettings,url:data.apiUrl||db.apiSettings.url,key:data.apiKey||db.apiSettings.key,model:data.model||db.apiSettings.model,provider:data.provider||db.apiSettings.provider}:db.apiSettings;
- const config=resolveAuxiliaryApiConfig(route,primary);
+ const config=resolveAuxiliaryApiConfig(route,window.KissExclusiveModels?.config(c,primary)||primary);
  if(!config.url||!config.key||!config.model)throw Error('请先配置可用的 API');
  const messages=[{role:'system',content:instruction},{role:'user',content:JSON.stringify({name:c.realName,persona:c.persona,myName:c.myName,myPersona:c.myPersona,history:online(c).slice(-16).map(m=>({role:m.role,content:m.content}))})}];
  const {requestBody,endpoint,headers}=buildChatApiRequest({...config,streamEnabled:false},messages,{temperature:0.5});

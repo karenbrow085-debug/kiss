@@ -32,6 +32,7 @@ window.attachStatusHistoryControls=function(char,content,slides,swiper,indicator
  async function regenerate(){
   if(pending||!valid()||!current())return;const item=current(),raw=item.raw,html=item.html,previousRegeneratedAt=item.regeneratedAt,regexAtStart=panel.regexPattern,templateAtStart=panel.replacePattern;
   let config={...db.apiSettings};if(char.exclusiveApiEnabled&&char.exclusiveApiPreset){const preset=(db.apiPresets||[]).find(p=>p.name===char.exclusiveApiPreset)?.data;if(preset)config={...config,url:preset.apiUrl||config.url,key:preset.apiKey||config.key,model:preset.model||config.model,provider:preset.provider||config.provider,temperature:preset.temperature??config.temperature,temperatureEnabled:preset.temperatureEnabled??config.temperatureEnabled};}
+  config=window.KissExclusiveModels?.config(char,config)||config;
   if(options.offline)try{config=window.KissOffline.resolveOfflineApi(char,config);}catch(error){return showToast(error.message);}
   if(!config.url||!config.key||!config.model)return showToast('请先配置聊天 API');
   const feedback=window.KissReroll;if(!feedback)return showToast('重生成模块未加载，请刷新页面');const token=feedback.capture(char);

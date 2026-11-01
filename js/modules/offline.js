@@ -542,6 +542,7 @@ function resolveOfflineApi(chat,fallback) {
  let value={...(fallback||db.apiSettings||{})};const draft=config(chat).draft;
  const name=draft.apiPreset||(!fallback&&chat.exclusiveApiEnabled?chat.exclusiveApiPreset:'');
  if(name){const preset=(db.apiPresets||[]).find(p=>p.name===name);if(!preset?.data)throw Error('API 预设已删除，请重新选择');const d=preset.data;value={...value,...d,url:d.apiUrl||d.url||value.url,key:d.apiKey||d.key||value.key};}
+ if(!fallback&&!draft.apiPreset&&!draft.model)value=window.KissExclusiveModels?.config(chat,value)||value;
  if(draft.model)value.model=draft.model;return value;
 }
 async function fetchOfflineModels(chat,presetName) {
