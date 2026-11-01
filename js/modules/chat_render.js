@@ -1033,7 +1033,10 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
             bubbleElement.style.color = bubbleTheme.text;
         }
     }
-    const nicknameHTML = (currentChatType === 'group' && !isSent && senderNickname) ? `<div class="group-nickname">${senderNickname}</div>` : '';
+    const safeNickname = document.createElement('div');
+    safeNickname.className = 'group-nickname';
+    safeNickname.textContent = senderNickname || '';
+    const nicknameHTML = (currentChatType === 'group' && !isSent && senderNickname) ? safeNickname.outerHTML : '';
 
     // Time Stamp Logic
     const timeSpan = document.createElement('span');
@@ -1087,7 +1090,6 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
                 }
                 const quoteDiv = document.createElement('div');
                 quoteDiv.className = 'quoted-message';
-                const sanitizedQuotedText = DOMPurify.sanitize(quote.content, { ALLOWED_TAGS: [] });
                 quoteDiv.innerHTML = '<span class="quoted-sender"></span><p class="quoted-text"></p>';
                 quoteDiv.querySelector('.quoted-sender').textContent = '回复 ' + quotedSenderName;
                 quoteDiv.querySelector('.quoted-text').textContent = quote.content || '';
@@ -1119,7 +1121,6 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
                 }
                 const quoteDiv = document.createElement('div');
                 quoteDiv.className = 'quoted-message';
-                const sanitizedQuotedText = DOMPurify.sanitize(quote.content, { ALLOWED_TAGS: [] });
                 quoteDiv.innerHTML = '<span class="quoted-sender"></span><p class="quoted-text"></p>';
                 quoteDiv.querySelector('.quoted-sender').textContent = '回复 ' + quotedSenderName;
                 quoteDiv.querySelector('.quoted-text').textContent = quote.content || '';
