@@ -567,6 +567,8 @@ const chatSettingsHtml = `
 function injectChatSettingsHtml() {
     const container = document.getElementById('chat-settings-screen');
     if (container) {
+        container.removeAttribute("data-ksv-mounted");
         container.innerHTML = chatSettingsHtml;
+        window.KissSettingsV2?.mount(container);
     }
 }

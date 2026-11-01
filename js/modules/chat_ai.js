@@ -128,6 +128,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
 
     const chat = (chatType === 'private') ? db.characters.find(c => c.id === chatId) : db.groups.find(g => g.id === chatId);
     if (!chat) return;
+    if(chatType==='private' && window.KissSocial?.blocked(chat) && !window.KissOffline?.isActive(chat)){if(!isBackground)showToast(chat.friendship?.aiBlocked?'对方已拒收消息，请发送朋友验证':'请先将对方移出黑名单');return;}
     if(window.PhoneBackup?.isPinned(chat)){if(!isBackground)showToast('存档正在处理，请稍后生成回复');return;}
     if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
     await PhoneBackup.hydrateChat(chat);
@@ -759,6 +760,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
     const previousMessageIds=new Set((chat.history||[]).map(m=>m.id));
 
     if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
+    if(targetChatType==='private'&&window.KissSocial?.blocked(chat))return;
     generation?.check();
     const rawResponse = fullResponse;
     if (fullResponse) {
@@ -808,6 +810,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             fullResponse = fullResponse.substring(lastThinkingIndex + 11);
         }
 
+        if(targetChatType === 'private' && window.KissSocial){fullResponse=await KissSocial.consume(fullResponse,chat);if(KissSocial.blocked(chat))return;}
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
 
         // --- 朋友圈指令解析 ---
@@ -1352,6 +1355,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         generation?.check();
         renderChatList();
 
+        if(targetChatType==='private')window.KissSocial?.tick(chat);
         // 触发独立的电量检查（不阻塞主流程）
         if (window.BatteryInteraction && typeof window.BatteryInteraction.triggerIndependentCheck === 'function') {
             window.BatteryInteraction.triggerIndependentCheck(chat);

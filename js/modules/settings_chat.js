@@ -141,6 +141,7 @@ function setupChatSettings() {
                         maxHeight: 1920
                     });
                     char.chatBg = compressedUrl;
+                    window.KissSettingsV2?.syncBackground();
                     chatRoomScreen.style.backgroundImage = `url(${compressedUrl})`;
                     await saveData();
                     showToast('聊天背景已更换');
@@ -157,6 +158,7 @@ function setupChatSettings() {
             const char = db.characters.find(c => c.id === currentChatId);
             if (char) {
                 char.chatBg = '';
+                window.KissSettingsV2?.syncBackground();
                 const chatRoomScreen = document.getElementById('chat-room-screen');
                 if (chatRoomScreen) chatRoomScreen.style.backgroundImage = '';
                 await saveData();
@@ -551,6 +553,7 @@ function loadSettingsToSidebar() {
         updateBubbleCssPreview(privatePreviewBox, e.customBubbleCss, !e.useCustomBubbleCss, theme);
         populateBubblePresetSelect('bubble-preset-select');
         populateMyPersonaSelect();
+        window.KissSettingsV2?.load(e);
         if (typeof populateStatusBarPresetSelect === 'function') {
             populateStatusBarPresetSelect();
         }
@@ -711,6 +714,7 @@ function initTextareaSearchReplace(toolbarId, textareaId) {
 async function saveSettingsFromSidebar() {
     const e = db.characters.find(e => e.id === currentChatId);
     if (e) {
+        if(window.KissSettingsV2&&!KissSettingsV2.validate())return;
         let roleClock;try{roleClock=window.KissClock?.readSettings();}catch(error){showToast(error.message);return;}
         if(roleClock){e.timeZone=roleClock.timeZone;window.KissClock.setUserZone(roleClock.userTimeZone);}
         e.avatar = document.getElementById('setting-char-avatar-preview').src;
@@ -844,6 +848,7 @@ async function saveSettingsFromSidebar() {
         }
 
         e.useRealGallery = document.getElementById('setting-use-real-gallery').checked;
+        window.KissSettingsV2?.read(e);
 
         await saveData();
         showToast('设置已保存！');

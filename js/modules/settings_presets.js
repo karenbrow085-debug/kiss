@@ -11,6 +11,7 @@ function _saveBubblePresets(arr) {
 // 黑白预设搜索：保留原 select，继续使用原来的应用和导入导出入口。
 const bubblePresetSearchUI = (() => {
     let modal, input, list, count, clear, source, returnFocus;
+    let favoriteOnly=false;
     const buttons = new Map();
     const normalize = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]/gu, '');
     function score(name, query) {
@@ -43,10 +44,11 @@ const bubblePresetSearchUI = (() => {
         document.head.appendChild(style);
         modal = document.createElement('div');
         modal.className = 'bps-overlay'; modal.hidden = true;
-        modal.innerHTML = `<section class="bps-dialog" role="dialog" aria-modal="true" aria-labelledby="bps-title"><header class="bps-header"><div><div class="bps-kicker">YOUR COLLECTION</div><h2 class="bps-title" id="bps-title">选择美化预设</h2></div><button class="bps-icon bps-close" type="button" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div class="bps-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input class="bps-input" type="text" inputmode="search" placeholder="输入名称的部分字样…" aria-label="搜索美化预设" autocomplete="off"><button class="bps-icon bps-clear" type="button" aria-label="清空搜索">×</button></div><div class="bps-count" aria-live="polite"></div><div class="bps-list"></div><footer class="bps-footer">点击名称选择 · 点击应用直接使用</footer></section>`;
+        modal.innerHTML = `<section class="bps-dialog" role="dialog" aria-modal="true" aria-labelledby="bps-title"><header class="bps-header"><div><div class="bps-kicker">YOUR COLLECTION</div><h2 class="bps-title" id="bps-title">选择美化预设</h2></div><button class="bps-icon bps-close" type="button" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div class="bps-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input class="bps-input" type="text" inputmode="search" placeholder="输入名称的部分字样…" aria-label="搜索美化预设" autocomplete="off"><button class="bps-icon bps-clear" type="button" aria-label="清空搜索">×</button></div><div class="bps-categories" role="tablist" aria-label="美化分类"><button type="button" role="tab" data-bps-category="all" aria-selected="true">全部美化</button><button type="button" role="tab" data-bps-category="favorites" aria-selected="false">我的喜欢</button></div><div class="bps-count" aria-live="polite"></div><div class="bps-list"></div><footer class="bps-footer">点击名称选择 · 点击应用直接使用</footer></section>`;
         document.body.appendChild(modal);
         input = modal.querySelector('input'); list = modal.querySelector('.bps-list'); count = modal.querySelector('.bps-count'); clear = modal.querySelector('.bps-clear');
         input.addEventListener('input', render);
+        modal.querySelectorAll('[data-bps-category]').forEach(b=>b.onclick=()=>{favoriteOnly=b.dataset.bpsCategory==='favorites';modal.querySelectorAll('[data-bps-category]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));render();});
         clear.onclick = () => { input.value = ''; render(); input.focus(); };
         modal.querySelector('.bps-close').onclick = close;
         modal.addEventListener('click', event => { if (event.target === modal) close(); });
@@ -81,13 +83,13 @@ const bubblePresetSearchUI = (() => {
         if (!source) return;
         const query = input.value;
         const presets = _getBubblePresets();
-        const results = presets.map((preset, index) => ({preset,index,rank:score(preset.name,query)})).filter(item => item.rank).sort((a,b) => b.rank-a.rank || a.index-b.index);
+        const results = presets.map((preset, index) => ({preset,index,rank:score(preset.name,query)})).filter(item => item.rank && (!favoriteOnly || item.preset.isFavorited)).sort((a,b) => b.rank-a.rank || a.index-b.index);
         count.textContent = `${results.length} / ${presets.length} PRESETS`;
         clear.style.visibility = query ? 'visible' : 'hidden';
         list.replaceChildren(); list.scrollTop = 0;
         if (!results.length) {
             const empty = document.createElement('div'); empty.className = 'bps-empty';
-            empty.textContent = presets.length ? '没有匹配的预设，换个字试试' : '还没有预设，可以先导入或保存';
+            empty.textContent = favoriteOnly ? '暂无喜欢的美化，点击预设旁的爱心添加' : presets.length ? '没有匹配的预设，换个字试试' : '还没有预设，可以先导入或保存';
             list.appendChild(empty); return;
         }
         results.forEach(({preset}) => {
@@ -96,7 +98,8 @@ const bubblePresetSearchUI = (() => {
             if (source.value === preset.name) { const note = document.createElement('small'); note.textContent = '已选择'; name.appendChild(note); }
             name.onclick = () => choose(preset.name,false);
             const apply = document.createElement('button'); apply.type = 'button'; apply.className = 'bps-apply'; apply.textContent = '应用'; apply.setAttribute('aria-label',`应用 ${preset.name}`); apply.onclick = () => choose(preset.name,true);
-            row.append(name,apply); list.appendChild(row);
+            const favorite=document.createElement('button');favorite.type='button';favorite.className='bps-favorite';favorite.textContent=preset.isFavorited?'♥':'♡';favorite.setAttribute('aria-pressed',String(!!preset.isFavorited));favorite.setAttribute('aria-label',`${preset.isFavorited?'取消喜欢':'喜欢'} ${preset.name}`);favorite.onclick=async()=>{const old=!!preset.isFavorited;preset.isFavorited=!old;favorite.disabled=true;try{await saveData();render();}catch(e){preset.isFavorited=old;favorite.disabled=false;showToast('喜欢尚未保存：'+e.message);}};
+            row.append(name,favorite,apply); list.appendChild(row);
         });
     }
     function sync(select) {
@@ -1143,6 +1146,7 @@ function openSoundManageModal() {
     };
     const selector = Object.keys(configurations).map(id => "#" + id).join(",");
     let modal, input, list, count, clear, source, returnFocus;
+    let favoriteOnly=false;
     const buttons = new Map();
     let previousOverflow = '';
     let composing = false;
