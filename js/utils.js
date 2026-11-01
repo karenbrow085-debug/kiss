@@ -542,6 +542,20 @@ function filterHistoryForAI(chat, historySlice, ignoreContextDisabled = false) {
         });
     }
 
+    // Do not teach the model malformed internal collection commands from old replies.
+    if (window.KissCollections?.stripCommands) {
+        const cleanCollection = text => typeof text === 'string'
+            ? window.KissCollections.stripCommands(text, true).replace(/\[[^\]\n]*?的消息[：:]\s*\]/g, '').trim() : text;
+        filteredHistory = filteredHistory.filter(msg => {
+            if (msg.role !== 'assistant') return true;
+            msg.content = cleanCollection(msg.content);
+            if (Array.isArray(msg.parts)) msg.parts = msg.parts.map(part =>
+                ['text', 'html'].includes(part.type) ? {...part, text:cleanCollection(part.text)} : part
+            ).filter(part => !['text', 'html'].includes(part.type) || !!part.text);
+            return !!msg.content || !!msg.parts?.length;
+        });
+    }
+
     // Status history stays on the device; raw status blocks are never replayed to AI.
     // Clean only assistant output, using its original format as well as current formats.
     filteredHistory = filteredHistory.filter(msg => {
@@ -860,4 +874,5 @@ window.formatTimeGap = formatTimeGap;
 window.filterHistoryForAI = filterHistoryForAI;
 window.showToast = showToast;
 window.playSound = (typeof playSound !== 'undefined') ? playSound : null; // 防止循环依赖
+
 
