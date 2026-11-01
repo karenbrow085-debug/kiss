@@ -238,3 +238,81 @@
 #chat-settings-screen.ksv-settings .ksv-banner-sparkle{position:absolute;left:7px;bottom:-17px;font-size:28px;line-height:1;color:#9d9fae;text-shadow:0 1px 2px white;z-index:2;pointer-events:none}
 #chat-settings-screen.ksv-settings .ksv-paperclip{position:absolute;right:0;bottom:-21px;width:18px;height:39px;transform:rotate(13deg);filter:drop-shadow(0 1px 1px #5553);z-index:2;pointer-events:none}
 @container chat-settings (min-width:500px){#chat-settings-screen.ksv-settings .ksv-hero{padding-bottom:28px}#chat-settings-screen.ksv-settings .ksv-nameplate{bottom:-17px;padding:10px 25px;min-width:145px}#chat-settings-screen.ksv-settings .ksv-paperclip{width:25px;height:52px;bottom:-25px}}
+
+/* v6: a stationary header and a spacious, independently scrolling settings body. */
+#chat-settings-screen.ksv-settings .content{height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+#chat-settings-screen.ksv-settings .kkt-settings-container{height:100%;min-height:0;max-width:620px;width:100%;box-sizing:border-box;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 0;display:flex;flex-direction:column;overflow:hidden;gap:0}
+#chat-settings-screen.ksv-settings .ksv-fixed-top{flex:none;position:relative;z-index:4;padding-bottom:4px;background:#f8f9fb}
+#chat-settings-screen.ksv-settings .ksv-settings-scroll{flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:18px 2px calc(24px + env(safe-area-inset-bottom,0px));box-sizing:border-box;scrollbar-width:thin}
+#chat-settings-screen.ksv-settings #chat-settings-form{display:block;overflow:visible;padding:0;margin:0;height:auto}
+#chat-settings-screen.ksv-settings .ksv-section{padding:12px;margin-bottom:14px!important;border-radius:18px}
+#chat-settings-screen.ksv-settings .ksv-section-heading{display:flex;align-items:center;gap:8px;min-height:29px;font-size:14px;line-height:1.5;margin:0 0 4px;padding:0 0 7px;border-bottom:1px solid #eceef3;color:#606b89}
+#chat-settings-screen.ksv-settings .ksv-collapse{flex:none;margin-left:auto;border:0;background:transparent;box-shadow:none;color:#969caf;font-size:10px;padding:5px 2px;min-height:28px;white-space:nowrap}
+#chat-settings-screen.ksv-settings .ksv-collapsed>.ksv-section-heading{border:0;margin:0;padding-bottom:0}
+#chat-settings-screen.ksv-settings .ksv-section-body[hidden]{display:none!important}
+#chat-settings-screen.ksv-settings .ksv-section-body{min-width:0}
+#chat-settings-screen.ksv-settings .kkt-item{min-height:44px;padding:10px 2px!important}
+#chat-settings-screen.ksv-settings .kkt-item-label,#chat-settings-screen.ksv-settings .feature-card-title{font-size:13px!important;line-height:1.5}
+#chat-settings-screen.ksv-settings .feature-card-desc,#chat-settings-screen.ksv-settings .kkt-item-desc{font-size:10px!important;line-height:1.5}
+#chat-settings-screen.ksv-settings .ksv-feature-row{min-height:50px;padding:10px 2px!important;gap:10px}
+#chat-settings-screen.ksv-settings input:not([type=checkbox]):not([type=range]),#chat-settings-screen.ksv-settings select,#chat-settings-screen.ksv-settings textarea{font-size:12px!important;min-height:32px}
+#chat-settings-screen.ksv-settings .ksv-inline{padding:10px!important;margin-bottom:12px!important}
+#chat-settings-screen.ksv-settings .ksv-inline label{margin:10px 0;line-height:1.6;font-size:12px}
+#chat-settings-screen.ksv-settings .ksv-inline textarea{min-height:66px}
+#chat-settings-screen.ksv-settings .kkt-switch{width:40px;height:24px;flex:none}
+#chat-settings-screen.ksv-settings .kkt-switch .kkt-slider:before{width:20px;height:20px;left:2px;bottom:2px}
+#chat-settings-screen.ksv-settings .kkt-switch input:checked+.kkt-slider:before{transform:translateX(16px)}
+#chat-settings-screen.ksv-settings .ksv-clock-section{padding:12px 8px 8px;margin-top:12px!important}
+#chat-settings-screen.ksv-settings .ksv-clock-section>.ksv-section-heading{font-size:11px;padding:6px 11px;margin:-26px auto 12px;border:0;display:flex;width:max-content;max-width:100%;white-space:normal;gap:5px}
+#chat-settings-screen.ksv-settings .ksv-clock-section .ksv-collapse{font-size:9px;min-height:20px;padding:0 0 0 6px}
+#chat-settings-screen.ksv-settings .ksv-clock{padding:12px 3px 18px;overflow:visible}
+#chat-settings-screen.ksv-settings .ksv-clocks{gap:16px}
+#chat-settings-screen.ksv-settings .ksv-clock h3{font-size:13px;margin-bottom:5px}
+#chat-settings-screen.ksv-settings .ksv-clock strong{font-size:clamp(30px,10cqw,46px);line-height:1.5}
+#chat-settings-screen.ksv-settings .ksv-zone-picker{position:relative;width:100%;min-width:0}
+#chat-settings-screen.ksv-settings .ksv-zone-visible{display:none}
+#chat-settings-screen.ksv-settings .ksv-zone-picker input{position:static!important;opacity:1!important;width:100%!important;height:28px!important;min-height:28px!important;padding:2px!important;text-align:center;color:#71809b!important;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;cursor:text;box-sizing:border-box}
+#chat-settings-screen.ksv-settings .ksv-city-results{position:absolute;top:100%;left:0;width:250px;max-width:76vw;z-index:12;max-height:210px;overflow:auto;border:1px solid #e6e9ef;border-radius:12px;background:#fff;box-shadow:0 7px 24px #28334922;padding:6px;text-align:left}
+#chat-settings-screen.ksv-settings #ksv-zone-user .ksv-city-results{left:auto;right:0}
+#chat-settings-screen.ksv-settings .ksv-city-option{display:block;width:100%;border:0;border-radius:7px;background:#f9fafc;color:#343e56;text-align:left;font:inherit;font-size:12px;padding:9px;margin:2px 0;line-height:1.5}
+#chat-settings-screen.ksv-settings .ksv-city-option small{display:block;font-size:10px;color:#929bb0}
+#chat-settings-screen.ksv-settings .ksv-city-credit{display:block;text-align:right;padding:4px;font-size:9px;color:#a0a7b6}
+#chat-settings-screen.ksv-settings .ksv-profile{padding:0 10px 10px}
+#chat-settings-screen.ksv-settings .ksv-profile>.ksv-section-heading{padding:8px;margin:9px 0}
+#chat-settings-screen.ksv-settings .ksv-profile>.ksv-section-heading>.ksv-collapse{background:none;border:0;font-size:10px;padding:2px;min-height:22px}
+#chat-settings-screen.ksv-settings .ksv-identities{padding:10px 0 14px}
+#chat-settings-screen.ksv-settings .ksv-id-copy b{font-size:13px}
+#chat-settings-screen.ksv-settings .ksv-id-copy small{font-size:10px}
+#chat-settings-screen.ksv-settings .ksv-profile-actions{padding:12px 0 4px}
+#chat-settings-screen.ksv-settings .ksv-exclusive .ksv-eyebrow{font-size:10px;margin:0;letter-spacing:2px}
+#chat-settings-screen.ksv-settings .ksv-exclusive .kkt-item{padding:9px 0!important;min-height:42px}
+#chat-settings-screen.ksv-settings .ksv-exclusive select{min-height:38px;padding:9px!important}
+#chat-settings-screen.ksv-settings .ksv-exclusive .ksv-section-heading{margin-bottom:8px}
+#chat-settings-screen.ksv-settings .ksv-model-controls{margin-top:12px;border-top:1px solid #e9ebf0;padding-top:12px}
+#chat-settings-screen.ksv-settings .ksv-model-controls>label{display:block;font-size:12px;color:#515b75;margin-bottom:12px}
+#chat-settings-screen.ksv-settings .ksv-model-controls input{display:block;width:100%;box-sizing:border-box;padding:9px!important;margin-top:7px;background:#fafbfc;border:1px solid #e5e8ef;border-radius:9px}
+#chat-settings-screen.ksv-settings .ksv-model-search{display:flex;gap:8px;align-items:center}
+#chat-settings-screen.ksv-settings .ksv-model-search input{min-width:0;flex:1;margin:0}
+#chat-settings-screen.ksv-settings #ksv-fetch-models{flex:none;padding:9px 12px;border:1px solid #e3e6ed;border-radius:10px;background:#f2f4f8;color:#596780;font-size:12px;min-height:35px}
+#chat-settings-screen.ksv-settings .ksv-model-results{max-height:190px;overflow:auto;scrollbar-width:thin}
+#chat-settings-screen.ksv-settings .ksv-model-option{display:block;width:100%;padding:10px;margin:3px 0;border:1px solid #e9ebf1;border-radius:8px;background:#fafbfd;color:#58647d;font-size:12px;text-align:left;overflow-wrap:anywhere}
+#chat-settings-screen.ksv-settings .ksv-model-option[aria-pressed=true]{border-color:#8e97ad;background:#edf0f6;color:#252d42}
+#chat-settings-screen.ksv-settings .ksv-css .ksv-section-heading>.kkt-item{display:flex!important;align-items:center;flex:1;gap:8px;min-width:0;border:0;padding:0!important}
+#chat-settings-screen.ksv-settings .ksv-css .ksv-section-body>.kkt-item{display:block!important;padding:7px 0!important}
+#chat-settings-screen.ksv-settings .ksv-code-top{height:30px;min-height:30px;padding:4px 9px;box-sizing:border-box}
+#chat-settings-screen.ksv-settings #setting-custom-bubble-css{font:11px/1.7 ui-monospace,monospace!important;min-height:155px!important;padding:10px!important}
+#chat-settings-screen.ksv-settings .ksv-line-numbers{font:11px/1.7 ui-monospace,monospace;padding:10px 4px;max-height:155px}
+#chat-settings-screen.ksv-settings #private-css-toolbar input{height:32px;min-height:32px;font-size:11px!important}
+#chat-settings-screen.ksv-settings #private-css-toolbar button{height:30px!important;min-height:30px;font-size:10px!important;padding:5px 7px!important;line-height:18px}
+#chat-settings-screen.ksv-settings .toolbar-search-row,#chat-settings-screen.ksv-settings .toolbar-replace-row{min-height:34px;padding:3px 0;gap:5px}
+#chat-settings-screen.ksv-settings .ksv-code-editor>.textarea-edit-toolbar{padding:6px}
+#chat-settings-screen.ksv-settings .bubble-css-preview{height:110px;min-height:110px}
+#chat-settings-screen.ksv-settings .ksv-preview-row.my{bottom:10px}
+#chat-settings-screen.ksv-settings .ksv-preset-tools{gap:7px!important}
+#chat-settings-screen.ksv-settings .ksv-preset-tools button,#chat-settings-screen.ksv-settings .ksv-preset-tools .bps-trigger{height:33px;min-height:33px;font-size:11px!important;padding:7px!important;line-height:18px}
+#chat-settings-screen.ksv-settings .kkt-danger-btn{min-height:44px;margin-top:10px;font-size:13px;border-radius:14px}
+#chat-settings-screen.ksv-settings :is(button,input,select,textarea,a):focus{outline:none!important;box-shadow:none!important}
+#chat-settings-screen.ksv-settings :is(button,a):focus-visible{text-decoration:underline;text-underline-offset:4px}
+#chat-settings-screen.ksv-settings :is(input,textarea,select):focus-visible{border-bottom-color:#8b94aa!important}
+#chat-settings-screen.ksv-settings *{-webkit-tap-highlight-color:transparent}
+@media(max-height:600px){#chat-settings-screen.ksv-settings .ksv-collage{aspect-ratio:auto;height:70px}#chat-settings-screen.ksv-settings .ksv-heading{min-height:48px}#chat-settings-screen.ksv-settings .ksv-settings-scroll{padding-top:12px}}
