@@ -15,6 +15,7 @@ if ('serviceWorker' in navigator) {
 
 const init = async () => {
     await loadData();
+    window.KissTogether?.restore?.();
     // Moments now keeps the original role posts; never clear them during startup.
     if (typeof ensureAllChatArchives === 'function') {
         const archivesMigrated = ensureAllChatArchives();

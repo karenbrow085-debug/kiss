@@ -205,6 +205,11 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             }
         }
 
+        if (chatType === 'private' && window.KissTogether) {
+            generation.hearuContext = await generation.waitFor(KissTogether.capture(chat));
+            generation.check();
+            systemPrompt += KissTogether.prompt(chat,generation.hearuContext,'404');
+        }
         generation.reactionContext = window.KissReactions?.context(chat);
         systemPrompt += generation.reactionContext?.prompt || '';
         systemPrompt += window.KissVoiceScript?.directionPrompt(chat,chatType)||'';
@@ -813,6 +818,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             fullResponse = fullResponse.substring(lastThinkingIndex + 11);
         }
 
+        if(targetChatType === 'private' && window.KissTogether) fullResponse=await KissTogether.consume(fullResponse,chat,generation?.hearuContext,()=>generation?.check());
         if(targetChatType === 'private' && window.KissSocial){fullResponse=await KissSocial.consume(fullResponse,chat);if(KissSocial.blocked(chat))return;}
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
 

@@ -758,6 +758,8 @@ async function generateJournal(start, end, includeFavorited = false, options = {
             }
         }
 
+        if (journalChatType === 'private' && window.KissTogether) summaryPrompt += await KissTogether.journalContext(chat,messagesToSummarize);
+
         const apiConfig = resolveAuxiliaryApiConfig('journal');
         let { url, key, model } = apiConfig;
         if (!url || !key || !model) {
@@ -806,6 +808,8 @@ async function generateJournal(start, end, includeFavorited = false, options = {
             chat.memoryJournals = chat.memoryJournals.filter(item => item !== newJournal);
             throw error;
         }
+
+        if (journalChatType === 'private' && window.KissTogether) await KissTogether.journalSaved(chat,newJournal).catch(error=>console.warn('日记已保存，HearU同步待重试',error));
 
         loadingCard.remove();
         if (currentChatId === journalChatId && currentChatType === journalChatType) {
