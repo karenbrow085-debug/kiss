@@ -228,7 +228,7 @@ function postMarkup(entry,index) {
  const displayTranslation=translatedPosts.has(key);
  const translationValue=status&&!self?(d.statusTranslation||c.statusTranslation||''):(d.translation||m.translation||m.translatedContent||'');
  const displayText=window.KissBilingual?.display(text,translationValue,displayTranslation)??(displayTranslation?String(translationValue||text):text);
- const textHTML=displayText?(window.KissBilingual?.markup(text,translationValue,displayTranslation)||E(displayText).split(/\n/).map(p=>`<span class="ku-paragraph">${p}</span>`).join('')):`<span class="ku-unwritten">${E(t('emptyPost'))}</span>`;
+ const textHTML=displayText?(window.KissBilingual?.split(text,translationValue).translation?`<span class="ku-paragraph">${KissBilingual.markup(text,translationValue,displayTranslation)}</span>`:E(displayText).split(/\n/).map(p=>`<span class="ku-paragraph">${p}</span>`).join('')):`<span class="ku-unwritten">${E(t('emptyPost'))}</span>`;
  const views=Number(m.views||m.viewCount)||0,reposts=Array.isArray(m.reposts)?m.reposts.length:Number(m.repostCount)||0;
  const actualPictures=Array.isArray(m.images)?m.images.map(x=>typeof x==='string'?x:x.url):[];
  const configuredPictures=d.images?.some(Boolean)?d.images:d.image?[d.image]:null;
