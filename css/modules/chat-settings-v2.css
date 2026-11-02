@@ -524,3 +524,9 @@
 .ksf-request-status{font-size:12px;color:#999;flex:none}.ksf-request-row:has(.ksf-request-status) .ksf-request-status{max-width:70px}.ksf-empty{padding:50px 20px;margin:0;text-align:center;color:#999;font-size:14px}
 
 .ksf-main:focus{outline:none}.ksf-page button:focus:not(:focus-visible){outline:none}
+
+/* One geometry for both heart states; do not relayout the collection on a tap. */
+.bps-overlay .bps-favorite{display:grid!important;place-items:center;width:38px!important;height:38px!important;min-width:38px!important;padding:8px!important;transform:none!important;transition:color .14s ease!important;touch-action:manipulation}
+.bps-overlay .bps-favorite svg{display:block;width:22px!important;height:22px!important;overflow:visible;fill:transparent;stroke:currentColor;stroke-width:1.65;stroke-linejoin:round;transform:none!important}
+.bps-overlay .bps-favorite[aria-pressed=true] svg{fill:currentColor}
+.bps-overlay .bps-row[hidden]{display:none!important}

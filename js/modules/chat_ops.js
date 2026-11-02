@@ -69,7 +69,7 @@ function handleMessageLongPress(messageWrapper, x, y) {
 
     if (menuItems.length > 0) {
         triggerHapticFeedback('medium');
-        createContextMenu(menuItems, x, y);
+        createContextMenu(menuItems, x, y, {message:true,anchor:messageWrapper});
         window.KissReactions?.attachMenu(chat,message,x,y);
     }
 }

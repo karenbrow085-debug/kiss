@@ -1,0 +1,18 @@
+/* Frosted charcoal glass; the blur is limited to this small floating surface. */
+.context-menu.km-message-menu,.context-menu.kr-menu.km-message-menu{position:fixed;z-index:10000;box-sizing:border-box;min-width:0;max-width:calc(100vw - 20px);padding:5px 12px;border:1px solid rgba(255,255,255,.32);border-radius:19px;overflow:visible;background:linear-gradient(145deg,rgba(100,101,106,.78),rgba(43,44,49,.85));color:#fff;box-shadow:0 14px 35px #17182026,inset 0 1px 0 #ffffff42,inset 0 -1px 0 #ffffff0b;backdrop-filter:blur(23px) saturate(150%);-webkit-backdrop-filter:blur(23px) saturate(150%);isolation:isolate;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;animation:km-reveal .15s ease-out}
+.km-message-menu:after{content:'';position:absolute;left:var(--km-tip);width:13px;height:13px;transform:translateX(-50%) rotate(45deg);background:#414247;border:1px solid #ffffff28;z-index:-1;pointer-events:none}
+.km-message-menu[data-side=above]:after{bottom:-7px;border-top:0;border-left:0}
+.km-message-menu[data-side=below]:after{top:-7px;background:#64656a;border-bottom:0;border-right:0}
+.km-message-menu .km-actions{max-height:calc(100dvh - 110px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.km-message-menu .km-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;padding:9px 0}
+.km-message-menu .km-row+.km-row{border-top:1px solid #ffffff20}
+.km-message-menu .km-action{appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;box-sizing:border-box;min-width:0;min-height:67px;margin:0;padding:9px 2px 6px;border:0;border-radius:10px;background:transparent;color:inherit;box-shadow:none;font:400 11px/1.35 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:center;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.km-message-menu .km-action svg{display:block;flex:none;width:23px;height:23px;color:inherit;filter:drop-shadow(0 1px 1px #0001)}
+.km-message-menu .km-action span{max-width:100%;overflow-wrap:anywhere;letter-spacing:.1px}
+.km-message-menu .km-action:hover,.km-message-menu .km-action:focus-visible{background:#ffffff17;outline:none}
+.km-message-menu .km-action:active{background:#ffffff26}
+.km-message-menu .kr-quick{position:relative;padding:7px 0 9px;gap:0;background:transparent;border-bottom:1px solid #ffffff25}
+.km-message-menu .kr-choice{width:calc(100% / 7);min-width:0;height:35px;color:#fff;font-size:23px}
+.km-message-menu .kr-choice:hover,.km-message-menu .kr-choice:focus-visible{background:#ffffff20;outline:none}
+@keyframes km-reveal{from{opacity:0;transform:translateY(3px) scale(.985)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.context-menu.km-message-menu{animation:none}}

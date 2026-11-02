@@ -257,8 +257,9 @@ function setupMoreCardBgModal() {
 }
 
 // 右键菜单
-function createContextMenu(items, x, y) {
+function createContextMenu(items, x, y, options) {
     removeContextMenu();
+    if (options?.message && window.KissMessageMenu) return window.KissMessageMenu.open(items, {...options,x,y});
     const menu = document.createElement('div');
     menu.className = 'context-menu';
     
@@ -305,7 +306,7 @@ function createContextMenu(items, x, y) {
 
 function removeContextMenu() {
     const menu = document.querySelector('.context-menu');
-    if (menu) menu.remove();
+    if (menu) { menu._kissMenuCleanup?.(); menu.remove(); }
 }
 
 // 更新气泡样式

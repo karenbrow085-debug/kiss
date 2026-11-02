@@ -8,6 +8,38 @@ function _saveBubblePresets(arr) {
     saveData();
 }
 
+// Persist only the changed settings; never serialize chats/media for a preset action.
+const bubblePresetStore = (() => {
+    let serial = Promise.resolve();
+    const pending = [];
+    const committed = () => new Set(Array.isArray(db.bubblePresetFavorites) ? db.bubblePresetFavorites : _getBubblePresets().filter(p => p.isFavorited).map(p => p.name));
+    function has(name) {
+        const op = pending.findLast(p => p.name === name);
+        return op ? op.on : committed().has(name);
+    }
+    function enqueue(action) {
+        const job = serial.then(action);
+        serial = job.catch(() => {});
+        return job;
+    }
+    function favorite(name, on) {
+        const op = {name,on}; pending.push(op);
+        return enqueue(async () => {
+            try {
+                const names = committed(); on ? names.add(name) : names.delete(name);
+                await PhoneBackup.saveSettings({bubblePresetFavorites:[...names]});
+            } finally { pending.splice(pending.indexOf(op),1); }
+        });
+    }
+    function mutate(transform) {
+        return enqueue(async () => {
+            const next = transform(_getBubblePresets());
+            await PhoneBackup.saveSettings({bubbleCssPresets:next});
+        });
+    }
+    return {has,favorite,mutate};
+})();
+
 // 黑白预设搜索：保留原 select，继续使用原来的应用和导入导出入口。
 const bubblePresetSearchUI = (() => {
     let modal, input, list, count, clear, source, returnFocus;
@@ -83,7 +115,7 @@ const bubblePresetSearchUI = (() => {
         if (!source) return;
         const query = input.value;
         const presets = _getBubblePresets();
-        const results = presets.map((preset, index) => ({preset,index,rank:score(preset.name,query)})).filter(item => item.rank && (!favoriteOnly || item.preset.isFavorited)).sort((a,b) => b.rank-a.rank || a.index-b.index);
+        const results = presets.map((preset, index) => ({preset,index,rank:score(preset.name,query)})).filter(item => item.rank && (!favoriteOnly || bubblePresetStore.has(item.preset.name))).sort((a,b) => b.rank-a.rank || a.index-b.index);
         count.textContent = `${results.length} / ${presets.length} PRESETS`;
         clear.style.visibility = query ? 'visible' : 'hidden';
         list.replaceChildren(); list.scrollTop = 0;
@@ -98,7 +130,14 @@ const bubblePresetSearchUI = (() => {
             if (source.value === preset.name) { const note = document.createElement('small'); note.textContent = '已选择'; name.appendChild(note); }
             name.onclick = () => choose(preset.name,false);
             const apply = document.createElement('button'); apply.type = 'button'; apply.className = 'bps-apply'; apply.textContent = '应用'; apply.setAttribute('aria-label',`应用 ${preset.name}`); apply.onclick = () => choose(preset.name,true);
-            const favorite=document.createElement('button');favorite.type='button';favorite.className='bps-favorite';favorite.textContent=preset.isFavorited?'♥':'♡';favorite.setAttribute('aria-pressed',String(!!preset.isFavorited));favorite.setAttribute('aria-label',`${preset.isFavorited?'取消喜欢':'喜欢'} ${preset.name}`);favorite.onclick=async()=>{const old=!!preset.isFavorited;preset.isFavorited=!old;favorite.disabled=true;try{await saveData();render();}catch(e){preset.isFavorited=old;favorite.disabled=false;showToast('喜欢尚未保存：'+e.message);}};
+            const favorite=document.createElement('button');favorite.type='button';favorite.className='bps-favorite';
+            favorite.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.25 3.7 12.1C-1.4 6.7 6.35.4 12 6.55 17.65.4 25.4 6.7 20.3 12.1Z"/></svg>';
+            const paint=()=>{const on=bubblePresetStore.has(preset.name);favorite.setAttribute('aria-pressed',String(on));favorite.setAttribute('aria-label',`${on?'取消喜欢':'喜欢'} ${preset.name}`);};
+            paint();favorite.onclick=async()=>{
+                const job=bubblePresetStore.favorite(preset.name,!bubblePresetStore.has(preset.name));paint();
+                try {await job;paint();if(favoriteOnly&&!bubblePresetStore.has(preset.name)&&row.isConnected){row.remove();count.textContent=`${list.querySelectorAll('.bps-row').length} / ${_getBubblePresets().length} PRESETS`;if(!list.children.length){const empty=document.createElement('div');empty.className='bps-empty';empty.textContent='暂无喜欢的美化，点击预设旁的爱心添加';list.append(empty);}}}
+                catch(e){paint();showToast('喜欢尚未保存：'+e.message);}
+            };
             row.append(name,favorite,apply); list.appendChild(row);
         });
     }
@@ -306,10 +345,10 @@ function openManagePresetsModal() {
         const apply=makeButton('应用','bps-apply',()=>{applyPresetToCurrentChat(p.name);close();});apply.setAttribute('aria-label','应用 '+p.name);
         const rename=makeButton('重命名','bps-secondary',()=>{
           const editor=document.createElement('div');editor.className='bps-rename-editor';const field=document.createElement('input');field.type='text';field.className='bps-rename-input';field.value=p.name;field.setAttribute('aria-label','预设新名称');
-          const save=makeButton('保存','bps-apply',async()=>{const next=field.value.trim();if(!next)return showToast('请输入名称');if(_getBubblePresets().some(q=>q!==p&&q.name===next))return showToast('已有同名预设');const old=p.name;p.name=next;save.disabled=true;try{await saveData();for(const id of ['bubble-preset-select','group-bubble-preset-select']){const select=document.getElementById(id),chosen=select?.value===old;populateBubblePresetSelect(id);if(chosen&&select){select.value=next;select.dispatchEvent(new Event('change'));}}render();}catch(e){p.name=old;save.disabled=false;showToast('重命名未保存，请重试');}});
+          const save=makeButton('保存','bps-apply',async()=>{const next=field.value.trim();if(!next)return showToast('请输入名称');if(_getBubblePresets().some(q=>q.name!==p.name&&q.name===next))return showToast('已有同名预设');const old=p.name;save.disabled=true;try{const liked=bubblePresetStore.has(old);await bubblePresetStore.mutate(all=>all.map(q=>q.name===old?{...q,name:next}:q));if(liked){await bubblePresetStore.favorite(next,true);await bubblePresetStore.favorite(old,false);}for(const id of ['bubble-preset-select','group-bubble-preset-select']){const select=document.getElementById(id),chosen=select?.value===old;populateBubblePresetSelect(id);if(chosen&&select){select.value=next;select.dispatchEvent(new Event('change'));}}render();}catch(e){save.disabled=false;render();showToast('重命名未完整保存，请重试');}});
           editor.append(field,save,makeButton('取消','bps-secondary',render));row.replaceChildren(editor);field.focus();field.select();
         });rename.setAttribute('aria-label','重命名 '+p.name);
-        const del=makeButton('删除','bps-secondary bps-delete',async()=>{if(!confirm('确定删除预设“'+p.name+'”？'))return;const before=_getBubblePresets(),next=before.filter(q=>q!==p);db.bubbleCssPresets=next;del.disabled=true;try{await saveData();populateBubblePresetSelect('bubble-preset-select');populateBubblePresetSelect('group-bubble-preset-select');render();}catch(e){db.bubbleCssPresets=before;del.disabled=false;showToast('删除未保存，请重试');}});del.setAttribute('aria-label','删除 '+p.name);
+        const del=makeButton('删除','bps-secondary bps-delete',async()=>{if(!confirm('确定删除预设“'+p.name+'”？'))return;row.hidden=true;del.disabled=true;try{await bubblePresetStore.mutate(all=>all.filter(q=>q.name!==p.name));row.remove();for(const id of ['bubble-preset-select','group-bubble-preset-select']){const select=document.getElementById(id);if(!select)continue;for(const option of [...select.options])if(option.value===p.name)option.remove();select.dispatchEvent(new Event('change'));}modal.querySelector('.bps-count').textContent=list.querySelectorAll('.bps-row').length+' / '+_getBubblePresets().length+' PRESETS';if(!_getBubblePresets().length)render();}catch(e){row.hidden=false;del.disabled=false;showToast('删除未保存，请重试');}});del.setAttribute('aria-label','删除 '+p.name);
         actions.append(apply,rename,del);row.append(name,actions);list.append(row);
       }
     }
