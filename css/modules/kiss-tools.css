@@ -78,3 +78,21 @@
 #storage-analysis-screen #storage-persistence-container div[style*="font-size: 0.8rem"]{font-size:10px!important;font-weight:400!important}
 
 .kt-suggestions{overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}.kt-suggestions button{flex-shrink:0!important;touch-action:pan-x!important}.kt-suggestions img{pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+/* Every sticker match rail is a child of its real composer, including on iOS. */
+.ksr-static-anchor{position:relative}
+.ksr-composer>.ksr-rail{position:absolute!important;inset:auto!important;top:auto!important;bottom:calc(100% + var(--ksr-gap,8px))!important;left:var(--ksr-left,0px)!important;right:auto!important;width:var(--ksr-width,100%)!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important;display:flex;flex-wrap:nowrap!important;gap:8px!important;padding:9px!important;margin:0!important;transform:none!important;z-index:100001;overflow-x:auto!important;overflow-y:hidden!important;max-height:none!important;touch-action:pan-x!important;overscroll-behavior-x:contain;scrollbar-width:thin;border:1px solid #e6e8ed;border-radius:14px;background:#fffffff5;box-shadow:0 5px 20px #202b4012;color:#6c7380}
+.ksr-composer>.ksr-rail[hidden]{display:none!important}
+.ksr-composer>.ksr-rail button{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;flex:0 0 calc(var(--ksr-size,52px) + 6px)!important;width:calc(var(--ksr-size,52px) + 6px)!important;min-width:0!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:inherit;font:inherit;box-shadow:none!important}
+.ksr-composer>.ksr-rail img{display:block!important;width:var(--ksr-size,52px)!important;height:var(--ksr-size,52px)!important;object-fit:contain!important;margin:0 0 5px!important;pointer-events:none;user-select:none;-webkit-user-select:none}
+.ksr-composer>.ksr-rail :is(span,small){display:block!important;width:100%!important;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;line-height:1.4}
+#chat-settings-screen .ksr-settings-link{border:0;background:transparent;color:#7b8597;padding:4px 0 0;font:inherit;font-size:9px;line-height:1.5;text-align:left;box-shadow:none}
+.ksr-settings .ksr-scope{margin:0 0 14px;font-size:10px;color:#959dab}
+.ksr-settings .ksr-fields>label{display:grid!important;grid-template-columns:76px minmax(0,1fr) 64px;gap:10px!important;align-items:center;margin:15px 0!important;font-size:12px}
+.ksr-settings input[type=range]{width:100%;min-width:0;accent-color:#777f8f}
+.ksr-settings .ksr-number{display:flex;align-items:center;gap:4px;color:#9299a6;font:10px/1.4 sans-serif}
+.ksr-settings .ksr-number input{width:42px;min-width:0;padding:5px 3px;border:1px solid #e5e8ef;background:#fafbfd;border-radius:7px;font:12px/1.5 sans-serif;text-align:center;color:#535e72}
+.ksr-placement-preview{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-height:145px;padding:16px 12px;border-radius:13px;background:linear-gradient(140deg,#f4f5f7,#e7ebf0);overflow:hidden;box-sizing:border-box}
+.ksr-preview-rail{display:flex;gap:12px;margin-bottom:var(--ksr-demo-gap,4px);padding:7px 12px;background:#ffffffeb;border:1px solid #e4e8ef;border-radius:10px;transform:translateX(var(--ksr-demo-x,0px));font-size:var(--ksr-demo-size,30px);line-height:1.2}
+.ksr-preview-input{width:100%;padding:9px 12px;border:1px solid #e3e7ee;border-radius:17px;background:#ffffffd9;color:#a2a9b5;font-size:11px;box-sizing:border-box}
+.ksr-actions{display:flex;justify-content:space-between;gap:12px;margin-top:12px}.ksr-settings .ksr-actions [type=submit]{background:#626b7a!important;color:white!important;border-color:#626b7a!important}.ksr-status{font-size:11px;color:#a56767;line-height:1.5}
+@media(max-width:360px){.ksr-settings .ksr-fields>label{grid-template-columns:64px minmax(0,1fr) 59px;gap:6px!important;font-size:11px}}
