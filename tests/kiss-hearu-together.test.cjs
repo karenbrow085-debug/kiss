@@ -27,3 +27,12 @@ test('stale generation cannot switch music in a replacement listening session',a
 
 test('invitation saves only its character and never mirrors an invitation into HearU',async()=>{const {ctx,api,c,other,adapter}=setup();let mirrored=0;const writes=[];ctx.PhoneBackup={hydrateChat:async()=>{},saveChat:async c=>writes.push(c.id)};adapter.mirrorInvitation=async()=>{mirrored++};const a=await api.invite(c.id,song,'assistant');await api.respond(a.id,'accept','user');await api.invite(c.id,{...song,songId:'43'});assert.equal(mirrored,0);assert.equal(other.history.length,0);assert.deepEqual(writes,[c.id,c.id,c.id]);});
 test('internal listening state never renders as a bare song-title chat bubble',()=>{const ctx={window:{}};vm.runInNewContext(fs.readFileSync('js/modules/chat_render.js','utf8'),ctx);assert.equal(ctx.createMessageBubbleElement({type:'hearu-session-event',role:'system',content:'[一起听已结束：For You]'}),null);});
+test('clicking invite shows a provisional 404 card before hydration or disk save resolves',async()=>{
+ const {ctx,api,c}=setup();const cards=[];let hydrate,save;
+ ctx.currentChatType='private';ctx.currentChatId=c.id;ctx.messageArea={append(el){cards.push(el)},scrollHeight:100};
+ ctx.document.createElement=()=>({dataset:{},setAttribute(){},querySelector(){return {textContent:''}},remove(){const i=cards.indexOf(this);if(i>=0)cards.splice(i,1)}});
+ ctx.PhoneBackup={hydrateChat:()=>new Promise(r=>hydrate=r),saveChat:()=>new Promise(r=>save=r)};
+ const work=api.invite(c.id,song);assert.equal(cards.length,1);assert.equal(c.history.length,0);
+ for(let i=0;i<6;i++)await Promise.resolve();hydrate();for(let i=0;i<8;i++)await Promise.resolve();
+ assert.equal(cards.length,1);assert.equal(c.history.length,1);save();await work;assert.equal(cards.length,0);assert.equal(c.hearuTogether.sessions.length,1);
+});

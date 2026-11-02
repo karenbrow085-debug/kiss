@@ -4,7 +4,7 @@ const bridge=()=>root.KissTogether;
 const host=()=>document.querySelector('.phone-screen') || document.body;
 const base=new URL('../../',document.currentScript.src);
 const moonURL=new URL('assets/hearu/moon-soft.webp',base).href;
-let sequence=0,currentCancel=null,floating=null,floatCleanup=null,lastSession=null,latest=null,animationBusy=false;
+let sequence=0,currentCancel=null,floating=null,floatCleanup=null,floatDrag=null,lastSession=null,latest=null,animationBusy=false;
 const imageCache=new Map();
 function loadImage(src){if(imageCache.has(src))return imageCache.get(src);const promise=new Promise(resolve=>{const image=new Image();let settled=false;const finish=value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value);};const fallback=()=>{if(src.endsWith('assets/hearu.svg'))finish(image);else loadImage(new URL('assets/hearu.svg',base).href).then(finish);};const timer=setTimeout(fallback,5000);image.onload=()=>finish(image);image.onerror=fallback;image.src=src;});if(imageCache.size>40)imageCache.clear();imageCache.set(src,promise);return promise;}
 const FLOAT_MARKUP="  <aside class=\"mm-player\" id=\"kt-current-track\" aria-label=\"当前播放\" hidden>\n   <canvas class=\"mm-system-canvas\" aria-label=\"双人头像在银色星系中环绕\" role=\"img\"></canvas>\n   <button class=\"mm-track-name\" aria-label=\"打开HearU播放页\">My star me n u&lt;3m</button>\n   <div class=\"mm-track-artist\">ra2it</div>\n   <div class=\"mm-playback\"><button class=\"mm-previous\" aria-label=\"上一首\"><span data-kt-icon=\"skip-back\"></span></button><button class=\"mm-pause\" aria-label=\"暂停\"><span data-kt-icon=\"pause\"></span></button><button class=\"mm-next\" aria-label=\"下一首\"><span data-kt-icon=\"skip-forward\"></span></button><button class=\"mm-collapse\" aria-label=\"收起当前播放\"><span data-kt-icon=\"x\"></span></button></div>\n  <button class=\"kt-role-hit\" aria-label=\"点击角色头像结束一起听\"></button><button class=\"kt-user-hit\" aria-label=\"点击用户头像回到404聊天\"></button></aside>\n  <button class=\"mm-ball\" aria-label=\"展开星系播放器\" aria-expanded=\"false\" aria-controls=\"kt-current-track\"><canvas class=\"mm-mini-galaxy\" aria-hidden=\"true\"></canvas><span class=\"mm-float-pair\" hidden><img data-image=\"a\" alt=\"对方头像\"><img data-image=\"b\" alt=\"我的头像\"></span><span class=\"mm-wave\" hidden></span></button>\n";
@@ -183,11 +183,55 @@ const resizeObserver=new ResizeObserver(size);resizeObserver.observe(phone);cons
 return ()=>{alive=false;cancelAnimationFrame(loopFrame);resizeObserver.disconnect();panelObserver.disconnect();};
 
 }
-function setExpanded(value){if(!floating)return;const panel=floating.querySelector('.mm-player');panel.hidden=!value;floating.querySelector('.mm-phone').classList.toggle('player-open',value);const handle=floating.querySelector('.mm-ball');handle.setAttribute('aria-expanded',String(value));handle.setAttribute('aria-label',value?'收起星系播放器':'展开星系播放器');}
+function dragGalaxy(root,phone){
+ const ball=root.querySelector('.mm-ball'),panel=root.querySelector('.mm-player'),key='hearu.galaxy.position.v1';
+ const clamp=(n,min,max)=>Math.min(Math.max(n,min),Math.max(min,max));
+ let width=0,height=0,closed={x:0,y:0},opened={x:0,y:0},expanded=false,drag=null,frame=0,blockClickUntil=0,disposed=false;
+ let saved;try{saved=JSON.parse(window.localStorage?.getItem(key)||'null');}catch{}
+ const bounded=(p,w,h)=>({x:clamp(p.x,4,width-w-4),y:clamp(p.y,4,height-h-4)});
+ const panelSize=()=>({w:Math.min(312,width-20),h:312});
+ function paint(){frame=0;if(disposed)return;ball.style.transform=`translate3d(${closed.x}px,${closed.y}px,0)`;panel.style.transform=`translate3d(${opened.x}px,${opened.y}px,0)`;}
+ function schedule(){if(!frame)frame=requestAnimationFrame(paint);}
+ function persist(){try{window.localStorage?.setItem(key,JSON.stringify({x:(closed.x+39)/width,y:(closed.y+27)/height}));}catch{}}
+ function resize(){
+  const oldWidth=width,oldHeight=height;width=phone.clientWidth;height=phone.clientHeight;
+  if(!width||!height)return;
+  const ratio=oldWidth?{x:(closed.x+39)/oldWidth,y:(closed.y+27)/oldHeight}:saved;
+  const valid=ratio&&Number.isFinite(ratio.x)&&Number.isFinite(ratio.y);
+  closed=bounded({x:valid?ratio.x*width-39:width-88,y:valid?ratio.y*height-27:height*.5+15},78,54);
+  const size=panelSize();opened=bounded({x:closed.x+78-size.w,y:closed.y-143},size.w,size.h);paint();
+ }
+ function onDown(e){
+  if(drag||e.isPrimary===false||(e.button!=null&&e.button!==0))return;
+  const target=e.target.closest?.('.mm-ball,.mm-player');if(!target||!root.contains(target))return;
+  const capture=e.target.closest?.('button')||target;
+  drag={id:e.pointerId,element:capture,x:e.clientX,y:e.clientY,closed:{...closed},opened:{...opened},moving:false};capture.setPointerCapture?.(e.pointerId);
+ }
+ function onMove(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!drag.moving&&Math.hypot(dx,dy)<6)return;
+  if(!drag.moving){drag.moving=true;root.classList.add('kt-dragging');}
+  if(e.cancelable)e.preventDefault();
+  if(expanded){const size=panelSize();opened=bounded({x:drag.opened.x+dx,y:drag.opened.y+dy},size.w,size.h);closed=bounded({x:drag.closed.x+opened.x-drag.opened.x,y:drag.closed.y+opened.y-drag.opened.y},78,54);}
+  else closed=bounded({x:drag.closed.x+dx,y:drag.closed.y+dy},78,54);
+  schedule();
+ }
+ function onUp(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  if(drag.moving){blockClickUntil=performance.now()+400;cancelAnimationFrame(frame);paint();persist();}
+  const {element,id}=drag;drag=null;root.classList.remove('kt-dragging');if(element.hasPointerCapture?.(id))element.releasePointerCapture(id);
+ }
+ function onClick(e){if(performance.now()<blockClickUntil){e.preventDefault();e.stopImmediatePropagation();}}
+ root.addEventListener('pointerdown',onDown);root.addEventListener('pointermove',onMove,{passive:false});root.addEventListener('pointerup',onUp);root.addEventListener('pointercancel',onUp);root.addEventListener('lostpointercapture',onUp);root.addEventListener('click',onClick,true);
+ const observer=new ResizeObserver(resize);observer.observe(phone);resize();
+ return {expanded(value){expanded=value;if(value){const size=panelSize();opened=bounded({x:closed.x+78-size.w,y:closed.y-143},size.w,size.h);}paint();},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();for(const [type,fn] of [['pointerdown',onDown],['pointermove',onMove],['pointerup',onUp],['pointercancel',onUp],['lostpointercapture',onUp]])root.removeEventListener(type,fn);root.removeEventListener('click',onClick,true);}};
+}
+function setExpanded(value){if(!floating)return;const panel=floating.querySelector('.mm-player');panel.hidden=!value;floating.querySelector('.mm-phone').classList.toggle('player-open',value);floatDrag?.expanded(value);const handle=floating.querySelector('.mm-ball');handle.setAttribute('aria-expanded',String(value));handle.setAttribute('aria-label',value?'收起星系播放器':'展开星系播放器');}
 function update(snapshot){latest=snapshot;if(!floating)return;const song=snapshot?.song || lastSession?.song;const key=JSON.stringify([song?.title,song?.artist,!!snapshot?.playing]);if(floating.dataset.playback===key)return;floating.dataset.playback=key;floating.querySelector('.mm-track-name').textContent=song?.title || '';floating.querySelector('.mm-track-artist').textContent=song?.artist || '';const play=floating.querySelector('.mm-pause');play.setAttribute('aria-label',snapshot?.playing?'暂停':'播放');play.innerHTML='<span data-kt-icon="'+(snapshot?.playing?'pause':'play')+'"></span>';icons(play);}
-async function sync(session){lastSession=session;if(!session){floating?.remove();floating=null;floatCleanup?.();floatCleanup=null;return;}if(animationBusy || bridge()?.ending()) {if(floating)floating.hidden=true;return;}if(floating?.dataset.session===session.id){floating.hidden=false;update(bridge().playback);return;}
+async function sync(session){lastSession=session;if(!session){floating?.remove();floating=null;floatCleanup?.();floatCleanup=null;floatDrag?.dispose();floatDrag=null;return;}if(animationBusy || bridge()?.ending()) {if(floating)floating.hidden=true;return;}if(floating?.dataset.session===session.id){floating.hidden=false;update(bridge().playback);return;}
  const id=session.id,c=bridge().character(session.roleId);if(!c)return;const portraits=await Promise.all([loadImage(bridge().image(c.avatar)),loadImage(bridge().image(c.myAvatar))]);if(lastSession?.id!==id || animationBusy || bridge()?.ending())return;if(floating?.dataset.session===id){floating.hidden=false;update(bridge().playback);return;}
- floating?.remove();floatCleanup?.();floating=document.createElement('div');floating.id='kt-galaxy';floating.dataset.session=id;floating.innerHTML='<div class="mm-phone">'+FLOAT_MARKUP+'</div>';host().append(floating);
+ floating?.remove();floatCleanup?.();floatDrag?.dispose();floating=document.createElement('div');floating.id='kt-galaxy';floating.dataset.session=id;floating.innerHTML='<div class="mm-phone">'+FLOAT_MARKUP+'</div>';host().append(floating);
  const phone=floating.querySelector('.mm-phone');icons(floating);floating.querySelector('.mm-ball').style.opacity='1';
  for(const img of floating.querySelectorAll('[data-image]'))img.src=portraits[img.dataset.image==='a'?0:1].src;
  floating.querySelector('.mm-ball').onclick=()=>setExpanded(floating.querySelector('.mm-player').hidden);
@@ -198,7 +242,7 @@ async function sync(session){lastSession=session;if(!session){floating?.remove()
  floating.querySelector('.kt-role-hit').onclick=()=>bridge().confirmEnd();
  floating.querySelector('.kt-user-hit').onclick=()=>Promise.resolve(bridge().openChat()).catch(e=>bridge().notify(e.message));
  floating.querySelector('.mm-track-name').onclick=()=>Promise.resolve(bridge().controls.openPlayer()).catch(e=>bridge().notify(e.message));
- floatCleanup=galaxyDrawing(floating,phone,portraits);update(bridge().playback);
+ floatDrag=dragGalaxy(floating,phone);floatCleanup=galaxyDrawing(floating,phone,portraits);update(bridge().playback);
 }
 function run(kind,c,session){const token=++sequence;currentCancel?.();animationBusy=true;if(floating)floating.hidden=true;return new Promise(resolve=>{
  let stage=null,dispose=null,finished=false;

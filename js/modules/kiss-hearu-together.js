@@ -3,6 +3,7 @@
   'use strict';
   let adapter = null, mutation = Promise.resolve(), ending = false;
   const memory = new Map();
+  const sendingInvites = new Map();
   const states = new Set(['pending', 'active', 'declined', 'ended', 'superseded']);
   const chars = () => typeof db !== 'undefined' ? db.characters || [] : [];
   const character = id => chars().find(c => String(c.id) === String(id));
@@ -69,19 +70,28 @@
     const c = character(id); if (!c) throw Error('找不到这位角色');
     if (root.KissSocial?.blocked(c)) throw Error('当前关系状态不能发起一起听');
     const music = songSnapshot(song);
-    const session = await transaction(() => {
+    const key=String(id)+':'+sender+':'+music.songId;
+    if(sendingInvites.has(key))return sendingInvites.get(key);
+    const existing=c.hearuTogether?.sessions?.find(s=>s.status==='pending'&&s.sender===sender&&s.song.songId===music.songId);
+    if(existing)return existing;
+    const value={id:uid(),roleId:String(id),status:'pending',sender,source,song:music,createdAt:Date.now(),events:[]};
+    const message={id:'msg_'+uid(),role:sender,type:'hearu-invite',sessionId:value.id,timestamp:value.createdAt,
+      content:`[${sender==='user'?c.myName||'用户':c.realName||'角色'}发起一起听邀请：${music.title} · ${music.artist}；邀请ID=${value.id}；等待对方决定]`};
+    let preview=null;
+    if(typeof currentChatType!=='undefined'&&currentChatType==='private'&&typeof currentChatId!=='undefined'&&String(currentChatId)===String(id)){
+      const area=typeof messageArea!=='undefined'?messageArea:document.getElementById?.('message-area');
+      if(area){preview=renderSessionCard(message,c,value);preview.setAttribute('aria-busy','true');preview.querySelector('.kt-card-state').textContent='正在发送…';area.append(preview);area.scrollTop=area.scrollHeight;}
+    }
+    const work=transaction(() => {
       const d = data(c);
       const pending = d.sessions.find(s => s.status === 'pending' && s.sender === sender && s.song.songId === music.songId);
       if (pending) return pending;
-      const value = {id:uid(), roleId:String(id), status:'pending', sender, source, song:music, createdAt:Date.now(), events:[]};
       d.sessions.push(value);
       c.history ||= [];
-      c.history.push({id:'msg_'+uid(), role:sender, type:'hearu-invite', sessionId:value.id, timestamp:value.createdAt,
-        content:`[${sender === 'user' ? c.myName || '用户' : c.realName || '角色'}发起一起听邀请：${music.title} · ${music.artist}；邀请ID=${value.id}；等待对方决定]`});
+      c.history.push(message);
       return value;
-    },[c]);
-    refresh(c.id);
-    return session;
+    },[c]).then(session=>{preview?.remove();refresh(c.id);return session;},error=>{preview?.remove();throw error;}).finally(()=>sendingInvites.delete(key));
+    sendingInvites.set(key,work);return work;
   }
   async function respond(id, decision, actor = 'user', guard = () => {}) {
     guard();
@@ -206,8 +216,11 @@
   }
   function renderCard(message) {
     const row=find(message.sessionId); if (!row) return null;
+    return renderSessionCard(message,row.c,row.session);
+  }
+  function renderSessionCard(message,c,session) {
     const wrapper=document.createElement('div');wrapper.className='message-wrapper kt-message '+(message.role==='user'?'sent':'received');wrapper.dataset.id=message.id;
-    wrapper.innerHTML=`<img class="message-avatar" src="${esc(image(message.role==='user'?row.c.myAvatar:row.c.avatar))}" alt="">`+cardHtml(row.session,row.c);
+    wrapper.innerHTML=`<img class="message-avatar" src="${esc(image(message.role==='user'?c.myAvatar:c.avatar))}" alt="">`+cardHtml(session,c);
     return wrapper;
   }
   function closeDialog() { document.getElementById('kt-dialog')?.remove(); }
@@ -241,7 +254,7 @@
     const current=adapter.now()?.song;
     const el=dialog(`<div class="kt-dialog-brand">HearU<small>TOGETHER</small></div><h2>选一首，一起听。</h2><form class="kt-song-search"><input placeholder="搜索歌名 / 歌手" aria-label="搜索歌曲"><button>搜索</button></form><div class="kt-song-results"></div>`,c);
     const results=el.querySelector('.kt-song-results');let revision=0;
-    function show(songs){results.innerHTML=songs.map((song,i)=>`<button class="kt-song-option" data-song="${i}"><img src="${esc(image(song.coverUrl))}"><span><strong>${esc(song.title)}</strong><small>${esc(song.artist)}</small></span><em>一起听 <span aria-hidden="true">↗</span></em></button>`).join('');results.querySelectorAll('[data-song]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await invite(id,songs[+button.dataset.song]);closeDialog();document.getElementById('chat-expansion-panel')?.classList.remove('visible');if(typeof getAiReply==='function')getAiReply(id,'private').catch(error=>notify(error.message));}catch(error){notify(error.message);button.disabled=false;}});}
+    function show(songs){results.innerHTML=songs.map((song,i)=>`<button class="kt-song-option" data-song="${i}"><img src="${esc(image(song.coverUrl))}"><span><strong>${esc(song.title)}</strong><small>${esc(song.artist)}</small></span><em>邀请一起听</em></button>`).join('');results.querySelectorAll('[data-song]').forEach(button=>button.onclick=async()=>{if(button.disabled)return;button.disabled=true;closeDialog();document.getElementById('chat-expansion-panel')?.classList.remove('visible');try{await invite(id,songs[+button.dataset.song]);if(typeof getAiReply==='function')getAiReply(id,'private').catch(error=>notify(error.message));}catch(error){notify('邀请未发出：'+error.message);button.disabled=false;}});}
     if(current)show([current]);else results.textContent='选一首喜欢的歌，邀请对方一起听。';
     el.querySelector('form').onsubmit=async e=>{e.preventDefault();const version=++revision,query=el.querySelector('input').value.trim();if(!query)return;results.textContent='正在找歌…';try{const songs=await adapter.search(query);if(version===revision&&el.isConnected){show(songs);if(!songs.length)results.textContent='没有找到，换个关键词试试。';}}catch(error){if(version===revision)results.textContent=error.message;}};
   }
