@@ -1,44 +1,54 @@
-/* Native relative anchors survive reflow, image loads, zoom and keyboard resize. */
-#chat-room-screen .kr-anchor{position:relative!important;overflow:visible!important}
-#chat-room-screen .kr-dock{position:absolute!important;inset:auto!important;top:-27px!important;left:-14px!important;right:auto!important;display:flex!important;gap:4px!important;width:max-content!important;max-width:none!important;visibility:visible!important;transform:none!important;z-index:3}
-#chat-room-screen .kr-dock[data-side=received]{left:auto!important;right:-14px!important}
-#chat-room-screen .kr-dock.kr-circle{top:-10px!important;left:-9px!important}
-#chat-room-screen .kr-dock.kr-circle[data-side=received]{left:auto!important;right:-9px!important}
-#chat-room-screen .kr-badge{flex:none!important;display:grid!important;place-items:center!important;width:34px!important;min-width:34px!important;height:34px!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;line-height:1!important;font-size:21px!important}
-#chat-room-screen .kr-imessage .kr-author-user{background:var(--kr-user,#009bff)!important}
-#chat-room-screen .kr-imessage .kr-author-ai{background:var(--kr-ai,#e9e9eb)!important}
-#chat-room-screen .kr-imessage .kr-badge:before{width:8px;height:8px;bottom:-3px;left:2px;right:auto}
-#chat-room-screen .kr-imessage .kr-badge:after{width:4px;height:4px;bottom:-9px;left:-3px;right:auto}
-#chat-room-screen .kr-dock[data-side=received] .kr-badge:before{left:auto;right:2px}
-#chat-room-screen .kr-dock[data-side=received] .kr-badge:after{left:auto;right:-3px}
-#chat-room-screen .kr-circle .kr-badge{width:22px!important;min-width:22px!important;height:22px!important;font-size:14px!important;background:var(--kr-ai,#e9e9eb)!important}
-#chat-room-screen .kr-circle .kr-author-user{background:var(--kr-user,#009bff)!important}
-#chat-room-screen .kr-dock.ki-glass .kr-badge{background:color-mix(in srgb,var(--kr-ai,#e9e9eb) 48%,transparent)!important;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);box-shadow:inset 0 0 0 .5px #ffffff50,0 1px 3px #0000000d}
-#chat-room-screen .kr-dock.ki-glass .kr-author-user{background:color-mix(in srgb,var(--kr-user,#009bff) 65%,transparent)!important}
-/* A single continuous curved tail, without masking it with the wallpaper color. */
-#chat-room-screen .ki-bubble,.ki-sample .ki-bubble{position:relative!important;box-sizing:border-box;background:var(--ki-color)!important;color:var(--ki-text)!important;border:0!important;border-radius:20px!important;padding:9px 15px!important;line-height:1.42!important;box-shadow:none!important;isolation:isolate}
-#chat-room-screen .ki-bubble:before,.ki-sample .ki-bubble:before{content:none!important}
-#chat-room-screen .ki-bubble:after,.ki-sample .ki-bubble:after{content:''!important;position:absolute!important;bottom:-1px!important;left:-6px!important;right:auto!important;width:15px!important;height:16px!important;background:inherit!important;border:0!important;border-radius:0!important;clip-path:path('M 15 0 L 15 16 C 10 16 3 15 0 11 C 5 12 7 7 7 0 Z');transform:none!important;z-index:-1}
-#chat-room-screen .ki-bubble.ki-sent:after,.ki-sample .ki-sent:after{left:auto!important;right:-6px!important;transform:scaleX(-1)!important}
-#chat-room-screen .ki-bubble.ki-continuous:after{content:none!important}
-#chat-room-screen .ki-bubble.ki-glass,.ki-sample .ki-bubble.ki-glass{background:color-mix(in srgb,var(--ki-color) 52%,transparent)!important;backdrop-filter:blur(20px) saturate(145%);-webkit-backdrop-filter:blur(20px) saturate(145%);box-shadow:inset 0 0 0 .5px #ffffff50,0 1px 4px #0000000d!important}
-#chat-settings-screen.ksv-settings .ksv-bilingual-options{margin:0;padding:0 0 8px 29px;border:0}
-#chat-settings-screen .ksv-bilingual-options[hidden],.ki-fields[hidden]{display:none!important}
-#chat-settings-screen .ki-settings{padding:16px 20px}
-.ki-colors{display:grid;grid-template-columns:1fr 1fr;gap:12px 15px;margin:14px 0}
-.ki-color-row{display:grid;grid-template-columns:1fr 26px;align-items:center;gap:6px;font-size:11px;color:#686e7e;min-width:0}
-#chat-settings-screen .ki-color-row input[type=color]{width:26px!important;height:26px!important;padding:0!important;border:0!important;background:none!important;cursor:pointer}
-#chat-settings-screen .ki-color-row input[type=text]{grid-column:1/-1;width:100%!important;min-width:0;padding:7px 8px!important;border:1px solid #e5e7ec;border-radius:9px!important;background:#fafbfd;font:11px/1.4 monospace;text-align:left}
-.ki-sample{display:flex;flex-direction:column;gap:20px;padding:25px 18px 14px;border-radius:16px;background:radial-gradient(ellipse at 85% 50%,#a7bfcb,transparent 65%),#e6e5df;font-size:13px}
-.ki-sample .ki-received{align-self:flex-start}.ki-sample .ki-sent{align-self:flex-end}
-.ki-sample i{position:absolute;top:-22px;left:-14px;display:grid;place-items:center;width:29px;height:29px;border-radius:50%;font-style:normal;font-size:18px}
 /* Each app keeps its own typography; translation never becomes bracketed prose. */
 .kb-translation{display:block;margin-top:4px;font-size:.86em;line-height:1.55;opacity:.72;white-space:pre-wrap}
 .kb-toggle{display:inline-block;border:0;background:transparent;color:inherit;opacity:.6;padding:3px 0;margin-top:3px;font:inherit;font-size:10px;cursor:pointer}
 .kb-translation[hidden]{display:none!important}
 .of-prose .kb-translation{font-size:.88em;line-height:1.8;margin-top:8px}.mono-x-text .kb-translation{font-size:.9em}
 
-#chat-settings-screen.ksv-settings #setting-bilingual-style-container{flex-wrap:wrap!important;border-left:0!important;margin-left:29px!important;padding-left:0!important}
-#chat-settings-screen.ksv-settings #setting-bilingual-style-container .ksv-bilingual-options{flex-basis:100%;width:100%;padding-left:0}
-
-#chat-room-screen.disable-blur .ki-bubble.ki-glass{backdrop-filter:blur(20px) saturate(145%)!important;-webkit-backdrop-filter:blur(20px) saturate(145%)!important}
+/* Reaction-only geometry. The main message's color, shape and font stay untouched. */
+#chat-room-screen .kr-anchor{position:relative!important;overflow:visible!important}
+#chat-room-screen .kr-reacted{padding-top:25px}
+#chat-room-screen .kr-dock{position:absolute!important;inset:auto!important;top:-27px!important;left:-14px!important;right:auto!important;display:flex!important;align-items:center;gap:5px!important;width:max-content!important;max-width:none!important;visibility:visible!important;transform:none!important;z-index:3;pointer-events:none}
+#chat-room-screen .kr-dock[data-side=received]{left:auto!important;right:-14px!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock) .kr-badge{--kr-fill:var(--kr-ai,#e9e9eb);position:relative!important;display:grid!important;place-items:center!important;flex:none!important;box-sizing:border-box!important;width:34px!important;min-width:34px!important;height:34px!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;background:var(--kr-fill)!important;box-shadow:none!important;line-height:1!important;isolation:isolate;overflow:visible!important;pointer-events:auto;transform:none!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock) .kr-author-user{--kr-fill:var(--kr-user,#009bff)}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock) .kr-glyph{position:relative!important;display:block!important;font:21px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif!important;z-index:1;margin:0!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;transform:none!important;text-decoration:none!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock) .kr-glyph:before,:is(#chat-room-screen .kr-dock,.kr-demo-dock) .kr-glyph:after{content:none!important}
+:is(#chat-room-screen .kr-imessage,.kr-demo-dock.kr-imessage) .kr-badge:before,:is(#chat-room-screen .kr-imessage,.kr-demo-dock.kr-imessage) .kr-badge:after{content:''!important;position:absolute!important;inset:auto!important;left:1px!important;bottom:-3px!important;width:10px!important;height:10px!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;background:inherit!important;box-shadow:none!important;z-index:0!important;transform:none!important;clip-path:none!important;pointer-events:none}
+:is(#chat-room-screen .kr-imessage,.kr-demo-dock.kr-imessage) .kr-badge:after{width:5px!important;height:5px!important;left:-4px!important;bottom:-11px!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock)[data-side=received] .kr-badge:before{left:auto!important;right:1px!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock)[data-side=received] .kr-badge:after{left:auto!important;right:-4px!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock).kr-glass .kr-badge{background:color-mix(in srgb,var(--kr-fill) 60%,transparent)!important;backdrop-filter:blur(16px) saturate(140%)!important;-webkit-backdrop-filter:blur(16px) saturate(140%)!important;box-shadow:inset 0 0 0 .5px #ffffff30!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock).kr-circle .kr-badge{width:22px!important;min-width:22px!important;height:22px!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock).kr-circle .kr-glyph{font-size:14px!important}
+:is(#chat-room-screen .kr-dock,.kr-demo-dock).kr-circle .kr-badge:before,:is(#chat-room-screen .kr-dock,.kr-demo-dock).kr-circle .kr-badge:after{content:none!important}
+#chat-room-screen .kr-dock.kr-circle{top:-10px!important;left:-9px!important}
+#chat-room-screen .kr-dock.kr-circle[data-side=received]{left:auto!important;right:-9px!important}
+/* Quiet, compact settings with native color selection and a live badge preview. */
+#chat-settings-screen .kr-appearance{margin:12px 0 4px;padding:14px 12px 12px;border:1px solid #e9ebf0;border-radius:15px;background:#fafbfd}
+#chat-settings-screen .kr-appearance-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#535c6c;font-size:11px;font-weight:500;margin-bottom:13px}
+#chat-settings-screen .kr-glass-label{display:flex;align-items:center;gap:7px;font-family:inherit;font-size:10px;font-weight:400;line-height:1.4;color:#8a91a0;margin:0}
+#chat-settings-screen .kr-glass-label .kkt-switch{transform:scale(.8);transform-origin:right center;margin-left:-5px}
+#chat-settings-screen .kr-color-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#chat-settings-screen .kr-color-card{min-width:0;border:1px solid #e9ecf1;border-radius:12px;padding:10px;background:#fff;box-sizing:border-box}
+#chat-settings-screen .kr-color-heading{display:flex;align-items:center;justify-content:space-between;gap:4px;color:#747d8d;font-size:10px;line-height:1.5}
+#chat-settings-screen .kr-swatch{width:20px;height:20px;flex:none;border:1px solid #dce1e9;border-radius:50%;padding:2px;box-sizing:border-box;overflow:hidden}
+#chat-settings-screen .kr-swatch input[type=color]{display:block;appearance:none;-webkit-appearance:none;width:100%!important;height:100%!important;min-height:0!important;min-width:0!important;border:0!important;border-radius:50%!important;padding:0!important;background:none!important;cursor:pointer}
+#chat-settings-screen .kr-swatch input::-webkit-color-swatch-wrapper{padding:0;border-radius:50%}#chat-settings-screen .kr-swatch input::-webkit-color-swatch{border:0;border-radius:50%}#chat-settings-screen .kr-swatch input::-moz-color-swatch{border:0;border-radius:50%}
+#chat-settings-screen .kr-color-sample{display:grid;place-items:center;height:78px;margin:8px 0;border-radius:9px;background:radial-gradient(ellipse at 80% 20%,#d2dbe0,transparent 70%),linear-gradient(135deg,#f3f2ed,#e5e9eb)}
+#chat-settings-screen .kr-demo-dock{position:relative;display:inline-flex;margin-top:-8px}
+#chat-settings-screen .kr-hex-label{display:flex;align-items:center;gap:5px;padding:6px 7px;border:1px solid #e7eaf0;border-radius:8px;background:#fafbfd;margin:0;box-sizing:border-box;min-width:0}
+#chat-settings-screen .kr-hex-label>span{font:10px/1 monospace;color:#b0b6c1}
+#chat-settings-screen .kr-hex-label input{width:100%!important;max-width:100%!important;min-width:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:none!important;text-align:left!important;color:#596475;font:11px/1.6 ui-monospace,monospace!important;letter-spacing:.2px}
+#chat-settings-screen .kr-hex-label:focus-within{border-color:#b0b9c9}
+#chat-settings-screen .kr-hex-label:has(input:invalid){border-color:#d8a3a3}
+/* Remove the old absolute-positioned branch line, including its horizontal foot. */
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:10px 8px!important;position:static!important;border:0!important;border-left:0!important;border-bottom:0!important;border-image:none!important;box-shadow:none!important;background:transparent!important;margin:0 0 8px 31px!important;padding:8px 0 12px!important;min-width:0}
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container:before,#chat-settings-screen.ksv-settings #setting-bilingual-style-container:after,#chat-settings-screen .ksv-bilingual-options:before,#chat-settings-screen .ksv-bilingual-options:after{content:none!important;display:none!important;border:0!important}
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container[hidden]{display:none!important}
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container>.kkt-item-label{font-size:12px!important}
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container>.kkt-item-control{max-width:100%;min-width:0}
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container select{width:100%;max-width:100%;font-size:11px!important}
+#chat-settings-screen.ksv-settings #setting-bilingual-style-container .ksv-bilingual-options{grid-column:1/-1;width:100%;margin:0;padding:0;border:0}
+#chat-settings-screen.ksv-settings .ksv-bilingual-option{padding:9px 0;font-size:12px}
+#chat-settings-screen .ksv-bilingual-option small{max-width:27em;font-size:9px;line-height:1.6}
+@media(max-width:360px){#chat-settings-screen .kx-reaction-details{padding-left:0}#chat-settings-screen .kr-appearance{padding:12px 9px}#chat-settings-screen .kr-color-grid{gap:7px}#chat-settings-screen .kr-color-card{padding:8px}#chat-settings-screen .kr-color-heading{font-size:9px}#chat-settings-screen .kr-appearance-head{font-size:10px}}
