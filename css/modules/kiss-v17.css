@@ -52,3 +52,9 @@
 #chat-settings-screen.ksv-settings .ksv-bilingual-option{padding:9px 0;font-size:12px}
 #chat-settings-screen .ksv-bilingual-option small{max-width:27em;font-size:9px;line-height:1.6}
 @media(max-width:360px){#chat-settings-screen .kx-reaction-details{padding-left:0}#chat-settings-screen .kr-appearance{padding:12px 9px}#chat-settings-screen .kr-color-grid{gap:7px}#chat-settings-screen .kr-color-card{padding:8px}#chat-settings-screen .kr-color-heading{font-size:9px}#chat-settings-screen .kr-appearance-head{font-size:10px}}
+
+/* Keep the full-screen beauty preview clear of the iOS status bar and home indicator. */
+.kx-preview-overlay.ksv-overlay{--kx-safe-top:env(safe-area-inset-top,0px);--kx-safe-bottom:env(safe-area-inset-bottom,0px);padding:calc(8px + var(--kx-safe-top)) calc(8px + env(safe-area-inset-right,0px)) calc(8px + var(--kx-safe-bottom)) calc(8px + env(safe-area-inset-left,0px))!important}
+.kx-preview-overlay.kx-preview-ios{--kx-safe-top:max(59px,env(safe-area-inset-top,0px));--kx-safe-bottom:max(34px,env(safe-area-inset-bottom,0px))}
+.kx-preview-overlay .ksv-dialog{height:calc(100dvh - 16px - var(--kx-safe-top) - var(--kx-safe-bottom))!important;max-height:calc(100dvh - 16px - var(--kx-safe-top) - var(--kx-safe-bottom))!important;min-height:0;box-sizing:border-box}
+@media(orientation:landscape){.kx-preview-overlay.kx-preview-ios{--kx-safe-top:env(safe-area-inset-top,0px);--kx-safe-bottom:max(21px,env(safe-area-inset-bottom,0px))}}
