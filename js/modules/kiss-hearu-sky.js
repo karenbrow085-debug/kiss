@@ -1,4 +1,4 @@
-/* Approved HearU previews, transferred without changing the drawing functions. */
+/* Approved HearU motion, with cached light textures for mobile rendering. */
 (function(root){'use strict';
 const bridge=()=>root.KissTogether;
 const host=()=>document.querySelector('.phone-screen') || document.body;
@@ -7,17 +7,14 @@ const moonURL=new URL('assets/hearu/moon-soft.webp',base).href;
 let sequence=0,currentCancel=null,floating=null,floatCleanup=null,lastSession=null,latest=null,animationBusy=false;
 const imageCache=new Map();
 function loadImage(src){if(imageCache.has(src))return imageCache.get(src);const promise=new Promise(resolve=>{const image=new Image();let settled=false;const finish=value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value);};const fallback=()=>{if(src.endsWith('assets/hearu.svg'))finish(image);else loadImage(new URL('assets/hearu.svg',base).href).then(finish);};const timer=setTimeout(fallback,5000);image.onload=()=>finish(image);image.onerror=fallback;image.src=src;});if(imageCache.size>40)imageCache.clear();imageCache.set(src,promise);return promise;}
-const FLOAT_MARKUP="  <aside class=\"mm-player\" id=\"kt-current-track\" aria-label=\"当前播放\" hidden>\n   <canvas class=\"mm-system-canvas\" aria-label=\"双人头像在银色星系中环绕\" role=\"img\"></canvas>\n   <div class=\"mm-track-name\">My star me n u&lt;3m</div>\n   <div class=\"mm-track-artist\">ra2it</div>\n   <div class=\"mm-playback\"><button class=\"mm-previous\" aria-label=\"上一首\"><span data-kt-icon=\"skip-back\"></span></button><button class=\"mm-pause\" aria-label=\"暂停\"><span data-kt-icon=\"pause\"></span></button><button class=\"mm-next\" aria-label=\"下一首\"><span data-kt-icon=\"skip-forward\"></span></button><button class=\"mm-collapse\" aria-label=\"收起当前播放\"><span data-kt-icon=\"x\"></span></button></div>\n  <button class=\"kt-role-hit\" aria-label=\"点击角色头像结束一起听\"></button><button class=\"kt-user-hit\" aria-label=\"点击用户头像打开HearU播放页\"></button></aside>\n  <button class=\"mm-ball\" aria-label=\"展开星系播放器\" aria-expanded=\"false\" aria-controls=\"kt-current-track\"><canvas class=\"mm-mini-galaxy\" aria-hidden=\"true\"></canvas><span class=\"mm-float-pair\" hidden><img data-image=\"a\" alt=\"对方头像\"><img data-image=\"b\" alt=\"我的头像\"></span><span class=\"mm-wave\" hidden></span></button>\n";
+const FLOAT_MARKUP="  <aside class=\"mm-player\" id=\"kt-current-track\" aria-label=\"当前播放\" hidden>\n   <canvas class=\"mm-system-canvas\" aria-label=\"双人头像在银色星系中环绕\" role=\"img\"></canvas>\n   <button class=\"mm-track-name\" aria-label=\"打开HearU播放页\">My star me n u&lt;3m</button>\n   <div class=\"mm-track-artist\">ra2it</div>\n   <div class=\"mm-playback\"><button class=\"mm-previous\" aria-label=\"上一首\"><span data-kt-icon=\"skip-back\"></span></button><button class=\"mm-pause\" aria-label=\"暂停\"><span data-kt-icon=\"pause\"></span></button><button class=\"mm-next\" aria-label=\"下一首\"><span data-kt-icon=\"skip-forward\"></span></button><button class=\"mm-collapse\" aria-label=\"收起当前播放\"><span data-kt-icon=\"x\"></span></button></div>\n  <button class=\"kt-role-hit\" aria-label=\"点击角色头像结束一起听\"></button><button class=\"kt-user-hit\" aria-label=\"点击用户头像回到404聊天\"></button></aside>\n  <button class=\"mm-ball\" aria-label=\"展开星系播放器\" aria-expanded=\"false\" aria-controls=\"kt-current-track\"><canvas class=\"mm-mini-galaxy\" aria-hidden=\"true\"></canvas><span class=\"mm-float-pair\" hidden><img data-image=\"a\" alt=\"对方头像\"><img data-image=\"b\" alt=\"我的头像\"></span><span class=\"mm-wave\" hidden></span></button>\n";
 const paths={play:'<path d="m9 5 11 7-11 7Z"/>',pause:'<path d="M9 5v14M15 5v14"/>','skip-back':'<path d="M19 20 9 12l10-8v16ZM5 19V5"/>','skip-forward':'<path d="m5 4 10 8-10 8V4ZM19 5v14"/>',x:'<path d="m6 6 12 12M18 6 6 18"/>'};
 function icons(el){for(const n of el.querySelectorAll('[data-kt-icon]')){const name=n.dataset.ktIcon;n.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||'')+'</svg>';}}
-function acceptAnimation(stage,images,done){const root=stage,phone=stage,canvas=stage.querySelector('canvas'),ctx=canvas.getContext('2d');
-const clamp=v=>Math.max(0,Math.min(1,v)),smoother=v=>{v=clamp(v);return v*v*v*(v*(v*6-15)+10)},mix=(a,b,t)=>a+(b-a)*t,tau=Math.PI*2;
- let width=374,last=5.8,frame=0,start=0,playing=false,tipTimer;
- const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
- function dot(x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,tau);ctx.fillStyle=color;ctx.fill()}
- function bloom(x,y,r,color,alpha=1){ctx.save();ctx.globalAlpha*=alpha;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(.28,color);g.addColorStop(1,'rgba(230,207,198,0)');dot(x,y,r,g);ctx.restore()}
- function point(cx,cy,rx,ry,a,tilt,t){const x=Math.cos(a)*rx,y=Math.sin(a)*ry+Math.sin(a*2+t*.2)*2;return{x:cx+x*Math.cos(tilt)-y*Math.sin(tilt),y:cy+x*Math.sin(tilt)+y*Math.cos(tilt)}}
- function ribbon(cx,cy,rx,ry,tilt,t,front){
+function paintMist(ctx,cx,cy,rx,ry,tilt,t,front){
+ const tau=Math.PI*2,mix=(a,b,t)=>a+(b-a)*t;
+ const dot=(x,y,r,color)=>{ctx.beginPath();ctx.arc(x,y,r,0,tau);ctx.fillStyle=color;ctx.fill();};
+ const bloom=(x,y,r,color,alpha=1)=>{ctx.save();ctx.globalAlpha*=alpha;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(.28,color);g.addColorStop(1,"rgba(230,207,198,0)");dot(x,y,r,g);ctx.restore();};
+ const point=(cx,cy,rx,ry,a,tilt,t)=>{const x=Math.cos(a)*rx,y=Math.sin(a)*ry+Math.sin(a*2+t*.2)*2;return{x:cx+x*Math.cos(tilt)-y*Math.sin(tilt),y:cy+x*Math.sin(tilt)+y*Math.cos(tilt)}};
    const begin=front?0:Math.PI,end=front?Math.PI:tau;
    for(let layer=0;layer<3;layer++){
      const top=[],bottom=[];const wide=[12,6,2.5][layer];
@@ -28,9 +25,31 @@ const clamp=v=>Math.max(0,Math.min(1,v)),smoother=v=>{v=clamp(v);return v*v*v*(v
    }
    for(let i=0;i<38;i++){const a=begin+((i*.6180339+t*.024)%1)*Math.PI;const p=point(cx,cy,rx+(i%5-2)*2,ry+(i%3-1)*2,a,tilt,t);const alpha=(.12+.3*Math.sin(i+t*.6)**2)*Math.sin((a-begin)*1);bloom(p.x,p.y,2+(i%4),'rgba(209,183,201,.28)',alpha);if(i%5===0)dot(p.x,p.y,.7,'rgba(222,198,178,'+alpha+')')}
  }
+
+const mistTextures=new Map();
+function cachedMist(ctx,cx,cy,rx,ry,tilt,t,front){
+ let texture=mistTextures.get(front);
+ if(!texture){texture=document.createElement('canvas');texture.width=510;texture.height=270;const c=texture.getContext('2d');c.scale(1.5,1.5);paintMist(c,170,90,134,46,0,0,front);mistTextures.set(front,texture);}
+ ctx.save();ctx.translate(cx,cy);ctx.rotate(tilt);ctx.scale(rx/134,ry/46);ctx.drawImage(texture,-170,-90,340,180);ctx.restore();
+}
+
+
+const wispTextures=new Map();
+function drawWisp(ctx,cx,cy,j,life){
+ let texture=wispTextures.get(j);if(!texture){texture=document.createElement('canvas');texture.width=240;texture.height=240;const c=texture.getContext('2d');c.scale(1.5,1.5);c.translate(60,110);c.filter='blur(6px)';c.strokeStyle=j%2?'#dcc7e0':'#e6cfb4';c.lineWidth=3-j*.4;c.beginPath();c.moveTo(-22+j*17,-19-j*12);c.bezierCurveTo(2+j*15,-34,33+j*7,-43,47+j*10,-65);c.stroke();wispTextures.set(j,texture);}ctx.drawImage(texture,cx-60+life*27,cy-110-life*45,160,160);
+}
+
+function acceptAnimation(stage,images,done){const root=stage,phone=stage,canvas=stage.querySelector('canvas'),ctx=canvas.getContext('2d');
+const clamp=v=>Math.max(0,Math.min(1,v)),smoother=v=>{v=clamp(v);return v*v*v*(v*(v*6-15)+10)},mix=(a,b,t)=>a+(b-a)*t,tau=Math.PI*2;
+ let width=374,last=5.8,frame=0,start=0,playing=false,tipTimer;
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ function dot(x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,tau);ctx.fillStyle=color;ctx.fill()}
+ function bloom(x,y,r,color,alpha=1){ctx.save();ctx.globalAlpha*=alpha;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(.28,color);g.addColorStop(1,'rgba(230,207,198,0)');dot(x,y,r,g);ctx.restore()}
+ function point(cx,cy,rx,ry,a,tilt,t){const x=Math.cos(a)*rx,y=Math.sin(a)*ry+Math.sin(a*2+t*.2)*2;return{x:cx+x*Math.cos(tilt)-y*Math.sin(tilt),y:cy+x*Math.sin(tilt)+y*Math.cos(tilt)}}
+ function ribbon(cx,cy,rx,ry,tilt,t,front){cachedMist(ctx,cx,cy,rx,ry,tilt,t,front);}
  function avatar(x,y,r,img,alpha,t,phase){ctx.save();ctx.globalAlpha*=alpha;bloom(x,y,r*1.9,'rgba(218,198,208,.11)');
    // Short diffused moving wisps, with no permanent avatar outline.
-   for(let trail=0;trail<2;trail++){const head=t*.85+phase+trail*Math.PI;for(let j=0;j<18;j++){const tail=1-j/18,a=head-j*.026;const rad=r+6+Math.sin(a*2+t*.45)*1.6;const px=x+Math.cos(a)*rad,py=y+Math.sin(a)*rad;ctx.save();ctx.globalAlpha*=tail*.55;ctx.filter='blur(1.1px)';dot(px,py,.65+tail*.85,trail?'rgba(203,180,204,.38)':'rgba(232,205,178,.6)');ctx.restore()}const hx=x+Math.cos(head)*(r+6),hy=y+Math.sin(head)*(r+6);bloom(hx,hy,4,'rgba(235,213,194,.24)')}
+   for(let trail=0;trail<2;trail++){const head=t*.85+phase+trail*Math.PI;for(let j=0;j<18;j++){const tail=1-j/18,a=head-j*.026;const rad=r+6+Math.sin(a*2+t*.45)*1.6;const px=x+Math.cos(a)*rad,py=y+Math.sin(a)*rad;ctx.save();ctx.globalAlpha*=tail*.55;dot(px,py,.65+tail*.85,trail?'rgba(203,180,204,.38)':'rgba(232,205,178,.6)');ctx.restore()}const hx=x+Math.cos(head)*(r+6),hy=y+Math.sin(head)*(r+6);bloom(hx,hy,4,'rgba(235,213,194,.24)')}
    ctx.beginPath();ctx.arc(x,y,r,0,tau);ctx.clip();if(img.complete&&img.naturalWidth)ctx.drawImage(img,x-r,y-r,r*2,r*2);const g=ctx.createLinearGradient(x,y-r,x,y+r);g.addColorStop(0,'rgba(250,232,220,.1)');g.addColorStop(1,'rgba(207,190,213,.07)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
  function render(t){last=t;ctx.clearRect(0,0,width,340);const opacity=smoother(t/1.8),travel=smoother((t-9)/1.5),handoff=smoother((t-10.35)/.25),sceneFade=1-smoother((t-8.9)/1.45);const floating=root.querySelector('.mm-ball');floating.style.opacity=String(smoother((t-9.9)/.6));floating.style.pointerEvents=t>=10.5?'auto':'none';root.querySelector('.mm-float-pair').style.opacity=String(handoff);root.querySelector('.mm-wave').style.opacity=String(handoff);if(opacity<.001||t>=10.65)return;ctx.save();ctx.globalAlpha=opacity;
  const cx=width/2,cy=145;const enter=smoother(t/3.2),settle=smoother((t-.5)/6.3);const breathe=Math.sin((t-2)*tau/4.5);const pulse=Math.exp(-Math.pow(((t-3.3)%2.2)/.18,2))+.4*Math.exp(-Math.pow((((t-3.3)%2.2)-.29)/.23,2));
@@ -52,7 +71,7 @@ const clamp=v=>Math.max(0,Math.min(1,v)),smoother=v=>{v=clamp(v);return v*v*v*(v
  const portraits=[{p:p1,img:images.a,phase:0,front:t>=6.7||Math.sin(a1)>=0},{p:p2,img:images.b,phase:1.8,front:t>=6.7||Math.sin(a2)>=0}];
  ribbon(cx,cy+17,rx,ry,tilt,t,false);
  portraits.filter(person=>!person.front).forEach(person=>avatar(person.p.x,person.p.y,22,person.img,av,t,person.phase));
- const moon=images.moon;ctx.save();ctx.translate(cx,cy-7+breathe*1.1);ctx.rotate(-.1+Math.sin(t*.15)*.024);const moonSize=176*(1+Math.sin(t*.8)*.005);ctx.shadowColor='rgba(190,164,151,.08)';ctx.shadowBlur=20;if(moon.complete&&moon.naturalWidth)ctx.drawImage(moon,-moonSize/2,-moonSize/2,moonSize,moonSize);ctx.restore();
+ const moon=images.moon;ctx.save();ctx.translate(cx,cy-7+breathe*1.1);ctx.rotate(-.1+Math.sin(t*.15)*.024);const moonSize=176*(1+Math.sin(t*.8)*.005);ctx.shadowColor='rgba(190,164,151,.08)';ctx.shadowBlur=0;if(moon.complete&&moon.naturalWidth)ctx.drawImage(moon,-moonSize/2,-moonSize/2,moonSize,moonSize);ctx.restore();
  // The heartbeat lives in softly expanding light rather than a geometric outline.
  if(t>3.3){for(let i=0;i<2;i++){const age=((t-3.3+i*1.1)%2.2)/2.2;const radius=80+age*50;ctx.save();ctx.globalAlpha*=Math.pow(1-age,2)*.6;const g=ctx.createRadialGradient(cx,cy,radius*.67,cx,cy,radius);g.addColorStop(0,'rgba(227,197,205,0)');g.addColorStop(.58,'rgba(230,204,201,.1)');g.addColorStop(.77,'rgba(225,201,213,.14)');g.addColorStop(1,'rgba(230,211,204,0)');dot(cx,cy,radius,g);ctx.restore()}}
  ribbon(cx,cy+17,rx,ry,tilt,t,true);
@@ -75,27 +94,17 @@ let width=374,raf=0,start=0,active=false,last=0;
 function rand(n){const k=Math.sin(n*127.1+311.7)*43758.5453;return k-Math.floor(k)}
 function dot(x,y,r,color){ctx.beginPath();ctx.arc(x,y,Math.max(.05,r),0,TAU);ctx.fillStyle=color;ctx.fill()}
 function glow(x,y,r,alpha,warm=false){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,warm?'rgba(236,213,183,'+alpha+')':'rgba(209,187,217,'+alpha+')');g.addColorStop(1,'rgba(240,221,230,0)');dot(x,y,r,g)}
-let moonPixels=null,moonRanks=null;
+let moonPixels=null,moonRanks=null,moonFrame=null,moonIndices=[];
 function moon(progress,t){
- if(!moonPixels){lx.clearRect(0,0,240,240);lx.save();lx.translate(120,120);lx.rotate(-.09);lx.drawImage(pics.moon,-88,-88,176,176);lx.restore();moonPixels=lx.getImageData(0,0,240,240);moonRanks=new Float32Array(240*240);for(let y=0;y<240;y++){for(let x=0;x<240;x++){const u=(x-120)/88,v=(y-120)/88;moonRanks[y*240+x]=.5-u*.34+v*.24+Math.sin(x*.035+y*.049)*.045}}}
+ if(!moonPixels){lx.clearRect(0,0,240,240);lx.save();lx.translate(120,120);lx.rotate(-.09);lx.drawImage(pics.moon,-88,-88,176,176);lx.restore();moonPixels=lx.getImageData(0,0,240,240);moonRanks=new Float32Array(240*240);for(let y=0;y<240;y++){for(let x=0;x<240;x++){const u=(x-120)/88,v=(y-120)/88;moonRanks[y*240+x]=.5-u*.34+v*.24+Math.sin(x*.035+y*.049)*.045;if(moonPixels.data[(y*240+x)*4+3])moonIndices.push(y*240+x)}}}
  if(progress<=0){lx.putImageData(moonPixels,0,0);return}
- const image=lx.createImageData(240,240);image.data.set(moonPixels.data);for(let i=0;i<moonRanks.length;i++){const index=i*4+3;if(!image.data[index])continue;image.data[index]*=1-smooth((progress*1.28-moonRanks[i])/.34)}lx.putImageData(image,0,0);
+ const image=moonFrame ||= new ImageData(new Uint8ClampedArray(moonPixels.data),240,240);for(const i of moonIndices){const index=i*4+3;image.data[index]=moonPixels.data[index]*(1-smooth((progress*1.28-moonRanks[i])/.34))}lx.putImageData(image,0,0);
 }
 function portrait(img,x,y,opacity){if(opacity<.002)return;ctx.save();ctx.globalAlpha=opacity;glow(x,y,29,.08);ctx.beginPath();ctx.arc(x,y,21,0,TAU);ctx.clip();ctx.drawImage(img,x-21,y-21,42,42);ctx.restore()}
 const tau=TAU;
 function bloom(x,y,r,color,alpha=1){ctx.save();ctx.globalAlpha*=alpha;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(.28,color);g.addColorStop(1,'rgba(230,207,198,0)');dot(x,y,r,g);ctx.restore()}
  function point(cx,cy,rx,ry,a,tilt,t){const x=Math.cos(a)*rx,y=Math.sin(a)*ry+Math.sin(a*2+t*.2)*2;return{x:cx+x*Math.cos(tilt)-y*Math.sin(tilt),y:cy+x*Math.sin(tilt)+y*Math.cos(tilt)}}
- function ribbon(cx,cy,rx,ry,tilt,t,front){
-   const begin=front?0:Math.PI,end=front?Math.PI:tau;
-   for(let layer=0;layer<3;layer++){
-     const top=[],bottom=[];const wide=[12,6,2.5][layer];
-     for(let i=0;i<=100;i++){const a=mix(begin,end,i/100);const p=point(cx,cy,rx,ry,a,tilt,t);const q=point(cx,cy,rx,ry,a+.003,tilt,t);const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy)||1;const taper=Math.pow(Math.sin(i/100*Math.PI),.7);const w=wide*taper*(.65+.35*Math.sin(a*1.7-t*.35)**2);top.push({x:p.x-dy/len*w,y:p.y+dx/len*w});bottom.push({x:p.x+dy/len*w,y:p.y-dx/len*w})}
-     const gradient=ctx.createLinearGradient(cx-rx,cy+20,cx+rx,cy-20);
-     gradient.addColorStop(0,'rgba(204,171,167,0)');gradient.addColorStop(.23,'rgba(202,176,192,'+[.14,.23,.36][layer]+')');gradient.addColorStop(.52,'rgba(236,213,195,'+[.18,.35,.57][layer]+')');gradient.addColorStop(.72,'rgba(205,190,215,'+[.12,.24,.35][layer]+')');gradient.addColorStop(1,'rgba(230,211,197,0)');
-     ctx.save();ctx.filter='blur('+[5,2,1][layer]+'px)';ctx.fillStyle=gradient;ctx.beginPath();top.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));bottom.reverse().forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();ctx.fill();ctx.restore();
-   }
-   for(let i=0;i<38;i++){const a=begin+((i*.6180339+t*.024)%1)*Math.PI;const p=point(cx,cy,rx+(i%5-2)*2,ry+(i%3-1)*2,a,tilt,t);const alpha=(.12+.3*Math.sin(i+t*.6)**2)*Math.sin((a-begin)*1);bloom(p.x,p.y,2+(i%4),'rgba(209,183,201,.28)',alpha);if(i%5===0)dot(p.x,p.y,.7,'rgba(222,198,178,'+alpha+')')}
- }
+ function ribbon(cx,cy,rx,ry,tilt,t,front){cachedMist(ctx,cx,cy,rx,ry,tilt,t,front);}
  
 function draw(t){last=t;ctx.clearRect(0,0,width,340);const enter=smooth(t/1.1),dissolve=smooth((t-2.15)/2.9),breathe=Math.sin(t*1.3),fade=1-smooth((t-5.2)/1.35);
  const cx=mix(width-49,width/2,enter),cy=mix(209,151,enter);const scale=mix(.54,1,enter);ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);ctx.translate(-cx,-cy);
@@ -113,7 +122,7 @@ function draw(t){last=t;ctx.clearRect(0,0,width,340);const enter=smooth(t/1.1),d
   ctx.save();ctx.globalAlpha=opacity;glow(x,y,2.5+rand(i+208)*2,.18,i%2===0);if(i%4===0)dot(x,y,.25+rand(i+250)*.35,'#d0b7cc');ctx.restore();
  }
  // Thin translucent wisps follow the released moonlight, with no granular surface breakup.
- for(let j=0;j<3;j++){const life=clamp((t-2.65-j*.28)/2.5);if(life<=0||life>=1)continue;ctx.save();ctx.globalAlpha=Math.sin(life*Math.PI)*.075;ctx.filter='blur(6px)';ctx.strokeStyle=j%2?'#dcc7e0':'#e6cfb4';ctx.lineWidth=3-j*.4;ctx.beginPath();ctx.moveTo(cx-22+j*17+life*27,cy-19-j*12-life*39);ctx.bezierCurveTo(cx+2+j*15+life*21,cy-34-life*49,cx+33+j*7+life*25,cy-43-life*53,cx+47+j*10+life*29,cy-65-life*50);ctx.stroke();ctx.restore()}
+ for(let j=0;j<3;j++){const life=clamp((t-2.65-j*.28)/2.5);if(life<=0||life>=1)continue;ctx.save();ctx.globalAlpha=Math.sin(life*Math.PI)*.075;drawWisp(ctx,cx,cy,j,life);ctx.restore()}
  const final=smooth((t-4.1)/1)*(1-smooth((t-5.2)/1.0));glow(cx+18,cy-35,8,.08*final,true);ctx.restore();
  const words=smooth((t-1.2)/1)*(1-smooth((t-4.1)/1.2));ctx.save();ctx.globalAlpha=words;ctx.textAlign='center';ctx.fillStyle='#b09aa8';ctx.font='12px -apple-system,BlinkMacSystemFont,"Hiragino Mincho ProN",serif';ctx.fillText('また、同じ月の下で。',width/2,274);ctx.restore();
 }
@@ -130,10 +139,11 @@ function size(){const d=Math.min(devicePixelRatio||1,2);mini.width=78*d;mini.hei
 function dot(c,x,y,r,fill){c.fillStyle=fill;c.beginPath();c.arc(x,y,r,0,TAU);c.fill()}
 function glow(c,x,y,r,alpha){const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(196,181,218,'+alpha+')');g.addColorStop(1,'rgba(219,208,233,0)');dot(c,x,y,r,g)}
 function sparkle(c,x,y,r,alpha){c.save();c.globalAlpha*=alpha;c.translate(x,y);c.fillStyle='#b7a8c6';c.beginPath();c.moveTo(0,-r);c.quadraticCurveTo(r*.15,-r*.15,r*.6,0);c.quadraticCurveTo(r*.15,r*.15,0,r);c.quadraticCurveTo(-r*.15,r*.15,-r*.6,0);c.quadraticCurveTo(-r*.15,-r*.15,0,-r);c.fill();c.restore()}
+const spiralTexture=document.createElement('canvas');spiralTexture.width=160;spiralTexture.height=160;
+const spiralCtx=spiralTexture.getContext('2d');spiralCtx.translate(80,80);spiralCtx.scale(2,2);
+for(let i=0;i<1250;i++){const f=(i*.61803398875)%1,r=1.5+Math.sqrt(f)*27,arm=i%3,a=arm*TAU/3+r*.21+Math.sin(i*12.9898)*.13,jitter=Math.sin(i*7.17)*(.5+r*.025);dot(spiralCtx,Math.cos(a)*(r+jitter),Math.sin(a)*(r+jitter),.2+(i%5)*.065,'rgba(145,119,178,'+(.17+.66*(1-f))+')');}
 function spiral(c,cx,cy,scale,t,alpha){
- c.save();c.translate(cx,cy);c.rotate(-.25);c.scale(scale,scale*.4);
- for(let i=0;i<1250;i++){const f=(i*.61803398875)%1;const r=1.5+Math.sqrt(f)*27;const arm=i%3;const a=arm*TAU/3+r*.21+t*.13+(Math.sin(i*12.9898)*.13);const jitter=Math.sin(i*7.17)*(.5+r*.025);const x=Math.cos(a)*(r+jitter),y=Math.sin(a)*(r+jitter);const strength=alpha*(.17+.66*(1-f));dot(c,x,y,.2+(i%5)*.065,'rgba(145,119,178,'+strength+')')}
- c.restore();glow(c,cx,cy,8*scale,.22*alpha);dot(c,cx,cy,1.4*scale,'rgba(176,147,205,'+alpha*.7+')');sparkle(c,cx,cy,3.3*scale,.48)
+ c.save();c.translate(cx,cy);c.rotate(-.25);c.scale(scale,scale*.4);c.rotate(t*.13);c.globalAlpha*=alpha;c.drawImage(spiralTexture,-40,-40,80,80);c.restore();glow(c,cx,cy,8*scale,.22*alpha);dot(c,cx,cy,1.4*scale,'rgba(176,147,205,'+alpha*.7+')');sparkle(c,cx,cy,3.3*scale,.48);
 }
 function portrait(c,x,y,r,img){c.save();glow(c,x,y,r*1.6,.12);c.shadowColor='#aea0c72a';c.shadowBlur=7;c.beginPath();c.arc(x,y,r,0,TAU);c.clip();if(img&&img.complete&&img.naturalWidth)c.drawImage(img,x-r,y-r,r*2,r*2);c.restore()}
 const systemGeometry={cx:150,cy:150,rx:135,ry:105,tilt:-.31};
@@ -167,7 +177,7 @@ function drawSystem(t){
  sx.restore();
 }
 
-function tick(now){if(!alive || root.isConnected===false)return;const t=reduced?0:(now-epoch)/1000;if(now-previous>45){previous=now;drawMini(t);if(!panel.hidden)drawSystem(t)}if(!reduced)loopFrame=requestAnimationFrame(tick)}
+function tick(now){if(!alive || root.isConnected===false)return;const t=reduced?0:(now-epoch)/1000;if(now-previous>=1000/30){previous=now;if(panel.hidden)drawMini(t);else drawSystem(t)}if(!reduced)loopFrame=requestAnimationFrame(tick)}
 const resizeObserver=new ResizeObserver(size);resizeObserver.observe(phone);const panelObserver=new ResizeObserver(()=>{if(!panel.hidden){size();drawSystem(reduced?0:(performance.now()-epoch)/1000)}});panelObserver.observe(panel);size();drawMini(0);if(reduced)drawSystem(0);else loopFrame=requestAnimationFrame(tick);
 
 return ()=>{alive=false;cancelAnimationFrame(loopFrame);resizeObserver.disconnect();panelObserver.disconnect();};
@@ -185,8 +195,9 @@ async function sync(session){lastSession=session;if(!session){floating?.remove()
  floating.querySelector('.mm-pause').onclick=()=>Promise.resolve(bridge().controls.toggle()).catch(e=>bridge().notify(e.message));
  floating.querySelector('.mm-next').onclick=()=>Promise.resolve(bridge().controls.next()).catch(e=>bridge().notify(e.message));
  floating.querySelector('.mm-previous').onclick=()=>Promise.resolve(bridge().controls.previous()).catch(e=>bridge().notify(e.message));
- floating.querySelector('.kt-role-hit').onclick=()=>{const s=bridge().active();if(s)bridge().end(s.id).catch(e=>bridge().notify(e.message));};
- floating.querySelector('.kt-user-hit').onclick=()=>Promise.resolve(bridge().controls.openPlayer()).catch(e=>bridge().notify(e.message));
+ floating.querySelector('.kt-role-hit').onclick=()=>bridge().confirmEnd();
+ floating.querySelector('.kt-user-hit').onclick=()=>Promise.resolve(bridge().openChat()).catch(e=>bridge().notify(e.message));
+ floating.querySelector('.mm-track-name').onclick=()=>Promise.resolve(bridge().controls.openPlayer()).catch(e=>bridge().notify(e.message));
  floatCleanup=galaxyDrawing(floating,phone,portraits);update(bridge().playback);
 }
 function run(kind,c,session){const token=++sequence;currentCancel?.();animationBusy=true;if(floating)floating.hidden=true;return new Promise(resolve=>{

@@ -40,17 +40,20 @@
     } else throw Error('未知一起听状态');
     return true;
   }
-  async function transaction(fn) {
+  async function transaction(fn, affected) {
     const work = mutation.catch(() => {}).then(async () => {
       if (root.kissCleanupLocked) throw Error('正在整理数据，请稍后重试');
-      const before = chars().map(c => ({c, state:structuredClone(c.hearuTogether), history:c.history?.slice(), journals:c.memoryJournals?.slice()}));
-      try { const result = fn(); await saveData(); return result; }
-      catch (error) { for (const item of before) { item.c.hearuTogether = item.state; if (item.history) item.c.history = item.history; if (item.journals) item.c.memoryJournals = item.journals; } throw error; }
+      const targets=[...new Set((typeof affected==='function'?affected():affected)||chars())].filter(Boolean);
+      for(const c of targets)await root.PhoneBackup?.hydrateChat?.(c);
+      const before = targets.map(c => ({c, state:structuredClone(c.hearuTogether), history:c.history?.slice(), journals:c.memoryJournals?.slice()}));
+      const written=[];
+      try { const result = fn(); if(root.PhoneBackup?.saveChat){for(const c of targets){await root.PhoneBackup.saveChat(c);written.push(c);}}else await saveData(); return result; }
+      catch (error) { for (const item of before) { item.c.hearuTogether = item.state; if (item.history) item.c.history = item.history; if (item.journals) item.c.memoryJournals = item.journals; } for(const c of written)await root.PhoneBackup.saveChat(c).catch(e=>console.error('一起听状态回滚保存失败',e));refresh();throw error; }
     });
     mutation = work; return work;
   }
-  function refresh() {
-    if (typeof currentChatType !== 'undefined' && currentChatType === 'private' && typeof currentChatId !== 'undefined' && currentChatId != null && typeof renderMessages === 'function') renderMessages(false, true);
+  function refresh(newCardRoleId) {
+    if(newCardRoleId!=null && typeof currentChatType!=='undefined' && currentChatType==='private' && typeof currentChatId!=='undefined' && String(currentChatId)===String(newCardRoleId) && typeof renderMessages==='function')renderMessages(false,true);
     root.KissTogetherSky?.sync(active());
     root.dispatchEvent(new CustomEvent('kiss-together-change'));
     for (const el of document.querySelectorAll('[data-together-session]')) {
@@ -76,9 +79,8 @@
       c.history.push({id:'msg_'+uid(), role:sender, type:'hearu-invite', sessionId:value.id, timestamp:value.createdAt,
         content:`[${sender === 'user' ? c.myName || '用户' : c.realName || '角色'}发起一起听邀请：${music.title} · ${music.artist}；邀请ID=${value.id}；等待对方决定]`});
       return value;
-    });
-    if (unlocked(id)) await adapter?.mirrorInvitation?.(id, session).catch(error => notify('邀请已保存，HearU 同步稍后重试：'+error.message));
-    refresh();
+    },[c]);
+    refresh(c.id);
     return session;
   }
   async function respond(id, decision, actor = 'user', guard = () => {}) {
@@ -97,7 +99,7 @@
       }
       nativeEvent(row.c, `[${actor === 'user' ? row.c.myName || '用户' : row.c.realName || '角色'}${decision === 'accept' ? '接受' : '拒绝'}了邀请，一起听${decision === 'accept' ? '已开始' : '未开始'}：${row.session.song.title}]`, row.session);
       return row;
-    });
+    },()=>[character(find(id)?.c.id),...all().filter(row=>row.session.status==='active').map(row=>row.c)]);
     if (!result) return false;
     refresh();
     if (decision === 'accept') {
@@ -111,7 +113,7 @@
     const row = await transaction(() => {
       guard(); const row = find(id); if (!row || !transition(row.session, 'end', actor)) return null;
       nativeEvent(row.c, '[一起听已结束：'+row.session.song.title+']', row.session); return row;
-    });
+    },()=>[find(id)?.c]);
     if (!row) return false;
     ending = true; refresh();
     try { await root.KissTogetherSky?.run('end', row.c, row.session); }
@@ -188,7 +190,7 @@
   }
   async function publishSummary(c, entry) {
     const journal = {id:'hearu_'+entry.id,title:'HearU · 共同回忆',content:entry.content,createdAt:entry.at,chatId:c.id,chatType:'private',source:'404+HearU',range:{start:1,end:c.history?.length || 1},isFavorited:false};
-    await transaction(() => { c.memoryJournals ||= []; if (!c.memoryJournals.some(j => j.id === journal.id)) c.memoryJournals.push(journal); });
+    await transaction(() => { c.memoryJournals ||= []; if (!c.memoryJournals.some(j => j.id === journal.id)) c.memoryJournals.push(journal); },[c]);
     return journal;
   }
   function stateHtml(s) {
@@ -196,7 +198,8 @@
     const text = {pending:'等待回应',active:'正在一起听',declined:'本次未加入',ended:'一起听已结束',superseded:'邀请已失效'}[s.status];
     return (s.status === 'active' ? '<span class="kt-card-wave"><i></i><i></i><i></i></span>' : '')+esc(text);
   }
-  const butterfly = '<svg class="kt-butterfly" viewBox="0 0 40 42" fill="none" stroke="currentColor" stroke-width=".8"><path d="M21 29C5 7 2 9 7 22c4 12 16 15 14 7ZM22 27C18 7 30 3 35 2c-2 9 0 20-13 25Zm0 0c14-6 15 6 10 11-8 2-12-5-10-11ZM20 26C5 20 6 34 15 37c4-1 7-5 5-11Zm-5-10 12 24M18 22l-3-9"/></svg>';
+  const butterfly = '<svg class="kt-butterfly" viewBox="0 0 60 66" fill="none" stroke="currentColor" stroke-width=".85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 43C23 20 9 18 3 17c6 8 11 26 29 26ZM33 41C27 16 42 7 50 3c-4 12 3 28-17 38ZM33 42c14-6 21 5 19 15-8 4-17-3-19-15ZM30 41C15 28 12 42 19 52c7 5 11-3 11-11Z"/><path d="M27 33c4 9 8 16 16 25M28 34c-2-7-5-12-10-16M29 33c0-7 1-12 4-17M32 43l-8 5M36 48l11 3"/></svg>';
+
   function cardHtml(session, c) {
     const song=session.song;
     return `<button type="button" class="kt-invite-card" data-together-session="${esc(session.id)}" aria-label="一起听：${esc(song.title)}"><span class="kt-art-column"><img class="kt-art" src="${esc(image(song.coverUrl))}" alt=""><span class="kt-side">• &nbsp; SIDE A &nbsp; •<em>for us</em></span></span><span class="kt-card-copy"><span class="kt-brand">HearU<small>TOGETHER</small></span><strong>${esc(song.title)}</strong><span class="kt-artist">${esc(song.artist)}</span>${butterfly}</span><span class="kt-pair"><img src="${esc(image(c.avatar))}" alt="角色头像"><img src="${esc(image(c.myAvatar))}" alt="用户头像"></span><span class="kt-card-state">${stateHtml(session)}</span></button>`;
@@ -208,6 +211,17 @@
     return wrapper;
   }
   function closeDialog() { document.getElementById('kt-dialog')?.remove(); }
+  function confirmEnd(id=active()?.id) {
+    const row=find(id);if(!row||row.session.status!=='active')return;
+    const el=dialog('<div class="kt-dialog-brand">HearU<small>TOGETHER</small></div><h2>结束这次一起听？</h2><p class="kt-dialog-note">音乐和对话都会留下，下次还可以再一起听。</p><div class="kt-dialog-actions"><button data-stay>继续听</button><button data-end>结束一起听</button></div>');
+    el.querySelector('[data-stay]').onclick=closeDialog;
+    el.querySelector('[data-end]').onclick=()=>{closeDialog();end(id).catch(e=>notify(e.message));};
+  }
+  async function openChat() {
+    const s=active(),c=s&&character(s.roleId);if(!c)return;
+    if(adapter?.openChat)return adapter.openChat(c.id);
+    if(typeof openChatRoom==='function'){currentChatId=c.id;currentChatType='private';await openChatRoom(c.id,'private');}
+  }
   function dialog(body, c) {
     closeDialog(); const host=document.querySelector('.phone-screen') || document.body;
     const el=document.createElement('div');el.id='kt-dialog';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.innerHTML='<section class="kt-dialog-sheet"><button class="kt-dialog-close" aria-label="关闭">×</button>'+body+'</section>';host.append(el);
@@ -216,7 +230,7 @@
   }
   async function showInvite(session) {
     const row=find(session.id);if(!row)return;
-    if(session.status==='active'){await end(session.id);return;}
+    if(session.status==='active'){confirmEnd(session.id);return;}
     if(session.status!=='pending'){notify(session.status==='ended'?'这次一起听已结束':'这份邀请已处理');return;}
     if(session.sender==='user'){notify('等待 '+(row.c.remarkName || row.c.realName || '对方')+' 回应');return;}
     const el=dialog(`<div class="kt-dialog-brand">HearU<small>TOGETHER</small></div><div class="kt-dialog-pair"><img src="${esc(image(row.c.avatar))}"><img src="${esc(image(row.c.myAvatar))}"></div><h2>要一起听这首吗？</h2><div class="kt-dialog-song"><img src="${esc(image(session.song.coverUrl))}"><span><strong>${esc(session.song.title)}</strong><small>${esc(session.song.artist)}</small></span></div><div class="kt-dialog-actions"><button data-answer="decline">暂不加入</button><button data-answer="accept">一起听</button></div>`,row.c);
@@ -225,9 +239,9 @@
   async function chooseAndInvite(id) {
     const c=character(id);if(!c)throw Error('先打开一位角色的聊天');if(!adapter)throw Error('音乐模块正在加载，请稍后重试');
     const current=adapter.now()?.song;
-    const el=dialog(`<div class="kt-dialog-brand">HearU<small>TOGETHER</small></div><h2>把这首歌，分给 TA。</h2><form class="kt-song-search"><input placeholder="搜索歌名 / 歌手" aria-label="搜索歌曲"><button>搜索</button></form><div class="kt-song-results"></div>`,c);
+    const el=dialog(`<div class="kt-dialog-brand">HearU<small>TOGETHER</small></div><h2>选一首，一起听。</h2><form class="kt-song-search"><input placeholder="搜索歌名 / 歌手" aria-label="搜索歌曲"><button>搜索</button></form><div class="kt-song-results"></div>`,c);
     const results=el.querySelector('.kt-song-results');let revision=0;
-    function show(songs){results.innerHTML=songs.map((song,i)=>`<button class="kt-song-option" data-song="${i}"><img src="${esc(image(song.coverUrl))}"><span><strong>${esc(song.title)}</strong><small>${esc(song.artist)}</small></span><em>邀请</em></button>`).join('');results.querySelectorAll('[data-song]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await invite(id,songs[+button.dataset.song]);closeDialog();document.getElementById('chat-expansion-panel')?.classList.remove('visible');if(typeof getAiReply==='function')getAiReply(id,'private').catch(error=>notify(error.message));}catch(error){notify(error.message);button.disabled=false;}});}
+    function show(songs){results.innerHTML=songs.map((song,i)=>`<button class="kt-song-option" data-song="${i}"><img src="${esc(image(song.coverUrl))}"><span><strong>${esc(song.title)}</strong><small>${esc(song.artist)}</small></span><em>一起听 <span aria-hidden="true">↗</span></em></button>`).join('');results.querySelectorAll('[data-song]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await invite(id,songs[+button.dataset.song]);closeDialog();document.getElementById('chat-expansion-panel')?.classList.remove('visible');if(typeof getAiReply==='function')getAiReply(id,'private').catch(error=>notify(error.message));}catch(error){notify(error.message);button.disabled=false;}});}
     if(current)show([current]);else results.textContent='选一首喜欢的歌，邀请对方一起听。';
     el.querySelector('form').onsubmit=async e=>{e.preventDefault();const version=++revision,query=el.querySelector('input').value.trim();if(!query)return;results.textContent='正在找歌…';try{const songs=await adapter.search(query);if(version===revision&&el.isConnected){show(songs);if(!songs.length)results.textContent='没有找到，换个关键词试试。';}}catch(error){if(version===revision)results.textContent=error.message;}};
   }
@@ -235,9 +249,9 @@
     if(kind==='time'){root.KissTogetherSky?.update(snapshot);return;}
     root.KissTogetherSky?.update(snapshot);
     const s=active();if(!s || !snapshot?.song || s.events.at(-1)?.songId===snapshot.song.songId)return;
-    await transaction(()=>{const latest=active();if(latest?.id===s.id && latest.events.at(-1)?.songId!==snapshot.song.songId)latest.events.push({at:Date.now(),songId:snapshot.song.songId,title:snapshot.song.title,artist:snapshot.song.artist});}).catch(()=>{});
+    await transaction(()=>{const latest=active();if(latest?.id===s.id && latest.events.at(-1)?.songId!==snapshot.song.songId)latest.events.push({at:Date.now(),songId:snapshot.song.songId,title:snapshot.song.title,artist:snapshot.song.artist});},[character(s.roleId)]).catch(()=>{});
   }
-  root.KissTogether={invite,respond,end,active,isActive,unlocked,capture,prompt,consume,applyAction,summaryMessages,journalContext,journalSaved,publishSummary,cardHtml,renderCard,showInvite,chooseAndInvite,character,image,notify,
+  root.KissTogether={invite,respond,end,confirmEnd,openChat,active,isActive,unlocked,capture,prompt,consume,applyAction,summaryMessages,journalContext,journalSaved,publishSummary,cardHtml,renderCard,showInvite,chooseAndInvite,character,image,notify,
     ending:()=>ending,sharedMemory,restore:refresh,
     attach(value){adapter=value;refresh();},
     get playback(){return adapter?.now?.() || null;},

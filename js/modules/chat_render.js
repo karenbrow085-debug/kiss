@@ -149,6 +149,7 @@ function loadMoreMessages() {
 
 function createMessageBubbleElement(message, isContinuous = false) {
     if (isOfflineChatRecord(message) || message.offlineHidden) return null;
+    if (message.type === 'hearu-session-event') return null;
     if (message.type === 'hearu-invite') return window.KissTogether?.renderCard(message) || null;
     if (message.type === 'kiss-event') return window.KissSocial?.renderEvent(message) || null;
     if (message.type === 'mcp-request') return window.KissMCPRequests?.renderCard(message) || null;

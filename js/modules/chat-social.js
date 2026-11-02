@@ -54,6 +54,15 @@ function friendPage(title,html,back) {
 }
 function requestThread(r){return Array.isArray(r.messages)&&r.messages.length?r.messages:[{from:r.from,text:r.text},...(r.reply?[{from:r.from==='ai'?'user':'ai',text:r.reply}]:[])];}
 function threadMarkup(c,r){return requestThread(r).map(m=>`<p><span>${m.from==='user'?'我':esc(friendName(c))}：</span>${esc(m.text)}</p>`).join('');}
+function refreshRequestThread(c,r){
+ const page=document.getElementById('kiss-friend-page');if(page?.dataset.requestId!==r.id)return;
+ const thread=page.querySelector('.ksf-thread');if(thread)thread.innerHTML=threadMarkup(c,r);
+ const waiting=replyBusy.has(r.id)||decisions.has(r.id);page.setAttribute('aria-busy',String(waiting));
+ let status=page.querySelector('[data-request-pending]');
+ if(waiting&&!status){status=document.createElement('p');status.dataset.requestPending='';status.className='ksf-pending';status.setAttribute('role','status');page.querySelector('.ksf-verification').append(status);}
+ if(status){status.textContent=waiting?'已发送，等待对方回复…':'';status.hidden=!waiting;}
+ const reply=page.querySelector('[data-reply]');if(reply)reply.disabled=waiting;
+}
 function showRequest(c,r,chatId,verify=false){
  const pending=r.status==='pending',incoming=r.from==='ai';
  const {page}=friendPage(verify?'朋友验证':'',`<section class="ksf-profile">${friendAvatar(c)}<div><h3>${esc(friendName(c))}</h3><p class="ksf-profile-links"><span>备注名</span><span>朋友权限</span></p></div></section><section class="ksf-verification"><div class="ksf-thread">${threadMarkup(c,r)}</div>${r.status!=='accepted'?'<button type="button" class="ksf-reply" data-reply>回复</button>':''}<form class="ksf-reply-form" hidden><label>验证消息<textarea maxlength="300" rows="3" placeholder="填写回复内容"></textarea></label><p class="ksf-error" role="status"></p><button type="submit">发送</button><button type="button" data-cancel>取消</button></form></section><section class="ksf-info">${c.signature?`<p><span>签名</span><b>${esc(c.signature)}</b></p>`:''}<p><span>来源</span><b>${incoming?'对方通过搜索账号添加':'通过搜索账号添加对方'}</b></p></section>${verify&&pending&&incoming?'<section class="ksf-verify-actions"><button type="button" data-accept="1">通过验证</button><button type="button" data-accept="0">暂不接受</button></section>':`<section class="ksf-result">${pending&&incoming?'<button type="button" data-verify>前往验证</button>':`<p>${esc({pending:'等待对方验证',accepted:'已通过朋友验证',declined:incoming?'暂未通过验证':'对方暂未通过验证'}[r.status]||'')}</p>${pending&&!incoming?'<button type="button" class="ksf-check" data-check>检查验证结果</button>':''}`}</section>`}`,()=>verify?showRequest(c,r,chatId):openRequests(chatId));
@@ -64,8 +73,9 @@ function showRequest(c,r,chatId,verify=false){
  const form=page.querySelector('form'),reply=page.querySelector('[data-reply]');
  reply?.addEventListener('click',()=>{form.hidden=false;reply.hidden=true;form.querySelector('textarea').focus();});
  form.querySelector('[data-cancel]').onclick=()=>{form.hidden=true;reply.hidden=false;reply.focus();};
- form.onsubmit=async e=>{e.preventDefault();const text=form.querySelector('textarea').value.trim();if(!text)return;const buttons=[...form.querySelectorAll('button')];if(buttons[0].disabled)return;const previousMessages=r.messages;buttons.forEach(b=>b.disabled=true);try{await replyRequest(c,r,text);if(page.isConnected)showRequest(c,r,chatId,verify);}catch(error){if(r.messages!==previousMessages){page.querySelector('.ksf-thread').innerHTML=threadMarkup(c,r);form.querySelector('textarea').value='';}form.querySelector('.ksf-error').textContent=error.verificationSaved?'留言已保存，角色回复未完成：'+error.message:error.message;buttons.forEach(b=>b.disabled=false);}};
+ form.onsubmit=async e=>{e.preventDefault();const text=form.querySelector('textarea').value.trim();if(!text)return;const buttons=[...form.querySelectorAll('button')];if(buttons[0].disabled)return;buttons.forEach(b=>b.disabled=true);form.hidden=true;if(reply)reply.hidden=false;try{await replyRequest(c,r,text);if(document.getElementById('kiss-friend-page')?.dataset.requestId===r.id)showRequest(c,r,chatId,verify);}catch(error){if(page.isConnected){form.hidden=false;if(reply)reply.hidden=true;form.querySelector('textarea').value=error.verificationSaved?'':text;form.querySelector('.ksf-error').textContent=error.verificationSaved?'留言已保存，角色回复未完成：'+error.message:error.message;buttons.forEach(b=>b.disabled=false);}}};
  page.querySelectorAll('[data-accept]').forEach(b=>b.onclick=async()=>{page.querySelectorAll('[data-accept]').forEach(n=>n.disabled=true);try{await review(c,r,b.dataset.accept==='1');if(page.isConnected)showRequest(c,r,chatId);}catch(e){showToast(e.message);if(page.isConnected)page.querySelectorAll('[data-accept]').forEach(n=>n.disabled=false);}});
+ refreshRequestThread(c,r);
 }
 async function replyRequest(c,r,text){
  text=String(text||'').trim().slice(0,300);if(!text||r.status==='accepted')return;if(replyBusy.has(r.id)||decisions.has(r.id))throw Error('验证回复正在处理中，请稍后再试');
@@ -73,6 +83,7 @@ async function replyRequest(c,r,text){
  try{
   const previous=r.messages,rstatus=r.status,userRevision=state(c).userBlockRevision||0;
   r.messages=[...requestThread(r),{from:'user',text,createdAt:Date.now()}];
+  refreshRequestThread(c,r);
   if(r.from==='user')r.status='pending';
   try{await persist(c);}catch(e){r.messages=previous;r.status=rstatus;throw e;}
   saved=true;if(r.from==='user'){await decideRequest(c,r);return;}
@@ -80,7 +91,7 @@ async function replyRequest(c,r,text){
   const result=parseJson(raw);if(!result.text||typeof result.text!=='string')throw Error('回复格式不完整，你的留言已保留');
   if(r.status!==rstatus||!state(c).userBlocked||(state(c).userBlockRevision||0)!==userRevision)return;
   const messages=r.messages;r.messages=[...messages,{from:'ai',text:result.text.slice(0,300),createdAt:Date.now()}];try{await persist(c);}catch(e){r.messages=messages;throw e;}
- }catch(error){if(saved)error.verificationSaved=true;throw error;}finally{replyBusy.delete(r.id);}
+ }catch(error){if(saved)error.verificationSaved=true;throw error;}finally{replyBusy.delete(r.id);refreshRequestThread(c,r);}
 }
 
 function blocked(c) { return !!(c?.friendship?.userBlocked || c?.friendship?.aiBlocked); }

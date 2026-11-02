@@ -265,7 +265,7 @@ function status() {
 function renderContacts(query = "") {
   root.scrollTop=0;view='contacts';root.dataset.hearuView='contacts';
   const list=characters().filter(c=>window.KissTogether?.unlocked(c.id)).filter(c=>name(c).toLowerCase().includes(query.toLowerCase()));
-  root.innerHTML=header('聊天','HEARU / PEOPLE')+`<main class="hu-home"><div class="hu-people-intro"><h1>一起听的人</h1><span>${list.length}</span></div><label class="hu-search">${icons.search}<input id="hu-contact-search" placeholder="搜索联系人" value="${esc(query)}"></label><div class="hu-contacts">${list.map(c=>{const record=roomsCache.get(String(c.id)),last=record?.messages?.findLast(m=>m.role!=='system');return `<button class="hu-contact" data-role="${esc(c.id)}"><span class="hu-contact-avatar"><img src="${esc(c.avatar || 'assets/hearu.svg')}" alt=""></span><div><strong>${esc(name(c))}</strong><small>${esc(last?.card?'分享了 '+last.card.song.title:last?.content || '与你共享一首歌。')}</small></div>${last?.at?`<time>${esc(new Date(last.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}))}</time>`:''}</button>`;}).join('') || '<p class="hu-empty">在404发出一起听邀请，对方接受后就会出现在这里。</p>'}</div></main>`+status();
+  root.innerHTML=header('聊天','HEARU / PEOPLE')+`<main class="hu-home"><div class="hu-people-intro"><h1>一起听的人</h1><span>${list.length}</span></div><label class="hu-search">${icons.search}<input id="hu-contact-search" placeholder="搜索联系人" value="${esc(query)}"></label><div class="hu-contacts">${list.map(c=>{const record=roomsCache.get(String(c.id)),last=record?.messages?.findLast(m=>m.role!=='system'&&!m.invitationId);return `<button class="hu-contact" data-role="${esc(c.id)}"><span class="hu-contact-avatar"><img src="${esc(c.avatar || 'assets/hearu.svg')}" alt=""></span><div><strong>${esc(name(c))}</strong><small>${esc(last?.card?'分享了 '+last.card.song.title:last?.content || '与你共享一首歌。')}</small></div>${last?.at?`<time>${esc(new Date(last.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}))}</time>`:''}</button>`;}).join('') || '<p class="hu-empty">在404发出一起听邀请，对方接受后就会出现在这里。</p>'}</div></main>`+status();
 }
 
 async function open(id) {
@@ -280,14 +280,12 @@ async function openRole(id) {
   const c = character(id);
   if (!c && String(id)!=="__solo__") throw Error("找不到这位角色");
   const version = ++revision;
-  await persist();
-  if (version !== revision) return;
-  if (room && String(roleId) !== String(id)) {
-    if (generations.get(roleId)?.kind === "dj") stopGeneration(roleId);
+  if (room) {
+    if (String(roleId)!==String(id) && generations.get(roleId)?.kind === "dj") stopGeneration(roleId);
     if (player.getState().song) room.position = player.positionMs();
     await persist();
-
   }
+  if (version !== revision) return;
   sampleListening(player.getState());
   const record = await readRoom(id);
   if (version !== revision) return;
@@ -301,7 +299,7 @@ async function openRole(id) {
   listeningCursor=null;
   const activePlayer=player.getState();
   if(activePlayer.song && !activePlayer.closed){room.song=withSavedSongThought(room,activePlayer.song);room.position=player.positionMs();room.lyrics=activePlayer.lyrics || [];}
-  if (String(id)!=="__solo__") { room.listed=true; listedIds.add(String(id)); await persist(); }
+  if (String(id)!=="__solo__") { const wasListed=room.listed;room.listed=true;listedIds.add(String(id));if(!wasListed)await persist(); }
   tab = room.tab || "listen";
   if (!player.getState().song && room.song) player.warm(room.song,room.position);
   view = "room";
@@ -319,6 +317,7 @@ function songRows(songs) {
     .join("");
 }
 function renderRoom() {
+  if(root.hidden)return;
   const currentStage=root.querySelector('.hu-chat-stage');
   if(room && tab==='chat' && currentStage?.dataset.roleId===String(roleId) && root.dataset.hearuView==='room' && root.dataset.hearuTab==='chat'){
     const template=document.createElement('template');template.innerHTML=chatHtml();const next=template.content.querySelector('.hu-chat-stage'),log=currentStage.querySelector('.hu-messages');
@@ -634,6 +633,7 @@ function chatHtml() {
   let previousDay = "";
   const rows = room.messages
     .map((m, i) => {
+      if(m.invitationId)return "";
       const date = new Date(m.at || Date.now()),
         day = date.toLocaleDateString("zh-CN"),
         separator =
@@ -641,7 +641,6 @@ function chatHtml() {
             ? messageDateHtml(date)
             : "";
       previousDay = day;
-      if(m.invitationId){const session=character(roleId)?.hearuTogether?.sessions?.find(s=>s.id===m.invitationId);if(session)return separator+`<article data-message-index="${i}" class="hu-message kt-hu-invite ${m.role==='user'?'mine':'theirs'}">${window.KissTogether.cardHtml(session,character(roleId))}</article>`;}
       if (m.role === "system" && !m.songSwitch && /^(点播|已准备好)：/.test(m.content || ""))return "";
       if (m.role === "system")
         return separator + `<div data-message-index="${i}" class="hu-chat-event ${m.songSwitch?'hu-song-switch':''}">${m.songSwitch?`<small>切换歌曲</small><strong>${esc(m.songSwitch.title)}</strong><span>${esc(m.songSwitch.artist)}</span>`:esc(m.content)}</div>`;
@@ -1477,7 +1476,7 @@ async function generateReply(reroll = false) {
   if(reroll&&!target.lastTurnId)throw Error('还没有可重 roll 的回复');
   let rerollNote=null;
   if(reroll){const feedback=window.KissReroll;if(!feedback)throw Error('重生成模块未加载，请刷新页面');const signature=feedback.fingerprint(target.messages),account=feedback.account(),turn=target.lastTurnId;const guard=()=>room===target&&roleId===id&&!busy.has(id)&&feedback.account()===account&&target.lastTurnId===turn&&feedback.fingerprint(target.messages)===signature;rerollNote=await feedback.ask({subtitle:'HearU · 只用于这一次重新回复',guard});if(rerollNote===null||!guard())return;}
-  if(!target.messages.some(m=>m.role==='user'))throw Error('先发送消息或音乐卡片');
+  if(!target.messages.some(m=>m.role==='user'&&!m.invitationId))throw Error('先发送消息或音乐卡片');
   ensureLibraries(target);
   const rerollBackup=reroll?{messages:target.messages.slice(),queue:target.queue.slice(),libraries:{ta:target.libraries.ta.slice()},lastTurnId:target.lastTurnId}:null;
   // Create the task before deleting anything; setup failures leave the old turn untouched.
@@ -1495,10 +1494,10 @@ async function generateReply(reroll = false) {
       (item) => item.turnId !== old,
     );
   }
-  if (!target.messages.some((m) => m.role === "user"))
+  if (!target.messages.some((m) => m.role === "user"&&!m.invitationId))
     throw Error("先发送消息或音乐卡片");
   const pendingUsers = target.messages.filter(m=>m.role === "user");
-  const historyForReply = target.messages.slice(-Math.max(1,c.maxMemory || 30)).map(messageForModel);
+  const historyForReply = target.messages.filter(m=>!m.invitationId).slice(-Math.max(1,c.maxMemory || 30)).map(messageForModel);
 
     await storeRoom(target);
     task.check();
@@ -2617,17 +2616,10 @@ if(window.KissTogether){
    const lines=s.lyrics || [],position=player.positionMs(),i=lines.findLastIndex(l=>l.timeMs<=position);
    return {song:{...s.song,lyrics:undefined},playing:s.playing,positionMs:position,previous:lines[i-1] || null,current:lines[i] || null,next:lines[i+1] || null,line:lines[i]?.text || '',at:Date.now()};
  };
- const mirrorInvitation=async(id,session)=>{
-   const target=await readRoom(id);
-   if(!target.messages.some(m=>m.invitationId===session.id)){
-     target.messages.push({id:'invite_'+session.id,role:session.sender,content:'一起听邀请：'+session.song.title+' · '+session.song.artist,invitationId:session.id,at:session.createdAt});
-     await storeRoom(target);
-   }
- };
  window.KissTogether.attach({
    now:snapshot,
    search:async query=>(await api('/search?q='+encodeURIComponent(query))).songs || [],
-   memory:async id=>{const target=await readRoom(id);return {messages:structuredClone(target.messages),summaries:structuredClone(target.summaries || [])};},
+   memory:async id=>{const target=await readRoom(id);return {messages:structuredClone(target.messages.filter(m=>!m.invitationId)),summaries:structuredClone(target.summaries || [])};},
    resolveSong:async(action,check=()=>{})=>{
      check();let song;
      if(action.songId)song=(await api('/song/'+encodeURIComponent(action.songId))).song;
@@ -2635,11 +2627,9 @@ if(window.KissTogether){
      else song=snapshot()?.song;
      check();if(!song)throw Error('没有找到这首歌');return song;
    },
-   mirrorInvitation,
    activate:async(id,song)=>{
      await openRole(String(id));
      const session=window.KissTogether.active(id);if(!session)return;
-     await mirrorInvitation(id,session);
      if(String(player.getState().song?.songId)!==String(song.songId))await playSong(song);
      else if(!player.getState().playing)player.toggle();
    },
@@ -2654,6 +2644,11 @@ if(window.KissTogether){
      const id=window.KissTogether.active()?.roleId;if(!id)return;
      if(String(roleId)!==String(id))await openRole(id);
      return advance(dir);
+   },
+   openChat:async id=>{
+     const c=character(id);if(!c)return;
+     root.hidden=true;currentChatId=c.id;currentChatType='private';
+     await openChatRoom(c.id,'private');
    },
    openPlayer:async id=>{
      await open(id || '__solo__');await ensureRoom();tab='listen';room.tab=tab;view='room';renderRoom();
