@@ -63,3 +63,13 @@
 .kx-preview-overlay.kx-preview-ios{--kx-safe-top:max(59px,env(safe-area-inset-top,0px));--kx-safe-bottom:max(34px,env(safe-area-inset-bottom,0px))}
 .kx-preview-overlay .ksv-dialog{height:calc(100dvh - 16px - var(--kx-safe-top) - var(--kx-safe-bottom))!important;max-height:calc(100dvh - 16px - var(--kx-safe-top) - var(--kx-safe-bottom))!important;min-height:0;box-sizing:border-box}
 @media(orientation:landscape){.kx-preview-overlay.kx-preview-ios{--kx-safe-top:env(safe-area-inset-top,0px);--kx-safe-bottom:max(21px,env(safe-area-inset-bottom,0px))}}
+
+/* Exclusive settings: keep labels and selectors on one baseline, without repeated rules. */
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-section-heading{border:0!important;margin-bottom:3px}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-exclusive .kkt-item{border:0!important;flex-direction:row!important;align-items:center!important;gap:12px!important}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-exclusive:not(:has(#setting-exclusive-api-enabled)) .kkt-item{display:grid!important;grid-template-columns:minmax(130px,1fr) minmax(0,1.15fr);min-height:42px}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-exclusive .kkt-item-label{white-space:nowrap;line-height:1.4}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-exclusive .kkt-item-control{display:flex!important;align-items:center;justify-content:flex-end;min-width:0;width:100%;max-width:58%;margin:0 0 0 auto}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-exclusive:not(:has(#setting-exclusive-api-enabled)) .kkt-item-control{max-width:100%;width:100%;margin:0}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-exclusive :is(select,.tps-trigger,.bps-trigger){width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chat-settings-screen.ksv-settings #setting-tab-exclusive .ksv-model-controls{border:0!important;margin-top:3px;padding-top:5px}
