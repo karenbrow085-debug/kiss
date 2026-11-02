@@ -1,5 +1,5 @@
 /* WeChat message actions. kmsg-* deliberately does not share Moments' km-actions. */
-.context-menu.km-message-menu,.context-menu.kr-menu.km-message-menu{position:fixed;display:block;z-index:10000;box-sizing:border-box;min-width:0;max-width:calc(100vw - 20px);padding:3px 15px;border:0;border-radius:4px;overflow:visible;background:#4c4c4c;color:#fff;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;animation:none;isolation:isolate}
+.context-menu.km-message-menu,.context-menu.kr-menu.km-message-menu{position:fixed;display:block;z-index:2147483644;box-sizing:border-box;min-width:0;max-width:calc(100vw - 20px);padding:3px 15px;border:0;border-radius:4px;overflow:visible;background:#4c4c4c;color:#fff;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;animation:none;isolation:isolate}
 .context-menu.km-message-menu:after{content:'';position:absolute;left:var(--km-tip);width:0;height:0;transform:translateX(-50%);border:7px solid transparent;pointer-events:none}
 .context-menu.km-message-menu[data-side=above]:after{top:100%;border-top-color:#4c4c4c;border-bottom:0}
 .context-menu.km-message-menu[data-side=below]:after{bottom:100%;border-bottom-color:#4c4c4c;border-top:0}
@@ -14,3 +14,5 @@
 .context-menu.km-message-menu .kr-quick{position:relative;display:flex;align-items:center;justify-content:space-between;box-sizing:border-box;margin:0;padding:10px 0;gap:0;background:transparent;border-bottom:1px solid #ffffff18}
 .context-menu.km-message-menu .kr-choice{display:grid;place-items:center;appearance:none;box-sizing:border-box;width:calc(100% / 7);min-width:0;height:34px;margin:0;padding:0;border:0;border-radius:3px;background:transparent;box-shadow:none;color:#fff;font:24px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;cursor:pointer}
 .context-menu.km-message-menu .kr-choice:hover,.context-menu.km-message-menu .kr-choice:focus-visible{background:#ffffff15;outline:none}
+
+.context-menu.km-message-menu{--kmsg-safe-top:env(safe-area-inset-top,0px);--kmsg-safe-bottom:env(safe-area-inset-bottom,0px)}

@@ -77,12 +77,13 @@
     wait(2500),
   ]);
 
-  assetsReady.then(()=>{if(phase==='cover'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)preparePaper();});
+  assetsReady.then(()=>{if(phase==='cover')preparePaper();});
 
   function cleanUp() {
     if (phase === 'done') return;
     setPhase('done');
     paperCurl?.dispose();
+    preparedPaper?.then(scene=>scene?.dispose());
     for (const id of timers) window.clearTimeout(id);
     timers.clear();
     if (desktopObserver) desktopObserver.disconnect();
@@ -129,11 +130,11 @@
     await assetsReady;
     if (!root.isConnected) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(!reduced&&window.KissPaperCurl){let timedOut=false;const timeout=timer(()=>{timedOut=true;},1600);const prepared=preparePaper();paperCurl=await Promise.race([prepared,wait(1600)]);clearTimer(timeout);if(timedOut&&!paperCurl)prepared.then(scene=>scene?.dispose());}
+    if(window.KissPaperCurl){const prepared=preparePaper();paperCurl=await Promise.race([prepared,wait(5000)]);if(!paperCurl){root.dataset.paperDisabled='true';prepared.then(scene=>scene?.dispose());}}
     if(!root.isConnected){paperCurl?.dispose();return;}
     setPhase('opening');
     root.classList.add('is-opening');
-    paperCurl?.start(1750,160);
+    if(paperCurl)paperCurl.start(reduced?0:3200).then(()=>holdAfterZoom());
     // One continuous recto/verso sheet: no independently rotated strips.
     animationFallback = timer(() => {
       // Recover if a device suppresses animationend. Still reveal the exact right page.

@@ -1,8 +1,9 @@
+@font-face{font-family:"KissStartSans";font-style:normal;font-weight:400;font-display:block;src:url(sans-regular.woff) format("woff")}
 
 @font-face{font-family:"KissStartSerif";font-style:normal;font-weight:400;font-display:swap;src:url(serif-regular.woff) format("woff")}
 @font-face{font-family:"KissStartSerif";font-style:italic;font-weight:400;font-display:swap;src:url(serif-italic.woff) format("woff")}
 #kiss-magazine-start{--sea:url('waves.jpg');--forest:url('forest.jpg');--alps:url('mountains.jpg');display:flex;flex-direction:column;align-items:center;gap:12px}
-#kiss-magazine-start .qm-screen{width:100%;max-width:380px;aspect-ratio:350/620;position:relative;overflow:hidden;container-type:inline-size;perspective:1500px;background:#fafaf7;color:#30302d;font-family:Arial,sans-serif}
+#kiss-magazine-start .qm-screen{width:100%;max-width:380px;aspect-ratio:350/620;position:relative;overflow:hidden;container-type:inline-size;perspective:1500px;background:#fafaf7;color:#30302d;font-family:"KissStartSans",sans-serif}
 #kiss-magazine-start .qm-overlay{position:absolute;inset:0;perspective:1500px;background:#eeede8;transform-style:preserve-3d}
 #kiss-magazine-start .qm-book{position:absolute;inset:0;transform-origin:center;transform-style:preserve-3d}
 #kiss-magazine-start .qm-page,#kiss-magazine-start .qm-turn,#kiss-magazine-start .qm-front,#kiss-magazine-start .qm-back{position:absolute;inset:0}
@@ -53,8 +54,8 @@
 #kiss-magazine-start .qm-cover-headline em{display:block;padding:2px 0;font-size:8cqw;line-height:.95;font-weight:400}
 #kiss-magazine-start .qm-cover-foot{bottom:4.8%;font-size:clamp(8px,2.2cqw,9px);letter-spacing:.2px}
 #kiss-magazine-start .qm-top{border-bottom:0;letter-spacing:.6px}
-#kiss-magazine-start .qm-wander{top:11.5%;left:7%;width:80%;height:auto;font:500 12cqw/.92 Arial,sans-serif;letter-spacing:-.6cqw;padding:0 5px 10px 0}
-#kiss-magazine-start .qm-wander>span{display:block;margin-top:12px;font:400 clamp(8px,2.25cqw,9px)/1.3 Arial,sans-serif;letter-spacing:.8px}
+#kiss-magazine-start .qm-wander{top:11.5%;left:7%;width:80%;height:auto;font:500 12cqw/.92 "KissStartSans",sans-serif;letter-spacing:-.6cqw;padding:0 5px 10px 0}
+#kiss-magazine-start .qm-wander>span{display:block;margin-top:12px;font:400 clamp(8px,2.25cqw,9px)/1.3 "KissStartSans",sans-serif;letter-spacing:.8px}
 #kiss-magazine-start .qm-forest{top:33%;height:35%;width:48%}
 #kiss-magazine-start .qm-waves{top:41%;height:23%;width:32%}
 #kiss-magazine-start .qm-collage-copy{top:75%;font-size:clamp(10px,2.9cqw,11px)}
@@ -169,3 +170,9 @@
 @keyframes kissmag-spread{0%,6%{transform:translateX(0) scale(1)}28%,72%{transform:translateX(25%) scale(.5)}100%{transform:translateX(0) scale(1)}}
 @keyframes kissmag-flip{0%{transform:rotateY(0deg) skewY(0)}20%{transform:rotateY(-18deg) skewY(-1.5deg)}52%{transform:rotateY(-92deg) skewY(-2deg)}85%{transform:rotateY(-169deg) skewY(-.5deg)}100%{transform:rotateY(-180deg) skewY(0)}}
 @media(prefers-reduced-motion:reduce){#kiss-magazine-start.is-opening .qm-book,#kiss-magazine-start.is-opening .qm-turn{animation-duration:1ms;animation-delay:0s}#kiss-magazine-start .qm-curl-canvas{display:none}}
+
+/* Cover, turn and open spread share one 2D drawing and one clock on every phone. */
+#kiss-magazine-start .qm-unified-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:30;pointer-events:none;display:block}
+#kiss-magazine-start.is-paper-ready .qm-book{visibility:hidden;animation:none!important;transform:none!important;will-change:auto}
+#kiss-magazine-start.is-paper-ready .qm-book *{animation:none!important;will-change:auto}
+#kiss-magazine-start.is-paper-ready .qm-open{visibility:visible!important;z-index:40}

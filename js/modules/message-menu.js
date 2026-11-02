@@ -22,14 +22,26 @@ function position(menu) {
  const bubble=anchor?.querySelector('.message-bubble,.voice-bubble,.image-bubble,.kt-invite-card')||anchor;
  const a=bubble?.getBoundingClientRect()||{left:x,right:x,top:y,bottom:y};
  const phone=anchor?.closest('.phone-screen')?.getBoundingClientRect();
+ const room=anchor?.closest('#chat-room-screen');
+ const header=room?.querySelector('#chat-room-header-default,.app-header');
+ const composer=room?.querySelector('.chat-input-wrapper');
+ const area=room?.querySelector('#message-area');
+ const visibleRect=node=>{const r=node?.getBoundingClientRect();return r&&r.width>0&&r.height>0?r:null;};
+ const headerRect=visibleRect(header),composerRect=visibleRect(composer),roomRect=visibleRect(room),areaRect=visibleRect(area);
  const v=window.visualViewport;
- const bounds={left:Math.max(v?.offsetLeft||0,phone?.left||0)+10,right:Math.min((v?.offsetLeft||0)+(v?.width||innerWidth),phone?.right||innerWidth)-10,top:(v?.offsetTop||0)+10,bottom:(v?.offsetTop||0)+(v?.height||innerHeight)-10};
- menu.style.width=Math.min(360,bounds.right-bounds.left)+'px';
- menu.style.maxHeight=Math.max(80,bounds.bottom-bounds.top-16)+'px';
+ const safe=typeof getComputedStyle==='function'?getComputedStyle(menu):null;
+ const safeTop=parseFloat(safe?.getPropertyValue('--kmsg-safe-top'))||0,safeBottom=parseFloat(safe?.getPropertyValue('--kmsg-safe-bottom'))||0;
+ const bounds={left:Math.max(v?.offsetLeft||0,phone?.left||0)+10,right:Math.min((v?.offsetLeft||0)+(v?.width||innerWidth),phone?.right||innerWidth)-10,top:Math.max((v?.offsetTop||0)+safeTop,roomRect?.top||0,headerRect?.bottom||0,areaRect?.top||0)+10,bottom:Math.min((v?.offsetTop||0)+(v?.height||innerHeight)-safeBottom,roomRect?.bottom||Infinity,composerRect?.top||Infinity,areaRect?.bottom||Infinity)-10};
+ if(bounds.bottom-bounds.top<120){bounds.top=(v?.offsetTop||0)+safeTop+10;bounds.bottom=(v?.offsetTop||0)+(v?.height||innerHeight)-safeBottom-10;}
+ const height=Math.max(44,bounds.bottom-bounds.top);
+ menu.style.width=Math.max(120,Math.min(360,bounds.right-bounds.left))+'px';
+ menu.style.maxHeight=height+'px';
+ const actions=menu.querySelector?.('.kmsg-actions'),quick=menu.querySelector?.('.kr-quick');
+ if(actions)actions.style.maxHeight=Math.max(44,height-(quick?.getBoundingClientRect().height||0)-6)+'px';
  const r=menu.getBoundingClientRect();
  const center=(a.left+a.right)/2;
  const left=Math.max(bounds.left,Math.min(center-r.width/2,bounds.right-r.width));
- const above=a.top-r.height-9>=bounds.top || a.top-bounds.top>bounds.bottom-a.bottom;
+ const above=a.top-r.height-9>=bounds.top || (a.bottom+r.height+9>bounds.bottom && a.top-bounds.top>bounds.bottom-a.bottom);
  const top=Math.max(bounds.top,Math.min(above?a.top-r.height-9:a.bottom+9,bounds.bottom-r.height));
  menu.style.left=left+'px';menu.style.top=top+'px';
  menu.dataset.side=above?'above':'below';
@@ -61,8 +73,8 @@ function open(items,options) {
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;
   e.preventDefault();const buttons=[...menu.querySelectorAll('button')];let i=buttons.indexOf(document.activeElement);const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-5,ArrowDown:5}[e.key];i=e.key==='Home'?0:e.key==='End'?buttons.length-1:(Math.max(0,i)+(step||0)+buttons.length)%buttons.length;buttons[i]?.focus();
  };
- document.addEventListener('pointerdown',dismiss,true);document.addEventListener('keydown',key);document.addEventListener('scroll',scroll,true);window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);
- menu._kissMenuCleanup=()=>{cancelAnimationFrame(frame);document.removeEventListener('pointerdown',dismiss,true);document.removeEventListener('keydown',key);document.removeEventListener('scroll',scroll,true);window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);};
+ document.addEventListener('pointerdown',dismiss,true);document.addEventListener('keydown',key);document.addEventListener('scroll',scroll,true);window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);window.visualViewport?.addEventListener('scroll',resize);
+ menu._kissMenuCleanup=()=>{cancelAnimationFrame(frame);document.removeEventListener('pointerdown',dismiss,true);document.removeEventListener('keydown',key);document.removeEventListener('scroll',scroll,true);window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);};
  return menu;
 }
 window.KissMessageMenu={open,position};

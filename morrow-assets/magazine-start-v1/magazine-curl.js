@@ -1,36 +1,68 @@
-/* One textured, continuously curved sheet. No independently rotating DOM strips. */
+/* A single Canvas 2D book on Android and iOS. No DOM capture, WebGL or CSS 3D handoff. */
 (() => {
 'use strict';
 const clamp=n=>Math.max(0,Math.min(1,n));
+const ease=n=>{const t=clamp(n);return t*t*(3-2*t);};
+
 function point(u,v,progress){const p=clamp(progress+.035*Math.sin(Math.PI*progress)*(v-.5)),bend=1.12*Math.sin(Math.PI*p),angle=Math.PI*p-bend*.5;return Math.abs(bend)<1e-5?{x:u*Math.cos(angle),z:u*Math.sin(angle),angle}:{x:(Math.sin(angle+bend*u)-Math.sin(angle))/bend,z:(Math.cos(angle)-Math.cos(angle+bend*u))/bend,angle:angle+bend*u};}
-function canvasSheet(root,book,canvas,faces,width,height){
- const ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return null;root.dataset.paperRenderer='canvas2d';let frame=0,disposed=false,last=0;const scale=canvas.width/(width*2),columns=96;
- function draw(p){if(disposed)return;ctx.clearRect(0,0,canvas.width,canvas.height);if(p<.001){ctx.drawImage(faces[0],width*scale,.2*height*scale,width*scale,height*scale);return;}if(p>.999){ctx.drawImage(faces[1],0,.2*height*scale,width*scale,height*scale);return;}const surface=[];for(let i=0;i<columns;i++){const u0=i/columns,u1=(i+1)/columns,q0=point(u0,.5,p),q1=point(u1,.5,p),q=point((u0+u1)/2,.5,p),factor=4.6/(4.6-q.z);surface.push({u0,u1,q,factor,x0:(1+q0.x*4.6/(4.6-q0.z))*width*scale,x1:(1+q1.x*4.6/(4.6-q1.z))*width*scale});}surface.sort((a,b)=>a.q.z-b.q.z);for(const part of surface){const front=Math.cos(part.q.angle)>=0,face=faces[front?0:1],sx=(front?part.u0:1-part.u1)*face.width,sw=face.width/columns,x=Math.min(part.x0,part.x1)-.25,y=(.7-.5*part.factor)*height*scale,w=Math.abs(part.x1-part.x0)+.65,h=height*part.factor*scale;if(w<.05)continue;ctx.drawImage(face,sx,0,sw,face.height,x,y,w,h);ctx.fillStyle=`rgba(32,29,23,${.15*(1-Math.abs(Math.cos(part.q.angle)))})`;ctx.fillRect(x,y,w,h);}book.style.setProperty('--qm-turn-shadow',String(.18*Math.sin(Math.PI*p)));}
- function start(duration=1750,delay=160){book.append(canvas);root.classList.add('is-curling');draw(0);const start=performance.now()+delay;function tick(now){if(disposed)return;const t=clamp((now-start)/duration);if(now-last>28||t===1){last=now;draw(t*t*(3-2*t));}if(t<1)frame=requestAnimationFrame(tick);}frame=requestAnimationFrame(tick);}
- function finish(){cancelAnimationFrame(frame);draw(1);}function dispose(){disposed=true;cancelAnimationFrame(frame);canvas.remove();faces=null;canvas.width=canvas.height=1;}return {start,finish,dispose,canvas};
+function spread(t){const s=t<.28?1-.5*ease((t-.06)/.22):t<=.72?.5:.5+.5*ease((t-.72)/.28);return {scale:s,x:1-s,y:(1-s)/2};}
+function load(name,base){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('Magazine image unavailable: '+name));image.src=new URL(name,base).href;});}
+function paintPage(kind,w,h,ratio,images){
+ const canvas=document.createElement('canvas');canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);const c=canvas.getContext('2d');if(!c)throw Error('Canvas unavailable');c.scale(canvas.width/w,canvas.height/h);c.fillStyle='#fafaf7';c.fillRect(0,0,w,h);
+ function image(name,x,y,bw,bh,mode='cover',fy=.5){const im=images[name],s=mode==='contain'?Math.min(bw/im.width,bh/im.height):Math.max(bw/im.width,bh/im.height),dw=im.width*s,dh=im.height*s;c.save();c.beginPath();c.rect(x,y,bw,bh);c.clip();c.drawImage(im,x+(bw-dw)/2,y+(bh-dh)*fy,dw,dh);c.restore();}
+ function text(value,x,y,size=9,{serif=false,italic=false,color='#30302d',align='left',line=1.3}={}){c.fillStyle=color;c.textBaseline='top';c.textAlign=align;c.font=`${italic?'italic ':''}400 ${size}px ${serif?'KissStartSerif':'KissStartSans'},${serif?'serif':'sans-serif'}`;String(value).split('\n').forEach((v,i)=>c.fillText(v,x,y+i*size*line));}
+ const small=Math.max(8,Math.min(9,w*.022));
+ const top=Math.max(h*.04,16),bottom=h-Math.max(h*.035,16);
+ if(kind==='cover'){
+  image('waves.jpg',0,0,w,h);image('masthead.png',w*.05,h*.05,w*.9,h*.24,'contain');
+  text('THE EVERYDAY JOURNAL',w*.07,Math.max(h*.032,12),small);text('VOL. 01',w*.93,Math.max(h*.032,12),small,{align:'right'});
+  text('THE PRIVATE ISSUE',w*.07,h*.30,small);text('NO. 01\nOCTOBER 2026',w*.93,h*.30,small,{align:'right',line:1.4});
+  const title=w*.087,em=w*.08,y=h*.86-(title*2+em)*.95;
+  text('LIFE',w*.07,y,title,{serif:true,color:'#fafaf7',line:.95});text('in the',w*.07,y+title*.95,em,{serif:true,italic:true,color:'#fafaf7'});text('QUIET',w*.07,y+(title+em)*.95,title,{serif:true,color:'#fafaf7'});
+  text('THE ART OF EVERYDAY.',w*.07,h-Math.max(h*.048,20),small,{color:'#fafaf7'});text('01 / PERSONAL EDITION',w*.93,h-Math.max(h*.048,20),small,{color:'#fafaf7',align:'right'});
+ }else if(kind==='back'){
+  text('KISS / FIELD NOTES',w*.07,top,small);text('02',w*.93,top,small,{align:'right'});
+  text('FIELD\nNOTES',w*.07,h*.115,w*.12,{line:.92});text('THE PLACES BETWEEN.',w*.07,h*.115+w*.24*.92+12,small);
+  image('forest.jpg',w*.07,h*.33,w*.48,h*.35);image('waves.jpg',w*.61,h*.41,w*.32,h*.23,'cover',.8);image('mountains.jpg',w*.5,h*.73,w*.43,h*.16,'cover',.65);
+  text('OFF THE MAP.',w*.07,h*.75,small);text('A quiet morning.\nAn unfamiliar road.\nNowhere else to be.',w*.07,h*.75+22,Math.max(10,Math.min(11,w*.029)),{color:'#55554f',line:1.5});
+  text('COLLECTED MOMENTS',w*.07,bottom,small);text('02',w*.93,bottom,small,{align:'right'});
+ }else{
+  text('KISS',w*.07,top,small);text('THE PRIVATE ISSUE / 03',w*.93,top,small,{align:'right'});
+  image('mountains.jpg',w*.17,h*.20,w*.66,h*.38,'cover',.58);
+  text('PLATE III',w*.17,h*.60,small,{color:'#5e5e57'});text('THE LONG WAY HOME',w*.83,h*.60,small,{color:'#5e5e57',align:'right'});
+  text('Elsewhere.',w*.5,h*.72,w*.13,{serif:true,align:'center'});text('There is no hurry.\nLet this moment be enough.',w*.5,h*.84,Math.max(11,Math.min(12,w*.03)),{align:'center',line:1.55,color:'#55554f'});
+  text('PERSONAL EDITION',w*.07,bottom,small);text('03',w*.93,bottom,small,{align:'right'});
+ }
+ return canvas;
 }
 async function create(root){
- if(typeof html2canvas!=='function'){root.dataset.paperRenderer='css-no-capture';return null;}
- const screen=root.querySelector('.qm-screen'),book=root.querySelector('.qm-book'),rect=screen.getBoundingClientRect();if(!rect.width||!rect.height)return null;
- const canvas=document.createElement('canvas');canvas.className='qm-curl-canvas';canvas.setAttribute('aria-hidden','true');
- const gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true,depth:true,preserveDrawingBuffer:false});if(!gl&&!canvas.getContext('2d')){root.dataset.paperRenderer='css-no-canvas';return null;}
- const scale=Math.min(devicePixelRatio||1,1.5,1400/rect.height),width=Math.round(rect.width),height=Math.round(rect.height);canvas.width=Math.round(width*2*scale);canvas.height=Math.round(height*1.4*scale);
- let disposed=false,frame=0,started=0;const resources=[];
- const capture=async selector=>{const frame=document.createElement('iframe');frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;frame.style.cssText=`position:fixed;left:-20000px;top:0;width:${width}px;height:${height}px;border:0;pointer-events:none;`;const snapshot=document.implementation.createHTMLDocument('Paper texture'),base=snapshot.createElement('base');base.href=document.baseURI;snapshot.head.append(base);const sheet=snapshot.createElement('link');sheet.rel='stylesheet';sheet.href=[...document.querySelectorAll('link[rel=stylesheet]')].find(n=>n.href.includes('magazine-start-v1/magazine-start.css')).href;snapshot.head.append(sheet);const style=snapshot.createElement('style');style.textContent='html,body{margin:0;width:100%;height:100%;overflow:hidden}#kiss-magazine-start .qm-front,#kiss-magazine-start .qm-back{transform:none!important;backface-visibility:visible!important;visibility:visible!important}';snapshot.head.append(style);const holder=snapshot.createElement('div');holder.id='kiss-magazine-start';const screen=snapshot.createElement('div');screen.className='qm-screen';const page=root.querySelector(selector).cloneNode(true);page.querySelectorAll('button').forEach(n=>n.remove());screen.append(page);holder.append(screen);snapshot.body.append(holder);const loaded=new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Paper frame unavailable'));});frame.srcdoc='<!doctype html>'+snapshot.documentElement.outerHTML;document.body.append(frame);try{await loaded;await frame.contentDocument.fonts.ready;return await html2canvas(frame.contentDocument.querySelector('.qm-screen'),{scale,backgroundColor:'#fafaf7',logging:false,useCORS:true,allowTaint:false,width,height,scrollX:0,scrollY:0,windowWidth:width,windowHeight:height});}finally{frame.remove();}};
- let faces;try{faces=await Promise.all([capture('.qm-front'),capture('.qm-back')]);}catch(error){root.dataset.paperRenderer='css-capture-error';console.warn('[Kiss paper]',error.message);gl?.getExtension('WEBGL_lose_context')?.loseContext();return null;}
- if(!root.isConnected){gl?.getExtension('WEBGL_lose_context')?.loseContext();return null;}
- if(!gl)return canvasSheet(root,book,canvas,faces,width,height);
- function shader(type,source){const s=gl.createShader(type);resources.push(['shader',s]);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error('Paper shader unavailable');return s;}
- root.dataset.paperRenderer='webgl';let program;try{program=gl.createProgram();resources.push(['program',program]);gl.attachShader(program,shader(gl.VERTEX_SHADER,`attribute vec2 aUV;varying vec2 vUV;varying float vAngle;uniform float progress;void main(){float p=clamp(progress+.035*sin(3.14159265*progress)*(aUV.y-.5),0.,1.);float k=1.12*sin(3.14159265*p);float theta=3.14159265*p-k*.5;float x;float z;if(abs(k)<.00001){x=aUV.x*cos(theta);z=aUV.x*sin(theta);}else{x=(sin(theta+k*aUV.x)-sin(theta))/k;z=(cos(theta)-cos(theta+k*aUV.x))/k;}float perspective=4.6/(4.6-z);gl_Position=vec4(x*perspective,(1.-2.*aUV.y)*perspective/1.4,-z/3.,1.);vUV=aUV;vAngle=theta+k*aUV.x;}`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,`precision mediump float;varying vec2 vUV;varying float vAngle;uniform sampler2D front;uniform sampler2D back;void main(){vec4 paper=gl_FrontFacing?texture2D(front,vUV):texture2D(back,vec2(1.-vUV.x,vUV.y));float light=.83+.17*abs(cos(vAngle));float gleam=.025*pow(max(0.,sin(vAngle)),5.);gl_FragColor=vec4(paper.rgb*light+gleam,paper.a);}`));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error('Paper program unavailable');}catch{gl.getExtension('WEBGL_lose_context')?.loseContext();return null;}
- gl.useProgram(program);const vertices=[],indices=[],cols=64,rows=16;for(let y=0;y<=rows;y++)for(let x=0;x<=cols;x++)vertices.push(x/cols,y/rows);for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const a=y*(cols+1)+x,b=a+1,c=a+cols+1,d=c+1;indices.push(a,c,b,b,c,d);}
- const vb=gl.createBuffer(),ib=gl.createBuffer();resources.push(['buffer',vb],['buffer',ib]);gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);const uv=gl.getAttribLocation(program,'aUV');gl.enableVertexAttribArray(uv);gl.vertexAttribPointer(uv,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(indices),gl.STATIC_DRAW);
- faces.forEach((face,i)=>{const texture=gl.createTexture();resources.push(['texture',texture]);gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,face);gl.uniform1i(gl.getUniformLocation(program,i?'back':'front'),i);});faces=null;
- const progress=gl.getUniformLocation(program,'progress');gl.clearColor(0,0,0,0);gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.viewport(0,0,canvas.width,canvas.height);
- function draw(p){if(disposed)return;gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(progress,p);gl.drawElements(gl.TRIANGLES,indices.length,gl.UNSIGNED_SHORT,0);book.style.setProperty('--qm-turn-shadow',String(.18*Math.sin(Math.PI*p)));}
- function finish(){cancelAnimationFrame(frame);draw(1);}
- function start(duration=1750,delay=160){book.append(canvas);root.classList.add('is-curling');draw(0);started=performance.now()+delay;function tick(now){if(disposed)return;const t=clamp((now-started)/duration),p=t*t*(3-2*t);draw(p);if(t<1)frame=requestAnimationFrame(tick);}frame=requestAnimationFrame(tick);}
- function dispose(){disposed=true;cancelAnimationFrame(frame);canvas.remove();for(const [type,resource] of resources){if(type==='shader')gl.deleteShader(resource);if(type==='program')gl.deleteProgram(resource);if(type==='buffer')gl.deleteBuffer(resource);if(type==='texture')gl.deleteTexture(resource);}gl.getExtension('WEBGL_lose_context')?.loseContext();}
- canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);canvas.remove();root.classList.remove('is-curling');});return {start,finish,dispose,canvas};
+ const screen=root.querySelector('.qm-screen');if(!screen)return null;
+ const canvas=document.createElement('canvas');canvas.className='qm-unified-canvas';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return null;
+ const names=['waves.jpg','forest.jpg','mountains.jpg','masthead.png'];
+ const base=new URL('morrow-assets/magazine-start-v1/',document.baseURI);
+ const loaded=await Promise.all([Promise.all(names.map(name=>load(name,base))),document.fonts?Promise.all([document.fonts.load('400 32px KissStartSerif'),document.fonts.load('italic 400 32px KissStartSerif'),document.fonts.load('400 16px KissStartSans')]):Promise.resolve()]);
+ if(!root.isConnected||root.dataset.paperDisabled==='true')return null;
+ const images=Object.fromEntries(names.map((name,i)=>[name,loaded[0][i]]));
+ let faces,w,h,ratio,frame=0,disposed=false,started=0,duration=3200,active=false,resolveAnimation,timeline=0;
+ function resize(){const rect=screen.getBoundingClientRect();w=Math.max(1,rect.width);h=Math.max(1,rect.height);ratio=Math.min(window.devicePixelRatio||1,1.5,1400/h);canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);faces=['cover','back','gallery'].map(kind=>paintPage(kind,w,h,ratio,images));draw(timeline);}
+ function draw(t){if(disposed)return;timeline=t;ctx.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);ctx.fillStyle='#eeede8';ctx.fillRect(0,0,w,h);const z=spread(t);ctx.save();ctx.translate(z.x*w,z.y*h);ctx.scale(z.scale,z.scale);ctx.drawImage(faces[2],0,0,w,h);
+  const p=ease((t*3200-160)/1750);
+  if(p<=0)ctx.drawImage(faces[0],0,0,w,h);
+  else if(p>=1)ctx.drawImage(faces[1],-w,0,w,h);
+  else{
+   const parts=[],cols=64;
+   for(let i=0;i<cols;i++){const u0=i/cols,u1=(i+1)/cols,a=point(u0,.5,p),b=point(u1,.5,p),q=point((u0+u1)/2,.5,p);parts.push({u0,u1,q,x0:a.x*4.6/(4.6-a.z)*w,x1:b.x*4.6/(4.6-b.z)*w});}
+   parts.sort((a,b)=>a.q.z-b.q.z);
+   for(const part of parts){const front=Math.cos(part.q.angle)>=0,face=faces[front?0:1],factor=4.6/(4.6-part.q.z),x=Math.min(part.x0,part.x1),bw=Math.abs(part.x1-part.x0);if(bw<.01)continue;const y=(1-factor)*h/2,bh=h*factor;ctx.drawImage(face,(front?part.u0:1-part.u1)*face.width,0,face.width/cols,face.height,x-.25,y,bw+.5,bh);ctx.fillStyle=`rgba(32,29,23,${.15*(1-Math.abs(Math.cos(part.q.angle)))})`;ctx.fillRect(x-.25,y,bw+.5,bh);}
+  }
+  if(t>.25&&t<.8){const opacity=Math.sin(Math.PI*clamp((t-.25)/.55))*.18;const shadow=ctx.createLinearGradient(-w*.04,0,w*.08,0);shadow.addColorStop(0,'rgba(40,38,30,0)');shadow.addColorStop(.35,`rgba(40,38,30,${opacity})`);shadow.addColorStop(1,'rgba(40,38,30,0)');ctx.fillStyle=shadow;ctx.fillRect(-w*.04,0,w*.12,h);}
+  ctx.restore();
+ }
+ function finish(){active=false;cancelAnimationFrame(frame);draw(1);resolveAnimation?.();resolveAnimation=null;}
+ function start(ms=3200){if(disposed)return Promise.resolve();duration=ms;started=performance.now();active=true;return new Promise(resolve=>{resolveAnimation=resolve;if(!ms){finish();return;}function tick(now){if(disposed||!active)return;const t=clamp((now-started)/duration);draw(t);if(t<1)frame=requestAnimationFrame(tick);else{active=false;resolveAnimation?.();resolveAnimation=null;}}frame=requestAnimationFrame(tick);});}
+ function dispose(){if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);window.removeEventListener('resize',resize);canvas.remove();root.classList.remove('is-paper-ready');faces?.forEach(face=>{face.width=face.height=1;});faces=null;canvas.width=canvas.height=1;resolveAnimation?.();resolveAnimation=null;}
+ resize();screen.append(canvas);const button=root.querySelector('.qm-open');if(button)screen.append(button);root.dataset.paperRenderer='canvas2d-unified';root.classList.add('is-paper-ready');window.addEventListener('resize',resize);
+ return {start,finish,dispose,canvas};
 }
-window.KissPaperCurl={point,create};
+window.KissPaperCurl={point,spread,create};
 })();
