@@ -192,8 +192,9 @@ function createMessageBubbleElement(message, isContinuous = false) {
 
     const isBilingualMode = window.KissBilingual?.enabled(chat) ?? chat.bilingualModeEnabled;
     let bilingualMatch = null;
+    if(isBilingualMode&&role==='assistant'&&!isThinking&&/^\[.*?(?:消息|回复)[：:]/.test(content||'')&&typeof message.translation==='string'&&message.translation.trim()){const source=String(content||'').replace(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/,'$1');bilingualMatch=[null,source,message.translation.trim()];}
     // 增加 && !isThinking，防止思考内容被当成双语消息解析
-    if (isBilingualMode && role === 'assistant' && !isThinking) {
+    if (isBilingualMode && role === 'assistant' && !isThinking && !bilingualMatch) {
         // 修改正则以兼容 "的消息：" 和 "回复：" (包括 "并回复")
 const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         if (contentMatch) {
@@ -370,6 +371,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         }
         // ---------------------------------------------------
         
+        wrapper.dataset.continuous=String(isContinuous);
+        window.KissBilingual?.enhance(wrapper);
         window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper;
     }
@@ -442,6 +445,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         bubble.textContent = content; 
         bubbleRow.appendChild(bubble);
         wrapper.appendChild(bubbleRow);
+        wrapper.dataset.continuous=String(isContinuous);
+        window.KissBilingual?.enhance(wrapper);
         window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper;
     }
@@ -460,6 +465,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
                 }
             });
         }
+        wrapper.dataset.continuous=String(isContinuous);
+        window.KissBilingual?.enhance(wrapper);
         window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper;
     }
@@ -475,6 +482,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         if (callInviteMatch) bubbleText = `${callInviteMatch[1]}向${callInviteMatch[2]}发起了${callInviteMatch[3]}通话`;
         if (callRejectMatch) bubbleText = `${callRejectMatch[1]}拒绝了${callRejectMatch[2]}的${callRejectMatch[3]}通话`;
         wrapper.innerHTML = `<div class="system-notification-bubble">${bubbleText}</div>`;
+        wrapper.dataset.continuous=String(isContinuous);
+        window.KissBilingual?.enhance(wrapper);
         window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper;
     }
@@ -677,6 +686,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
             });
         }
         
+        wrapper.dataset.continuous=String(isContinuous);
+        window.KissBilingual?.enhance(wrapper);
         window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper; // 直接返回，跳过后续的气泡组装逻辑
 
@@ -1131,7 +1142,9 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
     }
     if (isSent && message.deliveryFailed) window.KissSocial?.decorateFailed(wrapper, bubbleRow, message, chat);
     wrapper.prepend(bubbleRow);
-    window.KissReactions?.decorate(wrapper,message,chat);
+    wrapper.dataset.continuous=String(isContinuous);
+        window.KissBilingual?.enhance(wrapper);
+        window.KissReactions?.decorate(wrapper,message,chat);
     return wrapper;
 }
 

@@ -80,6 +80,8 @@ async function fetch(url,options={}) {
   let geminiAdapter=false;
   try {
     let body;try{body=typeof options.body==='string'?JSON.parse(options.body):null;}catch{}
+    if(body)body=window.KissBilingual?.prepareBody(body)||body;
+    if(body)options={...options,body:JSON.stringify(body)};
     if(roundBudget&&body?.messages)body.messages=[...body.messages,{role:'system',content:'【本轮数量上限】本次只返回最多'+socialRoundLimit(roundBudget)+'条帖子；若先前模板建议数量超过此上限，按本上限执行。只调整数量，不改变人设或内容规则。'}];
     if(replyScope&&body?.messages)body.messages=[...body.messages,{role:'system',content:socialReplyProtocol}];
     if(postTypeScope&&body?.messages)body.messages=[...body.messages,{role:'system',content:await monoTypeProtocol(postTypeScope)}];
@@ -2914,6 +2916,7 @@ async function generateForumPosts(requestedTab) {
                   authorAvatar: auth.avatar,
                   handle: monoAccountHandle({authorType:auth.type,authorId:auth.id,authorName:auth.name,handle:p.handle}),
                   content: p.content || "",
+                  translation: p.translation || p.chineseTranslation || "",
                   ...monoGeneratedImage(p.imageDescription, auth.type),
                   ...monoTypeFields(p,auth.type,auth.id),
                   timestamp: Date.now() - Math.random() * 7200000,
@@ -4471,6 +4474,7 @@ ${relationships.join("\n")}`;
           authorAvatar: auth.avatar,
           handle: monoAccountHandle({authorType:auth.type,authorId:auth.id,authorName:auth.name,handle:p.handle}),
           content: p.content || "",
+                  translation: p.translation || p.chineseTranslation || "",
                   ...monoGeneratedImage(p.imageDescription, auth.type),
                   ...monoTypeFields(p,auth.type,auth.id),
           timestamp: Date.now() - Math.random() * 7200000,
@@ -5117,6 +5121,7 @@ JSON 格式模板：
           authorAvatar: userInfo.avatar || '',
           handle: userInfo.handle,
           content: postData.content,
+          translation: postData.translation || postData.chineseTranslation || "",
           ...monoGeneratedImage(postData.imageDescription, userInfo.type),
           ...monoTypeFields(postData,userInfo.type,userInfo.id),
           // 生成最近7天内的时间，稍微错开
@@ -7271,10 +7276,10 @@ monoXIcon=function(name){if(name!=='retweet')return monoV8Icon(name);return '<sv
 const monoV8Resolve=resolveAuthorIdentity;
 resolveAuthorIdentity=function(name,record={}){const norm=v=>String(v||'').trim().replace(/^@/,'').toLowerCase();const candidates=(forumSettings.aiParticipants||[]).map(p=>{const c=forumCharacter(p.charId);return {p,c};});const exact=record.authorId!=null?candidates.find(({p})=>String(p.charId)===String(record.authorId)):null;const npc=(forumSettings.npcs||[]).find(n=>record.authorId!=null?String(n.id)===String(record.authorId):norm(n.name)===norm(name));const matches=candidates.filter(({p,c})=>[p.nickname,c?.name,c?.realName,c?.remarkName].filter(Boolean).some(n=>norm(n)===norm(name))||(record.handle&&p.handle&&norm(record.handle)===norm(p.handle)));const match=!npc?(exact||(matches.length===1?matches[0]:null)):null;if(match)return {type:'ai',id:match.p.charId,name:match.p.nickname||match.c?.remarkName||match.c?.realName||match.c?.name||name,avatar:match.p.avatar||match.c?.avatar||''};return monoV8Resolve(name,record);};
 monoRecordAvatar=function(p){if(p.authorType==='user')return forumImageValue((monoOwnPost(p)?forumSettings.userAvatar:p.authorAvatar)||monoAvatarFallback())||getDefaultAvatarDataUrl();const a=resolveAuthorIdentity(p.authorName,p);if(a.type==='ai')return forumImageValue(a.avatar)||getDefaultAvatarDataUrl();const n=(forumSettings.npcs||[]).find(n=>p.authorId!=null?String(n.id)===String(p.authorId):n.name===p.authorName);return forumImageValue(n?.avatar)||getDefaultAvatarDataUrl();};
-function monoCachedTranslation(r){if(!r)return;const text=String(r.content||'');if(r.monoChineseTranslation&&r.monoOriginalContent)return;const found=[];const original=text.replace(/[（(]([^（）()]*[\u3400-\u9fff][^（）()]*)[）)]/g,(whole,inside)=>{found.push(inside.trim());return '';}).trim();if(found.length&&monoForeignText(original)){r.monoOriginalContent=original;r.monoChineseTranslation ||= found.join('\n');}}
-function monoShownContent(r){monoCachedTranslation(r);return r?.monoOriginalContent||r?.content||'';}
-monoTranslationControl=function(p,cid=null){const r=cid==null?p:p.comments?.find(c=>Number(c.id)===Number(cid));monoCachedTranslation(r);if(!r||!monoForeignText(monoShownContent(r))||!r.monoChineseTranslation)return '';return `<button class="mono-post-translate" data-translation-key="${p.id}:${cid??'post'}" onclick="event.stopPropagation();ForumApp.monoTranslatePost(${Number(p.id)},${cid==null?'null':Number(cid)},this)"><span>显示翻译</span></button>`;};
-monoTranslatePost=function(id,cid,button){const p=forumPosts.find(p=>Number(p.id)===Number(id)),r=cid==null?p:p?.comments?.find(c=>Number(c.id)===Number(cid));if(!r)return;monoCachedTranslation(r);const scope=button.closest('.mono-x-comment,.mono-x-post,.mono-x-detail-post'),text=scope?.querySelector('.mono-x-text,.mono-x-detail-text');if(!text||!r.monoChineseTranslation)return;const translated=button.dataset.translated!=='true';text.innerHTML=formatForumContent(translated?r.monoChineseTranslation:monoShownContent(r));button.dataset.translated=String(translated);button.querySelector('span').textContent=translated?'显示原文':'显示翻译';};
+function monoCachedTranslation(r){if(!r)return;const text=String(r.content||'');const pair=window.KissBilingual?.split(text,r.translation||r.chineseTranslation);if(pair?.translation){r.monoOriginalContent=pair.original;r.monoChineseTranslation=pair.translation;return;}if(r.monoChineseTranslation){r.monoOriginalContent ||= text;return;}const found=[];const original=text.replace(/[（(]([^（）()]*[\u3400-\u9fff][^（）()]*)[）)]/g,(whole,inside)=>{found.push(inside.trim());return '';}).trim();if(found.length&&monoForeignText(original)){r.monoOriginalContent=original;r.monoChineseTranslation ||= found.join('\n');}}
+function monoShownContent(r){monoCachedTranslation(r);return window.KissBilingual?.auto()&&r?.monoChineseTranslation?r.monoChineseTranslation:r?.monoOriginalContent||r?.content||'';}
+monoTranslationControl=function(p,cid=null){const r=cid==null?p:p.comments?.find(c=>Number(c.id)===Number(cid));monoCachedTranslation(r);if(!r||!r.monoChineseTranslation)return '';return `<button class="mono-post-translate" data-translation-key="${p.id}:${cid??'post'}" onclick="event.stopPropagation();ForumApp.monoTranslatePost(${Number(p.id)},${cid==null?'null':Number(cid)},this)"><span>${window.KissBilingual?.auto()?'显示原文':'显示翻译'}</span></button>`;};
+monoTranslatePost=function(id,cid,button){const p=forumPosts.find(p=>Number(p.id)===Number(id)),r=cid==null?p:p?.comments?.find(c=>Number(c.id)===Number(cid));if(!r)return;monoCachedTranslation(r);const scope=button.closest('.mono-x-comment,.mono-x-post,.mono-x-detail-post'),text=scope?.querySelector('.mono-x-text,.mono-x-detail-text');if(!text||!r.monoChineseTranslation)return;const translated=button.dataset.translated?button.dataset.translated!=='true':!window.KissBilingual?.auto();text.innerHTML=formatForumContent(translated?r.monoChineseTranslation:(r.monoOriginalContent||r.content));button.dataset.translated=String(translated);button.querySelector('span').textContent=translated?'显示原文':'显示翻译';};
 function monoCommentHeat(p,c){if(c.views!=null&&Number.isFinite(Number(c.views))&&Number(c.views)>=0&&!c.monoViewsPlaceholder&&(Number(c.views)>0||c.monoViewsProvided))return;const seed=[p.id,c.id,c.authorName].join(':').split('').reduce((n,ch)=>(n*31+ch.charCodeAt(0))>>>0,0);const base=Math.max(Number(p.views)||0,(Number(c.likes)||0)*8,100);c.views=Math.max(Number(c.likes)||0,Math.round(base*(.18+(seed%48)/100)));c.monoSimulatedViews=true;}
 const monoV8Map=mapAndResolveComments;
 mapAndResolveComments=function(rows,p){const out=monoV8Map(rows,p);out.forEach(c=>{monoCachedTranslation(c);monoCommentHeat(p,c);});return out;};

@@ -722,6 +722,7 @@ function initTextareaSearchReplace(toolbarId, textareaId) {
 async function saveSettingsFromSidebar() {
     const e = db.characters.find(e => e.id === currentChatId);
     if (e) {
+        if(window.KissIMessage&&!KissIMessage.validate())return;
         if(window.KissSettingsV2&&(!await KissSettingsV2.resolveZones()||!KissSettingsV2.validate()))return;
         let roleClock;try{roleClock=window.KissClock?.readSettings();}catch(error){showToast(error.message);return;}
         if(roleClock){e.timeZone=roleClock.timeZone;e.timeZoneCity=roleClock.timeZoneCity;window.KissClock.setUserZone(roleClock.userTimeZone,roleClock.userTimeZoneCity);}
