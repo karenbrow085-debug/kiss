@@ -62,6 +62,7 @@
       const status = el.querySelector('.kt-card-state'); if (status) status.innerHTML = stateHtml(row.session);
     }
   }
+  function restore(){refresh();const s=active();if(s)adapter?.restore?.(s).catch(e=>notify('共听记录已恢复，音乐准备失败：'+e.message));}
   function nativeEvent(c, text, session) {
     c.history ||= [];
     c.history.push({id:'msg_'+uid(), role:'system', type:'hearu-session-event', content:text, timestamp:Date.now(), togetherSessionId:session.id});
@@ -113,7 +114,7 @@
     if (!result) return false;
     refresh();
     if (decision === 'accept') {
-      adapter?.activate?.(result.c.id, result.session.song).catch(error => notify('一起听已连接，播放需要重试：'+error.message));
+      adapter?.activate?.(result.c.id, result.session.song,result.session.id).catch(error => {if(error.name!=='AbortError')notify('一起听已连接，播放需要重试：'+error.message);});
       Promise.resolve(root.KissTogetherSky?.run('accept', result.c, result.session)).finally(refresh);
     }
     return true;
@@ -132,6 +133,7 @@
   }
   function isActive(id) { return !!active(id); }
   async function capture(c) {
+    await root.PhoneBackup?.hydrateChat?.(c);
     const record = await adapter?.memory?.(c.id);
     if (record) memory.set(String(c.id), record);
     return {roleId:String(c.id), pending:(c.hearuTogether?.sessions || []).filter(s => s.status === 'pending' && s.sender === 'user').map(s => s.id), activeId:active(c.id)?.id || null};
@@ -168,7 +170,8 @@
     if (!isActive(id)) throw Error('当前没有与这位角色一起听');
     if (context?.activeId !== active(id)?.id) throw Error('一起听会话已变化，请重新回复后再操作');
     if (!['play_now','share'].includes(type)) throw Error('不支持的一起听动作');
-    return adapter.action(id, {...action,type}, guard);
+    const sessionGuard=()=>{guard();if(active(id)?.id!==context.activeId)throw Object.assign(Error('一起听已结束，已取消迟到的音乐动作'),{name:'AbortError'});};
+    return adapter.action(id, {...action,type}, sessionGuard);
   }
   async function consume(text, c, context, guard) {
     const jobs = [];
@@ -204,15 +207,15 @@
     return journal;
   }
   function stateHtml(s) {
-    if(s.status==='pending')return '<em aria-label="等待回应">same song, same moment.</em>';
+    if(s.status==='pending')return '<svg class="kt-tagline" viewBox="0 0 96 14" aria-label="等待回应" role="img"><text x="96" y="11" text-anchor="end" textLength="88" lengthAdjust="spacingAndGlyphs" font-family="Georgia,Times New Roman,serif" font-size="8.5" font-style="italic" fill="#9993a4">same song, same moment.</text></svg>';
     const text = {pending:'等待回应',active:'正在一起听',declined:'本次未加入',ended:'一起听已结束',superseded:'邀请已失效'}[s.status];
-    return (s.status === 'active' ? '<span class="kt-card-wave"><i></i><i></i><i></i></span>' : '')+esc(text);
+    return (s.status === 'active' ? '<span class="kt-card-wave"><i></i><i></i><i></i></span>' : '')+`<svg class="kt-state-label" viewBox="0 0 ${text.length*8.5} 14" role="img" aria-label="${esc(text)}"><text x="${text.length*8.5}" y="11" text-anchor="end" font-family="Arial,PingFang SC,sans-serif" font-size="8.5" fill="#9b96a7">${esc(text)}</text></svg>`;
   }
-  const butterfly = '<svg class="kt-butterfly" viewBox="0 0 60 66" fill="none" stroke="currentColor" stroke-width=".85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 43C23 20 9 18 3 17c6 8 11 26 29 26ZM33 41C27 16 42 7 50 3c-4 12 3 28-17 38ZM33 42c14-6 21 5 19 15-8 4-17-3-19-15ZM30 41C15 28 12 42 19 52c7 5 11-3 11-11Z"/><path d="M27 33c4 9 8 16 16 25M28 34c-2-7-5-12-10-16M29 33c0-7 1-12 4-17M32 43l-8 5M36 48l11 3"/></svg>';
+  const butterfly = '<img class="kt-butterfly" src="assets/hearu/butterfly-reference.svg" alt="" aria-hidden="true">';
 
   function cardHtml(session, c) {
     const song=session.song;
-    return `<button type="button" class="kt-invite-card" data-together-session="${esc(session.id)}" aria-label="一起听：${esc(song.title)}"><span class="kt-art-column"><img class="kt-art" src="${esc(image(song.coverUrl))}" alt=""><span class="kt-side">• &nbsp; SIDE A &nbsp; •<em>for us</em></span></span><span class="kt-card-copy"><span class="kt-brand">HearU<small>TOGETHER</small></span><strong>${esc(song.title)}</strong><span class="kt-artist">${esc(song.artist)}</span>${butterfly}</span><span class="kt-pair"><img src="${esc(image(c.avatar))}" alt="角色头像"><img src="${esc(image(c.myAvatar))}" alt="用户头像"></span><span class="kt-card-state">${stateHtml(session)}</span></button>`;
+    return `<button type="button" class="kt-invite-card" data-together-session="${esc(session.id)}" aria-label="一起听：${esc(song.title)}"><span class="kt-art-column"><img class="kt-art" src="${esc(image(song.coverUrl))}" alt=""><svg class="kt-side" viewBox="0 0 68 20" aria-hidden="true"><text x="34" y="8" text-anchor="middle" font-family="Georgia,Times New Roman,serif" font-size="7.5" letter-spacing="1.1" fill="#9592a5">•  SIDE A  •</text><text x="34" y="18" text-anchor="middle" font-family="Georgia,Times New Roman,serif" font-size="9" font-style="italic" letter-spacing=".6" fill="#9592a5">for us</text></svg></span><span class="kt-card-copy"><svg class="kt-brand" viewBox="0 0 76 27" aria-hidden="true"><text x="0" y="13" textLength="32" lengthAdjust="spacingAndGlyphs" font-family="Georgia,Times New Roman,serif" font-size="14.5" font-style="italic" fill="#37343d">HearU</text><text x="0" y="22" textLength="37" lengthAdjust="spacingAndGlyphs" font-family="Georgia,Times New Roman,serif" font-size="4.5" letter-spacing="1.2" fill="#9994a7">TOGETHER</text></svg><strong>${esc(song.title)}</strong><span class="kt-artist">${esc(song.artist)}</span>${butterfly}</span><span class="kt-pair"><img src="${esc(image(c.avatar))}" alt="角色头像"><img src="${esc(image(c.myAvatar))}" alt="用户头像"></span><span class="kt-card-state">${stateHtml(session)}</span></button>`;
   }
   function renderCard(message) {
     const row=find(message.sessionId); if (!row) return null;
@@ -265,8 +268,8 @@
     await transaction(()=>{const latest=active();if(latest?.id===s.id && latest.events.at(-1)?.songId!==snapshot.song.songId)latest.events.push({at:Date.now(),songId:snapshot.song.songId,title:snapshot.song.title,artist:snapshot.song.artist});},[character(s.roleId)]).catch(()=>{});
   }
   root.KissTogether={invite,respond,end,confirmEnd,openChat,active,isActive,unlocked,capture,prompt,consume,applyAction,summaryMessages,journalContext,journalSaved,publishSummary,cardHtml,renderCard,showInvite,chooseAndInvite,character,image,notify,
-    ending:()=>ending,sharedMemory,restore:refresh,
-    attach(value){adapter=value;refresh();},
+    ending:()=>ending,sharedMemory,restore,
+    attach(value){adapter=value;restore();},
     get playback(){return adapter?.now?.() || null;},
     controls:{toggle:()=>adapter?.toggle?.(),next:()=>adapter?.next?.(1),previous:()=>adapter?.next?.(-1),openPlayer:()=>adapter?.openPlayer?.(active()?.roleId)},
     playbackChanged,

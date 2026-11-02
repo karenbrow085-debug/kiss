@@ -1,4 +1,4 @@
-import * as player from "./music/player.js?v=20261022-kiss-icons";
+import * as player from "./music/player.js?v=20261103-audit-1";
 import { apiRequest, API_BASE, musicLoginUrl, netease, readAccount, accountSnapshot, homeFeed, qrCreate, qrCheck, logout, allPlaylists, intelligenceSongs, fmSongs, privateDjSongs } from "./lib/api.js?v=kiss-3";
 const icon = (path) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
@@ -70,7 +70,11 @@ let database,
   busy = new Set(),
   saving = Promise.resolve(),
   initialized = false;
-const roomsCache = new Map();
+const roomsCache = new Map(),roomLoads=new Map();
+let playbackRoleId=null;try{playbackRoleId=localStorage.getItem('hearu.playbackRole.v1')||null;}catch{}
+function setPlaybackOwner(id){playbackRoleId=String(id);try{localStorage.setItem('hearu.playbackRole.v1',playbackRoleId);}catch{}}
+function playbackRoom(){const id=window.KissTogether?.active()?.roleId||playbackRoleId||roleId;return roomsCache.get(String(id))||(!window.KissTogether?.active()?room:null);}
+function canControlPlayback(target){const id=window.KissTogether?.active()?.roleId;return !id||String(id)===String(target?.id);}
 const generations = new Map();
 const chatDrafts = new Map();
 let selectedLyrics = new Set(),
@@ -114,7 +118,7 @@ function storeRoom(record) {
   preserveSongThoughts(record);
   if(window.kissCleanupLocked)return Promise.resolve();
   roomsCache.set(record.id, record);
-  if(record===room) player.queueChanged();
+  if(record===playbackRoom()) player.queueChanged();
   const copy = structuredClone(record);
   saving = saving
     .catch(() => {})
@@ -130,31 +134,20 @@ function storeRoom(record) {
   return saving;
 }
 async function readRoom(id) {
-  id = String(id);
-  if (roomsCache.has(id)) return roomsCache.get(id);
-  await ready;
-  await saving;
-  return new Promise((resolve, reject) => {
-    const r = database
-      .transaction("rooms")
-      .objectStore("rooms")
-      .get(String(id));
-    r.onsuccess = () => {
-      const value = r.result || {
-        id: String(id),
-        messages: [],
-        queue: [],
-        song: null,
-        position: 0,
-        tab: "listen",
-      };
-      delete value.translating;
-      ensureLibraries(value);
-      roomsCache.set(id, value);
-      resolve(value);
-    };
-    r.onerror = () => reject(r.error);
+ id=String(id);if(roomsCache.has(id))return roomsCache.get(id);if(roomLoads.has(id))return roomLoads.get(id);
+ const pending=(async()=>{
+  await ready;await saving;if(roomsCache.has(id))return roomsCache.get(id);
+  return new Promise((resolve,reject)=>{
+   const r=database.transaction('rooms').objectStore('rooms').get(id);
+   r.onsuccess=()=>{
+    const value=roomsCache.get(id)||r.result||{id,messages:[],queue:[],song:null,position:0,tab:'listen'};
+    delete value.translating;ensureLibraries(value);roomsCache.set(id,value);resolve(value);
+   };
+   r.onerror=()=>reject(r.error||Error('聊天记录读取失败，请重试'));
   });
+ })();
+ roomLoads.set(id,pending);
+ try{return await pending;}finally{if(roomLoads.get(id)===pending)roomLoads.delete(id);}
 }
 function ensureLibraries(target) {
   if (!target.libraries) {
@@ -298,7 +291,7 @@ async function openRole(id) {
   room = record;
   listeningCursor=null;
   const activePlayer=player.getState();
-  if(activePlayer.song && !activePlayer.closed){room.song=withSavedSongThought(room,activePlayer.song);room.position=player.positionMs();room.lyrics=activePlayer.lyrics || [];}
+  if(activePlayer.song && !activePlayer.closed && canControlPlayback(room) && (!playbackRoleId||String(playbackRoleId)===String(id))){room.song=withSavedSongThought(room,activePlayer.song);room.position=player.positionMs();room.lyrics=activePlayer.lyrics || [];}
   if (String(id)!=="__solo__") { const wasListed=room.listed;room.listed=true;listedIds.add(String(id));if(!wasListed)await persist(); }
   tab = room.tab || "listen";
   if (!player.getState().song && room.song) player.warm(room.song,room.position);
@@ -872,71 +865,70 @@ function updatePlayer() {
 player.subscribe((state, kind) => {
   if (!initialized) return;
   sampleListening(state);
+  const owner=playbackRoom();
   if (
-    room &&
+    owner &&
     state.song &&
-    String(state.song.songId) === String(room.song?.songId)
+    String(state.song.songId) === String(owner.song?.songId)
   ) {
-    room.song = withSavedSongThought(room, { ...room.song, ...state.song });
+    owner.song = withSavedSongThought(owner, { ...owner.song, ...state.song });
     if (state.lyrics.length) {
-      room.lyrics = state.lyrics;
+      owner.lyrics = state.lyrics;
       if (
-        view === "lyrics" &&
+        owner===room && view === "lyrics" &&
         root.querySelectorAll(".hu-full-line").length !== state.lyrics.length
       )
         renderLyrics();
     }
-    room.position = player.positionMs();
-    if (kind !== "time") persist().catch((e) => notify(e.message));
+    owner.position = player.positionMs();
+    if (kind !== "time") storeRoom(owner).catch((e) => notify(e.message));
   }
   updatePlayer();
 });
 player.setQueueProvider(() => nextLocalSong(), async () => {
-  if (!room) return;
-  if(room.queue.length) await advance(1,true);
+  const owner=playbackRoom();if(owner?.queue.length)await advance(1,true,owner);
 });
 setInterval(() => {
-  if (room) {
-    const s = player.getState();
-    if (s.song && String(s.song.songId) === String(room.song?.songId)) {
-      room.position = player.positionMs();
-      persist().catch(() => {});
-    }
-  }
-}, 5000);
+ const owner=playbackRoom(),s=player.getState();
+ if(owner&&s.song&&String(s.song.songId)===String(owner.song?.songId)){owner.position=player.positionMs();storeRoom(owner).catch(()=>{});}
+},5000);
 function recordSongSwitch(target,song,previous,turnId=null){
   if(!previous || String(previous.songId)===String(song.songId) || target.id==='__solo__')return;
   const last=target.messages.at(-1);
   if(last?.songSwitch && String(last.songSwitch.songId)===String(song.songId))return;
   target.messages.push({role:'system',content:'切换歌曲：'+song.title+' · '+song.artist,songSwitch:{songId:song.songId,title:song.title,artist:song.artist},at:Date.now(),turnId});
 }
-async function playSong(s, task) {
+async function playSong(s, task, target=room) {
   task?.check();
-  if (!room) throw Error("请先选择联系人");
-  if (generations.get(roleId)?.kind === "thought") stopGeneration(roleId);
-  if(task?.switchRecorded!==true)recordSongSwitch(room,s,player.getState().song || room.song,task?.turnId);
-  room.song = withSavedSongThought(room, { ...s, addedBy: s.addedBy || "you" });
-  rememberSong(room, room.song, room.song.addedBy);
-  room.position = 0;
-  room.lyrics = [];
-  const playback=player.play(s, 0, { signal: task?.controller.signal });
-  await persist();
+  if (!target) throw Error("请先选择联系人");
+  if(!canControlPlayback(target))throw Error("正在与另一位角色一起听，请先结束当前共听再播放");
+  setPlaybackOwner(target.id);
+  if (generations.get(target.id)?.kind === "thought") stopGeneration(target.id);
+  if(task?.switchRecorded!==true)recordSongSwitch(target,s,player.getState().song || target.song,task?.turnId);
+  target.song = withSavedSongThought(target, { ...s, addedBy: s.addedBy || "you" });
+  rememberSong(target, target.song, target.song.addedBy);
+  target.position = 0;
+  target.lyrics = [];
+  const playback=player.play(s, 0, { signal: task?.controller.signal }).then(()=>null,error=>error);
+  await storeRoom(target);
   refreshView();
   task?.check();
-  await playback;
+  const playbackError=await playback;if(playbackError)throw playbackError;
   task?.check();
   if (player.getState().error) throw new Error(player.getState().error);
 }
-async function advance(dir, auto = false) {
-  if (auto && room.repeat) return playSong(room.song);
-  if (dir === 1 && room.shuffle && room.queue.length > 1) {
-    const next=nextLocalSong();delete room.shuffleNext;return playSong(next);
+async function advance(dir, auto = false, target=playbackRoom()||room) {
+  if(!target)throw Error("请先选择联系人");
+  if (auto && target.repeat) return playSong(target.song,undefined,target);
+  if (dir === 1 && target.shuffle && target.queue.length > 1) {
+    const next=nextLocalSong(target);delete target.shuffleNext;return playSong(next,undefined,target);
   }
-  if (!room.queue.length) throw Error("先添加歌曲到列表");
-  const i = room.queue.findIndex(
-    (s) => room.song?.itemId ? s.itemId===room.song.itemId : String(s.songId) === String(room.song?.songId),
+  if (!target.queue.length) throw Error("先添加歌曲到列表");
+  const i = target.queue.findIndex(
+    (s) => target.song?.itemId ? s.itemId===target.song.itemId : String(s.songId) === String(target.song?.songId),
   );
-  await playSong(room.queue[(i + dir + room.queue.length) % room.queue.length]);
+  const index=i<0?(dir<0?target.queue.length-1:0):(i+dir+target.queue.length)%target.queue.length;
+  await playSong(target.queue[index],undefined,target);
 }
 function settings() {
   if(!room || roleId==='__solo__')return;
@@ -1244,7 +1236,7 @@ function generationTask(id) {
 }
 function nowPlaying(target) {
   const state=player.getState();
-  if((target!==room && !window.KissTogether?.isActive(target.id)) || !state.song || state.closed)return {listening:false};
+  if(!canControlPlayback(target) || (target!==room && !window.KissTogether?.isActive(target.id)) || !state.song || state.closed)return {listening:false};
   if(!state.playing && state.pausedAt && Date.now()-state.pausedAt>600000)return {listening:false};
   const position=player.positionMs(),lines=state.lyrics || [],index=lines.findLastIndex(l=>l.timeMs<=position);
   return {listening:true,song:songForModel(state.song),positionMs:position,playing:state.playing,previous:lines[index-1] || null,current:lines[index] || null,next:lines[index+1] || null};
@@ -1263,7 +1255,7 @@ async function musicAction(action, target, task) {
   }
   if (type === "now_playing") return nowPlaying(target);
   if (type === "queue") return target.queue;
-  if(type==="seek"){if(target!==room || !player.getState().song)throw Error("当前没有正在听的歌");const line=player.getState().lyrics.find(l=>l.index===Number(action.lineIndex));if(!line)throw Error("歌词行号不存在，请先读取歌词");task.check();player.seek(line.timeMs);target.position=line.timeMs;await storeRoom(target);return {seeked:true,line};}
+  if(type==="seek"){if(!canControlPlayback(target) || (target!==room&&!window.KissTogether?.isActive(target.id)) || !player.getState().song)throw Error("当前没有正在听的歌");const line=player.getState().lyrics.find(l=>l.index===Number(action.lineIndex));if(!line)throw Error("歌词行号不存在，请先读取歌词");task.check();player.seek(line.timeMs);target.position=line.timeMs;await storeRoom(target);return {seeked:true,line};}
   if (type === "search") {
     const r = await api(
       "/search?q=" + encodeURIComponent(action.query || "") + "&limit=10",
@@ -1346,7 +1338,7 @@ async function musicAction(action, target, task) {
   }
   if (type === "play_now") {
     const wasPlaying =
-      (target === room || window.KissTogether?.isActive(target.id)) && (player.getState().playing || !!task.fromEnded);
+      canControlPlayback(target) && (target === room || window.KissTogether?.isActive(target.id)) && (player.getState().playing || !!task.fromEnded);
     const item={...song,itemId:crypto.randomUUID()};
     const at=target.queue.findIndex(s=>String(s.songId)===String(target.song?.songId));
     target.queue.splice(Math.max(0,at+1),0,item);
@@ -1358,9 +1350,8 @@ async function musicAction(action, target, task) {
     await storeRoom(target);
     if (wasPlaying) {
       task.check();
-      if(target===room) await playSong(item, task);
-      else await player.play(item,0,{signal:task.controller.signal});
-    } else if (target === room) { player.warm(song,0); refreshView(); }
+      await playSong(item,task,target);
+    } else if (canControlPlayback(target) && (target===room||window.KissTogether?.isActive(target.id))) { setPlaybackOwner(target.id);player.warm(item,0);refreshView(); }
     return { song, playing: wasPlaying, prepared: !wasPlaying };
   }
 }
@@ -2164,10 +2155,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 window.addEventListener("pagehide", () => {
-  if (room) {
-    if (player.getState().song) room.position = player.positionMs();
-    persist().catch(() => {});
-  }
+  const owner=playbackRoom();if(owner){if(player.getState().song)owner.position=player.positionMs();storeRoom(owner).catch(()=>{});}
 });
 ready
   .then(() => {
@@ -2194,8 +2182,16 @@ function bottomHtml(){const selected=selectedPage();return `<nav class="hu-botto
 function updateMini(el){const s=player.getState();const signature=JSON.stringify([s.song?.songId,s.playing,s.song?.note,s.song?.pickedBy,s.song?.coverUrl]);if(el.dataset.signature===signature)return;el.dataset.signature=signature;el.innerHTML=s.song?`<button data-page="listen"><img src="${esc(s.song.coverUrl || 'assets/hearu.svg')}" alt=""><span><strong>${esc(s.song.title)}</strong><small>${esc(s.song.pickedBy ? s.song.pickedBy+' 为你选的 · '+(s.song.note || s.song.artist) : s.song.artist)}</small></span></button><button data-hu="mini-toggle" aria-label="播放或暂停">${s.playing?icons.pause:icons.play}</button>`:'';el.hidden=!s.song;}
 function decorate(){if(root.hidden)return;if(view!=='room')delete root.dataset.hearuTab;if(!root.querySelector('.hu-bottom')){const page=selectedPage();globalPage=page;const nav=document.createElement('div');nav.innerHTML=bottomHtml();root.append(nav.firstElementChild);if(!['listen','room','lyrics','thought'].includes(view)){const mini=document.createElement('div');mini.className='hu-mini';root.insertBefore(mini,root.querySelector('.hu-bottom'));updateMini(mini);}}}
 new MutationObserver(decorate).observe(root,{childList:true});
-function nextLocalSong(){if(!room || !room.queue.length)return null;if(room.repeat)return room.song;const i=room.queue.findIndex(s=>s.itemId ? s.itemId===room.song?.itemId : String(s.songId)===String(room.song?.songId));if(room.shuffle){const list=room.queue.filter(s=>String(s.songId)!==String(room.song?.songId));if(!list.length)return room.queue[0];room.shuffleNext ||= list[Math.floor(Math.random()*list.length)].songId;return list.find(s=>s.songId===room.shuffleNext)||list[0];}return room.queue[(i+1)%room.queue.length];}
-async function ensureRoom(){if(!room){const last=localStorage.getItem('hearu.lastRole.v2'),id=last && character(last) && window.KissTogether?.unlocked(last)?last:'__solo__';room=await readRoom(id);roleId=id;const active=player.getState();if(active.song && !active.closed){room.song=withSavedSongThought(room,active.song);room.lyrics=active.lyrics;room.position=player.positionMs();}else if(room.song)player.warm(room.song,room.position);}return room;}
+function nextLocalSong(target=playbackRoom()){if(!target || !target.queue.length)return null;if(target.repeat)return target.song;const i=target.queue.findIndex(s=>s.itemId ? s.itemId===target.song?.itemId : String(s.songId)===String(target.song?.songId));if(target.shuffle){const list=target.queue.filter(s=>String(s.songId)!==String(target.song?.songId));if(!list.length)return target.queue[0];target.shuffleNext ||= list[Math.floor(Math.random()*list.length)].songId;return list.find(s=>s.songId===target.shuffleNext)||list[0];}return target.queue[(i+1)%target.queue.length];}
+async function ensureRoom(){
+ if(!room){
+  const last=localStorage.getItem('hearu.lastRole.v2'),id=last&&character(last)&&window.KissTogether?.unlocked(last)?last:'__solo__';room=await readRoom(id);roleId=id;
+  const active=player.getState();
+  if(active.song&&!active.closed&&canControlPlayback(room)&&(!playbackRoleId||String(playbackRoleId)===String(id))){room.song=withSavedSongThought(room,active.song);room.lyrics=active.lyrics;room.position=player.positionMs();}
+  else if((!active.song||active.closed)&&room.song&&canControlPlayback(room)){setPlaybackOwner(id);player.warm(room.song,room.position);}
+ }
+ return room;
+}
 function liveListeningHtml(){return `<div class="hu-live-floating">${room.liveHidden?'<button class="hu-live-restore" data-hu="show-live">NOW LISTENING</button>':'<section class="hu-live-listening" aria-label="共听播放条"></section><button class="hu-live-hide" data-hu="hide-live" aria-label="隐藏播放条">×</button>'}</div>`;}
 function updateLiveListening(el){
   const s=player.getState(),song=s.song || room?.song,lines=s.lyrics?.length?s.lyrics:lyricsFor(),position=player.positionMs(),index=lines.findLastIndex(l=>l.timeMs<=position);
@@ -2395,7 +2391,7 @@ let listeningCursor=null;
 function listeningDay(at){const d=new Date(at);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function listeningStats(target){return target.listeningStats ||= {version:1,totalMs:0,songIds:[],firstAt:null,days:{}};}
 function sampleListening(state,now=Date.now(),position=player.positionMs()){
- const owner=room, audio=document.querySelector('audio[data-hearu="player"]');
+ const owner=playbackRoom(), audio=document.querySelector('audio[data-hearu="player"]');
  if(window.KissTogether && !KissTogether.isActive(owner?.id)){listeningCursor=null;return;}
  const active=!!(owner && owner.id!=='__solo__' && state.song && !state.closed && state.playing && !state.loading && !state.buffering && !audio?.seeking);
  const id=String(state.song?.songId||'');const prev=listeningCursor;
@@ -2627,23 +2623,35 @@ if(window.KissTogether){
      else song=snapshot()?.song;
      check();if(!song)throw Error('没有找到这首歌');return song;
    },
-   activate:async(id,song)=>{
-     await openRole(String(id));
-     const session=window.KissTogether.active(id);if(!session)return;
-     if(String(player.getState().song?.songId)!==String(song.songId))await playSong(song);
+   activate:async(id,song,sessionId)=>{
+     if(window.KissTogether.active(id)?.id!==sessionId)return;
+     const target=await readRoom(id);
+     if(window.KissTogether.active(id)?.id!==sessionId)return;
+     setPlaybackOwner(id);target.listed=true;listedIds.add(String(id));
+     const current=player.getState(),same=String(current.song?.songId)===String(song.songId)&&!current.closed;
+     target.song=withSavedSongThought(target,song);target.position=same?player.positionMs():0;target.lyrics=same?current.lyrics:[];await storeRoom(target);
+     if(window.KissTogether.active(id)?.id!==sessionId)return;
+     if(String(player.getState().song?.songId)!==String(song.songId)||player.getState().closed)await playSong(song,undefined,target);
      else if(!player.getState().playing)player.toggle();
    },
    action:async(id,action,check=()=>{})=>{
      check();const target=await readRoom(id),controller=new AbortController();
      const task={turnId:crypto.randomUUID(),controller,check};
-     const result=await musicAction(action,target,task);check();
-     if(target===room&&view==='room'&&tab==='chat')renderRoom();return result;
+     const cancelStale=()=>{try{check();}catch(e){controller.abort(e);}};
+     window.addEventListener('kiss-together-change',cancelStale);
+     try{const result=await musicAction(action,target,task);check();if(target===room&&view==='room'&&tab==='chat')renderRoom();return result;}
+     finally{window.removeEventListener('kiss-together-change',cancelStale);}
    },
    toggle:()=>player.toggle(),
    next:async dir=>{
-     const id=window.KissTogether.active()?.roleId;if(!id)return;
-     if(String(roleId)!==String(id))await openRole(id);
-     return advance(dir);
+     const session=window.KissTogether.active();if(!session)return;
+     const target=await readRoom(session.roleId);if(window.KissTogether.active()?.id!==session.id)return;
+     return advance(dir,false,target);
+   },
+   restore:async session=>{
+     const target=await readRoom(session.roleId);if(window.KissTogether.active()?.id!==session.id)return;
+     setPlaybackOwner(session.roleId);
+     if(!player.getState().song||player.getState().closed)await player.warm(target.song||session.song,target.position||0);
    },
    openChat:async id=>{
      const c=character(id);if(!c)return;
