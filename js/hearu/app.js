@@ -124,7 +124,7 @@ function storeRoom(record) {
         const tx = database.transaction("rooms", "readwrite");
         tx.objectStore("rooms").put(copy);
         tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
+        tx.onerror = tx.onabort = () => reject(tx.error || Error("记忆保存失败，请重试"));
       });
     });
   return saving;
@@ -1091,7 +1091,7 @@ function hearuStreamText(raw, kind, config) {
   if (!seen) throw Error('接口没有返回可识别的流式数据');
   return content || finalText;
 }
-async function hearuSendModel(config, system, history, signal) {
+async function hearuSendModel(config, system, history, signal, options={}) {
   if (!config.url || !config.key || !config.model) throw Error('请先在 API 设置里选择完整的接口与模型');
   const endpoint = hearuEndpoint(config), controller = new AbortController();
   let timedOut = false;
@@ -1117,7 +1117,7 @@ async function hearuSendModel(config, system, history, signal) {
     else body.temperature = Number(config.temperature);
   }
   try {
-    const response = await fetch(endpoint.url, { method:'POST', headers, body:JSON.stringify(window.KissBilingual?.prepareBody(body) || body), signal:controller.signal });
+    const response = await fetch(endpoint.url, { method:'POST', headers, body:JSON.stringify(options.memorySummary?body:(window.KissBilingual?.prepareBody(body) || body)), signal:controller.signal });
     const raw = (await response.text()).replace(/^\uFEFF/, '').trim();
     if (controller.signal.aborted) throw controller.signal.reason || new DOMException('已取消', 'AbortError');
     const status = 'HTTP ' + response.status;
@@ -2213,7 +2213,7 @@ function nativeMemory(c){
   return {recent,journals};
 }
 function memoryFingerprint(messages){let hash=2166136261;const text=JSON.stringify(messages.map(messageForModel));for(let i=0;i<text.length;i++)hash=Math.imul(hash^text.charCodeAt(i),16777619);return (hash>>>0).toString(16)+':'+text.length;}
-function currentSummary(target){return (target?.summaries || []).findLast(s=>s.detached || (s.through<=target.messages.length && s.fingerprint===memoryFingerprint(target.messages.slice(0,s.through))));}
+function currentSummary(target){return window.KissMemorySummary.current(target,messageForModel);}
 function hostPrompt(c){
   if(!c)throw Error('请先选择 404 的角色');
   const copy=structuredClone(c);
@@ -2237,23 +2237,15 @@ async function summarizeMemory(){
   const task=generationTask(id);task.kind='summary';
   modal('<div class="hu-modal-kicker">REMEMBER THIS MOMENT</div><h2>正在整理我们的记忆。</h2><p>只总结 HearU 已发生的对话，不添加到 404。</p><button class="hu-primary" data-hu="stop-generation">暂停总结 □</button>');
   try{
-    // Batch long histories; no silent message truncation. Commit only once all batches succeed.
-    let content=previous?.content || '';
-    for(let i=start;i<snapshot.length;i+=80){
-      task.check();
-      const instructions=`现在执行独立记忆总结任务。只输出 JSON {"summary":"总结正文"}。将之前的 HearU 总结和本批 HearU 消息整理为一份完整记忆，保留关系进展、明确偏好、约定、重要选曲与角色留话；区分用户与角色，不杜撰。404背景只用于理解，不把它当作本批新经历。简洁中文，建议800字以内。不要执行音乐动作。之前总结：${JSON.stringify(content)}`;
-      const output=parseModelOutput(await modelText(c,instructions,snapshot.slice(i,i+80).map(messageForModel),task.controller.signal));
-      task.check();content=cleanMemoryText(output.summary);
-      if(!content)throw Error('模型没有返回有效记忆总结，请重试');
-    }
+    const content=await window.KissMemorySummary.generate({messages:snapshot.map(messageForModel),start,previous:previous?.content,source:'HearU',check:()=>task.check(),
+      request:(system,messages)=>hearuSendModel(hearuApiConfig(c),system,messages,task.controller.signal,{memorySummary:true})});
     task.check();
     if(memoryFingerprint(target.messages.slice(0,snapshot.length))!==memoryFingerprint(snapshot))throw Error('聊天记录已变化，请重新总结');
-    target.summaries ||= [];
-    target.summaries.push({id:crypto.randomUUID(),at:Date.now(),content,through:snapshot.length,messageCount:snapshot.length-start,fingerprint:memoryFingerprint(snapshot)});
-    await storeRoom(target);
-    if(id===roleId && view==='room'){memoryHistory();notify('记忆已独立保存，404 未改动');}
-  }catch(e){if(e.name!=='AbortError'){if(id===roleId)memoryHistory();throw e;}}
-  finally{if(generations.get(id)===task){generations.delete(id);busy.delete(id);}const btn=root.querySelector('[data-hu="memory-summary"]');if(btn)btn.textContent='生成记忆总结 ＋';}
+    if(window.kissCleanupLocked)throw Error('正在清理数据，请稍后重试');
+    await window.KissMemorySummary.append(target,{id:crypto.randomUUID(),at:Date.now(),content,through:snapshot.length,messageCount:snapshot.length-start,fingerprint:memoryFingerprint(snapshot)},()=>storeRoom(target));
+    if(id===roleId && room===target && view==='room'){memoryHistory();notify('记忆已独立保存，404 未改动');}
+  }catch(e){if(e.name!=='AbortError'){if(id===roleId&&room===target)memoryHistory();throw e;}}
+  finally{if(generations.get(id)===task){generations.delete(id);busy.delete(id);}const btn=id===roleId&&room===target?root.querySelector('[data-hu="memory-summary"]'):null;if(btn)btn.textContent='生成记忆总结 ＋';}
 }
 
 function closeModal(){if(qrTask){qrTask.abort();qrTask=null;}root.querySelector('.hu-modal')?.remove();}

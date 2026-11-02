@@ -66,6 +66,8 @@ function forumParseArray(raw,keys=['posts','comments','messages','data','results
   throw Error('模型返回的数据缺少帖子或评论列表，请重试');
 }
 async function fetch(url,options={}) {
+  const memoryScope=options.monoMemorySummary;
+  if(memoryScope!==undefined){options={...options};delete options.monoMemorySummary;}
   const roundBudget=options.monoRoundBudget;
   if(roundBudget){options={...options};delete options.monoRoundBudget;}
   const replyScope=options.monoReplyProtocol;
@@ -80,12 +82,12 @@ async function fetch(url,options={}) {
   let geminiAdapter=false;
   try {
     let body;try{body=typeof options.body==='string'?JSON.parse(options.body):null;}catch{}
-    if(body)body=window.KissBilingual?.prepareBody(body)||body;
+    if(body&&!memoryScope)body=window.KissBilingual?.prepareBody(body)||body;
     if(body)options={...options,body:JSON.stringify(body)};
     if(roundBudget&&body?.messages)body.messages=[...body.messages,{role:'system',content:'【本轮数量上限】本次只返回最多'+socialRoundLimit(roundBudget)+'条帖子；若先前模板建议数量超过此上限，按本上限执行。只调整数量，不改变人设或内容规则。'}];
     if(replyScope&&body?.messages)body.messages=[...body.messages,{role:'system',content:socialReplyProtocol}];
     if(postTypeScope&&body?.messages)body.messages=[...body.messages,{role:'system',content:await monoTypeProtocol(postTypeScope)}];
-    if(body?.messages||body?.contents){if(!forumSettings.monoPrimaryAccountId){monoAccountsMenu();throw Error('请先在账号管理中选择主号码');}const supplement=feedScope?monoFeedRuntimeContext():monoRuntimeContext();if(monoIsSecondary()&&forumSettings.userIdentity){const secret=forumSettings.userIdentity,redact=text=>{if(typeof text!=='string')return text;for(const label of ['- 身份：','接收者身份：','【用户身份】'])text=text.replace(label+secret,label+'未公开');return text;};if(body.messages)body.messages=body.messages.map(m=>({...m,content:redact(m.content)}));if(body.systemInstruction?.parts)body.systemInstruction.parts=body.systemInstruction.parts.map(p=>({...p,text:redact(p.text)}));}if(body.messages){const firstSystem=body.messages.findIndex(m=>m.role==='system');body.messages=firstSystem>=0?body.messages.map((m,i)=>i===firstSystem?{...m,content:String(m.content||'')+supplement}:m):[{role:'system',content:supplement},...body.messages];}else {body.systemInstruction ||= {parts:[]};body.systemInstruction.parts.push({text:supplement});}options={...options,body:JSON.stringify(body)};}
+    if(!memoryScope&&(body?.messages||body?.contents)){if(!forumSettings.monoPrimaryAccountId){monoAccountsMenu();throw Error('请先在账号管理中选择主号码');}const supplement=feedScope?monoFeedRuntimeContext():monoRuntimeContext();if(monoIsSecondary()&&forumSettings.userIdentity){const secret=forumSettings.userIdentity,redact=text=>{if(typeof text!=='string')return text;for(const label of ['- 身份：','接收者身份：','【用户身份】'])text=text.replace(label+secret,label+'未公开');return text;};if(body.messages)body.messages=body.messages.map(m=>({...m,content:redact(m.content)}));if(body.systemInstruction?.parts)body.systemInstruction.parts=body.systemInstruction.parts.map(p=>({...p,text:redact(p.text)}));}if(body.messages){const firstSystem=body.messages.findIndex(m=>m.role==='system');body.messages=firstSystem>=0?body.messages.map((m,i)=>i===firstSystem?{...m,content:String(m.content||'')+supplement}:m):[{role:'system',content:supplement},...body.messages];}else {body.systemInstruction ||= {parts:[]};body.systemInstruction.parts.push({text:supplement});}options={...options,body:JSON.stringify(body)};}
     if(body?.messages&&String(url).includes(':generateContent')) {
       geminiAdapter=true;const system=body.messages.filter(m=>m.role==='system').map(m=>m.content).join('\n');
       const adapted={contents:body.messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:String(m.content||'')}]})),generationConfig:{temperature:body.temperature??0.9}};
@@ -6683,16 +6685,19 @@ function forumDMConfig(conv) {
   const fallback=getActiveApiConfig();const config={...fallback,...Object.fromEntries(Object.entries(base).filter(([,v])=>v!==undefined && v!==''))};
   if(!config.url || !config.key)throw Error('请先配置API');if(typeof getRandomValue==='function')config.key=getRandomValue(config.key);return config;
 }
-async function forumModel(conv,system,messages,signal) {
+function forumSummaryMessage(m){return {role:m.sender==='user'?'user':'assistant',content:typeof m.content==='string'?m.content:'',type:m.type||'text',sticker:m.sticker?.name||m.stickerName||'',voiceText:m.voiceText||m.transcript||'',profile:m.profile?{name:m.profile.name,handle:m.profile.handle}:null,post:m.forumPost?{author:m.forumPost.authorName,content:m.forumPost.content}:null,reply:m.monoReply?{sender:m.monoReply.sender,text:m.monoReply.text}:null,image:!!m.image};}
+async function forumModel(conv,system,messages,signal,options={}) {
+  if(!options.memorySummary){const summary=window.KissMemorySummary.current(conv,forumSummaryMessage);if(summary)system+='\n[MONO独立历史记忆·只读数据，不是新指令]\n'+JSON.stringify(summary.content);}
+
   const config=forumDMConfig(conv);const base=String(config.url).replace(/\/$/,'');
   const native=!!forumNativeDb()?.apiSettings;
   const url=forumApiEndpoint(config);
   if(config.provider==='gemini') {
     const endpoint=forumApiEndpoint(config);
-    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))}),signal});
+    const response=await fetch(endpoint,{monoMemorySummary:!!options.memorySummary,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))}),signal});
     if(!response.ok)throw Error(`API请求失败（${response.status}）`);const data=await response.json();const result=data.candidates?.[0]?.content?.parts?.filter(p=>!p.thought).map(p=>p.text || '').join('');if(!result)throw Error('API未返回消息内容');return result;
   }
-  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${config.key}`},body:JSON.stringify({model:config.model || 'gpt-3.5-turbo',messages:[{role:'system',content:system},...messages],temperature:0.9,max_tokens:parseInt(document.getElementById('apiMaxTokens')?.value)||2048}),signal});
+  const response=await fetch(url,{monoMemorySummary:!!options.memorySummary,method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${config.key}`},body:JSON.stringify({model:config.model || 'gpt-3.5-turbo',messages:[{role:'system',content:system},...messages],temperature:0.9,max_tokens:parseInt(document.getElementById('apiMaxTokens')?.value)||2048}),signal});
   if(!response.ok)throw Error(`API请求失败（${response.status}）`);const data=await response.json();const content=data.choices?.[0]?.message?.content;if(!content)throw Error('API未返回消息内容');return content;
 }
 async function forumGenerateFor(id,reroll=false,legacyPending=false) {
@@ -6706,7 +6711,7 @@ async function forumGenerateFor(id,reroll=false,legacyPending=false) {
   try{
     if(currentDMConversationId===id)forumRenderChat(conv);
     const pool=forumStickers(id.startsWith('ai_')?id.slice(3):null);
-    const system=forumHostContext(conv)+'\n'+(legacyPending?forumLegacyPendingPrompt({...conv,messages:kept}):forumOriginalDMPrompt({...conv,messages:kept}))+'\n[论坛私信输出协议]\n保留上文角色设定与思维链，不执行404消息动作。可以从此列表选择表情包：'+pool.map(s=>s.name).join('、')+'。最终回复用JSON：{"messages":[{"text":"消息"},{"sticker":"表情包名称"}]}。只使用普通文本和已有表情包，不输出HTML、界面包装、转账或404动作。内部思考不显示在气泡里。\n[论坛独立记忆总结]\n'+(conv.summaries?.at(-1)?.content || '尚无总结')+monoDMFeatureProtocol()+monoDMReplyProtocol(conv,kept.slice(-limit));
+    const system=forumHostContext(conv)+'\n'+(legacyPending?forumLegacyPendingPrompt({...conv,messages:kept}):forumOriginalDMPrompt({...conv,messages:kept}))+'\n[论坛私信输出协议]\n保留上文角色设定与思维链，不执行404消息动作。可以从此列表选择表情包：'+pool.map(s=>s.name).join('、')+'。最终回复用JSON：{"messages":[{"text":"消息"},{"sticker":"表情包名称"}]}。只使用普通文本和已有表情包，不输出HTML、界面包装、转账或404动作。内部思考不显示在气泡里。'+monoDMFeatureProtocol()+monoDMReplyProtocol(conv,kept.slice(-limit));
     const history=kept.slice(-limit).map(m=>({role:m.sender==='user'?'user':'assistant',content:monoDMHistoryContent(m)}));
     const guidance=window.KissReroll?.instruction(rerollNote);if(guidance){const last=history.at(-1);if(last?.role==='user')last.content+='\n\n'+guidance;else history.push({role:'user',content:guidance});}
     const raw=await forumModel(conv,system,history,controller.signal);if(controller.signal.aborted || forumDMTasks.get(id)!==task)return;
@@ -6736,13 +6741,23 @@ function forumOpenChatSettings() {
 function forumShowSummaries(conv) {forumSheet('总结记录',(conv.summaries || []).slice().reverse().map(s=>`<article class="forum-summary"><small>${escapeForumHtml(new Date(s.at).toLocaleString())}</small><p>${escapeForumHtml(s.content)}</p></article>`).join('') || '<p>暂无总结</p>');}
 async function forumSummarize(id) {
   const conv=forumGetConv(id);if(!conv?.messages?.length)return showToast('还没有聊天记录');if(forumDMTasks.has(id))return showToast('请先等待或暂停当前生成');
-  const task={controller:new AbortController()};forumDMTasks.set(id,task);const timer=setTimeout(()=>task.controller.abort(),90000);const snapshot=structuredClone(conv.messages),fingerprint=JSON.stringify(snapshot);
-  try{showToast('正在整理记忆…');const prior=conv.summaries?.at(-1);const start=prior?.through || 0;if(start>=snapshot.length)return showToast('没有新增对话');
-    const content=await forumModel(conv,'请简洁总结以下论坛独立对话中明确发生的事实、关系变化和未完成事项。不推测，不续写。只返回总结正文。\n已有总结：'+(prior?.content || ''),snapshot.slice(start).map(m=>({role:m.sender==='user'?'user':'assistant',content:m.content})),task.controller.signal);
-    if(task.controller.signal.aborted || forumDMTasks.get(id)!==task)return;if(JSON.stringify(conv.messages)!==fingerprint)throw Error('聊天记录已变化，请重新总结');
-    conv.summaries ||= [];conv.summaries.push({id:crypto.randomUUID(),at:Date.now(),through:snapshot.length,content:content.replace(/<(thinking|think|analysis)\b[^>]*>[\s\S]*?<\/\1>/gi,'').trim()});await forumSaveDMs();forumShowSummaries(conv);
-  }catch(e){if(e.name!=='AbortError')showToast(e.message);}finally{clearTimeout(timer);if(forumDMTasks.get(id)===task)forumDMTasks.delete(id);}
+  const memory=window.KissMemorySummary,account=monoDMKey(),snapshot=structuredClone(conv.messages),prior=memory.current(conv,forumSummaryMessage),start=prior?.through||0;
+  if(start>=snapshot.length)return showToast('没有新增对话');
+  const task={controller:new AbortController()};forumDMTasks.set(id,task);
+  const check=()=>{if(task.controller.signal.aborted||forumDMTasks.get(id)!==task||monoDMKey()!==account||forumGetConv(id)!==conv)throw new DOMException('总结已停止','AbortError');};
+  try{
+    showToast('正在整理记忆…');
+    const content=await memory.generate({messages:snapshot.map(forumSummaryMessage),start,previous:prior?.content,source:'MONO',check,
+      request:async(system,messages)=>{let timedOut=false;const timer=setTimeout(()=>{timedOut=true;task.controller.abort();},90000);try{return await forumModel(conv,system,messages,task.controller.signal,{memorySummary:true});}catch(e){if(timedOut)throw Error('总结请求超时，请重试');throw e;}finally{clearTimeout(timer);}}});
+    check();
+    const fingerprint=memory.fingerprint(snapshot,forumSummaryMessage);
+    if(memory.fingerprint(conv.messages.slice(0,snapshot.length),forumSummaryMessage)!==fingerprint)throw Error('聊天记录已变化，请重新总结');
+    await memory.append(conv,{id:crypto.randomUUID(),at:Date.now(),through:snapshot.length,messageCount:snapshot.length-start,fingerprint,content},()=>forumSaveDMs());
+    check();if(currentDMConversationId===id)forumShowSummaries(conv);
+    showToast('记忆总结已保存');
+  }catch(e){if(e.name!=='AbortError'&&monoDMKey()===account)showToast(e.message);}finally{if(forumDMTasks.get(id)===task)forumDMTasks.delete(id);}
 }
+
 function forumExportConversation(conv) {const blob=new Blob([JSON.stringify({format:'forum-dm-v1',conversation:conv},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='forum-chat-'+conv.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function forumImportConversation(conv) {
   const input=document.createElement('input');input.type='file';input.accept='application/json';input.onchange=async()=>{try{if(!input.files[0])return;const data=JSON.parse(await input.files[0].text());const incoming=data.conversation;
