@@ -52,3 +52,14 @@ test('two-image albums never create a phantom back card and keep image order whe
  const root=api.create({parts:photos().slice(0,2).map(data=>({type:'image',data}))});root.children[0].onclick();
  assert.equal(root.children[0].textContent,'收起 2');assert(root.children[1].children.every(card=>card.attrs['aria-hidden']==='false'));
 });
+
+test('centred rotation matches reference peeks: about 12px/24px at the upper edge and narrower below',()=>{
+ const api=albumSetup(),w=146,h=w*4/3;
+ const corner=(c,px,py)=>{const a=c.rotation*Math.PI/180;return {x:w/2+c.x+c.scale*(px*Math.cos(a)-py*Math.sin(a)),y:h/2+c.y+c.scale*(px*Math.sin(a)+py*Math.cos(a))}};
+ const first=api.stackLayout(6,0),near=first.cards[1],far=first.cards[2];
+ assert.equal(near.rotation,2);assert.equal(far.rotation,4);assert.equal(api.stackLayout(6,5).cards[4].rotation,-2);assert.equal(api.stackLayout(6,5).cards[3].rotation,-4);
+ const nearTop=corner(near,w/2,-h/2),nearBottom=corner(near,w/2,h/2),farTop=corner(far,w/2,-h/2);
+ assert(Math.abs(nearTop.x-w-12)<1);assert(Math.abs(nearTop.y-12)<1);assert(Math.abs(farTop.x-w-24)<1);assert(Math.abs(farTop.y-24)<1);
+ assert(nearBottom.x<nearTop.x);assert(nearBottom.x>w);
+ for(const index of [0,3,5]){const layout=api.stackLayout(6,index);for(const c of layout.cards.filter(c=>c.opacity)){for(const x of [-w/2,w/2])for(const y of [-h/2,h/2]){const p=corner(c,x,y);assert(p.x>=-1&&p.x<=w+25,'visible stack fits the allocated width');}}}
+});

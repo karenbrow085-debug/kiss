@@ -19,9 +19,9 @@ function stackLayout(count, selected, width = 146) {
         const visible = depth === 0 || depth === 1 || (depth === 2 && position !== 'middle');
         const scale = depth === 0 ? 1 : depth === 1 ? .9 : .8;
         return {
-            x: anchor + (side > 0 ? width * (1 - scale) + depth * 12 : side * depth * 12),
-            y: depth === 0 ? 0 : depth === 1 ? 12 : 24,
-            scale, rotation: depth > 1 ? side * 3 : 0,
+            x: anchor + side * (width * (1 - scale) / 2 + depth * 9),
+            y: 0,
+            scale, rotation: depth === 0 ? 0 : side * (depth === 1 ? 2 : 4),
             opacity: visible ? 1 : 0, z: depth === 0 ? 10 : depth === 1 ? 8 : 6
         };
     });
