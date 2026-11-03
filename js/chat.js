@@ -603,6 +603,7 @@ async function sendMessage() {
         message.senderId = 'user_me';
     }
     pendingOnlineSends.set(chat,{text,message});chat.history.push(message);
+    window.KissLinkCards?.prefetch(message);
     addMessageBubble(message, currentChatId, currentChatType);
     triggerHapticFeedback('success');
 
