@@ -303,7 +303,19 @@ function editDisplay(c){
  next.updatedAt=Date.now();c.kissFriendsDisplay=next;
  try{await saveData();closeSheet();renderFriends();}catch{c.kissFriendsDisplay=previous;b.disabled=false;showToast('保存失败，请重试。');}});
 }
-function postMenu(entry){const {c,m,status}=entry;const sheet=openSheet(nameOf(c),`<div class="ku-sheet-menu"><button type="button" data-profile>查看资料</button><button type="button" data-chat>打开聊天</button><button type="button" data-display>编辑卡片显示</button>${status?'<button type="button" data-edit-status>修改当前状态</button>':''}${status?'':'<button type="button" data-post>查看动态</button>'}</div>`);
+function postMenu(entry){
+ const {c,m,status}=entry;
+ const actions=[
+  ['profile','panel','查看资料'],
+  ['chat','comment','打开聊天'],
+  ['display','palette','编辑卡片显示'],
+  status?['edit-status','edit','修改当前状态']:['post','book','查看动态']
+ ];
+ const buttons=actions.map(([action,glyph,label])=>
+  `<button type="button" data-${action}>${icon(glyph)}<span>${label}</span></button>`
+ ).join('');
+ const sheet=openSheet(nameOf(c),`<div class="ku-sheet-menu">${buttons}</div>`);
+ sheet.classList.add('ku-post-actions-overlay');
  $('[data-profile]',sheet).onclick=()=>{closeSheet();openProfileCard(c.id);};$('[data-chat]',sheet).onclick=()=>{closeSheet();openChat(c.id,'private');};$('[data-display]',sheet).onclick=()=>editDisplay(c);if(status)$('[data-edit-status]',sheet).onclick=()=>editFriendStatus(c);if(!status)$('[data-post]',sheet).onclick=()=>{closeSheet();details(c.id,m.id);};
 }
 function statusComments(entry){const {c,m}=entry;const overlay=openSheet('评论',`<div class="ku-sheet-comments">${(c.kissStatusComments||[]).map(x=>commentMarkup(c,x,true,postKey(c,m))).join('')||'<p class="ku-muted">还没有评论。</p>'}</div><form class="ku-comment-form"><textarea name="text" rows="2" maxlength="2000" aria-label="评论内容" placeholder="写下评论…" required></textarea><button type="submit">发送</button></form>`);

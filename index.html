@@ -93,7 +93,7 @@
     <link rel="stylesheet" href="css/modules/worldbook.css?v=20261023-wb-compact-2">
     <link rel="stylesheet" href="css/modules/console.css?v=20261023-console-3">
 <link rel="stylesheet" href="css/modules/archive-ui.css?v=20261024-studio-2">
-<link id="kiss-pages-default-css" rel="stylesheet" href="css/modules/kiss-pages-v1.css?v=20261031-four-languages-1">
+<link id="kiss-pages-default-css" rel="stylesheet" href="css/modules/kiss-pages-v1.css?v=20261104-dialogs-1">
 <link rel="stylesheet" href="css/modules/kiss-moments.css?v=20261031-community-languages-1">
 <link rel="stylesheet" href="css/modules/role-time.css?v=20261027-moments-v4">
 <link rel="stylesheet" href="css/modules/collections.css?v=20261031-ui-3">
@@ -1350,15 +1350,15 @@
 
     <!-- Folder Management Modal -->
     <div id="folder-manage-modal" class="modal-overlay">
-        <div class="modal-window">
+        <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="folder-modal-title">
             <h3 id="folder-modal-title">新建文件夹</h3>
             <div class="form-group">
-                <input type="text" id="folder-name-input" placeholder="请输入文件夹名称" required>
+                <input type="text" id="folder-name-input" aria-label="文件夹名称" placeholder="请输入文件夹名称" required>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button id="folder-confirm-btn" class="btn btn-primary" style="flex: 1;">确认</button>
-                <button id="folder-delete-btn" class="btn btn-danger" style="flex: 1; display: none;">删除</button>
+            <div class="ku-folder-actions" style="display: flex; gap: 10px; margin-top: 20px;">
                 <button id="folder-cancel-btn" class="btn btn-neutral" style="flex: 1;">取消</button>
+                <button id="folder-delete-btn" class="btn btn-danger" style="flex: 1; display: none;">删除</button>
+                <button id="folder-confirm-btn" class="btn btn-primary" style="flex: 1;">确认</button>
             </div>
         </div>
     </div>
@@ -2717,7 +2717,7 @@
 <script src="js/mcp/requests.js?v=7-request-cards"></script>
 <script src="js/mcp/app.js?v=20261014-mcp-side-api-2"></script>
 <script src="js/modules/archive-ui.js?v=20261024-studio-2"></script>
-<script src="js/modules/kiss-pages-v1.js?v=work-1-20261102-v17"></script>
+<script src="js/modules/kiss-pages-v1.js?v=20261104-dialogs-1"></script>
 <script src="js/modules/kiss-moments.js?v=20261102-v17"></script>
 <script src="js/modules/collections.js?v=20261101-collection-format-1"></script>
 <script src="js/modules/tavern-helper.js?v=20261031-tavern-safety"></script>
