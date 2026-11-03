@@ -220,6 +220,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         historySlice = filterHistoryForAI(chat, historySlice);
         // API requests require portable data URLs, never browser-local blob URLs.
         historySlice = await PhoneBackup.expand(historySlice);
+        historySlice = historySlice.map(m => window.KissWorkFiles?.context(m) || m);
         // 【新增】过滤掉不应进入上下文的消息（如思考过程、被撤回的消息标记等）
         historySlice = historySlice.filter(m => !m.isContextDisabled && m.type !== 'mcp-activity' && m.type !== 'mcp-request');
         // A selected MCP card is a new user task, not an invitation to continue old chat.
