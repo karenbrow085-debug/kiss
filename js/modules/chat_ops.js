@@ -36,7 +36,7 @@ function handleMessageLongPress(messageWrapper, x, y) {
     let menuItems = [];
 
     if (!isWithdrawn) {
-        if (!isImageRecognitionMsg && !isVoiceMessage && !isStickerMessage && !isPhotoVideoMessage && !isTransferMessage && !isGiftMessage && !isInvisibleMessage) {
+        if (!message.workFile && !isImageRecognitionMsg && !isVoiceMessage && !isStickerMessage && !isPhotoVideoMessage && !isTransferMessage && !isGiftMessage && !isInvisibleMessage) {
             menuItems.push({label: '编辑', action: () => startMessageEdit(messageId)});
         }
         

@@ -572,7 +572,9 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
     const textMatch = content.match(textRegex);
     const redPacketMatch = content.match(redPacketRegex);
     
-    if (redPacketMatch || message.type === 'red-packet') {
+    if (message.workFile && window.KissWorkFiles) {
+        bubbleElement = window.KissWorkFiles.card(message);
+    } else if (redPacketMatch || message.type === 'red-packet') {
         const senderName = redPacketMatch ? redPacketMatch[1] : (isSent ? '你' : '用户');
         const remark = message.remark || (redPacketMatch ? redPacketMatch[3] : '恭喜发财，大吉大利');
         
