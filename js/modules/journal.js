@@ -1,9 +1,12 @@
 // Journal generation; the memory workbench owns the page controller.
 let generatingChatId = null;
+let journalGenerationTask=null;
 function setupMemoryJournalScreen() {}
 function renderJournalList() {}
 
 async function generateJournal(start, end, includeFavorited = false, options = {}) {
+    if(journalGenerationTask){showToast('已有日记正在生成，请稍候');return;}
+    const journalTask={};journalGenerationTask=journalTask;
     const journalChatId = currentChatId, journalChatType = currentChatType;
     showToast('正在生成日记，请稍候...');
     
@@ -27,7 +30,7 @@ async function generateJournal(start, end, includeFavorited = false, options = {
     }
     container.scrollTop = 0;
 
-    isGenerating = true; 
+    window.KissJournalGenerating = true; 
     generatingChatId = journalChatId;
 
     try {
@@ -36,9 +39,10 @@ async function generateJournal(start, end, includeFavorited = false, options = {
             throw new Error("未找到当前聊天。");
         }
 
-        const originHistory = chat.history, originArchive = chat.activeArchiveId, originPersona = chat.activePersonaId;
+        const originHistory = chat.history, originArchive = chat.activeArchiveId, originPersona = chat.activePersonaId, originAccount=db.activePersonaId;
         const startIndex = start - 1;
         const endIndex = end;
+        const journalSnapshot=JSON.stringify(chat.history.slice(startIndex,endIndex).map(m=>[m.id,m.content,m.isWithdrawn,m.isThinking]));
         
         if (startIndex < 0 || endIndex > chat.history.length || startIndex >= endIndex) {
             throw new Error("无效的消息范围。");
@@ -68,6 +72,7 @@ async function generateJournal(start, end, includeFavorited = false, options = {
             }
         });
 
+        if(!messagesToSummarize.some(m=>String(m.content||'').trim()))throw new Error('所选范围没有可整理的聊天内容');
         let worldBooksContent = '';
         let summaryPrompt = '';
         let favoritedJournalsPrompt = '';
@@ -283,7 +288,7 @@ async function generateJournal(start, end, includeFavorited = false, options = {
 
         if (!titleMatch || !contentMatch || !parsedContent) throw new Error("日记返回格式不完整，请重试");
 
-        if (chat.history !== originHistory || chat.activeArchiveId !== originArchive || chat.activePersonaId !== originPersona || !(journalChatType === 'private' ? db.characters : db.groups).includes(chat)) throw new Error("聊天存档已变动，本次日记未写入");
+        if (JSON.stringify(chat.history.slice(startIndex,endIndex).map(m=>[m.id,m.content,m.isWithdrawn,m.isThinking]))!==journalSnapshot || chat.history !== originHistory || chat.activeArchiveId !== originArchive || chat.activePersonaId !== originPersona || db.activePersonaId !== originAccount || !(journalChatType === 'private' ? db.characters : db.groups).includes(chat)) throw new Error("聊天存档已变动，本次日记未写入");
         const newJournal = {
             memoryType: 'summary',
             offlineSummary: !!options.messageIds,
@@ -304,10 +309,11 @@ async function generateJournal(start, end, includeFavorited = false, options = {
             chat.memoryJournals = [];
         }
         chat.memoryJournals.push(newJournal);
-        try { await saveData(); } catch (error) {
+        const releaseJournal=window.PhoneBackup?.pinChat?.(chat)||(()=>{});
+        try { if(window.PhoneBackup?.saveChat)await PhoneBackup.saveChat(chat);else await saveData(); } catch (error) {
             chat.memoryJournals = chat.memoryJournals.filter(item => item !== newJournal);
             throw error;
-        }
+        } finally {releaseJournal();}
 
         if (journalChatType === 'private' && window.KissTogether) await KissTogether.journalSaved(chat,newJournal).catch(error=>console.warn('日记已保存，HearU同步待重试',error));
 
@@ -333,8 +339,7 @@ async function generateJournal(start, end, includeFavorited = false, options = {
 
         showApiError(error);
     } finally {
-        isGenerating = false; 
-        generatingChatId = null;
+        if(journalGenerationTask===journalTask){window.KissJournalGenerating=false;journalGenerationTask=null;generatingChatId=null;}
     }
 }
 
@@ -375,3 +380,4 @@ function migrateJournalSettings(chat) {
     }
     return null;
 }
+

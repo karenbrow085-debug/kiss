@@ -25,6 +25,16 @@ let shopState = {
     cart: [] // 购物车数组: [{ item, quantity }]
 };
 
+// Bind carts and asynchronous work to the role, persona and archive that started it.
+const shopCartBuckets=new WeakMap();
+let shopCartScope=null,shopRefreshToken=0,shopLoadingScope=null,shopCheckoutBusy=false,shopCheckoutPending=null;
+function shopScope(){const chat=currentChatType==='private'?db.characters.find(c=>c.id===currentChatId):null;return {chat,account:db.activePersonaId,archive:chat?.activeArchiveId};}
+function shopScopeValid(scope){return !!scope?.chat&&currentChatType==='private'&&scope.chat.id===currentChatId&&db.characters.includes(scope.chat)&&scope.account===db.activePersonaId&&scope.archive===scope.chat.activeArchiveId;}
+function syncShopCart(){const now=shopScope();if(!shopCartScope||shopCartScope.chat!==now.chat||shopCartScope.account!==now.account||shopCartScope.archive!==now.archive){if(shopCartScope?.chat){let buckets=shopCartBuckets.get(shopCartScope.chat);if(!buckets)shopCartBuckets.set(shopCartScope.chat,buckets=new Map());buckets.set(JSON.stringify([shopCartScope.account,shopCartScope.archive]),shopState.cart);}shopState.cart=now.chat?shopCartBuckets.get(now.chat)?.get(JSON.stringify([now.account,now.archive]))||[]:[];shopCartScope=now;}return now;}
+
+function shopMoney(value){const n=Number(String(value??'').trim());return String(value??'').trim()!==''&&Number.isFinite(n)&&n>=0&&n<=1e9?Math.round(n*100):null;}
+function shopTotal(){return shopState.cart.reduce((sum,e)=>sum+(shopMoney(e.item.price)??0)*e.quantity,0)/100;}
+async function saveShopRole(chat){const release=window.PhoneBackup?.pinChat?.(chat)||(()=>{});try{if(window.PhoneBackup?.saveChat)await PhoneBackup.saveChat(chat);else await saveData();}finally{release();}}
 // 渲染 Tabs
 function renderShopTabs() {
     const tabsContainer = document.querySelector('.shop-tabs');
@@ -383,41 +393,20 @@ function initCartUI() {
 }
 
 // 购物车操作
-function addToCart(item) {
-    const existing = shopState.cart.find(i => i.item.name === item.name);
-    if (existing) {
-        existing.quantity++;
-    } else {
-        shopState.cart.push({ item: item, quantity: 1 });
-    }
-    updateCartUI();
-    
-    // 简单的飞入动画效果 (可选，这里先只更新数字)
-    const badge = document.querySelector('.shop-cart-badge');
-    badge.classList.add('bump');
-    setTimeout(() => badge.classList.remove('bump'), 200);
-}
-
-function removeFromCart(itemName) {
-    const index = shopState.cart.findIndex(i => i.item.name === itemName);
-    if (index > -1) {
-        shopState.cart[index].quantity--;
-        if (shopState.cart[index].quantity <= 0) {
-            shopState.cart.splice(index, 1);
-        }
-        updateCartUI();
-    }
-}
+function addToCart(item){if(shopCheckoutBusy)return;const scope=syncShopCart();if(!scope.chat)return;const cents=shopMoney(item?.price);if(!item?.name||cents===null)return showToast('商品价格无效，请重新进货');const value={...item,price:(cents/100).toFixed(2)},existing=shopState.cart.find(e=>e.item.name===value.name&&e.item.price===value.price);if(existing){if(existing.quantity>=999)return showToast('单件商品最多 999 件');existing.quantity++;}else shopState.cart.push({item:value,quantity:1});updateCartUI();const badge=document.querySelector('.shop-cart-badge');if(badge){badge.classList.add('bump');setTimeout(()=>badge.classList.remove('bump'),200);}}
+function removeFromCart(item){if(shopCheckoutBusy)return;syncShopCart();const index=shopState.cart.findIndex(e=>e.item.name===(typeof item==='string'?item:item.name)&&(typeof item==='string'||e.item.price===item.price));if(index>=0){if(--shopState.cart[index].quantity<=0)shopState.cart.splice(index,1);updateCartUI();}}
 
 function clearCart() {
+    if(shopCheckoutBusy)return;
     shopState.cart = [];
     updateCartUI();
     closeCartPanel();
 }
 
 function updateCartUI() {
+    syncShopCart();
     const totalCount = shopState.cart.reduce((sum, i) => sum + i.quantity, 0);
-    const totalPrice = shopState.cart.reduce((sum, i) => sum + (parseFloat(i.item.price) * i.quantity), 0);
+    const totalPrice = shopTotal();
 
     // 更新悬浮球
     const fab = document.querySelector('.shop-cart-fab');
@@ -450,7 +439,7 @@ function updateCartUI() {
             row.querySelector('.cart-item-name').textContent=entry.item.name;
             row.querySelector('.cart-item-price').textContent='¥'+entry.item.price;
             row.querySelector('.cart-item-qty').textContent=entry.quantity;
-            row.querySelector('.minus').onclick=()=>removeFromCart(entry.item.name);
+            row.querySelector('.minus').onclick=()=>removeFromCart(entry.item);
             row.querySelector('.plus').onclick=()=>addToCart(entry.item);
             container.append(row);
         });
@@ -488,12 +477,13 @@ window.closeCartPanel = closeCartPanel;
 
 // 打开商城
 async function openShopScreen() {
+    syncShopCart();updateCartUI();
     shopState.currentTab = 'recommend';
     renderShopTabs(); // 确保 Tabs 正确渲染
     switchScreen('shop-screen');
     
     // 1. 如果正在加载中，直接显示 Loading 状态，避免重复触发
-    if (shopState.isLoading) {
+    if (shopState.isLoading&&shopScopeValid(shopLoadingScope)) {
         renderShopLoading();
         return;
     }
@@ -516,40 +506,7 @@ async function openShopScreen() {
 }
 
 // 强制刷新商城
-async function forceRefreshShop() {
-    if (shopState.isLoading) return; // 避免重复点击
-    
-    // 检查是否已有商品，如果有则需要确认，否则直接开始
-    const hasItems = shopState.items && Object.values(shopState.items).some(arr => arr && arr.length > 0);
-
-    if (hasItems && !confirm('确定要清空当前商品并重新进货吗？')) return;
-
-    shopState.isLoading = true;
-    shopState.currentTab = 'recommend'; // 重置回推荐页
-    
-    // 清空当前显示
-    renderShopLoading();
-    
-    // 重置 Tabs 状态
-    updateTabsUI('recommend');
-
-    try {
-        // 清空数据库中的缓存
-        const chat = db.characters.find(c => c.id === currentChatId);
-        if (chat) {
-            delete chat.shopData;
-            await dexieDB.characters.update(chat.id, { shopData: null });
-        }
-
-        await fetchShopData();
-        renderShopContent();
-    } catch (e) {
-        console.error("商城刷新失败", e);
-        renderShopError();
-    } finally {
-        shopState.isLoading = false;
-    }
-}
+async function forceRefreshShop(){const scope=shopScope();if(!scope.chat)return showToast('请先进入私聊');if(shopState.isLoading&&shopScopeValid(shopLoadingScope))return;const hasItems=!!scope.chat.shopData?.items;if(hasItems&&!confirm('重新进货会替换当前商品，继续吗？'))return;const token=++shopRefreshToken;shopLoadingScope=scope;shopState.isLoading=true;shopState.currentTab='recommend';renderShopLoading();updateTabsUI('recommend');try{await fetchShopData(scope);if(token===shopRefreshToken&&shopScopeValid(scope))renderShopContent();}catch(error){console.error('商城刷新失败',error);if(token===shopRefreshToken&&shopScopeValid(scope)){if(scope.chat.shopData?.items){shopState.items=scope.chat.shopData.items;shopState.banner=scope.chat.shopData.banner;renderShopContent();showToast('进货未完成，已保留原有商品');}else renderShopError();}}finally{if(token===shopRefreshToken){shopState.isLoading=false;shopLoadingScope=null;}}}
 
 // 切换 Tab
 function switchShopTab(tabId) {
@@ -645,10 +602,10 @@ function renderShopInitialState() {
 }
 
 // 获取 AI 数据
-async function fetchShopData() {
+async function fetchShopData(origin=shopScope()) {
     // 构造 Prompt
-    const chat = db.characters.find(c => c.id === currentChatId);
-    if (!chat) return; // 应该不会发生
+    const chat = origin.chat;
+    if (!shopScopeValid(origin)) throw Error('角色或存档已切换');
 
     const contextPrompt = generatePrivateSystemPrompt(chat);
 
@@ -753,41 +710,10 @@ async function fetchShopData() {
     `;
 
     // 调用 API
-    const apiConfig = resolveAuxiliaryApiConfig('shop');
-    let { url, key, model, provider } = apiConfig;
-    
-    // 兼容 Gemini 和其他 OpenAI 格式接口
-    let requestBody, endpoint, headers;
-
-    if (provider === 'gemini') {
-        endpoint = `${url}/v1beta/models/${model}:generateContent?key=${key}`;
-        headers = { 'Content-Type': 'application/json' };
-        requestBody = {
-            contents: [{
-                role: 'user',
-                parts: [{ text: "你是一个只输出 XML 数据的 API 接口。" + shopPrompt }]
-            }],
-            generationConfig: {
-                temperature: 0.8
-            }
-        };
-    } else {
-        endpoint = `${url}/v1/chat/completions`;
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`
-        };
-        requestBody = {
-            model: model,
-            messages: [
-                { role: "system", content: "你是一个只输出 XML 数据的 API 接口。" },
-                { role: "user", content: shopPrompt }
-            ],
-            temperature: 0.8
-        };
-    }
-
-    let content = await fetchAiResponse(apiConfig, requestBody, headers, endpoint);
+    const apiConfig={...resolveAuxiliaryApiConfig('shop'),streamEnabled:false};
+    if(!apiConfig.url||!apiConfig.key||!apiConfig.model)throw Error('请先配置商城使用的 API');
+    const {requestBody,headers,endpoint}=buildChatApiRequest(apiConfig,[{role:'system',content:'你是一个只输出 XML 数据的 API 接口。'},{role:'user',content:shopPrompt}],{temperature:0.8});
+    let content=await fetchAiResponse(apiConfig,requestBody,headers,endpoint);
 
     // 清洗 XML
     content = content.replace(/```xml/g, '').replace(/```/g, '').trim();
@@ -827,7 +753,6 @@ async function fetchShopData() {
         // 默认分类
         const categories = ['recommend', 'food', 'general', 'guess', 'character_choice'];
         // 自定义分类
-        const customCategories = getCustomCategories();
         customCategories.forEach(cat => {
             categories.push(cat.id);
         });
@@ -841,7 +766,7 @@ async function fetchShopData() {
                     items[catId].push({
                         name: itemNode.querySelector('name')?.textContent || '',
                         desc: itemNode.querySelector('desc')?.textContent || '',
-                        price: itemNode.querySelector('price')?.textContent || '0',
+                        price: itemNode.querySelector('price')?.textContent || '',
                         type: itemNode.querySelector('type')?.textContent || 'mystery',
                         isAd: itemNode.querySelector('isAd')?.textContent === 'true'
                     });
@@ -849,16 +774,12 @@ async function fetchShopData() {
             }
         });
 
-        shopState.banner = banner;
-        shopState.items = items;
-
-        // 保存到数据库
-        chat.shopData = {
-            banner: banner,
-            items: items,
-            lastUpdated: Date.now()
-        };
-        await dexieDB.characters.update(chat.id, { shopData: chat.shopData });
+        for(const list of Object.values(items))for(const item of list){const cents=shopMoney(item.price);if(!item.name.trim()||cents===null)throw Error('商品名称或价格无效');item.price=(cents/100).toFixed(2);}
+        if(!Object.values(items).some(list=>list.length))throw Error('未取得有效商品');
+        if(!shopScopeValid(origin))throw Error('角色、身份或存档已切换，本次进货未写入');
+        const previous=chat.shopData,next={banner,items,lastUpdated:Date.now()};chat.shopData=next;
+        try{await saveShopRole(chat);}catch(error){if(chat.shopData===next)chat.shopData=previous;throw error;}
+        if(shopScopeValid(origin)){shopState.banner=banner;shopState.items=items;}
 
     } catch (e) {
         console.error("XML Parse Error", e);
@@ -941,7 +862,7 @@ function openCartDeliveryModal() {
     const title = document.getElementById('shop-delivery-item-name');
     
     const totalCount = shopState.cart.reduce((sum, i) => sum + i.quantity, 0);
-    const totalPrice = shopState.cart.reduce((sum, i) => sum + (parseFloat(i.item.price) * i.quantity), 0);
+    const totalPrice = shopTotal();
     
     title.textContent = `结算 ${totalCount} 件商品 (合计 ¥${totalPrice.toFixed(2)})`;
     
@@ -953,62 +874,7 @@ function openCartDeliveryModal() {
 }
 
 // 确认购买
-function confirmPurchase() {
-    if (shopState.cart.length === 0) return;
-
-    // 获取当前角色信息
-    const chat = db.characters.find(c => c.id === currentChatId);
-    if (!chat) return;
-    const realName = chat.realName;
-    const myName = chat.myName;
-
-    // 获取选中的配送方式
-    const activeOption = document.querySelector('.delivery-option-card.active');
-    const deliveryType = activeOption ? activeOption.dataset.type : 'timed';
-    
-    let deliveryName = '30分钟后送达';
-    if (deliveryType === 'instant') deliveryName = '即时送达';
-    if (deliveryType === 'pay-for-me') deliveryName = '代付请求';
-    
-    if (deliveryType === 'pickup') {
-        const code = document.getElementById('shop-pickup-code').value.trim();
-        if (!code) {
-            alert('请输入自提口令');
-            return;
-        }
-        deliveryName = `自提口令: ${code}`;
-    }
-    
-    // 计算总价
-    const totalPrice = shopState.cart.reduce((sum, i) => sum + (parseFloat(i.item.price) * i.quantity), 0);
-
-    // 生成商品列表字符串: 商品名x数量
-    const itemsStr = shopState.cart.map(entry => `${entry.item.name} x${entry.quantity}`).join(', ');
-
-    // 格式生成
-    let messageText = '';
-    if (deliveryType === 'pay-for-me') {
-        // 代付请求格式: [myName向realName发起了代付请求:总价|商品清单]
-        messageText = `[${myName}向${realName}发起了代付请求:${totalPrice.toFixed(2)}|${itemsStr}]`;
-    } else {
-        // 普通订单格式: [myName为realName下单了：配送方式|总价|商品清单]
-        messageText = `[${myName}为${realName}下单了：${deliveryName}|${totalPrice.toFixed(2)}|${itemsStr}]`;
-    }
-
-    // 清空购物车
-    clearCart();
-
-    // 关闭所有层级，发送消息
-    document.getElementById('shop-delivery-modal').classList.remove('visible');
-    switchScreen('chat-room-screen');
-    
-    // 调用 chat.js 的发送逻辑
-    const input = document.getElementById('message-input');
-    if (input) {
-        input.value = messageText;
-        document.getElementById('send-message-btn').click(); // 触发点击事件发送
-    }
-}
+async function confirmPurchase(){if(shopCheckoutBusy||!shopState.cart.length)return;if(!shopScopeValid(shopCartScope))return showToast('角色、身份或存档已切换，请重新选择商品');const origin=shopCartScope,chat=origin.chat;if(window.PhoneBackup?.isPinned?.(chat))return showToast('存档正在处理，请稍后下单');const selected=document.querySelector('.delivery-option-card.active'),type=selected?.dataset.type||'timed';let delivery=type==='instant'?'即时送达':'30分钟后送达';if(type==='pickup'){const code=document.getElementById('shop-pickup-code').value.trim();if(!code)return showToast('请输入自提口令');delivery='自提口令: '+code;}const total=shopTotal();if(!Number.isFinite(total)||shopState.cart.some(e=>shopMoney(e.item.price)===null||!Number.isInteger(e.quantity)||e.quantity<1))return showToast('商品价格或数量无效');const items=shopState.cart.map(e=>String(e.item.name).replace(/[\[\]|\r\n]/g,' ')+' x'+e.quantity).join(', '),text=type==='pay-for-me'?`[${chat.myName}向${chat.realName}发起了代付请求:${total.toFixed(2)}|${items}]`:`[${chat.myName}为${chat.realName}下单了：${delivery}|${total.toFixed(2)}|${items}]`;const signature=JSON.stringify([origin.archive,origin.account,text]);shopCheckoutBusy=true;const button=document.getElementById('shop-delivery-confirm');if(button)button.disabled=true;let release=()=>{},message=null,saved=false;try{await window.PhoneBackup?.hydrateChat?.(chat);if(!shopScopeValid(origin))throw Error('角色、身份或存档已切换');if(await window.KissSocial?.rejectSend?.(chat,text))return;if(!shopScopeValid(origin))throw Error('角色、身份或存档已切换');if(window.PhoneBackup?.isPinned?.(chat))throw Error('存档正在处理，请稍后重试');release=window.PhoneBackup?.pinChat?.(chat)||(()=>{});if(shopCheckoutPending?.chat===chat&&shopCheckoutPending.signature===signature)message=shopCheckoutPending.message;else{message={id:'msg_'+(globalThis.crypto?.randomUUID?.()||Date.now()+'_'+Math.random()),role:'user',content:text,parts:[{type:'text',text}],timestamp:Date.now()};shopCheckoutPending={chat,signature,message};}chat.history??=[];if(!chat.history.some(m=>m.id===message.id))chat.history.push(message);await window.PhoneBackup?.stageMessage?.(chat,message);await saveShopRole(chat);saved=true;shopCheckoutPending=null;if(shopScopeValid(origin)){shopState.cart=[];updateCartUI();closeCartPanel();document.getElementById('shop-delivery-modal').classList.remove('visible');switchScreen('chat-room-screen');if(typeof renderMessages==='function')renderMessages(false,true);}if(typeof renderChatList==='function')renderChatList();window.KissSocial?.tick?.(chat);showToast('订单已发送');}catch(error){if(saved){showToast('订单已保存，请重新打开聊天查看');}else{if(message)chat.history=chat.history.filter(m=>m.id!==message.id);showToast('订单未完成：'+error.message+'，购物车已保留');}}finally{release();shopCheckoutBusy=false;if(button)button.disabled=false;}}
 
 // 配送选项点击逻辑 (HTML 中 onclick 绑定)
 window.selectDeliveryOption = function(type) {
@@ -1044,3 +910,4 @@ window.setupShopSystem = function() {
         document.getElementById('shop-delivery-modal').classList.remove('visible');
     };
 };
+
