@@ -11,7 +11,7 @@ function ordinal(text){const found=[...String(text).matchAll(/第\s*([0-9零〇�
 function intent(history){
  const users=history.filter(m=>m.role==='user'),latest=users.at(-1),text=cleanUser(latest),allowed=permissions(text);let index=ordinal(text),priorTarget=false;
  const retry=/(?:没|沒|没有|沒有).{0,4}(?:成功|换|換)|(?:换|換).{0,3}(?:不了|不动|不動)|(?:再|重新|重).{0,3}(?:试|試|来|來|换|換|弄|做)/.test(text);
- const follow=/(?:换|換|改|替|用|挑|选|選|拿|设|設|试|試|来|來|安排|弄|整).{0,10}(?:第|张|張|个|個|这|這|那|别|別|其他)|(?:还是|還是|就|用).{0,6}第|(?:上|下|前|最后|最後)(?:一|那)?(?:张|張|个|個)|(?:刚才|剛才|刚刚|剛剛|之前|原来|原來).{0,4}(?:那|这|這|个|個|张|張)|换回|換回|还原|還原/.test(text);
+ const follow=/(?:换|換|改|替|用|挑|选|選|拿|设|設|试|試|来|來|安排|弄|整).{0,10}(?:第|张|張|个|個|这|這|那|别|別|其他)|(?:还是|還是|就|用).{0,6}第|(?:上|下|前|最后|最後)(?:一|那)?(?:张|張|个|個)|(?:刚才|剛才|刚刚|剛剛|之前|原来|原來).{0,4}(?:那|这|這|个|個|张|張)|换回|換回|还原|還原|(?:那就|还是|還是|就|按).{0,6}(?:这|這|那|它|你说|你說|你选|你選|你挑)/.test(text);
  const blocked=/(?:文件|代码|代碼|文章|接口|API|密码|密碼|语音|語音|歌曲)/i.test(text)||/(?:不要|不用|别|別|禁止).{0,5}(?:换|換|改|弄)|(?:我的|我自己[的]?).{0,2}(?:头像|頭像|头图|頭圖)/.test(text);
  if((follow||retry)&&!blocked&&!window.KissLinkCards?.parse?.(String(latest?.content||'')).length){for(let i=users.length-2;i>=Math.max(0,users.length-12);i--){const prior=cleanUser(users[i]),goal=permissions(prior);if(!priorTarget&&retry){const n=ordinal(prior);if(n){index=n;priorTarget=true;}else if(/换|換|用|选|選|重新|重试|重試/.test(prior))priorTarget=true;}if(/(?:不要|不用|别|別).{0,5}(?:头像|頭像|换|換|保存|存|发|發)/.test(prior))break;if(Object.values(goal).some(Boolean)){if(!Object.values(allowed).some(Boolean))Object.assign(allowed,goal);break;}if(window.KissLinkCards?.parse?.(String(users[i].content||'')).length)break;}}
  return {allowed,index,text,retry};
@@ -19,13 +19,14 @@ function intent(history){
 function avatarTrail(chat){const result=[];for(const m of [...(chat.history||[])].reverse())for(const action of m.linkImageActions||[])if(action.action==='avatar'&&(!result.length||result.at(-1).source!==action.source||result.at(-1).index!==action.index))result.push(action);return result;}
 function permissions(text){
  const no=(verb)=>new RegExp('(?:不要|不用|别|別|不许|不許|禁止)[^，。；,;\\n只但]{0,6}(?:'+verb+')').test(text);
- return {save:/(?:保存|存(?:下|起|到|进|進|入|一|着|著)|收(?:进|進|下|起|着|著|了)|收藏|留(?:着|著|下|一份))/.test(text)&&!no('保存|存|收|留'),avatar:!/(?:我的|我自己[的]?)\s*(?:头像|頭像|头图|頭圖)/.test(text)&&/(?:头像|頭像|头图|頭圖|大头贴|大頭貼)/.test(text)&&/(?:换|換|设|設|用|改|当|當|做|拿|挑|选|選|更新|替|安排|弄|整)/.test(text)&&!no('换|換|设|設|改|用'),send:/(?:发|發|传|傳|给|給).{0,8}(?:我|过来|過來|回来|回來|看看)|(?:发|發|贴|貼).{0,5}(?:这张|這張|第.{0,3}[张張]|出来|出來)|(?:让我|讓我|给我|給我|我想).{0,3}(?:看|瞅)/.test(text)&&!no('发|發|传|傳|给|給|贴|貼')};
+ return {save:/(?:保存|存(?:下|起|到|进|進|入|一|着|著)|收(?:进|進|下|起|着|著|了)|收藏|留(?:着|著|下|一份))/.test(text)&&!no('保存|存|收|留'),avatar:!/(?:我的|我自己[的]?)\s*(?:头像|頭像|头图|頭圖)/.test(text)&&/(?:头像|頭像|头图|頭圖|大头贴|大頭貼)/.test(text)&&/(?:换|換|设|設|用|改|当|當|做|拿|挑|选|選|更新|替|安排|弄|整|看着|看著|决定|決定|随便|隨便)/.test(text)&&!no('换|換|设|設|改|用'),send:/(?:发|發|传|傳|给|給).{0,8}(?:我|过来|過來|回来|回來|看看)|(?:发|發|贴|貼).{0,5}(?:这张|這張|第.{0,3}[张張]|出来|出來)|(?:让我|讓我|给我|給我|我想).{0,3}(?:看|瞅)/.test(text)&&!no('发|發|传|傳|给|給|贴|貼')};
 }
 function context(chat,history,media=[],scope=capture(chat)){
  const request=intent(history),allowed=request.allowed,images=new Map();
  for(const image of media)if(dataImage(image.data))images.set(image.ref,{...image});
  if(!images.size||/相册|相冊|保存的|存的|收藏的/.test(userText(history)))for(const [i,item]of (chat.gallery||[]).entries())if(typeof item.url==='string'&&item.url)images.set('album-'+(i+1),{ref:'album-'+(i+1),index:i+1,title:item.name,data:dataImage(item.url)?item.url:'',savedURL:item.url,url:item.sourceLink||'',imageURL:item.sourceImage||'',galleryId:item.id});
  const trail=avatarTrail(chat),last=trail[0];
+ if(allowed.avatar&&!request.index&&/(?:你.{0,2}(?:说|說|选|選|挑)|(?:就|用|选|選).{0,4}(?:这|這|它))/.test(request.text)){const proposal=[...history].reverse().find(m=>m.role==='assistant'&&!m.isThinking&&!m.isContextDisabled);request.index=ordinal(proposal?.content||'');}
  if(allowed.avatar&&!request.index){if(/(?:最后|最後|末尾)(?:那|一)?[张張个個]/.test(request.text))request.index=Math.max(...[...images.values()].map(x=>x.index));else if(/(?:上一张|上一張|前一张|前一張)/.test(request.text)&&last)request.index=last.index-1;else if(/(?:下一张|下一張|下一个|下一個)/.test(request.text)&&last)request.index=last.index+1;else if(/(?:刚才|剛才|刚刚|剛剛|之前|原来|原來)|换回|換回|还原|還原|上一个|上一個/.test(request.text))request.index=(trail[1]||trail[0])?.index||null;else if(request.retry)request.index=last?.index||null;}
  if(!images.size||!Object.values(allowed).some(Boolean))return null;
  const refs=[...images.values()].map(x=>({ref:x.ref,index:x.index,title:x.title,source:x.url}));
