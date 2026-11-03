@@ -7,7 +7,7 @@ const key=item=>JSON.stringify([String(item.name||''),String(item.price??'0')]);
 let state={query:'',sort:'default',budget:'',view:'home'},lastOwner=null,lastArchive=null,dialogPrevious=null;
 const favorites=c=>Array.isArray(c?.shopFavorites)?c.shopFavorites:[];
 function allItems(){const seen=new Set();return Object.values(shopState.items||{}).filter(Array.isArray).flat().filter(item=>{if(!item||!item.name)return false;const id=key(item);if(seen.has(id))return false;seen.add(id);return true;});}
-function rows(){let items=state.view==='favorites'?favorites(owner()).slice():state.query?allItems():(shopState.items[shopState.currentTab]||[]).slice();if(state.query){const q=state.query.toLocaleLowerCase();items=items.filter(i=>[i.name,i.desc].join(' ').toLocaleLowerCase().includes(q));}if(state.budget!=='')items=items.filter(i=>price(i)<=Number(state.budget));if(state.sort==='low')items.sort((a,b)=>price(a)-price(b));if(state.sort==='high')items.sort((a,b)=>price(b)-price(a));return items;}
+function rows(){let items=state.view==='favorites'?favorites(owner()).slice():state.query?allItems():shopState.currentTab==='recommend'?storefrontSelection().recommended:(shopState.items[shopState.currentTab]||[]).slice();if(state.query){const q=state.query.toLocaleLowerCase();items=items.filter(i=>[i.name,i.desc].join(' ').toLocaleLowerCase().includes(q));}if(state.budget!=='')items=items.filter(i=>price(i)<=Number(state.budget));if(state.sort==='low')items.sort((a,b)=>price(a)-price(b));if(state.sort==='high')items.sort((a,b)=>price(b)-price(a));return items;}
 function categories(){return [{id:'recommend',name:'推荐'},{id:'food',name:'食堂'},{id:'general',name:'百货'},{id:'guess',name:'猜你喜欢'},{id:'character_choice',name:'TA想买'}].concat(getCustomCategories());}
 function safe(){const c=owner();if(lastOwner!==c||lastArchive!==c?.activeArchiveId){lastOwner=c;lastArchive=c?.activeArchiveId;state={query:'',sort:'default',budget:'',view:'home'};if($('shop-search-input'))$('shop-search-input').value='';closeFeature();}}
 
@@ -61,14 +61,48 @@ function showCategories(){const body=openFeature('逛逛分类');const list=docu
 renderShopTabs=function(){const list=document.querySelector('#shop-screen .shop-tabs');if(!list)return;list.replaceChildren();categories().forEach(cat=>{const b=document.createElement('button');b.type='button';b.className='shop-tab-item'+(shopState.currentTab===cat.id?' active':'');b.dataset.id=cat.id;b.textContent=cat.name.replace(/^[^\p{L}\p{N}]+/u,'');b.onclick=()=>{state.view='home';state.query='';$('shop-search-input').value='';switchShopTab(cat.id);};list.append(b);});};
 function card(item){const el=document.createElement('article');el.className='shop-item-card';el.innerHTML=`<button type="button" class="market-item-open">${artwork(item)}<div class="shop-item-info"><div class="shop-item-name">${item.isAd?'<span class="market-ad">广告</span>':''}${esc(item.name)}</div><p class="shop-item-desc">${esc(item.desc||'把喜欢，带回日常')}</p></div></button><button type="button" class="market-heart" aria-label="${favorites(owner()).some(i=>key(i)===key(item))?'取消收藏':'收藏'} ${esc(item.name)}" aria-pressed="${favorites(owner()).some(i=>key(i)===key(item))}">${favorites(owner()).some(i=>key(i)===key(item))?'♥':'♡'}</button><div class="shop-item-footer"><div class="shop-item-price">${esc(item.price)}</div><button type="button" class="shop-item-buy-btn" aria-label="加入购物车 ${esc(item.name)}">＋</button></div>`;
  el.querySelector('.market-item-open').onclick=()=>showItem(item);el.querySelector('.shop-item-buy-btn').onclick=()=>{addToCart(item);showToast('已加入购物车');};el.querySelector('.market-heart').onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{await toggleFavorite(item);}catch(_){}finally{b.disabled=false;}};return el;}
-function collectionItems(kind) {
- const all=allItems().filter(item=>!item.isAd);
- const preferred=kind==='wanted'?shopState.items.character_choice:kind==='festival'?shopState.items.recommend:[];
- const featured=(preferred||[]).filter(item=>item?.name&&!item.isAd);
- if(kind==='low')return all.filter(item=>price(item)>0).sort((a,b)=>price(a)-price(b));
- if(kind==='wanted')return [...new Map(featured.map(item=>[key(item),item])).values()];
- const gifts=all.filter(item=>['gift','flower'].includes(item.type));
- return [...new Map([...featured,...gifts,...all].map(item=>[key(item),item])).values()];
+const productName=item=>String(item?.name||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
+function uniqueProducts(items) {
+ const seen=new Set();
+ return items.filter(item=>{
+  const name=productName(item);
+  if(!name||seen.has(name))return false;
+  seen.add(name);
+  return true;
+ });
+}
+function lowPriced(items) {
+ return items.filter(item=>price(item)>0).sort((a,b)=>price(a)-price(b));
+}
+function storefrontSelection() {
+ const stock=uniqueProducts(allItems().filter(item=>!item.isAd));
+ const recommended=uniqueProducts(shopState.items.recommend||[]);
+ const wanted=uniqueProducts(shopState.items.character_choice||[]).filter(item=>!item.isAd);
+ const sections={low:[],wanted:[],discover:[],festival:[]};
+ const assigned=new Set();
+ const reserveCount=Math.min(Math.ceil(recommended.length/2),Math.max(0,stock.length-4));
+ const wantedNames=new Set(wanted.map(productName));
+ const reserved=new Set(recommended.filter(item=>!item.isAd).sort((a,b)=>
+  Number(wantedNames.has(productName(a)))-
+  Number(wantedNames.has(productName(b)))
+ ).slice(0,reserveCount).map(productName));
+ const gifts=stock.filter(item=>['gift','flower'].includes(item.type));
+ const queues={
+  wanted,
+  low:lowPriced(stock),
+  discover:[...gifts,...stock],
+  festival:[...recommended.filter(item=>!item.isAd),...stock]
+ };
+ // Give each topic a turn before assigning another product to it.
+ for(let round=0;round<4;round++){
+  for(const kind of ['wanted','low','discover','festival']){
+   const item=queues[kind].find(item=>!reserved.has(productName(item))&&!assigned.has(productName(item)));
+   if(!item)continue;
+   sections[kind].push(item);
+   assigned.add(productName(item));
+  }
+ }
+ return {sections,recommended:recommended.filter(item=>!assigned.has(productName(item)))};
 }
 const history=c=>Array.isArray(c?.shopBrowseHistory)?c.shopBrowseHistory:[];
 function recordBrowse(item) {
@@ -95,7 +129,7 @@ const collections={
 };
 function showCollection(kind,scroll=0) {
  const [title,subtitle]=collections[kind];
- const items=kind==='history'?history(owner()):collectionItems(kind);
+ const items=kind==='history'?history(owner()):storefrontSelection().sections[kind];
  const body=openFeature(title);
  $('shop-feature-overlay').classList.add('market-collection-overlay');
  body.innerHTML=`<div class="market-collection-intro ${kind==='festival'?'market-festival-intro':''}"><small>${kind==='festival'?'THE 11.11 EDIT':'KISS MARKET / COLLECTION'}</small><h3>${title}</h3><p>${subtitle}</p></div><div class="market-collection-meta"><span>${items.length} 件好物</span><button type="button">查看购物车</button></div><div class="market-collection-list"></div>`;
@@ -105,6 +139,7 @@ function showCollection(kind,scroll=0) {
  collectionRows(list,items,()=>showCollection(kind,savedScroll));
  list.addEventListener('click',()=>{savedScroll=body.scrollTop;},true);
  if(!items.length)list.textContent=kind==='history'?'逛过的商品会出现在这里。':'这期还没有好物，可以进货后再来看看。';
+ if(kind==='history')playBack(body);
  body.scrollTop=Number(scroll)||0;
 }
 function showLottery(previous) {
@@ -113,24 +148,26 @@ function showLottery(previous) {
  const pool=fresh.length?fresh:all;
  const item=pool[Math.floor(Math.random()*pool.length)];
  const body=openFeature('好物抽签');
- body.innerHTML='<div class="market-sheet-intro"><small>LUCKY DRAW</small><h3>今天会抽中什么？</h3><p>从店内好物里随机挑一件。</p></div><div class="market-collection-list"></div>';
+ body.innerHTML='<div class="market-play-intro market-draw-intro"><small>LUCKY DRAW</small><h3>今天会抽中什么？</h3><p>从店内好物里随机挑一件。</p></div><div class="market-collection-list"></div>';
+ playBack(body);
  if(!item){body.querySelector('.market-collection-list').textContent='进货后就可以抽签啦。';return;}
  collectionRows(body.querySelector('.market-collection-list'),[item],()=>showLottery());
  const again=document.createElement('button');
- again.type='button';again.className='market-primary';again.textContent='再抽一签';
+ again.type='button';again.className='market-primary market-draw-again';again.textContent='再抽一签';
  again.onclick=()=>showLottery(key(item));
  body.append(again);
 }
 function showGiftBudget(budget='') {
  const body=openFeature('送礼预算');
- body.innerHTML=`<div class="market-sheet-intro"><small>GIFT PAIRING</small><h3>给心意配个伴。</h3><p>填一个总预算，试着搭配两件礼物。</p></div><form class="market-edit-form"><label for="market-gift-budget">总预算（¥）</label><input id="market-gift-budget" type="number" min="0.01" step="0.01" required value="${esc(budget)}" placeholder="例如 100"><button class="market-primary">搭配两件</button></form><div class="market-collection-list"></div>`;
+ body.innerHTML=`<div class="market-play-intro market-budget-intro"><small>GIFT PAIRING</small><h3>给心意配个伴。</h3><p>填一个总预算，试着搭配两件礼物。</p></div><form class="market-edit-form"><label for="market-gift-budget">总预算（¥）</label><input id="market-gift-budget" type="number" min="0.01" step="0.01" required value="${esc(budget)}" placeholder="例如 100"><button class="market-primary">搭配两件</button></form><div class="market-collection-list"></div>`;
+ playBack(body);
  const list=body.querySelector('.market-collection-list');
  const form=body.querySelector('form');
  form.onsubmit=event=>{event.preventDefault();showGiftBudget(form.querySelector('input').value);};
  if(budget==='')return;
  const cents=item=>Math.round(price(item)*100);
  const max=Math.round(Number(budget)*100);
- const affordable=collectionItems('low').filter(item=>cents(item)>0&&cents(item)<=max);
+ const affordable=lowPriced(uniqueProducts(allItems().filter(item=>!item.isAd))).filter(item=>cents(item)>0&&cents(item)<=max);
  let pair=[],total=0;
  for(let low=0,high=affordable.length-1;low<high;){
   const sum=cents(affordable[low])+cents(affordable[high]);
@@ -144,46 +181,72 @@ function showGiftBudget(budget='') {
  list.append(summary);
  collectionRows(list,pair,()=>showGiftBudget(budget));
 }
-function marketPlay(container) {
- const bar=document.createElement('section');
- bar.className='market-play';
- bar.innerHTML='<small>逛店小玩法</small>';
- for(const [title,run] of [['逛店足迹',()=>showCollection('history')],['送礼预算',()=>showGiftBudget()],['好物抽签',()=>showLottery()]]){
+function playBack(body) {
+ const button=document.createElement('button');
+ button.type='button';
+ button.className='market-play-back';
+ button.textContent='返回逛店手账';
+ button.onclick=showMarketPlay;
+ body.prepend(button);
+}
+function showMarketPlay() {
+ const body=openFeature('逛店手账');
+ body.innerHTML='<div class="market-play-intro"><small>KISS MARKET / FIELD NOTES</small><h3>今天，怎么逛？</h3></div><div class="market-play-menu"></div>';
+ const tools=[
+  ['note','逛店足迹','找回刚刚看过的好物',()=>showCollection('history')],
+  ['parcel','送礼预算','用一份预算搭两件礼物',()=>showGiftBudget()],
+  ['spark','好物抽签','让运气帮你挑一件',()=>showLottery()]
+ ];
+ const menu=body.querySelector('.market-play-menu');
+ tools.forEach(([icon,title,subtitle,run],index)=>{
   const button=document.createElement('button');
-  button.type='button';button.textContent=title;button.onclick=run;bar.append(button);
- }
- container.append(bar);
+  button.type='button';
+  button.innerHTML=`<span class="market-play-icon">${symbol(icon)}</span><span><strong>${title}</strong><small>${subtitle}</small></span><span class="market-play-index">0${index+1}</span>`;
+  button.onclick=run;
+  menu.append(button);
+ });
+}
+function marketPlay(container) {
+ const button=document.createElement('button');
+ button.type='button';
+ button.className='market-play-entry';
+ button.innerHTML=`<span class="market-play-icon">${symbol('note')}</span><span><strong>逛店手账</strong><small>足迹 · 预算搭配 · 抽签</small></span><span class="market-play-badge">打开</span>`;
+ button.onclick=showMarketPlay;
+ container.append(button);
 }
 function festivalCard(container) {
  const button=document.createElement('button');
  button.type='button';
  button.className='market-festival';
- button.innerHTML='<span class="market-festival-copy"><small>KISS MARKET · 限定选集</small><b>11.11</b><strong>双十一心意节</strong><span>逛逛推荐好物 →</span></span>';
+ button.innerHTML='<span class="market-festival-copy"><small>KISS MARKET · 限定选集</small><b>11.11</b><strong>双十一心意节</strong><span>逛逛推荐好物</span></span>';
  button.onclick=()=>showCollection('festival');
  container.append(button);
 }
-function homeSections(container){const c=owner(),quick=document.createElement('section');quick.className='market-quick-tools';const tools=[['spark','灵感盲选',surprise],['note','愿望便签',showWishes],['compare','好物对比',showComparison],['parcel','自提口令',()=>$('shop-pickup-modal').classList.add('visible')]];tools.forEach(([iconName,title,action],i)=>{const b=document.createElement('button');b.type='button';b.innerHTML=`<span class="market-quick-icon market-quick-${i}">${symbol(iconName)}</span><span>${title}</span>`;b.onclick=action;quick.append(b);});container.append(quick);marketPlay(container);
- const all=allItems();if(!all.length){const welcome=document.createElement('section');welcome.className='market-welcome';welcome.innerHTML=`<div><small>HELLO, LITTLE JOYS</small><h2>把喜欢，<br>带回日常。</h2><p>为${esc(c?.remarkName||c?.realName||'TA')}挑一份专属好物</p><button type="button" class="market-primary">开始进货</button></div>${artwork({type:'gift'})}`;welcome.querySelector('button').onclick=forceRefreshShop;container.append(welcome);festivalCard(container);wishPreview(container);const inspiration=document.createElement('section');inspiration.className='market-inspiration';inspiration.innerHTML='<h3>把日常，逛成灵感</h3><div></div>';[['food','今日食堂','food'],['clothes','衣橱小事','general'],['flower','送你心意','general']].forEach(([type,title,category])=>{const b=document.createElement('button');b.type='button';b.innerHTML=artwork({type})+'<span>'+title+'</span>';b.onclick=()=>switchShopTab(category);inspiration.querySelector('div').append(b);});container.append(inspiration);return;}
+function homeSections(container,sections){const c=owner(),quick=document.createElement('section');quick.className='market-quick-tools';const tools=[['spark','灵感盲选',surprise],['note','愿望便签',showWishes],['compare','好物对比',showComparison],['parcel','自提口令',()=>$('shop-pickup-modal').classList.add('visible')]];tools.forEach(([iconName,title,action],i)=>{const b=document.createElement('button');b.type='button';b.innerHTML=`<span class="market-quick-icon market-quick-${i}">${symbol(iconName)}</span><span>${title}</span>`;b.onclick=action;quick.append(b);});container.append(quick);
+ const all=allItems();if(!all.length){const welcome=document.createElement('section');welcome.className='market-welcome';welcome.innerHTML=`<div><small>HELLO, LITTLE JOYS</small><h2>把喜欢，<br>带回日常。</h2><p>为${esc(c?.remarkName||c?.realName||'TA')}挑一份专属好物</p><button type="button" class="market-primary">开始进货</button></div>${artwork({type:'gift'})}`;welcome.querySelector('button').onclick=forceRefreshShop;container.append(welcome);festivalCard(container);marketPlay(container);wishPreview(container);const inspiration=document.createElement('section');inspiration.className='market-inspiration';inspiration.innerHTML='<h3>把日常，逛成灵感</h3><div></div>';[['food','今日食堂','food'],['clothes','衣橱小事','general'],['flower','送你心意','general']].forEach(([type,title,category])=>{const b=document.createElement('button');b.type='button';b.innerHTML=artwork({type})+'<span>'+title+'</span>';b.onclick=()=>switchShopTab(category);inspiration.querySelector('div').append(b);});container.append(inspiration);return;}
+ const captions={low:'小预算精选',wanted:'TA的心动好物',discover:'日常送礼灵感'};
  const specials=document.createElement('section');
  specials.className='market-specials';
  for(const kind of ['low','wanted','discover']){
-  const [title,subtitle]=collections[kind];
-  const items=collectionItems(kind);
+  const [title]=collections[kind];
+  const items=sections[kind];
   const item=items[0];
   const button=document.createElement('button');
   button.type='button';
-  button.innerHTML=`<h3>${title}</h3><p>${subtitle}</p>${artwork(item||{type:'gift'})}<strong>${item?'¥'+esc(item.price):'待上新'}</strong>`;
+  button.innerHTML=`<h3>${title}</h3><p>${captions[kind]}</p>${item?artwork(item):'<span class="market-special-placeholder">'+symbol('parcel')+'</span>'}<strong>${item?'¥'+esc(item.price):'待上新'}</strong>`;
   button.onclick=()=>showCollection(kind);
   specials.append(button);
  }
  container.append(specials);
  festivalCard(container);
+ marketPlay(container);
 }
 renderShopContent=function(){safe();const container=$('shop-content-container');if(!container)return;$('shop-screen').scrollTop=0;container.replaceChildren();navigation();
- const onHome=state.view==='home'&&!state.query&&shopState.currentTab==='recommend'&&state.budget===''&&state.sort==='default';if(onHome)homeSections(container);if(onHome&&!allItems().length)return;
- const top=document.createElement('div');top.className='market-results-heading';const count=rows().length,heading=state.view==='favorites'?'心动清单':state.query?'搜索结果':categories().find(c=>c.id===shopState.currentTab)?.name?.replace(/^[^\p{L}\p{N}]+/u,'')||'为你推荐';top.innerHTML=`<div><h2>${esc(heading==='推荐'?'为你推荐':heading)}</h2><span>${state.query?'“'+esc(state.query)+'” · ':''}${count} 件好物</span></div><button type="button" class="market-random">帮我挑一件</button>`;top.querySelector('button').onclick=surprise;container.append(top);
+ const onHome=state.view==='home'&&!state.query&&shopState.currentTab==='recommend'&&state.budget===''&&state.sort==='default';const selection=onHome?storefrontSelection():null;if(onHome)homeSections(container,selection.sections);if(onHome&&!allItems().length)return;
+ const items=selection?selection.recommended:rows();
+ const top=document.createElement('div');top.className='market-results-heading';const count=items.length,heading=state.view==='favorites'?'心动清单':state.query?'搜索结果':categories().find(c=>c.id===shopState.currentTab)?.name?.replace(/^[^\p{L}\p{N}]+/u,'')||'为你推荐';top.innerHTML=`<div><h2>${esc(heading==='推荐'?'为你推荐':heading)}</h2><span>${state.query?'“'+esc(state.query)+'” · ':''}${count} 件好物</span></div><button type="button" class="market-random">帮我挑一件</button>`;top.querySelector('button').onclick=surprise;container.append(top);
  const filters=document.createElement('div');filters.className='market-filters';filters.innerHTML=`<label class="market-sort-label"><select id="market-sort" aria-label="商品排序"><option value="default">综合推荐</option><option value="low">价格低到高</option><option value="high">价格高到低</option></select></label><div class="market-budget-label"><span>预算 ¥</span><input id="market-budget" type="number" min="0" step="0.01" inputmode="decimal" aria-label="最高预算" placeholder="不限" value="${esc(state.budget)}"><button type="button" class="market-apply-budget">筛选</button></div>${state.query||state.budget!==''||state.sort!=='default'?'<button type="button" class="market-reset">重置</button>':''}`;filters.querySelector('select').value=state.sort;filters.querySelector('select').onchange=e=>{state.sort=e.target.value;renderShopContent();};const applyBudget=()=>{const field=filters.querySelector('input'),n=Number(field.value);if(field.value!==''&&(!Number.isFinite(n)||n<0)){field.value=state.budget;return showToast('预算请输入不小于0的金额');}state.budget=field.value;renderShopContent();};filters.querySelector('.market-apply-budget').onclick=applyBudget;filters.querySelector('input').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();applyBudget();}};filters.querySelector('.market-reset')?.addEventListener('click',()=>{state.query='';state.budget='';state.sort='default';$('shop-search-input').value='';renderShopContent();});container.append(filters);
- if(state.view==='favorites'){const tools=document.createElement('div');tools.className='market-saved-tools';tools.innerHTML='<button type="button">愿望便签</button><button type="button">好物对比</button>';tools.children[0].onclick=showWishes;tools.children[1].onclick=showComparison;container.append(tools);}const items=rows();if(!items.length){const empty=document.createElement('div');empty.className='shop-empty-state market-empty';empty.innerHTML=`<span aria-hidden="true">${state.view==='favorites'?'♡':'⌕'}</span><h3>${state.view==='favorites'?'把喜欢，先收藏起来':state.query||state.budget!==''?'换个条件，再逛逛':'好物正在等你发现'}</h3><p>${state.view==='favorites'?'点一下商品上的爱心，下次想买时就能找到。':state.query||state.budget!==''?'试试更短的关键词，或调整预算。':allItems().length?'这个分类暂时还没有商品，可通过进货补充。':'点击「开始进货」，生成属于你们的商品。'}</p>`;if(!onHome&&state.view!=='favorites'&&!state.query&&state.budget===''){const b=document.createElement('button');b.type='button';b.className='market-primary';b.textContent='开始进货';b.onclick=forceRefreshShop;empty.append(b);}container.append(empty);return;}
+ if(state.view==='favorites'){const tools=document.createElement('div');tools.className='market-saved-tools';tools.innerHTML='<button type="button">愿望便签</button><button type="button">好物对比</button>';tools.children[0].onclick=showWishes;tools.children[1].onclick=showComparison;container.append(tools);}if(!items.length){const empty=document.createElement('div');empty.className='shop-empty-state market-empty';empty.innerHTML=`<span aria-hidden="true">${state.view==='favorites'?'♡':'⌕'}</span><h3>${state.view==='favorites'?'把喜欢，先收藏起来':state.query||state.budget!==''?'换个条件，再逛逛':'好物正在等你发现'}</h3><p>${state.view==='favorites'?'点一下商品上的爱心，下次想买时就能找到。':state.query||state.budget!==''?'试试更短的关键词，或调整预算。':onHome&&allItems().length?'本期好物已分到上面的专题。':allItems().length?'这个分类暂时还没有商品，可通过进货补充。':'点击「开始进货」，生成属于你们的商品。'}</p>`;if(!onHome&&state.view!=='favorites'&&!state.query&&state.budget===''){const b=document.createElement('button');b.type='button';b.className='market-primary';b.textContent='开始进货';b.onclick=forceRefreshShop;empty.append(b);}container.append(empty);return;}
  const grid=document.createElement('div');grid.className='shop-grid';items.forEach(item=>grid.append(card(item)));container.append(grid);const end=document.createElement('p');end.className='market-end';end.textContent='喜欢的，都是生活的小确幸';container.append(end);
 };
 renderShopInitialState=function(){shopState.items={recommend:[],food:[],general:[],guess:[],character_choice:[]};shopState.banner=null;renderShopContent();};

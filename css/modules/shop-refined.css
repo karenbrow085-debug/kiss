@@ -25,11 +25,7 @@
 @media(prefers-reduced-motion:reduce){#shop-screen *{transition:none!important;animation:none!important}}
 
 /* Editorial event and cart-style collections */
-#shop-screen .market-play {
- display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 14px;
-}
-.market-play small {color:#6c5441;font-weight:700;margin-inline-end:3px}
-.market-play button,.market-collection-meta button,.market-row-add {
+.market-collection-meta button,.market-row-add {
  border:1px solid #ebd9c5;border-radius:9px;background:#fffaf2;color:#85491f;
  padding:7px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
 }
@@ -84,3 +80,47 @@
 .market-row-open strong {font-size:15px;color:#ad481f}
 .market-row-add {white-space:nowrap}
 .market-detail-back {display:block;margin-bottom:8px}
+
+#shop-screen .market-specials > button {
+ display:grid;grid-template-rows:auto minmax(2em,auto) auto auto;align-content:start;gap:4px;
+ min-height:0;padding:10px 7px 9px;
+}
+#shop-screen .market-specials :is(h3,p,strong) {
+ white-space:normal;overflow-wrap:anywhere;margin:0;line-height:1.3;
+}
+#shop-screen .market-specials p {font-size:11px;color:#806751}
+#shop-screen .market-specials :is(.market-art,.market-special-placeholder) {
+ width:100%;height:auto;aspect-ratio:1.12;margin:0 0 2px;border-radius:8px;overflow:hidden;
+}
+.market-special-placeholder {display:grid;place-items:center;background:#f3ece3;color:#a38365}
+.market-special-placeholder svg {width:24px;height:24px}
+
+#shop-screen .market-play-entry,.market-play-menu button {
+ display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;
+ width:100%;padding:10px 12px;text-align:start;border-radius:12px;
+ border:1px solid #e8dacb;background:#fffcf7;color:#594033;font:inherit;cursor:pointer;
+}
+#shop-screen .market-play-entry {margin:0 0 16px;background:linear-gradient(108deg,#fbefe1,#fffdf8 72%)}
+.market-play-icon {display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:#f3e3ce;color:#87552f}
+.market-play-icon svg {width:19px;height:19px}
+.market-play-entry strong,.market-play-menu strong {display:block;font-size:14px;line-height:1.25}
+.market-play-entry small,.market-play-menu small {display:block;margin-top:3px;font-size:11px;color:#785e4b}
+.market-play-badge {font-size:11px;padding:5px 8px;border:1px solid #e8dacb;border-radius:7px;background:#fffaf1}
+.market-play-intro {
+ padding:17px 15px;margin-bottom:12px;border-radius:12px;
+ color:#734323;background:linear-gradient(125deg,#f3dbc0,#f9eee0 75%);
+}
+.market-play-intro small {font-size:10px;font-weight:700;letter-spacing:.13em}
+.market-play-intro h3 {margin:4px 0;font-size:22px}
+.market-play-intro p {margin:0;font-size:12px}
+.market-play-menu {display:grid;gap:8px}
+.market-play-menu button:nth-child(2) .market-play-icon {background:#e9ebdc;color:#576145}
+.market-play-menu button:nth-child(3) .market-play-icon {background:#f6e3e2;color:#95564b}
+.market-play-index {font:italic 16px Georgia,serif;color:#8e7158}
+.market-play-back {
+ display:block;padding:5px 0;margin-bottom:8px;border:0;background:none;
+ color:#805637;font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+}
+.market-draw-intro {background:linear-gradient(125deg,#f5d9d1,#fff2e9);color:#783f32}
+.market-budget-intro {background:linear-gradient(125deg,#e3e7d4,#f6f1e6);color:#4d583b}
+.shop-feature-sheet .market-draw-again {margin-top:12px}
