@@ -240,6 +240,14 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             return true;
         });
 
+        if (window.KissLinkContext) {
+            const links = await generation.waitFor(window.KissLinkContext.prepare(historySlice, generation));
+            generation.check();
+            historySlice = links.history;
+            systemPrompt += links.prompt;
+            generation.linkContext = {provided:links.provided, count:links.count||0};
+        }
+
         // 检查系统提示词中是否包含聊天记录占位符
         const hasHistoryPlaceholder = systemPrompt.includes('【动态插入: 聊天记录】');
         
@@ -251,7 +259,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         if (provider === 'gemini') {
             let lastMsgTimeForAI = 0;
             let lastTimeMarkerForAI = 0;
-            const contents = historySlice.map(msg => {
+            let contents = historySlice.map(msg => {
                 const role = msg.role === 'assistant' ? 'model' : 'user';
                 
                 let prefix = '';
@@ -362,8 +370,10 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
                     }
                     
                     if (lastUserIndex !== -1) {
-                        historyContents = contents.slice(0, lastUserIndex);
-                        lastUserContent = contents.slice(lastUserIndex); // 包含最后一条用户消息及其后的系统通知等
+                        let firstUserIndex = lastUserIndex;
+                        while (firstUserIndex > 0 && contents[firstUserIndex - 1].role === 'user') firstUserIndex--;
+                        historyContents = contents.slice(0, firstUserIndex);
+                        lastUserContent = contents.slice(firstUserIndex);
                     } else {
                         historyContents = contents;
                     }
@@ -441,7 +451,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
                    lastTimeMarkerForAI = currentMsgTime;
                }
 
-               if (msg.role === 'user' && msg.quote) {
+               if (msg.role === 'user' && msg.quote && !msg.linkAttachment) {
                    const replyTextMatch = msg.content.match(/\[.*?的消息：([\s\S]+?)\]/);
                    const replyText = replyTextMatch ? replyTextMatch[1] : msg.content;
                    
