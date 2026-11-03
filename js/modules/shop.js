@@ -610,7 +610,7 @@ async function fetchShopData(origin=shopScope()) {
     const contextPrompt = generatePrivateSystemPrompt(chat);
 
     // 截取最近 50 条消息作为参考
-    let historySlice = chat.history.slice(-50);
+    let historySlice = chat.history.slice(-50).map(m=>window.KissWorkFiles?.summaryMessage?.(m)||({...m}));
     historySlice = filterHistoryForAI(chat, historySlice);
 
     const recentHistory = historySlice.map(m => {

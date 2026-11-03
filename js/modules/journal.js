@@ -1,6 +1,7 @@
 // Journal generation; the memory workbench owns the page controller.
 let generatingChatId = null;
 let journalGenerationTask=null;
+const journalFingerprint=rows=>JSON.stringify(rows.map(m=>[m.id,window.KissWorkFiles?.summaryText?.(m)||m.content,m.isWithdrawn,m.isThinking]));
 function setupMemoryJournalScreen() {}
 function renderJournalList() {}
 
@@ -42,14 +43,14 @@ async function generateJournal(start, end, includeFavorited = false, options = {
         const originHistory = chat.history, originArchive = chat.activeArchiveId, originPersona = chat.activePersonaId, originAccount=db.activePersonaId;
         const startIndex = start - 1;
         const endIndex = end;
-        const journalSnapshot=JSON.stringify(chat.history.slice(startIndex,endIndex).map(m=>[m.id,m.content,m.isWithdrawn,m.isThinking]));
+        const journalSnapshot=journalFingerprint(chat.history.slice(startIndex,endIndex));
         
         if (startIndex < 0 || endIndex > chat.history.length || startIndex >= endIndex) {
             throw new Error("无效的消息范围。");
         }
 
         // ...
-        let messagesToSummarize = chat.history.slice(startIndex, endIndex).map(m => ({...m}));
+        let messagesToSummarize = chat.history.slice(startIndex, endIndex).map(m => window.KissWorkFiles?.summaryMessage?.(m)||({...m}));
         if (options.messageIds) {
             const selected = new Set(options.messageIds);
             messagesToSummarize = messagesToSummarize.filter(m => selected.has(m.id));
@@ -288,7 +289,7 @@ async function generateJournal(start, end, includeFavorited = false, options = {
 
         if (!titleMatch || !contentMatch || !parsedContent) throw new Error("日记返回格式不完整，请重试");
 
-        if (JSON.stringify(chat.history.slice(startIndex,endIndex).map(m=>[m.id,m.content,m.isWithdrawn,m.isThinking]))!==journalSnapshot || chat.history !== originHistory || chat.activeArchiveId !== originArchive || chat.activePersonaId !== originPersona || db.activePersonaId !== originAccount || !(journalChatType === 'private' ? db.characters : db.groups).includes(chat)) throw new Error("聊天存档已变动，本次日记未写入");
+        if (journalFingerprint(chat.history.slice(startIndex,endIndex))!==journalSnapshot || chat.history !== originHistory || chat.activeArchiveId !== originArchive || chat.activePersonaId !== originPersona || db.activePersonaId !== originAccount || !(journalChatType === 'private' ? db.characters : db.groups).includes(chat)) throw new Error("聊天存档已变动，本次日记未写入");
         const newJournal = {
             memoryType: 'summary',
             offlineSummary: !!options.messageIds,
