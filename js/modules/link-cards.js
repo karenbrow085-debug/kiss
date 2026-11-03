@@ -20,14 +20,18 @@ function samePlatform(a,b){return a===b||['taobao','xianyu'].includes(a)&&['taob
 const siteSuffix=/\s*[-_|｜]\s*(?:rednote|小红书|微博|抖音|淘宝|拼多多|美团|闲鱼|閒魚|哔哩哔哩(?:_bilibili)?|bilibili)\s*$/i;
 const urlPattern=/https?:\/\/[^\s<>"'「」『』【】\[\]，。！？；、]+/gi;
 function errorPreview(title,description=''){return /^(?:出[错錯](?:啦|了)?|发生错误|發生錯誤|请求被拒绝|請求被拒絕|访问[受限拒绝]|訪問[受限拒絕]|页面不存在|頁面不存在|页面走丢了|頁面走丟了|系统繁忙|系統繁忙|服务异常|服務異常|captcha|access denied|forbidden|not found|too many requests|(?:http\s*)?(?:403|404|412|429|500|502|503)\b)/i.test(String(title||'').trim())||/^\d{12,}(?:\?.*)?$/.test(String(title||'').trim())||/(?:错误[号碼码]|錯誤[號碼]|error\s*(?:code|number))\s*[:：]?\s*(?:403|404|412|429|500|502|503)\b/i.test(String(description||''));}
-const cache=new Map(),inflight=new Map(),cacheKey='kiss-link-previews-v5',TTL=1800000;
+const cache=new Map(),inflight=new Map(),cacheKey='kiss-link-previews-v5';
 const cooldowns=new Map(),cooldownKey='kiss-link-provider-cooldowns-v1';
 try{for(const [host,until]of JSON.parse(localStorage.getItem(cooldownKey)||'[]'))if(typeof host==='string'&&Number(until)>Date.now())cooldowns.set(host,Number(until));}catch{}
 function cooldownMessage(host){return host==='api.microlink.io'?'通用网页预览额度或频率受限，已暂停重复请求；小红书、抖音和B站仍可读取':'该解析服务暂时限流，已暂停重复请求，请稍后重试';}
 function applyCooldown(host,headers){const raw=headers?.get?.('retry-after'),reset=Number(headers?.get?.('x-rate-limit-reset'));let until=Number(raw)>0?Date.now()+Number(raw)*1000:Date.parse(raw||'');if(!Number.isFinite(until)||until<=Date.now())until=reset>1e12?reset:reset*1000;if(!Number.isFinite(until)||until<=Date.now())until=Date.now()+3600000;cooldowns.set(host,until);try{localStorage.setItem(cooldownKey,JSON.stringify([...cooldowns]));}catch{}return cooldownMessage(host);}
-try{for(const [url,entry] of JSON.parse(localStorage.getItem(cacheKey)||'[]'))if(platform(url)&&entry?.value&&Date.now()-entry.time<TTL)cache.set(url,entry);}catch{}
-function cached(url){const entry=cache.get(url);const lifetime=entry?.state==='error'?90000:entry?.state==='loaded'&&!entry.value?.images?.length?120000:TTL;if(entry&&Date.now()-entry.time<lifetime){if(entry.value&&errorPreview(entry.value.title,entry.value.description)){const rejected={state:'error',time:Date.now(),error:'平台返回了错误页，点击重试'};cache.set(url,rejected);return rejected;}return entry;}cache.delete(url);return null;}
-function remember(){try{localStorage.setItem(cacheKey,JSON.stringify([...cache].filter(([,e])=>e.state==='loaded').slice(-100)));}catch{}}
+function successful(entry){return entry?.state==='loaded'&&entry.value&&typeof entry.value==='object'&&(entry.value.title||entry.value.body||entry.value.description||entry.value.images?.length)&&!errorPreview(entry.value.title,entry.value.description);}
+try{for(const [url,entry] of JSON.parse(localStorage.getItem(cacheKey)||'[]'))if(platform(url)&&entry?.value)cache.set(url,entry);}catch{}
+let previewDB=null;
+const cacheReady=new Promise(resolve=>{try{const r=indexedDB.open('kiss-link-content-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('previews');r.onerror=()=>resolve();r.onblocked=()=>resolve();r.onsuccess=()=>{previewDB=r.result;const q=previewDB.transaction('previews').objectStore('previews').getAll();q.onerror=()=>resolve();q.onsuccess=()=>{for(const entry of q.result||[]){if(platform(entry?.url)&&successful(entry)){const old=cache.get(entry.url);if(!old||Number(old.time)<Number(entry.time))cache.set(entry.url,entry);}}for(const [url,entry]of cache)if(successful(entry))persistEntry(url,entry);resolve();for(const url of cache.keys())notify(url);};};}catch{resolve();}});
+function persistEntry(url,entry){if(!previewDB||!successful(entry))return;try{const t=previewDB.transaction('previews','readwrite');t.objectStore('previews').put({...entry,url},url);}catch{}}
+function cached(url){const entry=cache.get(url);if(successful(entry))return entry;if(entry?.value&&errorPreview(entry.value.title,entry.value.description)){const rejected={state:'error',time:Date.now(),error:'平台返回了错误页'};cache.set(url,rejected);return rejected;}if(entry&&Date.now()-entry.time<(entry.state==='error'?90000:120000))return entry;cache.delete(url);return null;}
+function remember(){try{localStorage.setItem(cacheKey,JSON.stringify([...cache].filter(([,e])=>successful(e)).slice(-100)));}catch{}}
 function shareCopy(source,p){
  let text=source.replace(urlPattern,'').replace(/(?:拷走|拷贝|复制|複製|长按复制|存下|存好|保存)\s*(?:这条|这段|此|本条|本段)?(?:链接|連結|口令)[\s\S]*$/,'').replace(/[，,]?\s*来[【\[]小红书[】\]][\s\S]*$/,'').replace(/(?:打开|打開)(?:抖音|小红书|微博|淘宝|拼多多|美团|闲鱼|閒魚|哔哩哔哩|bilibili)[^\n]*/gi,'');
  let author='';
@@ -51,7 +55,7 @@ function get(message){
  const raw=String(message.content||'');const wrapped=raw.match(/^\[.+?的消息[：:]([\s\S]*)\]$/);if(!wrapped&&/^\[/.test(raw))return [];
  const cards=parse(wrapped?wrapped[1]:raw);
  return cards.map(c=>{
-  const entry=cached(c.url),saved=message.linkPreviews?.find?.(p=>p.url===c.url)||entry?.value;if(!saved)return {...c,previewState:entry?.state||'idle',previewError:entry?.error||''};
+  const entry=cached(c.url),saved=entry?.state==='loaded'?entry.value:message.linkPreviews?.find?.(p=>p.url===c.url)||entry?.value;if(!saved)return {...c,previewState:entry?.state||'idle',previewError:entry?.error||''};
   if(errorPreview(saved.title,saved.description))return {...c,previewState:'error',previewError:'平台返回了错误页，保留分享文案与默认图标'};
   const images=Array.isArray(saved.images)?saved.images.map(safeURL).filter(Boolean):[];
   const resolvedPlatform=platforms.find(p=>p.id===saved.platform&&samePlatform(c.platform,p.id))||platforms.find(p=>p.id===c.platform);const savedTitle=typeof saved.title==='string'&&saved.title.trim()?saved.title:c.title;
@@ -83,10 +87,11 @@ function limited(run){return new Promise((resolve,reject)=>{networkQueue.push(()
 function pump(){while(networkCount<2&&networkQueue.length)networkQueue.shift()();}
 function parserRequest(url){const id=platform(url)?.id;let endpoint;if(id==='douyin')endpoint=new URL('https://api.xcboke.cn/api/dy');else if(id==='xiaohongshu')endpoint=new URL('https://api.odysphere.tech/jiexi/xhs');else if(id==='bilibili')endpoint=new URL('https://api.odysphere.tech/jiexi/bilibili');else return null;let target=url;if(id==='douyin'){const match=new URL(url).pathname.match(/\/(?:share\/)?(note|video|slides)\/(\d{15,20})/);if(match)target='https://www.douyin.com/'+(match[1]==='video'?'video':'note')+'/'+match[2];}endpoint.searchParams.set('url',target);return {url:endpoint.href,provider:id==='douyin'?'筱初解析':'Meridian Nexus',kind:id};}
 function normalizeParser(result,url,provider){if(Number(result?.code)!==200||!result.data||Array.isArray(result.data))throw Error('解析服务未取得作品图片，请点击重试');const data=result.data;const images=[...new Set([data.cover,...(Array.isArray(data.images)?data.images:[])].map(v=>safeURL(typeof v==='string'?v:v?.url||v?.image)).filter(Boolean).map(v=>v.replace(/^http:/,'https:')))];const title=String(data.title||data.desc||'').trim();if(errorPreview(title)||(!title&&!images.length))throw Error('解析服务未返回有效作品');return {platform:platform(url).id,title,description:String(data.desc||data.description||''),author:String(typeof data.author==='string'?data.author:data.author?.name||data.user?.name||''),images,textKind:platform(url)?.id==='bilibili'?'video_description':'post_caption',mediaType:String(data.type||'preview'),provider,resolved:false,previewFetched:true};}
-function accept(url,value){cache.set(url,{state:'loaded',time:Date.now(),value});while(cache.size>100)cache.delete(cache.keys().next().value);remember();return value;}
-function resetReaderCache(){for(const [url,e]of cache)if(!parserRequest(url)||e.value?.provider==='Jina Reader'){cache.delete(url);notify(url);}remember();}
+function accept(url,value){const entry={state:'loaded',time:Date.now(),value};cache.set(url,entry);persistEntry(url,entry);remember();return value;}
+function resetReaderCache(){for(const [url,e]of cache)if(e.state!=='loaded'){cache.delete(url);notify(url);}remember();}
 async function readPage(url,controller,retry){const value=await window.KissLinkReader.read(url,{signal:controller.signal,retry});return {...value,platform:platform(url).id};}
 async function request(url,retry=false){
+ await cacheReady;
  if(!platform(url))throw Error('不支持的分享链接');if(inflight.has(url))return inflight.get(url);const existing=cached(url);if(existing?.state==='loaded'&&!retry)return existing.value;if(existing?.state==='error'&&!retry)throw Error(existing.error);
  const controller=new AbortController();let timer;cache.set(url,{state:'loading',time:Date.now(),value:existing?.value});notify(url);
  const task=limited(async()=>{timer=setTimeout(()=>controller.abort(),65000);const specific=parserRequest(url);const endpoint=new URL(specific?.url||'https://api.microlink.io/');if(!specific){endpoint.searchParams.set('url',url);endpoint.searchParams.set('prerender','true');if(platform(url)?.id==='bilibili'){endpoint.searchParams.set('data.videoCover.selector','video[poster]:not([poster=""])');endpoint.searchParams.set('data.videoCover.attr','poster');endpoint.searchParams.set('data.videoCover.type','image');}endpoint.searchParams.set('data.cover.selector','meta[property="og:image"],meta[name="og:image"],meta[name="twitter:image"],meta[property="twitter:image"]');endpoint.searchParams.set('data.cover.attr','content');endpoint.searchParams.set('data.cover.type','image');endpoint.searchParams.set('data.structured.selectorAll','script[type="application/ld+json"]');endpoint.searchParams.set('data.structured.attr','text');}
@@ -95,7 +100,7 @@ async function request(url,retry=false){
  }catch(e){if(controller.signal.aborted)throw e;if(specific&&window.KissLinkReader){try{return accept(url,await readPage(url,controller,retry));}catch(reader){readerError=reader.message||'网页读取失败';}}throw Error([readerError,e.message].filter(Boolean).join('；'));}
  }).catch(e=>{const message=e.name==='AbortError'?'读取超时，点击重试':e.message||'读取失败，点击重试';cache.set(url,{state:'error',time:Date.now(),error:message,value:existing?.value});throw Error(message);}).finally(()=>{clearTimeout(timer);inflight.delete(url);notify(url);});inflight.set(url,task);return task;
 }
-function prefetch(message,retry=false){return Promise.allSettled(get(message).map(c=>request(c.url,retry)));}
+async function prefetch(message,retry=false){await cacheReady;return Promise.allSettled(get(message).map(async c=>{const saved=message.linkPreviews?.find?.(p=>p.url===c.url);if(!retry&&!cached(c.url)&&saved&&!errorPreview(saved.title,saved.description))return accept(c.url,saved);const value=await request(c.url,retry);const next={url:c.url,...value,parsedAt:cached(c.url)?.time||Date.now()};if(saved?.parsedAt===next.parsedAt)return value;message.linkPreviews=[...(message.linkPreviews||[]).filter(p=>p.url!==c.url),next];if(typeof saveData==='function')try{await saveData();}catch{}return value;}));}
 function appIcon(p,cls='kl-default-icon'){const src=appIcons[p.id];const node=el('span',cls);node.style.background=p.color;if(src){const img=el('img','');img.src=src;img.alt=p.name;img.draggable=false;img.addEventListener('error',()=>{node.replaceChildren(el('span','',p.name));});node.append(img);}else node.textContent=p.name;return node;}
 function badge(p){return appIcon(p,'kl-badge');}
 function imageProxy(url,width=1200){const safe=safeURL(url);if(!safe)return '';const proxy=new URL('https://wsrv.nl/');proxy.searchParams.set('url',safe);proxy.searchParams.set('w',String(width));proxy.searchParams.set('output','webp');return proxy.href;}
@@ -120,5 +125,5 @@ function observeCard(b,message){if(typeof window.IntersectionObserver!=='functio
 function card(message,items=get(message)){
  const stack=el('div','kl-stack');for(const item of items){const b=button('',()=>{if(typeof isInMultiSelectMode!=='undefined'&&isInMultiSelectMode)return;details(get(message).find(c=>c.url===item.url)||item,message);},'kl-card');b._kissLinkMessage=message;paint(b,item);stack.append(b);observeCard(b,message);}return stack;
 }
-window.KissLinkCards={parse,get,platform,safeURL,card,details,normalize,normalizeParser,parserRequest,imageProxy,request,prefetch,resetReaderCache,close:()=>active?.close()};
+window.KissLinkCards={parse,get,platform,safeURL,card,details,normalize,normalizeParser,parserRequest,imageProxy,request,prefetch,resetReaderCache,ready:cacheReady,close:()=>active?.close()};
 })();
