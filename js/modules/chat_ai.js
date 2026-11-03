@@ -24,6 +24,7 @@ const aiGenerationControl = (() => {
         const task = {
             key, signal:controller.signal, cancelled:false, reader:null, timers:new Set(),
             collectionContext:chatType==='private'?window.KissCollections?.capture(db.characters.find(c=>c.id===chatId)):null,
+            linkImageScope:chatType==='private'?window.KissLinkImages?.capture(db.characters.find(c=>c.id===chatId)):null,
             check() { if (this.cancelled) throw abortError(); },
             waitFor(promise) {
                 this.check();
@@ -246,6 +247,8 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             historySlice = links.history;
             systemPrompt += links.prompt;
             generation.linkContext = {provided:links.provided, count:links.count||0, receipt:links.receipt};
+            if(chatType==='private')generation.linkImages=window.KissLinkImages?.context(chat,historySlice,links.media||[],generation.linkImageScope);
+            systemPrompt += generation.linkImages?.prompt || '';
         }
 
         // 检查系统提示词中是否包含聊天记录占位符
@@ -844,6 +847,8 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
 
         if(window.KissReactions) fullResponse=await KissReactions.consume(fullResponse,chat,generation?.reactionContext,()=>generation?.check());
+
+        if(targetChatType==='private'&&window.KissLinkImages){try{fullResponse=await KissLinkImages.consume(fullResponse,chat,generation?.linkImages,{check:()=>generation?.check(),emit:message=>addMessageBubble(message,targetChatId,targetChatType)});}catch(error){if(error.name==='AbortError')throw error;showToast(error.message);fullResponse=fullResponse.replace(/<link_image_action\b[^>]*>[\s\S]*?<\/link_image_action\s*>/gi,'');}}
 
         // --- 朋友圈指令解析 ---
         const momentPostWithImageRegex = /\[(.*?)\s*发布了一条带图动态[：:](.*?)\|([\s\S]+?)\]/;

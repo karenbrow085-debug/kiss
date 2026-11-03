@@ -100,7 +100,7 @@ async function request(url,retry=false){
  }catch(e){if(controller.signal.aborted)throw e;if(specific&&window.KissLinkReader){try{return accept(url,await readPage(url,controller,retry));}catch(reader){readerError=reader.message||'网页读取失败';}}throw Error([readerError,e.message].filter(Boolean).join('；'));}
  }).catch(e=>{const message=e.name==='AbortError'?'读取超时，点击重试':e.message||'读取失败，点击重试';cache.set(url,{state:'error',time:Date.now(),error:message,value:existing?.value});throw Error(message);}).finally(()=>{clearTimeout(timer);inflight.delete(url);notify(url);});inflight.set(url,task);return task;
 }
-async function prefetch(message,retry=false){await cacheReady;return Promise.allSettled(get(message).map(async c=>{const saved=message.linkPreviews?.find?.(p=>p.url===c.url);if(!retry&&!cached(c.url)&&saved&&!errorPreview(saved.title,saved.description))return accept(c.url,saved);const value=await request(c.url,retry);const next={url:c.url,...value,parsedAt:cached(c.url)?.time||Date.now()};if(saved?.parsedAt===next.parsedAt)return value;message.linkPreviews=[...(message.linkPreviews||[]).filter(p=>p.url!==c.url),next];if(typeof saveData==='function')try{await saveData();}catch{}return value;}));}
+async function prefetch(message,retry=false){await cacheReady;return Promise.allSettled(get(message).map(async c=>{const saved=message.linkPreviews?.find?.(p=>p.url===c.url);if(!retry&&!cached(c.url)&&saved&&!errorPreview(saved.title,saved.description))return accept(c.url,saved);const value=await request(c.url,retry);const next={url:c.url,...value,parsedAt:cached(c.url)?.time||Date.now()};if(!retry&&saved?.parsedAt===next.parsedAt)return value;message.linkPreviews=[...(message.linkPreviews||[]).filter(p=>p.url!==c.url),next];if(typeof saveData==='function')try{await saveData();}catch{}return value;}));}
 function appIcon(p,cls='kl-default-icon'){const src=appIcons[p.id];const node=el('span',cls);node.style.background=p.color;if(src){const img=el('img','');img.src=src;img.alt=p.name;img.draggable=false;img.addEventListener('error',()=>{node.replaceChildren(el('span','',p.name));});node.append(img);}else node.textContent=p.name;return node;}
 function badge(p){return appIcon(p,'kl-badge');}
 function imageProxy(url,width=1200){const safe=safeURL(url);if(!safe)return '';const proxy=new URL('https://wsrv.nl/');proxy.searchParams.set('url',safe);proxy.searchParams.set('w',String(width));proxy.searchParams.set('output','webp');return proxy.href;}
@@ -122,8 +122,11 @@ function paint(b,item){const p=platforms.find(x=>x.id===item.platform);b.setAttr
 
 let observer;
 function observeCard(b,message){if(typeof window.IntersectionObserver!=='function')return;if(!observer)observer=new window.IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;observer.unobserve(e.target);const m=e.target._kissLinkMessage;if(get(m).some(c=>c.previewState==='idle'))prefetch(m);}}, {rootMargin:'80px'});observer.observe(b);}
+const externalFallback=new Set(['weibo','taobao','pinduoduo','meituan','xianyu']);
+function canPreview(item){return item.previewState==='loaded'||!!(item.body||item.images?.length||item.sourceProvider)&&!errorPreview(item.title,item.description);}
+function openCard(item,message){if(externalFallback.has(item.platform)&&!canPreview(item)){window.open(item.url,'_blank','noopener,noreferrer');return;}details(item,message);}
 function card(message,items=get(message)){
- const stack=el('div','kl-stack');for(const item of items){const b=button('',()=>{if(typeof isInMultiSelectMode!=='undefined'&&isInMultiSelectMode)return;details(get(message).find(c=>c.url===item.url)||item,message);},'kl-card');b._kissLinkMessage=message;paint(b,item);stack.append(b);observeCard(b,message);}return stack;
+ const stack=el('div','kl-stack');for(const item of items){const b=button('',()=>{if(typeof isInMultiSelectMode!=='undefined'&&isInMultiSelectMode)return;openCard(get(message).find(c=>c.url===item.url)||item,message);},'kl-card');b._kissLinkMessage=message;paint(b,item);stack.append(b);observeCard(b,message);}return stack;
 }
-window.KissLinkCards={parse,get,platform,safeURL,card,details,normalize,normalizeParser,parserRequest,imageProxy,request,prefetch,resetReaderCache,ready:cacheReady,close:()=>active?.close()};
+window.KissLinkCards={parse,get,platform,safeURL,card,details,normalize,normalizeParser,parserRequest,imageProxy,canPreview,openCard,request,prefetch,resetReaderCache,ready:cacheReady,close:()=>active?.close()};
 })();
