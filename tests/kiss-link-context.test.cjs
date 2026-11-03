@@ -28,3 +28,5 @@ test('cancelled generation stops before any image download',async()=>{
 test('ready link attachments skip duplicate search unless the user requests online tools',()=>{
  const {api}=setup();const g={linkContext:{provided:true}};assert.equal(api.skipTools(g,'读一下这篇'),true);for(const text of ['搜索其他信息','联网核实','调用 MCP'])assert.equal(api.skipTools(g,text),false);assert.equal(api.skipTools({linkContext:{provided:false}},'读一下'),false);
 });
+
+test('extracted page text and images are transmitted with their actual source scope',async()=>{const {api,card,generation}=setup();card.body='完整网页正文'.repeat(12000)+'正文最后一句';card.textKind='page_extract';card.sourceProvider='Jina Reader';const r=await api.prepare([{role:'user',content:card.url}],generation);const m=r.history[0];assert.match(m.content,/正文最后一句/);assert.match(m.content,/网页实际提取的正文/);assert.match(m.content,/未核验原站完整性/);assert.equal(m.parts.filter(p=>p.type==='image').length,2);});

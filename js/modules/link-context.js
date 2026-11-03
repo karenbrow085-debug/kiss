@@ -11,7 +11,7 @@ function relevant(history){
  if(!selected.length&&/(?:链接|連結|这个|這個|上面|刚才|剛才|这篇|這篇|图片|圖片|正文|内容|內容)/.test(String(history[last].content||''))){for(let i=last;i>=0;i--){if(history[i].role==='user'&&window.KissLinkCards.get(history[i]).length){selected=[{m:history[i],i}];break;}}}
  return {last,selected};
 }
-function record(card){return {url:card.url,title:card.title,author:card.author||'',text:card.body||card.description||card.excerpt||'',textScope:card.textKind==='post_caption'?'接口返回的作品文案，按原样全部传入，未另行核验完整性':card.textKind==='video_description'?'视频简介，按原样全部传入；没有读取视频画面或音轨':'网页预览摘要或分享文案，不是已核验的全文',imageCount:card.images.length,comments:card.comments?.length?card.comments:'未获取评论区',state:card.previewState||'idle',error:card.previewError||'',source:card.sourceProvider||''};}
+function record(card){return {url:card.url,title:card.title,author:card.author||'',text:card.body||card.description||card.excerpt||'',textScope:card.textKind==='page_extract'?'网页实际提取的正文，按原样全部传入；未核验原站完整性，未读取视频或音轨':card.textKind==='post_caption'?'接口返回的作品文案，按原样全部传入，未另行核验完整性':card.textKind==='video_description'?'视频简介，按原样全部传入；没有读取视频画面或音轨':'网页预览摘要或分享文案，不是已核验的全文',imageCount:card.images.length,comments:card.comments?.length?card.comments:'未获取评论区',state:card.previewState||'idle',error:card.previewError||card.readerError||'',source:card.sourceProvider||''};}
 function imageData(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('图片读取失败'));reader.readAsDataURL(blob);});}
 async function loadImage(url,generation){
  let lastError;
