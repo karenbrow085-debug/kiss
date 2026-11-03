@@ -93,7 +93,7 @@
     <link rel="stylesheet" href="css/modules/worldbook.css?v=20261023-wb-compact-2">
     <link rel="stylesheet" href="css/modules/console.css?v=20261023-console-3">
 <link rel="stylesheet" href="css/modules/archive-ui.css?v=20261024-studio-2">
-<link id="kiss-pages-default-css" rel="stylesheet" href="css/modules/kiss-pages-v1.css?v=20261104-dialogs-1">
+<link id="kiss-pages-default-css" rel="stylesheet" href="css/modules/kiss-pages-v1.css?v=20261104-group-dialogs">
 <link rel="stylesheet" href="css/modules/kiss-moments.css?v=20261031-community-languages-1">
 <link rel="stylesheet" href="css/modules/role-time.css?v=20261027-moments-v4">
 <link rel="stylesheet" href="css/modules/collections.css?v=20261031-ui-3">
@@ -103,7 +103,7 @@
 <link rel="stylesheet" href="css/modules/chat-settings-v2.css?v=20261102-glass-menu-1">
 <link rel="stylesheet" href="css/modules/chat-settings-reference.css?v=20261102-v13">
 <link rel="stylesheet" href="css/modules/chat-social-polish.css?v=20261103-v14">
-<link rel="stylesheet" href="css/modules/kiss-v14.css?v=20261102-v14">
+<link rel="stylesheet" href="css/modules/kiss-v14.css?v=20261104-group-dialogs">
 <link rel="stylesheet" href="css/modules/kiss-v15.css?v=20261102-v15">
 <link rel="stylesheet" href="css/modules/kiss-v16.css?v=20261102-v16">
 <link rel="stylesheet" href="css/modules/kiss-v17.css?v=20261102-exclusive-row-1">
@@ -1353,7 +1353,8 @@
         <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="folder-modal-title">
             <h3 id="folder-modal-title">新建文件夹</h3>
             <div class="form-group">
-                <input type="text" id="folder-name-input" aria-label="文件夹名称" placeholder="请输入文件夹名称" required>
+                <label for="folder-name-input">文件夹名称</label>
+                <input type="text" id="folder-name-input" placeholder="请输入文件夹名称" required>
             </div>
             <div class="ku-folder-actions" style="display: flex; gap: 10px; margin-top: 20px;">
                 <button id="folder-cancel-btn" class="btn btn-neutral" style="flex: 1;">取消</button>
