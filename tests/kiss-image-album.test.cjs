@@ -50,7 +50,7 @@ test('keyboard and swipe stop at the first/last images instead of wrapping',()=>
 test('two-image albums never create a phantom back card and keep image order when expanded',()=>{
  const api=albumSetup();for(const index of [0,1])assert.equal(api.stackLayout(2,index).cards.filter(c=>c.opacity).length,2);
  const root=api.create({parts:photos().slice(0,2).map(data=>({type:'image',data}))});root.children[0].onclick();
- assert.equal(root.children[0].textContent,'收起 2');assert(root.children[1].children.every(card=>card.attrs['aria-hidden']==='false'));
+ assert.equal(root.children[0].textContent,'收起');assert(root.children[1].children.every(card=>card.attrs['aria-hidden']==='false'));
 });
 
 test('centred rotation matches reference peeks: about 12px/24px at the upper edge and narrower below',()=>{

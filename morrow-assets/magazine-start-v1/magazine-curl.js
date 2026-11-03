@@ -1,4 +1,4 @@
-/* A single Canvas 2D book on Android and iOS. No DOM capture, WebGL or CSS 3D handoff. */
+/* Cached page artwork with a continuous GPU surface and a seam-free 2D fallback. */
 (() => {
 'use strict';
 const clamp=n=>Math.max(0,Math.min(1,n));
@@ -37,32 +37,39 @@ function paintPage(kind,w,h,ratio,images){
 }
 async function create(root){
  const screen=root.querySelector('.qm-screen');if(!screen)return null;
- const canvas=document.createElement('canvas');canvas.className='qm-unified-canvas';canvas.setAttribute('aria-hidden','true');const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return null;
+ let canvas=document.createElement('canvas');
+ const gpu=window.KissPaperSurface?.create(canvas)||null;
+ if(!gpu)canvas=document.createElement('canvas');
+ canvas.className='qm-unified-canvas';canvas.setAttribute('aria-hidden','true');
+ const ctx=gpu?null:canvas.getContext('2d',{alpha:false});if(!gpu&&!ctx)return null;
  const names=['waves.jpg','forest.jpg','mountains.jpg','masthead.png'];
  const base=new URL('morrow-assets/magazine-start-v1/',document.baseURI);
  const loaded=await Promise.all([Promise.all(names.map(name=>load(name,base))),document.fonts?Promise.all([document.fonts.load('400 32px KissStartSerif'),document.fonts.load('italic 400 32px KissStartSerif'),document.fonts.load('400 16px KissStartSans')]):Promise.resolve()]);
- if(!root.isConnected||root.dataset.paperDisabled==='true')return null;
+ if(!root.isConnected||root.dataset.paperDisabled==='true'){gpu?.dispose();return null;}
  const images=Object.fromEntries(names.map((name,i)=>[name,loaded[0][i]]));
  let faces,w,h,ratio,frame=0,disposed=false,started=0,duration=3200,active=false,resolveAnimation,timeline=0;
- function resize(){const rect=screen.getBoundingClientRect();w=Math.max(1,rect.width);h=Math.max(1,rect.height);ratio=Math.min(window.devicePixelRatio||1,1.5,1400/h);canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);faces=['cover','back','gallery'].map(kind=>paintPage(kind,w,h,ratio,images));draw(timeline);}
- function draw(t){if(disposed)return;timeline=t;ctx.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);ctx.fillStyle='#eeede8';ctx.fillRect(0,0,w,h);const z=spread(t);ctx.save();ctx.translate(z.x*w,z.y*h);ctx.scale(z.scale,z.scale);ctx.drawImage(faces[2],0,0,w,h);
-  const p=ease((t*3200-160)/1750);
+ function resize(){const rect=screen.getBoundingClientRect();w=Math.max(1,rect.width);h=Math.max(1,rect.height);ratio=Math.min(window.devicePixelRatio||1,1.5,1400/h);canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);faces=['cover','back','gallery'].map(kind=>paintPage(kind,w,h,ratio,images));gpu?.upload(faces);draw(timeline);}
+ function draw(t){
+  if(disposed)return;timeline=t;
+  const z=spread(t),p=ease((t*3200-160)/1750),shadow=t>.25&&t<.8?Math.sin(Math.PI*clamp((t-.25)/.55))*.18:0;
+  if(gpu){gpu.draw({p,z,shadow});return;}
+  // Older devices still draw one complete image per page, never separate strips.
+  ctx.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);ctx.fillStyle='#eeede8';ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.translate(z.x*w,z.y*h);ctx.scale(z.scale,z.scale);ctx.drawImage(faces[2],0,0,w,h);
   if(p<=0)ctx.drawImage(faces[0],0,0,w,h);
   else if(p>=1)ctx.drawImage(faces[1],-w,0,w,h);
   else{
-   const parts=[],cols=64;
-   for(let i=0;i<cols;i++){const u0=i/cols,u1=(i+1)/cols,a=point(u0,.5,p),b=point(u1,.5,p),q=point((u0+u1)/2,.5,p);parts.push({u0,u1,q,x0:a.x*4.6/(4.6-a.z)*w,x1:b.x*4.6/(4.6-b.z)*w});}
-   parts.sort((a,b)=>a.q.z-b.q.z);
-   for(const part of parts){const front=Math.cos(part.q.angle)>=0,face=faces[front?0:1],factor=4.6/(4.6-part.q.z),x=Math.min(part.x0,part.x1),bw=Math.abs(part.x1-part.x0);if(bw<.01)continue;const y=(1-factor)*h/2,bh=h*factor;ctx.drawImage(face,(front?part.u0:1-part.u1)*face.width,0,face.width/cols,face.height,x-.25,y,bw+.5,bh);ctx.fillStyle=`rgba(32,29,23,${.15*(1-Math.abs(Math.cos(part.q.angle)))})`;ctx.fillRect(x-.25,y,bw+.5,bh);}
+   const edge=point(1,.5,p),factor=4.6/(4.6-edge.z),extent=edge.x*factor*w,bw=Math.abs(extent);
+   if(bw>.01){const x=Math.min(0,extent),y=(1-factor)*h/2,bh=h*factor;ctx.drawImage(faces[p<.5?0:1],x,y,bw,bh);ctx.fillStyle=`rgba(32,29,23,${.15*(1-Math.abs(Math.cos(Math.PI*p)))})`;ctx.fillRect(x,y,bw,bh);}
   }
-  if(t>.25&&t<.8){const opacity=Math.sin(Math.PI*clamp((t-.25)/.55))*.18;const shadow=ctx.createLinearGradient(-w*.04,0,w*.08,0);shadow.addColorStop(0,'rgba(40,38,30,0)');shadow.addColorStop(.35,`rgba(40,38,30,${opacity})`);shadow.addColorStop(1,'rgba(40,38,30,0)');ctx.fillStyle=shadow;ctx.fillRect(-w*.04,0,w*.12,h);}
+  if(shadow){const light=ctx.createLinearGradient(-w*.04,0,w*.08,0);light.addColorStop(0,'rgba(40,38,30,0)');light.addColorStop(.35,`rgba(40,38,30,${shadow})`);light.addColorStop(1,'rgba(40,38,30,0)');ctx.fillStyle=light;ctx.fillRect(-w*.04,0,w*.12,h);}
   ctx.restore();
  }
  function finish(){active=false;cancelAnimationFrame(frame);draw(1);resolveAnimation?.();resolveAnimation=null;}
  function start(ms=3200){if(disposed)return Promise.resolve();duration=ms;started=performance.now();active=true;return new Promise(resolve=>{resolveAnimation=resolve;if(!ms){finish();return;}function tick(now){if(disposed||!active)return;const t=clamp((now-started)/duration);draw(t);if(t<1)frame=requestAnimationFrame(tick);else{active=false;resolveAnimation?.();resolveAnimation=null;}}frame=requestAnimationFrame(tick);});}
- function dispose(){if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);window.removeEventListener('resize',resize);canvas.remove();root.classList.remove('is-paper-ready');faces?.forEach(face=>{face.width=face.height=1;});faces=null;canvas.width=canvas.height=1;resolveAnimation?.();resolveAnimation=null;}
- resize();screen.append(canvas);const button=root.querySelector('.qm-open');if(button)screen.append(button);root.dataset.paperRenderer='canvas2d-unified';root.classList.add('is-paper-ready');window.addEventListener('resize',resize);
- return {start,finish,dispose,canvas};
+ function dispose(){if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);window.removeEventListener('resize',resize);gpu?.dispose();canvas.remove();root.classList.remove('is-paper-ready');faces?.forEach(face=>{face.width=face.height=1;});faces=null;canvas.width=canvas.height=1;resolveAnimation?.();resolveAnimation=null;}
+ resize();screen.append(canvas);const button=root.querySelector('.qm-open');if(button)screen.append(button);root.dataset.paperRenderer=gpu?.kind||'canvas2d-unified';root.classList.add('is-paper-ready');window.addEventListener('resize',resize);
+ return {start,finish,dispose,canvas,seek(value){active=false;cancelAnimationFrame(frame);draw(clamp(value));}};
 }
 window.KissPaperCurl={point,spread,create};
 })();

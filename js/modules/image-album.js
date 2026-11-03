@@ -38,7 +38,7 @@ function create(message) {
     const toggle = button('展开 ' + sources.length, 'kia-toggle', () => {
         expanded = !expanded;
         root.classList.toggle('kia-expanded', expanded);
-        toggle.textContent = (expanded ? '收起' : '展开') + ' ' + sources.length;
+        toggle.textContent = expanded ? '收起' : '展开 ' + sources.length;
         toggle.setAttribute('aria-expanded', String(expanded));
         resetDrag();
         paint();
@@ -50,7 +50,7 @@ function create(message) {
                 const copy = document.createElement('span');
                 copy.className = 'kia-repeat-avatar';copy.setAttribute('aria-hidden', 'true');
                 copy.style.backgroundImage = 'url(' + JSON.stringify(avatar.src) + ')';
-                copy.style.left = (ar.left - cr.left) + 'px';copy.style.width = ar.width + 'px';copy.style.height = ar.height + 'px';
+                copy.style.left = (ar.left - cr.left - (parseFloat(getComputedStyle(cards[0]).borderLeftWidth) || 0)) + 'px';copy.style.width = ar.width + 'px';copy.style.height = ar.height + 'px';
                 copy.style.borderRadius = getComputedStyle(avatar).borderRadius;card.append(copy);
             });
         }

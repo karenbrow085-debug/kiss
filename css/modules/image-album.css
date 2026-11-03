@@ -8,8 +8,8 @@
 #message-area .kia-card[data-front=true]{pointer-events:auto}
 #message-area .kia-card img{display:block;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover;border-radius:7px;pointer-events:none}
 #message-area .kia-dragging .kia-card,#message-area .kia-dragging .kia-deck{transition:none!important}
-#message-area .kia-expanded{align-items:flex-end;flex-direction:column;width:216px!important;padding-right:0!important;gap:8px}
-#message-area .kia-expanded .kia-deck{display:flex;flex-direction:column;width:100%;height:auto;gap:7px;touch-action:pan-y;transform:none}
+#message-area .kia-expanded{display:grid!important;grid-template-columns:48px minmax(0,1fr);align-items:start;width:272px!important;column-gap:8px;row-gap:0;padding-right:0!important}
+#message-area .kia-expanded .kia-deck{grid-column:2;grid-row:1;min-width:0;margin-left:0;display:flex;flex-direction:column;width:100%;height:auto;gap:7px;touch-action:pan-y;transform:none}
 #message-area .kia-expanded .kia-card{position:relative;inset:auto;width:100%;height:auto;min-height:80px;transform:none!important;opacity:1!important;pointer-events:auto;border-radius:6px;z-index:auto!important}
 #message-area .kia-expanded .kia-card img{height:auto!important;max-height:300px!important;object-fit:contain;background:#eee}
 @media(max-width:360px){#message-area .kia-album{--kia-card-width:132px}}
@@ -19,7 +19,7 @@
 .kia-viewer{background:#080808;padding:0;backdrop-filter:none;-webkit-backdrop-filter:none}.kia-viewer .kia-panel{width:100%;height:100%;max-height:none;border-radius:0;background:none;border:0;padding:0;overflow:hidden;position:relative;color:#fff}.kia-viewer header{position:absolute;z-index:2;inset:max(14px,env(safe-area-inset-top)) 18px auto}.kia-viewer h2{font-size:13px;color:#aaa;font-weight:400}.kia-viewer .kia-close{background:#ffffff22;color:white;border:0}.kia-view-strip{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}.kia-view-strip::-webkit-scrollbar{display:none}.kia-view-slide{flex:0 0 100%;width:100%;height:100%;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;scroll-snap-stop:always}.kia-view-slide img{max-width:100%;max-height:calc(100% - 140px);object-fit:contain}.kia-viewer output{position:absolute;bottom:max(26px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font:12px sans-serif;color:#ddd}.kia-prev,.kia-next{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));background:#ffffff18;border:0;border-radius:50%;color:#fff;width:36px;height:36px;font-size:24px;cursor:pointer}.kia-prev{left:calc(50% - 85px)}.kia-next{right:calc(50% - 85px)}.kia-prev:disabled,.kia-next:disabled{opacity:.2}
 @media(prefers-reduced-motion:reduce){#message-area .kia-card{transition:none}}
 
-#message-area .kia-expanded .kia-toggle{position:absolute;top:56px;left:-51px;z-index:2}
+#message-area .kia-expanded .kia-toggle{position:relative;grid-column:1;grid-row:1;align-self:start;margin-top:56px;inset:auto;width:48px;max-width:48px;min-width:0;z-index:20}
 #message-area .kia-expanded .kia-card{overflow:visible}
 #message-area .kia-expanded .kia-repeat-avatar{position:absolute;top:0;display:block;background-size:cover;background-position:center;pointer-events:none}
 #message-area .kia-expanded .kia-card img{border-radius:6px}
