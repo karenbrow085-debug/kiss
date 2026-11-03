@@ -245,7 +245,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             generation.check();
             historySlice = links.history;
             systemPrompt += links.prompt;
-            generation.linkContext = {provided:links.provided, count:links.count||0};
+            generation.linkContext = {provided:links.provided, count:links.count||0, receipt:links.receipt};
         }
 
         // 检查系统提示词中是否包含聊天记录占位符
@@ -656,12 +656,18 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             generation.check();
         }
         window.KissReroll?.inject(requestBody,provider,rerollNote);
-        const response = await generation.waitFor(fetch(endpoint, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(window.KissBilingual?.prepareBody(requestBody) || requestBody),
-            signal: generation.signal
-        }));
+        const wireBody = window.KissBilingual?.prepareBody(requestBody) || requestBody;
+        const readReceipt = window.KissApiExtensions?.beginDelivery(generation.linkContext?.receipt, wireBody);
+        let response;
+        try {
+            response = await generation.waitFor(fetch(endpoint, {
+                method: 'POST', headers: headers, body: JSON.stringify(wireBody), signal: generation.signal
+            }));
+            window.KissApiExtensions?.finishDelivery(readReceipt, response.ok ? 'accepted' : 'rejected');
+        } catch (error) {
+            window.KissApiExtensions?.finishDelivery(readReceipt, 'failed');
+            throw error;
+        }
         generation.check();
         if (!response.ok) {
             const detail = await generation.waitFor(response.text());

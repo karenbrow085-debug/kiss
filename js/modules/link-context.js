@@ -8,10 +8,14 @@ function relevant(history){
  let last=-1,boundary=-1;for(let i=history.length-1;i>=0;i--){if(last<0&&history[i].role==='user')last=i;if(history[i].role==='assistant'){boundary=i;break;}}
  if(last<0||history[last].type==='work-file'||history[last].workFile||history[last].parts?.some(p=>p.type!=='text'))return {last,selected:[]};
  let selected=history.map((m,i)=>({m,i})).filter(({m,i})=>i>boundary&&m.role==='user'&&window.KissLinkCards.get(m).length);
- if(!selected.length&&/(?:链接|連結|这个|這個|上面|刚才|剛才|这篇|這篇|图片|圖片|正文|内容|內容)/.test(String(history[last].content||''))){for(let i=last;i>=0;i--){if(history[i].role==='user'&&window.KissLinkCards.get(history[i]).length){selected=[{m:history[i],i}];break;}}}
+ const quote=history[last].quote;let quotedTarget=null;
+ if(quote?.messageId)quotedTarget=history.find(m=>String(m.id)===String(quote.messageId));
+ if(quotedTarget){if(window.KissLinkCards.get(quotedTarget).length&&!selected.some(x=>x.m===quotedTarget))selected.push({m:quotedTarget,i:history.indexOf(quotedTarget)});else if(!window.KissLinkCards.get(quotedTarget).length)return {last,selected};}
+ else if(quote?.content){const quoted={role:'user',content:String(quote.content)};if(window.KissLinkCards.get(quoted).length)selected.push({m:quoted,i:-1});}
+ if(!selected.length&&/(?:链接|連結|这个|這個|上面|刚才|剛才|这篇|這篇|图片|圖片|正文|内容|內容|几张图|幾張圖|这组|這組|图里|圖裡|图中|圖中|图上|圖上|第.{0,3}[张張]图)/.test(String(history[last].content||''))){for(let i=last;i>=0;i--){if(history[i].role==='user'&&window.KissLinkCards.get(history[i]).length){selected=[{m:history[i],i}];break;}}}
  return {last,selected};
 }
-function record(card){return {url:card.url,title:card.title,author:card.author||'',text:card.body||card.description||card.excerpt||'',textScope:card.textKind==='page_extract'?'网页实际提取的正文，按原样全部传入；未核验原站完整性，未读取视频或音轨':card.textKind==='post_caption'?'接口返回的作品文案，按原样全部传入，未另行核验完整性':card.textKind==='video_description'?'视频简介，按原样全部传入；没有读取视频画面或音轨':'网页预览摘要或分享文案，不是已核验的全文',imageCount:card.images.length,comments:card.comments?.length?card.comments:'未获取评论区',state:card.previewState||'idle',error:card.previewError||card.readerError||'',source:card.sourceProvider||''};}
+function record(card){return {url:card.url,title:card.title,author:card.author||'',text:card.body||card.description||card.excerpt||'',textScope:card.textKind==='provider_extract'?'接口返回的作品或商品详情，按原样全部传入；未核验原站完整性，未读取视频或音轨':card.textKind==='page_extract'?'网页实际提取的正文，按原样全部传入；未核验原站完整性，未读取视频或音轨':card.textKind==='post_caption'?'接口返回的作品文案，按原样全部传入，未另行核验完整性':card.textKind==='video_description'?'视频简介，按原样全部传入；没有读取视频画面或音轨':'网页预览摘要或分享文案，不是已核验的全文',imageCount:card.images.length,comments:card.comments?.length?card.comments:'未获取评论区',state:card.previewState||'idle',error:card.previewError||card.readerError||'',source:card.sourceProvider||''};}
 function imageData(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('图片读取失败'));reader.readAsDataURL(blob);});}
 async function loadImage(url,generation){
  let lastError;
@@ -34,7 +38,7 @@ async function prepare(history,generation){
  }
  const original=history[last],base=original.parts?.length?original.parts.map(p=>({...p})):[{type:'text',text:original.content||''}];if(original.quote)base.push({type:'text',text:'\n引用消息：'+String(original.quote.content||'')});
  const updated={...original,content:String(original.content||'')+parts.filter(p=>p.type==='text').map(p=>p.text).join('\n'),parts:[...base,...parts],linkAttachment:true};
- return {history:history.map((m,i)=>i===last?updated:m),prompt,provided:successful===cards.length&&successful>0,count:cards.length};
+ return {history:history.map((m,i)=>i===last?updated:m),prompt,provided:successful===cards.length&&successful>0,count:cards.length,receipt:{titles:cards.map(c=>c.title),textCharacters:cards.reduce((n,c)=>n+String(c.body||c.description||c.excerpt||'').length,0),imageCandidates:cards.reduce((n,c)=>n+c.images.length,0),imageRefs:parts.filter(p=>p.type==='image').map(p=>p.data)}};
 }
 function skipTools(generation,text){return generation?.linkContext?.provided===true&&!/(?:搜索|搜尋|搜一下|查找|核实|核實|上网|上網|联网|聯網|最新|调用.{0,6}MCP|調用.{0,6}MCP)/i.test(String(text||''));}
 window.KissLinkContext={prepare,relevant,record,loadImage,skipTools};
