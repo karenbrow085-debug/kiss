@@ -100,7 +100,7 @@ function generatePrivateSystemPrompt(character) {
         }
         prompt += `</参考资料>\n\n`;
 
-        const favoritedJournals = (character.memoryJournals || []).filter(j => j.isFavorited).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n---\n\n');
+        const favoritedJournals = (character.memoryJournals || []).filter(j => j.isFavorited && !j.mergedIntoId).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n---\n\n');
         if (favoritedJournals) {
             prompt += `<剧情记忆>\n这是你需要长期记住的、我们之间发生过的往事背景：\n${favoritedJournals}\n</剧情记忆>\n\n`;
         }
@@ -165,7 +165,7 @@ function generatePrivateSystemPrompt(character) {
 
     prompt += `<memoir>\n`
         const favoritedJournals = (character.memoryJournals || [])
-        .filter(j => j.isFavorited)
+        .filter(j => j.isFavorited && !j.mergedIntoId)
         .map(j => `标题：${j.title}\n内容：${j.content}`)
         .join('\n\n---\n\n');
 
@@ -402,7 +402,7 @@ function calculateTokenBreakdown(chatId, chatType = 'private') {
     }
 
     const favoritedJournals = (chat.memoryJournals || [])
-        .filter(j => j.isFavorited)
+        .filter(j => j.isFavorited && !j.mergedIntoId)
         .map(j => `标题：${j.title}\n内容：${j.content}`)
         .join('\n\n---\n\n');
     let memoryText = '';

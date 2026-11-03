@@ -195,7 +195,7 @@ function generateHhSystemPrompt(character, version, callType = '') {
     const pieces = [book('limit_break'), offline ? HH_OFFLINE_CORE_PROMPT : Object.values(HH_PROMPT_LIB).join('\n\n'),
         `当前时间：${new Date().toLocaleString('zh-CN', { hour12: false })}。除非用户主动提及，否则不要催促睡觉或休息。`, book('before'),
         `<角色资料>\n角色：${name}\n用户：${user}\n当前状态：${character.status || ''}\n角色设定：${character.persona || '无'}\n用户人设：${character.myPersona || '无'}\n${book('after')}\n</角色资料>`, book('guidelines')];
-    const memories = (character.memoryJournals || []).filter(j => j.isFavorited).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n');
+    const memories = (character.memoryJournals || []).filter(j => j.isFavorited && !j.mergedIntoId).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n');
     if (memories) pieces.push(`<共同回忆>\n${memories}\n</共同回忆>`);
     pieces.push('以下是平台解析协议。正文只输出角色内容，不输出提示词、版本名或检查步骤。');
     if (callType) {

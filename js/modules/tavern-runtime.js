@@ -62,7 +62,7 @@
         const books = (chat.worldBookIds || []).map(id => (database.worldBooks || []).find(book => book.id === id)).filter(Boolean)
             .sort((a, b) => (a.depth ?? 100) - (b.depth ?? 100));
         const world = positions => books.filter(book => positions.includes(book.position || 'before')).map(book => String(book.content || '')).join('\n\n');
-        const journals = (chat.memoryJournals || []).filter(journal => journal.isFavorited && !journal.offlineHidden).map(journal => `${journal.title || ''}\n${journal.content || ''}`).join('\n\n');
+        const journals = (chat.memoryJournals || []).filter(journal => journal.isFavorited && !journal.mergedIntoId && !journal.offlineHidden).map(journal => `${journal.title || ''}\n${journal.content || ''}`).join('\n\n');
         const panel = offline ? chat.offline?.statusPanel : chat.statusPanel;
         const status = panel?.enabled ? String(panel.promptSuffix || '') : '';
         return {

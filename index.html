@@ -51,7 +51,7 @@
     <link rel="stylesheet" href="css/modules/moments.css">
     <link rel="stylesheet" href="css/modules/search.css?v=20261031-ui-3">
     <link rel="stylesheet" href="css/modules/journal.css">
-    <link rel="stylesheet" href="css/modules/chat_archives.css?v=20261031-archive-import-1">
+    <link rel="stylesheet" href="css/modules/chat_archives.css?v=20261103-memory-3">
     <link rel="stylesheet" href="css/modules/steps.css">
     <link rel="stylesheet" href="css/modules/more.css">
     <link rel="stylesheet" href="css/modules/monitor.css">
@@ -108,12 +108,13 @@
 <link rel="stylesheet" href="css/modules/kiss-v16.css?v=20261102-v16">
 <link rel="stylesheet" href="css/modules/kiss-v17.css?v=20261102-exclusive-row-1">
 <link rel="stylesheet" href="css/modules/message-menu.css?v=20261103-start-menu-3">
-<link rel="stylesheet" href="css/modules/menu-dialogs-v18.css?v=20261103-1">
+<link rel="stylesheet" href="css/modules/menu-dialogs-v18.css?v=20261103-memory-3">
 <link rel="stylesheet" href="css/modules/image-album.css?v=20261103-collapse-4">
-<script defer src="js/modules/menu-dialogs-v18.js?v=20261103-1"></script>
+<script defer src="js/modules/menu-dialogs-v18.js?v=20261103-memory-3"></script>
 <script defer src="js/modules/image-album.js?v=20261103-collapse-4"></script>
 <link rel="stylesheet" href="css/modules/work-files.css?v=20261103-work-full-1">
 <link rel="stylesheet" href="css/modules/link-cards.css?v=20261103-link-cards-2">
+<link rel="stylesheet" href="css/modules/memory-workbench.css?v=20261103-memory-3">
 </head>
 
 <body>
@@ -1478,72 +1479,26 @@
         </div>
     </div>
     <!-- Memory Journal Screen -->
-    <div id="memory-journal-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" data-target="chat-room-screen">‹</button>
-            <div class="title-container">
-                <h1 class="title">回忆日记</h1>
-            </div>
-            <div class="action-btn-group">
-                <button class="action-btn" id="journal-manage-btn" title="管理日记">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
-                    </svg>
-                </button>
-                <button class="action-btn" id="journal-cancel-manage-btn" title="取消" style="display: none; font-size: 14px; width: auto; padding: 0 8px;">
-                    取消
-                </button>
-                <button class="action-btn" id="bind-journal-worldbook-btn" title="绑定世界书">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                    </svg>
-                </button>
-                <button class="action-btn" id="generate-new-journal-btn" title="生成新日记">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
-            </div>
-        </header>
-        <main class="content">
-            <ul class="list-container" id="journal-list-container">
-                <!-- Journal cards will be rendered here -->
-            </ul>
-            <div class="placeholder-text" id="no-journals-placeholder" style="display: none;">
-                <p>还没有日记哦~</p>
-                <p>点击右上角的“+号”来创建第一篇吧！</p>
-            </div>
+    <div id="memory-journal-screen" class="screen memory-workbench">
+        <header class="app-header"><button class="back-btn" data-target="chat-room-screen" aria-label="返回聊天">‹</button><h1 class="title">回忆手记</h1><button id="journal-rules-btn" type="button">规则</button></header>
+        <main class="content memory-content">
+            <section class="memory-intro"><small>THE THINGS WE KEEP</small><span class="memory-mark" aria-hidden="true">✧</span><h2>那些未曾忘记的。</h2><p>被星标的记忆，会陪伴下一次对话。</p><div id="memory-counts"></div></section>
+            <div class="memory-compose"><button id="manual-memory-btn" type="button">＋ 写记忆</button><button id="generate-new-journal-btn" type="button">聊天总结</button></div>
+            <div class="memory-utility"><button id="bind-journal-worldbook-btn" type="button">日记风格</button><button id="journal-manage-btn" type="button">多选管理</button><button id="journal-cancel-manage-btn" type="button" hidden>完成</button></div>
+            <nav class="memory-tabs" aria-label="记忆分类"><button type="button" data-memory-tab="ordinary" aria-pressed="true">普通记忆</button><button type="button" data-memory-tab="merged" aria-pressed="false">合并记忆</button></nav>
+            <ul id="journal-list-container" class="list-container"></ul>
+            <div id="no-journals-placeholder" class="memory-empty"><span>✧</span><h3>这一页，留给我们的故事</h3><p>写一段记忆，或从聊天中生成一篇总结。</p></div>
         </main>
-        
-        <!-- 日记多选操作栏 -->
-        <div id="journal-multi-select-bar" style="display: none;">
-            <span id="journal-select-count">已选 0 篇</span>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-danger btn-small" id="journal-batch-delete-btn">删除</button>
-                <button class="btn btn-primary btn-small" id="journal-merge-btn">合并精简</button>
-            </div>
-        </div>
+        <div id="journal-multi-select-bar" hidden><span id="journal-select-count">已选 0 篇</span><button id="journal-batch-delete-btn" type="button">删除</button><button id="journal-merge-btn" type="button">合并记忆</button></div>
     </div>
-
-    <!-- Memory Journal Detail Screen -->
-    <div id="memory-journal-detail-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" data-target="memory-journal-screen">‹</button>
-            <div class="title-container">
-                <h1 class="title">日记详情</h1>
-            </div>
-            <button class="action-btn" id="edit-journal-detail-btn">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
-            </button>
-        </header>
-        <main class="content" style="padding: 20px; font-family: 'Georgia', 'Times New Roman', serif;">
-            <h2 id="journal-detail-title" style="margin-top: 0; font-size: 22px;"></h2>
-            <p id="journal-detail-meta" style="font-size: 12px; color: #aaa; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;"></p>
-            <div id="journal-detail-content" style="line-height: 1.7; white-space: pre-wrap; font-size: 16px;"></div>
-        </main>
+    <div id="memory-journal-detail-screen" class="screen memory-workbench">
+        <header class="app-header"><button class="back-btn" data-target="memory-journal-screen" aria-label="返回记忆">‹</button><h1 class="title">回忆手记</h1><button id="edit-journal-detail-btn" type="button">编辑</button></header>
+        <main class="content memory-detail-paper"><small>A PAGE OF OUR STORY</small><h2 id="journal-detail-title"></h2><p id="journal-detail-meta"></p><div id="journal-detail-content"></div><div id="memory-detail-sources"></div></main>
     </div>
+    <div id="memory-editor-modal" class="modal-overlay memory-dialog"><section class="memory-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="memory-editor-heading"><header><div><small>MEMORY / NOTE</small><h3 id="memory-editor-heading">写一段记忆</h3></div><button type="button" data-memory-close aria-label="关闭">×</button></header><form id="memory-editor-form"><label>标题<input id="memory-edit-title" required maxlength="160" placeholder="给这一刻一个名字"></label><label>正文<textarea id="memory-edit-content" required rows="9" placeholder="想记住的人、约定，或一个平凡的瞬间……"></textarea></label><label class="memory-toggle"><input type="checkbox" id="memory-edit-star" checked>星标，参与后续对话读取</label><p id="memory-editor-note" class="memory-help"></p><button type="submit" class="memory-solid">保存记忆</button></form></section></div>
+    <div id="memory-rules-modal" class="modal-overlay memory-dialog"><section class="memory-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="memory-rules-heading"><header><div><small>MEMORY / RULES</small><h3 id="memory-rules-heading">记忆整理规则</h3></div><button type="button" data-memory-close aria-label="关闭">×</button></header><form id="memory-rules-form">
+        <div class="memory-rule-section"><h4>自动总结</h4><label class="memory-toggle"><input id="memory-auto-enabled" type="checkbox">定期总结聊天</label><label>每多少条消息总结一次<input id="memory-auto-every" type="number" min="10" max="2000" required value="100"></label><label>总结方式<select id="memory-auto-mode"><option value="summary">客观摘要</option><option value="diary">角色日记</option><option value="custom">自定义</option></select></label><label>自定义总结要求<textarea id="memory-auto-prompt" rows="3" placeholder="希望保留哪些事件、关系变化或约定？"></textarea></label><p class="memory-help">新生成的自动总结默认星标。</p></div>
+        <div class="memory-rule-section"><h4>再次合并</h4><label class="memory-toggle"><input id="memory-merge-enabled" type="checkbox">达到篇数后自动合并总结</label><label>每多少篇总结合并一次<input id="memory-merge-every" type="number" min="2" max="100" required value="10"></label><label>合并方式<textarea id="memory-merge-prompt" rows="4" placeholder="例如：按时间线整理，保留重要约定、关系变化和未完成的事，去掉重复内容。"></textarea></label><p class="memory-help">达到设定篇数后，合并普通聊天总结。原文保留、停止读取，新记忆单独收纳并星标。手写记忆可手动合并；删除合并记忆后，原文恢复读取状态。</p><p id="memory-merge-status" class="memory-help"></p></div><button type="submit" class="memory-solid">保存规则</button></form></section></div>
 
     <!-- Peek Steps App Screen -->
     <div id="peek-steps-screen" class="screen">
@@ -2437,43 +2392,13 @@
 
     <!-- Character Gallery Modal -->
     <div id="char-gallery-modal" class="modal-overlay">
-        <div class="modal-window" style="max-height: 80vh; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">角色相册管理</h3>
-                <div class="gallery-actions" style="display: flex; gap: 8px;">
-                    <button id="add-gallery-item-btn" class="icon-btn-simple" title="添加图片">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                    </button>
-                    <button id="batch-add-gallery-btn" class="icon-btn-simple" title="批量导入">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                    </button>
-                    <div style="width: 1px; background: #eee; margin: 0 4px;"></div>
-                    <button id="load-gallery-preset-btn" class="icon-btn-simple" title="加载预设">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 15h2v3h12v-3h2v3c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2m4.41-7.59L11 7.83V1h2v6.83l2.59-2.58L17 6.66l-5 5-5-5 1.41-1.41z"/></svg>
-                    </button>
-                    <button id="save-gallery-preset-btn" class="icon-btn-simple" title="存为预设">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-                    </button>
-                    <div style="width: 1px; background: #eee; margin: 0 4px;"></div>
-                    <button id="export-gallery-btn" class="icon-btn-simple" title="导出相册">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    </button>
-                </div>
-            </div>
-            
-            <div style="font-size: 12px; color: #666; margin-bottom: 10px; background: #f9f9f9; padding: 8px; border-radius: 6px;">
-                此处添加的照片将作为角色的“真实相册”。<br>
-                开启“真实相册匹配”后，当 AI 发送的 [照片/视频：内容] 中的“内容”与相册中的【图片名称】匹配时，将直接显示图片。
-            </div>
-            
-            <div id="gallery-list-container" style="flex: 1; overflow-y: auto; margin-bottom: 15px; border: 1px solid #eee; border-radius: 8px; padding: 10px; min-height: 200px;">
-                <!-- JS populated list -->
-                <p class="placeholder-text" style="text-align: center; color: #999; margin-top: 20px;">相册空空如也~</p>
-            </div>
-            
-            <div style="margin-top: 5px; text-align: right;">
-                <button id="close-gallery-modal-btn" class="btn btn-neutral">关闭</button>
-            </div>
+        <div class="modal-window gallery-studio">
+            <header class="gallery-studio-head"><div><small>CHARACTER / GALLERY</small><h3>角色相册</h3></div><button id="close-gallery-modal-btn" type="button" aria-label="关闭">×</button></header>
+            <p class="gallery-studio-intro">收藏角色的生活切片。开启「真实相册匹配」后，AI 描述与图片名称匹配时，会直接展示相片。</p>
+            <div class="gallery-primary-tools"><button id="add-gallery-item-btn" type="button">＋ 添加图片</button><button id="batch-add-gallery-btn" type="button">批量导入</button></div>
+            <div class="gallery-library-tools"><button id="load-gallery-preset-btn" type="button">加载预设</button><button id="save-gallery-preset-btn" type="button">存为预设</button><button id="export-gallery-btn" type="button">导出相册</button></div>
+            <div class="gallery-grid-heading"><span>相片收藏</span><span></span></div>
+            <div id="gallery-list-container"></div>
         </div>
     </div>
 
@@ -2691,11 +2616,11 @@
 <script src="js/modules/work-files.js?v=20261103-work-full-1"></script>
 <script src="js/modules/link-cards.js?v=20261103-link-cards-3"></script>
 <script src="js/modules/chat_render.js?v=20261103-link-cards-2"></script>
-<script src="js/modules/chat_archives.js?v=20261031-archive-import-1"></script>
+<script src="js/modules/chat_archives.js?v=20261103-memory-3"></script>
     <script src="js/modules/chat_ai_airdrop.js?v=20261102-v14"></script>
-    <script src="js/modules/cot_hh.js?v=20261102-v14"></script>
-    <script src="js/modules/chat_ai_prompt.js?v=20261102-v14"></script>
-    <script src="js/modules/chat_ai_call.js?v=20261102-v14"></script>
+    <script src="js/modules/cot_hh.js?v=20261103-memory-3"></script>
+    <script src="js/modules/chat_ai_prompt.js?v=20261103-memory-3"></script>
+    <script src="js/modules/chat_ai_call.js?v=20261103-memory-3"></script>
     <script src="js/modules/reroll-feedback.js?v=20261031-reroll-clean-1"></script>
 <script src="js/modules/chat_ai.js?v=20261103-work-full-1"></script>
 <script src="js/modules/chat_features.js?v=20261103-album-1"></script>
@@ -2704,7 +2629,7 @@
 <script src="js/modules/status_viewer.js?v=20261031-status-fold-3"></script>
 <script src="js/modules/status_history.js?v=20261102-settings-v9a-friend-fixes"></script>
 <script src="js/chat.js?v=20261103-link-cards-2"></script>     <!-- 聊天核心入口 -->
-<script src="js/group_chat.js"></script> <!-- 群聊系统：群聊管理、设置、Prompt生成 -->
+<script src="js/group_chat.js?v=20261103-memory-3"></script> <!-- 群聊系统：群聊管理、设置、Prompt生成 -->
 <script src="js/contacts.js"></script> <!-- 联系人：好友列表、名片 -->
 <script src="js/modules/chat_room_html.js?v=work-3-20261031-tavern-safety"></script> <!-- 聊天室HTML注入 -->
 <script src="js/modules/chat_settings_html.js?v=20261102-settings-v9a-friend-fixes"></script> <!-- 聊天设置HTML注入 -->
@@ -2722,7 +2647,8 @@
 <script src="js/modules/sticker.js?v=20261023-chat-fixes-1"></script>   <!-- 表情包管理系统 -->
 <script src="js/modules/worldbook.js?v=20261023-wb-compact-2"></script> <!-- 世界书设定集 -->
 <script src="js/modules/peek.js?v=20261027-moments-v4"></script>      <!-- 偷看手机(相册/短信等) -->
-<script src="js/modules/journal.js?v=together-1-20261029-offline-2"></script>   <!-- 回忆日记生成 -->
+<script src="js/modules/journal.js?v=20261103-memory-3"></script>
+<script src="js/modules/memory-workbench.js?v=20261103-memory-3"></script>   <!-- 回忆日记生成 -->
 <script src="js/modules/storage_html.js?v=kiss-ui-2"></script> <!-- 存储空间HTML注入 -->
 <script src="js/modules/storage.js?v=20261031-import-scope-2"></script>   <!-- 存储空间分析图表 -->
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
@@ -2731,11 +2657,11 @@
 <script src="js/modules/more_menu.js"></script> <!-- 更多菜单与状态栏管理 -->
 <script src="js/modules/search.js?v=20261031-ui-3"></script> <!-- 聊天记录搜索模块 -->
 <script src="js/modules/battery_interaction.js"></script> <!-- 电量交互模块 -->
-<script src="js/modules/gallery.js"></script> <!-- 角色相册管理模块 -->
+<script src="js/modules/gallery.js?v=20261103-memory-3"></script> <!-- 角色相册管理模块 -->
 <script src="js/modules/shop.js"></script>    <!-- 商城模块 -->
 <script src="js/modules/cot_settings.js?v=20261031-ui-3"></script>
 <script src="js/modules/tavern-engine.js?v=20261030-st10"></script>
-<script src="js/modules/tavern-runtime.js?v=20261030-offline-sources-1"></script>
+<script src="js/modules/tavern-runtime.js?v=20261103-memory-3"></script>
 <script src="js/modules/tavern-regex.js?v=20261031-tavern-safety"></script>
 <script src="js/modules/prompt-studio.js?v=20261031-ui-3"></script> <!-- 思维链设置模块 -->
 <script src="js/modules/video_call.js?v=20261031-reroll-2"></script> <!-- 视频通话模块 -->
@@ -2764,7 +2690,7 @@
 <script src="js/modules/voice-script.js?v=20261010-voice-worldbook-1"></script>
 <script src="js/modules/voice-settings.js?v=20261103-fish-stream-1"></script>
 <script src="js/morrow/desktop.js?v=20261023-console-3"></script>
-<script src="js/modules/chat-social.js?v=20261103-social-v14"></script>
+<script src="js/modules/chat-social.js?v=20261103-memory-3"></script>
 <script src="js/modules/kiss-imessage.js?v=20261102-glass-union-1"></script>
 <script src="js/modules/kiss-reactions.js?v=20261102-glass-menu-1"></script>
 <script src="js/modules/kiss-settings-extras.js?v=20261102-preview-safe-1"></script>
@@ -2774,9 +2700,9 @@
 <script src="js/modules/kiss-sticker-rail.js?v=20261102-composer-rail-1"></script>
 <script src="js/modules/kiss-tools.js?v=20261102-composer-rail-1"></script>
 <script src="js/modules/kiss-memory-summary.js?v=20261102-memory-1"></script>
-<script src="js/modules/kiss-hearu-together.js?v=20261103-together-4"></script>
+<script src="js/modules/kiss-hearu-together.js?v=20261103-memory-3"></script>
 <script src="js/modules/kiss-hearu-sky.js?v=20261103-together-4"></script>
-<script type="module" src="js/hearu/app.js?v=20261103-together-4"></script>
+<script type="module" src="js/hearu/app.js?v=20261103-memory-3"></script>
 <script src="forum_app.js?v=20261102-memory-1"></script>
 <script src="js/mcp/icons.js?v=10-archive-ui"></script>
 <script src="js/mcp/view.js?v=20261014-app-api-1"></script>
@@ -2794,7 +2720,7 @@
 <script src="js/modules/offline_send.js?v=20261031-tavern-safety"></script>
 <script src="js/modules/offline-rich.js?v=20261030-native-5"></script>
 <script src="js/modules/offline-generation.js?v=20261031-search-notes-2"></script>
-<script src="js/modules/offline.js?v=20261102-v17"></script>
+<script src="js/modules/offline.js?v=20261103-memory-3"></script>
 </body>
 </html>
 

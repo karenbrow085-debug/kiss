@@ -272,29 +272,17 @@ function renderGalleryList(char) {
     container.innerHTML = '';
     
     if (!char.gallery || char.gallery.length === 0) {
-        container.innerHTML = '<p class="placeholder-text" style="text-align: center; color: #999; margin-top: 20px;">相册空空如也~</p>';
+        container.innerHTML = '<div class="gallery-empty"><span>▧</span><h4>把他的生活，放进相册</h4><p>为图片取一个名字，让聊天里的照片有迹可循。</p></div>';
         return;
     }
 
     char.gallery.forEach(item => {
         const el = document.createElement('div');
         el.className = 'gallery-list-item';
-        el.style.display = 'flex';
-        el.style.alignItems = 'center';
-        el.style.padding = '8px';
-        el.style.borderBottom = '1px solid #eee';
-        el.style.gap = '10px';
-        el.style.cursor = 'pointer';
-        
-        el.innerHTML = `
-            <div style="width: 50px; height: 50px; background-image: url('${item.url}'); background-size: cover; background-position: center; border-radius: 4px; flex-shrink: 0;"></div>
-            <div style="flex: 1; overflow: hidden;">
-                <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${item.name}</div>
-                <div style="font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.url}</div>
-            </div>
-            <button class="btn btn-danger btn-small delete-btn" style="padding: 4px 8px;">删除</button>
-        `;
-        
+        el.innerHTML = '<button type="button" class="gallery-photo-edit" aria-label="编辑图片"><img loading="lazy" alt=""><span class="gallery-photo-name"></span></button><button type="button" class="delete-btn" aria-label="删除图片">删除</button>';
+        el.querySelector('img').src = item.url;
+        el.querySelector('img').alt = item.name || '相册图片';
+        el.querySelector('.gallery-photo-name').textContent = item.name || '未命名';
         el.querySelector('.delete-btn').addEventListener('click', async (e) => {
             e.stopPropagation();
             if (confirm(`确定删除图片“${item.name}”吗？`)) {
@@ -305,7 +293,7 @@ function renderGalleryList(char) {
         });
 
         // 点击编辑
-        el.addEventListener('click', () => {
+        el.querySelector('.gallery-photo-edit').addEventListener('click', () => {
             document.getElementById('gallery-item-id').value = item.id;
             document.getElementById('gallery-item-name').value = item.name;
             document.getElementById('gallery-item-url').value = item.url;

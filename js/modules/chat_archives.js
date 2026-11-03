@@ -419,7 +419,7 @@ function renderArchiveManager() {
                     <div class="archive-card-main">
                         <div class="archive-name-row">
                             <strong>${escapeHtml(archive.name)}</strong>
-                            <details class="archive-more"><summary aria-label="更多存档操作">···</summary><div class="archive-more-menu"><button type="button" data-action="rename">修改名称</button>${archive.id && archives.length > 1 ? '<button type="button" data-action="delete" class="danger">删除存档</button>' : ''}</div></details>
+
                         </div>
                         <div class="archive-meta">${messageCount} 条消息 · ${journalCount} 篇日记</div>
                         ${origin}
@@ -428,7 +428,8 @@ function renderArchiveManager() {
                         <time>${archiveUiIcon('clock')}${formatArchiveTime(archive.updatedAt)}</time>
                         <div class="archive-actions">
                             ${active ? '' : '<button type="button" data-action="switch" class="archive-enter">进入</button>'}
-                            <button type="button" data-action="rename">改名</button>
+                            <button type="button" data-action="rename">重命名</button>
+                            ${archive.id && archives.length > 1 ? '<button type="button" data-action="delete" class="danger">删除</button>' : ''}
                         </div>
                     </footer>
                 </article>`;

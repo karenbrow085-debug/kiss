@@ -91,7 +91,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
         }
         systemPrompt += `</参考资料>\n\n`;
 
-        const favoritedJournals = (chat.memoryJournals || []).filter(j => j.isFavorited).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n---\n\n');
+        const favoritedJournals = (chat.memoryJournals || []).filter(j => j.isFavorited && !j.mergedIntoId).map(j => `标题：${j.title}\n内容：${j.content}`).join('\n\n---\n\n');
         if (favoritedJournals) {
             systemPrompt += `<剧情记忆>\n这是你需要长期记住的、我们之间发生过的往事背景：\n${favoritedJournals}\n</剧情记忆>\n\n`;
         }
@@ -170,7 +170,7 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
 
         systemPrompt += `<memoir>\n`
             const favoritedJournals = (chat.memoryJournals || [])
-            .filter(j => j.isFavorited)
+            .filter(j => j.isFavorited && !j.mergedIntoId)
             .map(j => `标题：${j.title}\n内容：${j.content}`)
             .join('\n\n---\n\n');
 
@@ -553,7 +553,7 @@ async function generateCallSummary(chat, callContext) {
 
     // 获取回忆日记
     const favoritedJournals = (chat.memoryJournals || [])
-        .filter(j => j.isFavorited)
+        .filter(j => j.isFavorited && !j.mergedIntoId)
         .map(j => `标题：${j.title}\n内容：${j.content}`)
         .join('\n\n---\n\n');
 

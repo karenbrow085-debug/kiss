@@ -142,7 +142,7 @@
     const room = memory.get(String(c.id));
     const bounded=(rows,limit)=>{let remaining=limit;return rows.slice().reverse().map(row=>{const text=clean(row.content).slice(0,Math.min(1800,remaining));remaining-=text.length;return {...row,content:text};}).filter(row=>row.content).reverse();};
     const recent = bounded((room?.messages || []).filter(visible).slice(-Math.min(50, Math.max(10, c.maxMemory || 30))).map(m => ({role:m.role, content:m.content, at:m.at, source:'HearU'})),8000);
-    const journals = bounded((c.memoryJournals || []).filter(j => !j.isContextDisabled).slice(-8).map(j => ({id:j.id,title:j.title,content:j.content,at:j.createdAt})),6000);
+    const journals = bounded((c.memoryJournals || []).filter(j => j.isFavorited && !j.isContextDisabled && !j.mergedIntoId).slice(-8).map(j => ({id:j.id,title:j.title,content:j.content,at:j.createdAt})),6000);
     const summaries = bounded((room?.summaries || []).slice(-2).map(s => ({content:s.content,at:s.at})),4000);
     return {recent,journals,summaries};
   }

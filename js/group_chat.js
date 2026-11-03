@@ -1329,7 +1329,7 @@ function generateGroupSystemPrompt(group) {
     }
 
     const favoritedJournals = (group.memoryJournals || [])
-        .filter(j => j.isFavorited)
+        .filter(j => j.isFavorited && !j.mergedIntoId)
         .map(j => `标题：${j.title}\n内容：${j.content}`)
         .join('\n\n---\n\n');
 

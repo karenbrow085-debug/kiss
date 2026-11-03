@@ -2209,7 +2209,7 @@ function nativeMemory(c){
   let history=(copy.history || []).slice(-limit);
   if(typeof filterHistoryForAI==='function')history=filterHistoryForAI(copy,history);
   const recent=history.filter(m=>!m.isContextDisabled && !m.isThinking && ['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:cleanMemoryText(m.content || (m.parts || []).filter(p=>p.type==='text').map(p=>p.text).join('\n')),at:m.timestamp || m.at || null})).filter(m=>m.content);
-  const journals=(copy.memoryJournals || []).filter(j=>!j.isContextDisabled).map(j=>({title:j.title || '',content:cleanMemoryText(j.content),at:j.createdAt || j.timestamp || null})).filter(j=>j.content);
+  const journals=(copy.memoryJournals || []).filter(j=>j.isFavorited && !j.isContextDisabled && !j.mergedIntoId).map(j=>({title:j.title || '',content:cleanMemoryText(j.content),at:j.createdAt || j.timestamp || null})).filter(j=>j.content);
   return {recent,journals};
 }
 function memoryFingerprint(messages){let hash=2166136261;const text=JSON.stringify(messages.map(messageForModel));for(let i=0;i<text.length;i++)hash=Math.imul(hash^text.charCodeAt(i),16777619);return (hash>>>0).toString(16)+':'+text.length;}
