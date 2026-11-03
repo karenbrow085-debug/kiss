@@ -572,7 +572,10 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
     const textMatch = content.match(textRegex);
     const redPacketMatch = content.match(redPacketRegex);
     
-    if (message.workFile && window.KissWorkFiles) {
+    const sharedLinks = window.KissLinkCards?.get(message) || [];
+    if (sharedLinks.length) {
+        bubbleElement = window.KissLinkCards.card(message, sharedLinks);
+    } else if (message.workFile && window.KissWorkFiles) {
         bubbleElement = window.KissWorkFiles.card(message);
     } else if (redPacketMatch || message.type === 'red-packet') {
         const senderName = redPacketMatch ? redPacketMatch[1] : (isSent ? '你' : '用户');
