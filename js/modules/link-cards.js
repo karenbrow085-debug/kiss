@@ -6,22 +6,27 @@ const platforms=[
  {id:'douyin',name:'抖音',mark:'♪',color:'#252730',hosts:['douyin.com','iesdouyin.com']},
  {id:'taobao',name:'淘宝',mark:'淘',color:'#fa783c',hosts:['taobao.com','tmall.com','tb.cn','tb.ele.me']},
  {id:'pinduoduo',name:'拼多多',mark:'拼',color:'#e24d4c',hosts:['pinduoduo.com','yangkeduo.com','pdd.cn']},
- {id:'meituan',name:'美团',mark:'美',color:'#e8b93d',hosts:['meituan.com','meituan.net','dianping.com','dpurl.cn']}
+ {id:'meituan',name:'美团',mark:'美',color:'#e8b93d',hosts:['meituan.com','meituan.net','dianping.com','dpurl.cn']},
+ {id:'xianyu',name:'闲鱼',mark:'鱼',color:'#dfb52b',hosts:['goofish.com','2.taobao.com']},
+ {id:'bilibili',name:'哔哩哔哩',mark:'哔',color:'#ed81a7',hosts:['bilibili.com','b23.tv']}
 ];
 const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls||'';if(text!==undefined)node.textContent=text;return node;};
 const button=(text,fn,cls)=>{const node=el('button',cls,text);node.type='button';node.addEventListener('click',fn);return node;};
 function safeURL(value){try{const u=new URL(value);return /^https?:$/.test(u.protocol)&&!u.username&&!u.password?u.href:'';}catch{return '';}}
-function platform(value){const url=safeURL(value);if(!url)return null;const host=new URL(url).hostname.toLowerCase();return platforms.find(p=>p.hosts.some(h=>host===h||host.endsWith('.'+h)))||null;}
+function platform(value){const url=safeURL(value);if(!url)return null;const host=new URL(url).hostname.toLowerCase();if(host==='2.taobao.com')return platforms.find(p=>p.id==='xianyu');return platforms.find(p=>p.hosts.some(h=>host===h||host.endsWith('.'+h)))||null;}
+function samePlatform(a,b){return a===b||['taobao','xianyu'].includes(a)&&['taobao','xianyu'].includes(b);}
+const siteSuffix=/\s*[-_|｜]\s*(?:rednote|小红书|微博|抖音|淘宝|拼多多|美团|闲鱼|閒魚|哔哩哔哩(?:_bilibili)?|bilibili)\s*$/i;
 const urlPattern=/https?:\/\/[^\s<>"'「」『』【】\[\]，。！？；、]+/gi;
 const cache=new Map(),inflight=new Map(),cacheKey='kiss-link-previews-v2',TTL=86400000;
 try{for(const [url,entry] of JSON.parse(localStorage.getItem(cacheKey)||'[]'))if(platform(url)&&entry?.value&&Date.now()-entry.time<TTL)cache.set(url,entry);}catch{}
 function cached(url){const entry=cache.get(url);if(entry&&Date.now()-entry.time<TTL)return entry;cache.delete(url);return null;}
 function remember(){try{localStorage.setItem(cacheKey,JSON.stringify([...cache].filter(([,e])=>e.state==='loaded').slice(-100)));}catch{}}
 function shareCopy(source,p){
- let text=source.replace(urlPattern,'').replace(/(?:拷走|拷贝|复制|複製|长按复制|存下)\s*(?:这条|此|本条)?(?:链接|連結|口令)[\s\S]*$/,'').replace(/[，,]?\s*来[【\[]小红书[】\]][\s\S]*$/,'').replace(/(?:打开|打開)(?:抖音|小红书|微博|淘宝|拼多多|美团)[^\n]*/g,'');
+ let text=source.replace(urlPattern,'').replace(/(?:拷走|拷贝|复制|複製|长按复制|存下)\s*(?:这条|此|本条)?(?:链接|連結|口令)[\s\S]*$/,'').replace(/[，,]?\s*来[【\[]小红书[】\]][\s\S]*$/,'').replace(/(?:打开|打開)(?:抖音|小红书|微博|淘宝|拼多多|美团|闲鱼|閒魚|哔哩哔哩|bilibili)[^\n]*/gi,'');
  let author='';
  if(p.id==='douyin'){const m=source.match(/看看[【「]([^】」]+?)(?:的作品)?[】」]/);if(m){author=m[1];text=source.slice(m.index+m[0].length).replace(urlPattern,'');}text=text.replace(/^\s*\d{1,2}\.\d{1,2}\s*(?:复制|複製)?[，,]?\s*/,'').replace(/\s+\d{1,2}\/\d{1,2}[\s\S]*$/,'').replace(/\s+[A-Za-z0-9@.]+[:：/]\s*.*$/,'');}
- text=text.replace(/【(?:淘宝|淘寶|拼多多|美团|美團)】/g,'').replace(/^[\s，。；、|｜:：-]+|[\s，。；、|｜:：-]+$/g,'').trim();
+ text=text.replace(/【(?:淘宝|淘寶|拼多多|美团|美團|闲鱼|閒魚)】/g,'').replace(/^[\s，。；、|｜:：-]+|[\s，。；、|｜:：-]+$/g,'').trim();
+ if(p.id==='bilibili')text=text.replace(/^【([\s\S]*)】$/,'$1').replace(siteSuffix,'').trim();
  const authorMatch=text.match(/(?:^|\s)(@[^\n]*?的(?:笔记|微博)|来自[^\n]*?的微博)(?:\n|$)/);if(authorMatch)author=authorMatch[1].trim();
  const lines=text.replace(author,'').trim().split(/\n+/);let title=(lines.shift()||'').trim(),excerpt=lines.join('\n').trim();
  if(p.id==='xiaohongshu'&&!excerpt){const parts=title.match(/^(\S+)\s+([\s\S]+)$/);if(parts){title=parts[1];excerpt=parts[2];}}
@@ -31,7 +36,7 @@ function shareCopy(source,p){
 }
 function parse(input){
  const source=String(input||'');const urls=[...source.matchAll(urlPattern)].map(m=>m[0].replace(/[)）}〉》,;.!?]+$/g,''));
- const seen=new Set();return urls.flatMap(value=>{const url=safeURL(value),p=platform(url);if(!p||seen.has(url)||/\.(?:png|jpe?g|gif|webp|svg|mp4|mp3)(?:[?#]|$)/i.test(new URL(url).pathname))return [];seen.add(url);return [{url,platform:p.id,...shareCopy(source,p),shareText:source,body:'',images:[],comments:[],resolved:false}];});
+ const seen=new Set();return urls.flatMap(value=>{const url=safeURL(value);let p=platform(url);if(p?.id==='taobao'&&/(?:^|\.)tb\.cn$/.test(new URL(url).hostname)&&/闲鱼|閒魚/.test(source))p=platforms.find(x=>x.id==='xianyu');if(!p||seen.has(url)||/\.(?:png|jpe?g|gif|webp|svg|mp4|mp3)(?:[?#]|$)/i.test(new URL(url).pathname))return [];seen.add(url);return [{url,platform:p.id,...shareCopy(source,p),shareText:source,body:'',images:[],comments:[],resolved:false}];});
 }
 function get(message){
  if(!message||message.isWithdrawn||message.workFile||!['user','assistant'].includes(message.role)||message.parts?.some(p=>p.type!=='text')||message.type&& !['text','link-share'].includes(message.type))return [];
@@ -40,16 +45,16 @@ function get(message){
  return cards.map(c=>{
   const entry=cached(c.url),saved=message.linkPreviews?.find?.(p=>p.url===c.url)||entry?.value;if(!saved)return {...c,previewState:entry?.state||'idle',previewError:entry?.error||''};
   const images=Array.isArray(saved.images)?saved.images.map(safeURL).filter(Boolean):[];
-  return {...c,title:typeof saved.title==='string'&&saved.title.trim()?saved.title:c.title,author:typeof saved.author==='string'?saved.author:c.author,body:typeof saved.body==='string'?saved.body:'',description:typeof saved.description==='string'?saved.description:'',images,comments:Array.isArray(saved.comments)?saved.comments.filter(x=>typeof x?.content==='string'):[],resolved:saved.resolved===true,previewState:entry?.state||'loaded',previewError:entry?.error||''};
+  return {...c,platform:platforms.some(p=>p.id===saved.platform)&&samePlatform(c.platform,saved.platform)?saved.platform:c.platform,title:typeof saved.title==='string'&&saved.title.trim()?saved.title:c.title,author:typeof saved.author==='string'?saved.author:c.author,body:typeof saved.body==='string'?saved.body:'',description:typeof saved.description==='string'?saved.description:'',images,comments:Array.isArray(saved.comments)?saved.comments.filter(x=>typeof x?.content==='string'):[],resolved:saved.resolved===true,previewState:entry?.state||'loaded',previewError:entry?.error||''};
  });
 }
 function normalize(data,url){
- const expected=platform(url),actual=platform(data?.url||url);if(!expected||!actual||actual.id!==expected.id)throw Error('链接跳转到了其他网站，未采用预览');
- const title=String(data.title||'').replace(/\s*[-|｜]\s*(?:rednote|小红书|微博|抖音|淘宝|拼多多|美团)\s*$/i,'').trim();
- if(/^(?:登录|登入|安全验证|访问受限|页面不存在|小红书|rednote|微博|抖音|淘宝|拼多多|美团|login|access denied)(?:\s*[-|｜].*)?$/i.test(title)||/website-login|\/login(?:[/?]|$)/i.test(data.url||''))throw Error('平台需要登录或验证，暂时无法获取预览');
+ const expected=platform(url),actual=platform(data?.url||url);if(!expected||!actual||!samePlatform(actual.id,expected.id))throw Error('链接跳转到了其他网站，未采用预览');
+ const title=String(data.title||'').replace(siteSuffix,'').trim();
+ if(/^(?:登录|登入|安全验证|访问受限|页面不存在|小红书|rednote|微博|抖音|淘宝|拼多多|美团|闲鱼|閒魚|哔哩哔哩|bilibili|login|access denied)(?:\s*[-_|｜].*)?$/i.test(title)||/website-login|\/login(?:[/?]|$)/i.test(data.url||''))throw Error('平台需要登录或验证，暂时无法获取预览');
  const cover=safeURL(data.cover?.url||data.image?.url),logo=safeURL(data.logo?.url);const images=cover&&cover!==logo&&!/favicon|\.ico(?:[?#]|$)/i.test(cover)?[cover]:[];
  if(!title&&!images.length)throw Error('页面没有提供标题或封面');
- return {title,description:String(data.description||''),author:String(data.author||'').replace(/Follow$/,'').trim(),images,previewFetched:true,provider:'Microlink',resolved:false};
+ return {platform:actual.id,title,description:String(data.description||''),author:String(data.author||'').replace(/Follow$/,'').trim(),images,previewFetched:true,provider:'Microlink',resolved:false};
 }
 function notify(url){for(const node of document.querySelectorAll?.('.kl-card')||[]){const item=get(node._kissLinkMessage).find(c=>c.url===url);if(item)paint(node,item);}if(active?.message&&active.url===url){const item=get(active.message).find(c=>c.url===url);if(item)details(item,active.message);}}
 async function request(url,retry=false){
