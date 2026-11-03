@@ -84,51 +84,57 @@ function sendMyPhotoVideo(text) {
 }
 
 function setupImageRecognition() {
-    const imageRecognitionBtn = document.getElementById('image-recognition-btn');
-    const imageUploadInput = document.getElementById('image-upload-input');
-
-    imageRecognitionBtn.addEventListener('click', () => {
-        imageUploadInput.click();
+    const button = document.getElementById('image-recognition-btn');
+    const input = document.getElementById('image-upload-input');
+    input.multiple = true;
+    let target = null;
+    button.addEventListener('click', () => {
+        if (isGenerating) return showToast('请等待当前回复完成');
+        target = window.KissImageAlbum.capture();
+        input.click();
     });
-    imageUploadInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            try {
-                const compressedUrl = await compressImage(file, {
-                    quality: 0.8,
-                    maxWidth: 1024,
-                    maxHeight: 1024
-                });
-                sendImageForRecognition(compressedUrl);
-            } catch (error) {
-                console.error('Image compression failed:', error);
-                showToast('图片处理失败，请重试');
-            } finally {
-                e.target.value = null;
-            }
+    input.addEventListener('change', async () => {
+        const files = Array.from(input.files || []);
+        input.value = '';
+        if (!files.length) return;
+        if (files.length > 10) return showToast('一次最多发送 10 张图片，请重新选择');
+        if (files.some(file => !file.type.startsWith('image/'))) return showToast('请选择图片文件');
+        const origin = target;
+        if (!window.KissImageAlbum.valid(origin)) return showToast('聊天已切换，请重新选择图片');
+        try {
+            // Sequential compression bounds peak memory on mobile; order stays identical to selection.
+            const images = [];
+            for (const file of files) images.push(await compressImage(file, {quality: 0.8, maxWidth: 1024, maxHeight: 1024}));
+            if (!window.KissImageAlbum.valid(origin)) return showToast('聊天已切换，请重新选择图片');
+            window.KissImageAlbum.preview(images, origin);
+        } catch (error) {
+            console.error('Image preparation failed:', error);
+            showToast('图片处理失败，未发送，请重试');
         }
     });
 }
 
-async function sendImageForRecognition(base64Data) {
-    if (!base64Data || isGenerating) return;
-    const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
-    const myName = (currentChatType === 'private') ? chat.myName : chat.me.nickname;
-    const textPrompt = `[${myName}发来了一张图片：]`;
+async function sendImageForRecognition(data, origin = window.KissImageAlbum.capture()) {
+    const images = Array.isArray(data) ? data : [data];
+    if (!images.length || images.length > 10 || images.some(src => typeof src !== 'string' || !src.startsWith('data:image/'))) throw new Error('一次请选择 1–10 张图片');
+    if (isGenerating) throw new Error('请等待当前回复完成');
+    if (!window.KissImageAlbum.valid(origin)) throw new Error('聊天或身份已切换，请重新选择图片');
+    const chat = origin.chat;
+    const myName = origin.type === 'private' ? chat.myName : chat.me.nickname;
+    const textPrompt = images.length === 1 ? `[${myName}发来了一张图片：]` : `[${myName}发来了${images.length}张图片，请按顺序识别：]`;
     const message = {
-        id: `msg_${Date.now()}`,
-        role: 'user',
-        content: base64Data,
-        parts: [{type: 'text', text: textPrompt}, {type: 'image', data: base64Data}],
-        timestamp: Date.now(),
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        role: 'user', content: images.length === 1 ? images[0] : textPrompt,
+        parts: [{type: 'text', text: textPrompt}, ...images.map(data => ({type: 'image', data}))],
+        timestamp: Date.now()
     };
-    if (currentChatType === 'group') {
-        message.senderId = 'user_me';
-    }
+    if (origin.type === 'group') message.senderId = 'user_me';
     chat.history.push(message);
-    addMessageBubble(message, currentChatId, currentChatType);
-    await saveData();
+    try { await saveData(); }
+    catch (error) { const i = chat.history.indexOf(message); if (i >= 0) chat.history.splice(i, 1); throw new Error('保存失败，图片尚未发送，请重试'); }
+    if (window.KissImageAlbum.valid(origin)) addMessageBubble(message, origin.id, origin.type);
     renderChatList();
+    return message;
 }
 
 function setupWalletSystem() {

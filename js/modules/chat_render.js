@@ -987,6 +987,8 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
         }
         const remarkHTML = remarkText ? `<p class="transfer-remark">${remarkText}</p>` : '';
         bubbleElement.innerHTML = `<div class="overlay"></div><div class="transfer-content"><p class="transfer-title">${titleText}</p><p class="transfer-amount">¥${amount}</p>${remarkHTML}<p class="transfer-status">${statusText}</p></div>`;
+    } else if (message?.parts?.filter(p => p.type === 'image').length > 1 && window.KissImageAlbum) {
+        bubbleElement = window.KissImageAlbum.create(message);
     } else if (imageRecogMatch || (urlRegex.test(content) || PhoneBackup.isImage(content))) {
         bubbleElement = document.createElement('div');
         bubbleElement.className = 'image-bubble';
@@ -1271,7 +1273,7 @@ function addMessageBubble(message, targetChatId, targetChatType) {
                 else if (/\[.*?发来的照片\/视频[：:].*?\]/.test(previewText)) previewText = '[照片/视频]';
                 else if (/\[.*?的转账[：:].*?\]/.test(previewText) || /\[.*?向.*?转账[：:].*?\]/.test(previewText)) previewText = '[转账]';
                 else if (/\[.*?送来的礼物[：:].*?\]/.test(previewText)) previewText = '[礼物]';
-                else if (/\[.*?发来了一张图片[：:]\]/.test(previewText)) previewText = '[图片]';
+                else if (message.parts?.some(p => p.type === 'image') || /\[.*?发来了一张图片[：:]\]/.test(previewText)) previewText = '[图片]';
                 else if (/\[商城订单[：:].*?\]/.test(previewText)) previewText = '[商城订单]';
                 else if (message.parts && message.parts.some(p => p.type === 'html')) previewText = '[互动]';
             }
