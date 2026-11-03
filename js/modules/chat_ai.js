@@ -654,7 +654,8 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         }));
         generation.check();
         if (!response.ok) {
-            const error = new Error(`API Error: ${response.status} ${await generation.waitFor(response.text())}`);
+            const detail = await generation.waitFor(response.text());
+            const error = new Error(window.KissWorkFiles?.requestError(response.status,detail,historySlice.some(m=>m.type==='work-file')) || `API Error: ${response.status} ${detail}`);
             error.response = response;
             throw error;
         }
