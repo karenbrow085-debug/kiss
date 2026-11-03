@@ -19,7 +19,7 @@ function profile(id) {
  voicesMethod:fish?'GET':'POST',voicesBody:fish?'{}':'{"voice_type":"all"}',modelsMethod:'GET',modelsBody:'{}',
  authMode:'bearer',authHeader:'X-API-Key',groupId:'',headers:'{}',extraBody:'{}',template:'',
  responseType:'auto',audioPath:'',modelsArrayPath:'',voicesArrayPath:'',modelIdPath:'',voiceIdPath:'',voiceNamePath:'',
- timeout:90,models:[],voices:[]};
+ fishTransport:'direct',streaming:true,timeout:90,models:[],voices:[]};
 }
 function familyPresets(family) {return PRESETS.filter(p=>p[2]===family);}
 function officialId(id) {return PRESETS.some(p=>p[0]===id)?id:id==='fish-relay'?'fish':'minimax-cn';}
@@ -82,12 +82,14 @@ function officialFishBase(p) {
 function validate(p,kind='tts') {
  if(!p.baseUrl)throw new Error('请填写接口地址');
  if(p.authMode!=='none'&&!p.key.trim())throw new Error('请填写 API Key');
- if(kind==='tts'&&(!p.model.trim()||!p.voiceId.trim()))throw new Error('请填写生成模型和音色 ID');
+ if(kind==='tts'&&(!p.model.trim()||(p.family!=='fish'&&!p.voiceId.trim())))throw new Error('请填写生成模型和音色 ID');
+ if(p.family==='fish')fishVoiceId(p.voiceId);
  const ranges={speed:[0.5,2],volume:[0.1,10],pitch:[-12,12],fishVolume:[-20,20],temperature:[0,1],topP:[0,1],timeout:[10,300]};
  for(const [name,[min,max]] of Object.entries(ranges)){if(!Number.isFinite(Number(p[name]))||Number(p[name])<min||Number(p[name])>max)throw new Error('参数 '+name+' 的范围为 '+min+'–'+max);}
  parseObject(p.headers,'自定义请求头');parseObject(p.extraBody,'补充参数');
  if(p.protocol==='template'&&kind==='tts')parseObject(p.template,'请求模板');
 }
+function fishVoiceId(value){const text=String(value||'').trim();if(!/^https?:\/\//i.test(text))return text;if(!text)return '';let url;try{url=new URL(text);}catch{throw Error('音色链接无效');}const m=url.pathname.match(/\/(?:m|model|voice)\/([^/]+)/);if(!/(^|\.)fish\.audio$/i.test(url.hostname)||!m)throw Error('请填写 Fish 音色 ID 或音色页面链接');return decodeURIComponent(m[1]);}
 function variables(p,text='') {return {key:p.key,text,model:p.model,voice_id:p.voiceId,reference_id:p.voiceId,speed:Number(p.speed),volume:Number(p.volume),pitch:Number(p.pitch),format:p.format,emotion:p.emotion};}
 function buildRequest(p,text,kind='tts',options={}) {
  validate(p,kind);
@@ -100,8 +102,8 @@ function buildRequest(p,text,kind='tts',options={}) {
    body={model:p.model,text,stream:false,output_format:'hex',voice_setting:{voice_id:p.voiceId,speed:Number(p.speed),vol:Number(p.volume),pitch:Number(p.pitch)},audio_setting:{format:p.format,sample_rate:32000,bitrate:128000,channel:1}};
    if(p.emotion)body.voice_setting.emotion=p.emotion;if(p.language)body.language_boost=p.language;
   } else if(p.protocol==='fish') {
-   headers.set('model',p.model);
-   body={text,reference_id:p.voiceId,format:p.format,prosody:{speed:Number(p.speed),volume:Number(p.fishVolume)},temperature:Number(p.temperature),top_p:Number(p.topP),latency:p.latency};
+   headers.set('model',p.model.replace(/^fish-audio\//,''));
+   body={text,...(fishVoiceId(p.voiceId)?{reference_id:fishVoiceId(p.voiceId)}:{}),format:p.format,prosody:{speed:Number(p.speed),volume:Number(p.fishVolume)},temperature:Number(p.temperature),top_p:Number(p.topP),latency:p.latency};
   } else if(p.protocol==='openai')body={model:p.model,input:text,voice:p.voiceId,response_format:p.format,speed:Number(p.speed)};
   else body=substitute(parseObject(p.template,'请求模板'),vars);
   merge(body,substitute(parseObject(p.extraBody,'补充参数'),vars));
@@ -113,10 +115,16 @@ function buildRequest(p,text,kind='tts',options={}) {
  if(kind==='voices'&&p.official&&p.family==='fish') {
   url.searchParams.set('page_size','50');url.searchParams.set('page_number',String(options.page||1));url.searchParams.set('self',String(options.scope!=='public'));if(options.search)url.searchParams.set('title',options.search);
  }
- // Fish 官方接口经站点共用网关转发，每个请求仍使用当前使用者的 Key。
+ // Direct compatibility uses the published Fish protocol; native gateway is an explicit fallback.
  if(p.protocol==='fish'&&url.hostname==='api.fish.audio') {
-  const gateway=new URL('https://fish-voice.petrusoclarnon.workers.dev');
-  gateway.pathname=url.pathname;gateway.search=url.search;url.href=gateway.href;
+  if(p.fishTransport==='gateway'){
+   const gateway=new URL('https://fish-voice.petrusoclarnon.workers.dev');gateway.pathname=url.pathname;gateway.search=url.search;url.href=gateway.href;
+  }else if(kind==='tts'){
+   const {text:input,format:response_format,reference_id,...nativeOptions}=body;
+   body={model:p.model.startsWith('fish-audio/')?p.model:'fish-audio/'+p.model,input,voice:typeof reference_id==='string'?reference_id:'',response_format,
+    provider:{options:{'fish-audio':{...nativeOptions,...(Array.isArray(reference_id)?{reference_id}:{})}}}};
+   headers.delete('model');url.pathname='/compat/v1/audio/speech';
+  }else if(kind==='models')url.pathname='/compat/v1/models';
  }
  return {url:url.href,init:{method,headers,body:body===undefined?undefined:JSON.stringify(body),credentials:'omit',redirect:'error'}};
 }
@@ -141,10 +149,15 @@ async function request(p,text,kind,options={}) {
    throw new Error('HTTP '+response.status+' · '+(msg||tips[response.status]||'服务暂时不可用'));
   }
   // Consume the response within the timeout; streaming binaries are also bounded.
-  const blob=await response.blob();return {blob,type:(response.headers.get('Content-Type')||'').toLowerCase()};
+  const type=(response.headers.get('Content-Type')||'').toLowerCase();let blob;
+  if(options.onChunk&&/audio\/(?:mpeg|mp3)/.test(type)&&response.body?.getReader){
+   const reader=response.body.getReader(),chunks=[];
+   try{for(;;){const {value,done}=await reader.read();if(done)break;if(controller.signal.aborted)throw new DOMException('已停止','AbortError');chunks.push(value);try{options.onChunk(value);}catch{}}}finally{reader.releaseLock();}
+   blob=new Blob(chunks,{type});
+  }else blob=await response.blob();return {blob,type};
  }catch(e){
   if(e.name==='AbortError')throw new Error(timedOut?'语音请求超时，请稍后重试':'已停止');
-  if(e.name==='TypeError')throw new Error(p.family==='fish'?'Fish 连接失败：请检查网络或联系管理员检查共用网关':'MiniMax 连接失败：请检查网络及官方服务可用性');
+  if(e.name==='TypeError')throw new Error(p.family==='fish'?'Fish 连接失败：请检查网络；也可在连接方式中手动选择原生网关备用，不会自动重复合成':'MiniMax 连接失败：请检查网络及官方服务可用性');
   throw new Error(safeError(e.message,p));
  }finally{clearTimeout(timer);if(options.signal)options.signal.removeEventListener('abort',cancel);}
 }
@@ -164,7 +177,7 @@ function normalizeList(data,kind,p) {
  });return [...unique.values()];
 }
 async function list(p,kind,options={}) {
- if(kind==='models'&&p.official)return {items:CATALOG[p.family].map(id=>({id,name:id})),catalog:true,hasMore:false};
+ if(kind==='models'&&p.official&&p.family!=='fish')return {items:CATALOG[p.family].map(id=>({id,name:id})),catalog:true,hasMore:false};
  const r=await request(p,'',kind,options);let data;
  try{data=JSON.parse(await r.blob.text());}catch{throw new Error('列表接口没有返回 JSON；请检查接口路径');}
  const err=apiError(data);if(err)throw new Error(safeError(err,p));
@@ -204,9 +217,9 @@ async function cacheOp(mode,action){try{const d=await openCache();if(!d)return n
 async function hash(value){if(!window.crypto?.subtle)return null;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('');}
 async function cacheStats(){const rows=await cacheOp('readonly',s=>s.getAll())||[];return {count:rows.length,bytes:rows.reduce((a,x)=>a+x.blob.size,0)};}
 async function clearCache(){await cacheOp('readwrite',s=>s.clear());}
-async function synthesize(p,text,options={}) {
- if(window.KissVoiceScript){const prepared=window.KissVoiceScript.prepare(p,text,options);p=prepared.profile;text=prepared.text;}
- validate(p);if(!text.trim())throw new Error('请输入需要朗读的文字');if(text.length>=10000)throw new Error('单条语音文字过长，请分段生成');
+async function synthesizeOne(p,text,options={}) {
+ if(!options.prepared&&window.KissVoiceScript){const prepared=window.KissVoiceScript.prepare(p,text,options);p=prepared.profile;text=prepared.text;}
+ validate(p);if(!text.trim())throw new Error('请输入需要朗读的文字');if(Array.from(text).length>10000)throw new Error('单段文字过长，请通过播放器自动分段生成');
  const built=buildRequest(p,text),useCache=options.cache!==false&&settings().cacheEnabled;
  const id=useCache?await hash(built.url+'\n'+JSON.stringify([...built.init.headers])+'\n'+built.init.body):null;
  if(id){const saved=await cacheOp('readonly',s=>s.get(id));if(saved){saved.time=Date.now();await cacheOp('readwrite',s=>s.put(saved));return saved.blob;}}
@@ -215,11 +228,29 @@ async function synthesize(p,text,options={}) {
  if(id&&blob.size<=30*1024*1024){const rows=await cacheOp('readonly',s=>s.getAll())||[];let size=rows.reduce((a,x)=>a+x.blob.size,0)+blob.size;rows.sort((a,b)=>a.time-b.time);const removed=[];while(rows.length&&(size>30*1024*1024||rows.length>=100)){const x=rows.shift();size-=x.blob.size;removed.push(x.id);}await cacheOp('readwrite',s=>{removed.forEach(x=>s.delete(x));return s.put({id,blob,time:Date.now()});});}
  return blob;
 }
+const voiceJobs=new Map();
+function synthesize(p,text,options={}){
+ const identity=JSON.stringify([p,text,options.cache!==false,!!options.prepared]);
+ if(options.signal?.aborted)return Promise.reject(new Error('已停止'));
+ let job=voiceJobs.get(identity);
+ if(!job){job={controller:new AbortController(),listeners:new Set(),chunks:[],users:0,done:false};voiceJobs.set(identity,job);
+  job.promise=synthesizeOne(p,text,{cache:options.cache,prepared:options.prepared,signal:job.controller.signal,onChunk:chunk=>{job.chunks.push(chunk);for(const fn of job.listeners)try{fn(chunk);}catch{}}}).finally(()=>{job.done=true;if(voiceJobs.get(identity)===job)voiceJobs.delete(identity);});
+ }
+ job.users++;if(options.onChunk){job.listeners.add(options.onChunk);for(const chunk of job.chunks)try{options.onChunk(chunk);}catch{}}
+ return new Promise((resolve,reject)=>{let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;options.signal?.removeEventListener('abort',cancel);if(options.onChunk)job.listeners.delete(options.onChunk);if(--job.users===0&&!job.done){if(voiceJobs.get(identity)===job)voiceJobs.delete(identity);job.controller.abort();}fn(value);};const cancel=()=>finish(reject,new Error('已停止'));options.signal?.addEventListener('abort',cancel,{once:true});job.promise.then(v=>finish(resolve,v),e=>finish(reject,e));if(options.signal?.aborted)cancel();});
+}
+function plan(profile,value,options={}){
+ let p={...profile},text=String(value||'');if(window.KissVoiceScript){const prepared=window.KissVoiceScript.prepare(p,text,options);p=prepared.profile;text=prepared.text;}validate(p);if(!text.trim())throw Error('请输入需要朗读的文字');
+ const chars=Array.from(text),limit=p.family==='fish'?1000:8000,parts=[];
+ while(chars.length){let end=Math.min(limit,chars.length);if(end<chars.length){for(let i=end-1;i>=Math.floor(limit/2);i--){if(/[。！？.!?\n]/.test(chars[i])){end=i+1;break;}}const head=chars.slice(0,end).join(''),opens=Math.max(head.lastIndexOf('['),head.lastIndexOf('('),head.lastIndexOf('<'));if(opens>=0&&!/[\])>]/.test(head.slice(opens))&&opens>0){end=Array.from(head.slice(0,opens)).length;}}
+  const part=chars.splice(0,end).join('');if(part.trim())parts.push(part);
+ }return {profile:p,parts};
+}
 function resolveProfile(charId) {
  const s=settings(),binding=s.bindings[charId]||{},id=binding.profileId||s.defaultProfile;
  if(binding.disabled)return null;
  const p=s.profiles[id];if(!p)return null;
  return {...p,voiceId:binding.voiceId||p.voiceId,speed:binding.speed==null?p.speed:Number(binding.speed)};
 }
-window.KissVoiceService={CATALOG,PRESETS,familyPresets,profile,settings,clone,getPath,parseObject,relayBase,officialFishBase,endpoint,buildRequest,validate,list,normalizeList,decodeAudio,audioFromResponse,synthesize,resolveProfile,cacheStats,clearCache};
+window.KissVoiceService={CATALOG,PRESETS,familyPresets,profile,settings,clone,getPath,parseObject,relayBase,officialFishBase,endpoint,buildRequest,validate,fishVoiceId,plan,list,normalizeList,decodeAudio,audioFromResponse,synthesize,resolveProfile,cacheStats,clearCache};
 })();
