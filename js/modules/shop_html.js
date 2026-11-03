@@ -1,28 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const shopHtml = `
-    <header class="app-header">
-        <button class="back-btn" data-target="chat-room-screen">‹</button>
-        <div class="title-container">
-            <h1 class="title">商城</h1>
-        </div>
-        <div class="action-btn-group">
-            <button class="action-btn" id="shop-refresh-btn" title="重新进货">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
-                    <path d="M23 4v6h-6"></path>
-                    <path d="M1 20v-6h6"></path>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-            </button>
-            <button class="action-btn" id="shop-more-btn" title="更多">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
-        </div>
+    <header class="app-header shop-market-header">
+        <button class="back-btn" data-target="chat-room-screen" aria-label="返回聊天">‹</button>
+        <div class="shop-market-brand"><h1 class="title">心意商城</h1><span>好好逛 · 慢慢挑</span></div>
+        <div class="shop-market-actions"><button type="button" id="shop-refresh-btn" title="重新进货">进货</button><button type="button" id="shop-more-btn" title="商城管理">管理</button></div>
     </header>
-    <div class="shop-tabs"></div>
-    <main class="content" id="shop-content-container"></main>
+    <div class="shop-search-wrap"><form id="shop-search-form" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 5 5"></path></svg><input id="shop-search-input" type="search" aria-label="搜索商城商品" placeholder="搜点喜欢的，送给特别的TA" autocomplete="off"><button type="submit">搜索</button></form></div>
+    <nav class="shop-tabs" aria-label="商城分类"></nav>
+    <main class="content shop-market-content" id="shop-content-container"></main>
+    <nav class="shop-market-nav" aria-label="商城导航"><button type="button" data-market-nav="home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10H3Z"></path><path d="M9 20v-7h6v7"></path></svg><span>首页</span></button><button type="button" data-market-nav="categories"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></svg><span>分类</span></button><div id="shop-market-cart-slot"></div><button type="button" data-market-nav="favorites"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"></path></svg><span>心动清单</span></button></nav>
+    <div id="shop-feature-overlay" class="shop-feature-overlay" hidden><section class="shop-feature-sheet" role="dialog" aria-modal="true" aria-labelledby="shop-feature-title"><header><h2 id="shop-feature-title">商品详情</h2><button type="button" id="shop-feature-close" aria-label="关闭商城弹窗">×</button></header><div id="shop-feature-body"></div></section></div>
     <div id="shop-delivery-modal" class="modal-overlay">
         <div class="modal-window">
             <h3 id="shop-delivery-item-name">确认订单</h3>

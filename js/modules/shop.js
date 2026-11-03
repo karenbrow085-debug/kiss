@@ -443,17 +443,17 @@ function updateCartUI() {
         container.innerHTML = `<div class="cart-empty-tip">购物车是空的</div>`;
         document.querySelector('.cart-checkout-btn').disabled = true;
     } else {
-        container.innerHTML = shopState.cart.map(entry => `
-            <div class="cart-item-row">
-                <div class="cart-item-name">${entry.item.name}</div>
-                <div class="cart-item-price">¥${entry.item.price}</div>
-                <div class="cart-item-controls">
-                    <button class="cart-ctrl-btn minus" onclick="removeFromCart('${entry.item.name}')">-</button>
-                    <span class="cart-item-qty">${entry.quantity}</span>
-                    <button class="cart-ctrl-btn plus" onclick="addToCart({name:'${entry.item.name}', price:'${entry.item.price}'})">+</button>
-                </div>
-            </div>
-        `).join('');
+        container.replaceChildren();
+        shopState.cart.forEach(entry => {
+            const row=document.createElement('div');row.className='cart-item-row';
+            row.innerHTML='<div class="cart-item-name"></div><div class="cart-item-price"></div><div class="cart-item-controls"><button type="button" class="cart-ctrl-btn minus" aria-label="减少数量">−</button><span class="cart-item-qty"></span><button type="button" class="cart-ctrl-btn plus" aria-label="增加数量">＋</button></div>';
+            row.querySelector('.cart-item-name').textContent=entry.item.name;
+            row.querySelector('.cart-item-price').textContent='¥'+entry.item.price;
+            row.querySelector('.cart-item-qty').textContent=entry.quantity;
+            row.querySelector('.minus').onclick=()=>removeFromCart(entry.item.name);
+            row.querySelector('.plus').onclick=()=>addToCart(entry.item);
+            container.append(row);
+        });
         document.querySelector('.cart-checkout-btn').disabled = false;
     }
 
