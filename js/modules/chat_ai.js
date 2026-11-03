@@ -213,6 +213,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         generation.reactionContext = window.KissReactions?.context(chat);
         systemPrompt += generation.reactionContext?.prompt || '';
         systemPrompt += window.KissVoiceScript?.directionPrompt(chat,chatType)||'';
+        systemPrompt += window.KissWorkFiles?.replyPrompt || '';
 
         let historySlice = (window.KissOffline ? window.KissOffline.historyForAI(chat) : chat.history).slice(-chat.maxMemory);
         
@@ -767,6 +768,7 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
 
 async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChatType, isBackground = false, generation = null) {
     const previousMessageIds=new Set((chat.history||[]).map(m=>m.id));
+    let workReplies = new Map();
 
     if(isBackground&&window.KissClock?.isQuiet(chat,'chat'))return;
     if(targetChatType==='private'&&window.KissSocial?.blocked(chat))return;
@@ -819,6 +821,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             fullResponse = fullResponse.substring(lastThinkingIndex + 11);
         }
 
+        if(window.KissWorkFiles){const extracted=await KissWorkFiles.extractReplies(fullResponse,()=>generation?.check());fullResponse=extracted.text;workReplies=extracted.files;}
         if(targetChatType === 'private' && window.KissTogether) fullResponse=await KissTogether.consume(fullResponse,chat,generation?.hearuContext,()=>generation?.check());
         if(targetChatType === 'private' && window.KissSocial){fullResponse=await KissSocial.consume(fullResponse,chat);if(KissSocial.blocked(chat))return;}
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
@@ -979,6 +982,11 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
 
         for (const item of messages) {
             generation?.check();
+            const workEntry = workReplies.get(item.content.trim());
+            if(workEntry){
+                try{const message=KissWorkFiles.replyMessage(workEntry,chat,targetChatType);chat.history.push(message);addMessageBubble(message,targetChatId,targetChatType);}catch(error){showToast(error.message);}
+                continue;
+            }
             // 自动剔除不存在的表情包
             const stickerRegex = /\[(?:.*?的)?表情包：(.+?)\]/i;
             const stickerMatch = item.content.match(stickerRegex);
