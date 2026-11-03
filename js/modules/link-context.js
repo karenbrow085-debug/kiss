@@ -12,7 +12,7 @@ function relevant(history){
  if(quote?.messageId)quotedTarget=history.find(m=>String(m.id)===String(quote.messageId));
  if(quotedTarget){if(window.KissLinkCards.get(quotedTarget).length&&!selected.some(x=>x.m===quotedTarget))selected.push({m:quotedTarget,i:history.indexOf(quotedTarget)});else if(!window.KissLinkCards.get(quotedTarget).length)return {last,selected};}
  else if(quote?.content){const quoted={role:'user',content:String(quote.content)};if(window.KissLinkCards.get(quoted).length)selected.push({m:quoted,i:-1});}
- if(!selected.length&&/(?:链接|連結|这个|這個|上面|刚才|剛才|这篇|這篇|图片|圖片|正文|内容|內容|几张图|幾張圖|这组|這組|图里|圖裡|图中|圖中|图上|圖上|第.{0,3}[张張]图)/.test(String(history[last].content||''))){for(let i=last;i>=0;i--){if(history[i].role==='user'&&window.KissLinkCards.get(history[i]).length){selected=[{m:history[i],i}];break;}}}
+ if(!selected.length&&/(?:链接|連結|这个|這個|上面|刚才|剛才|这篇|這篇|图片|圖片|正文|内容|內容|头像|頭像|相册|相冊|第.{0,3}[张張]|几张图|幾張圖|这组|這組|图里|圖裡|图中|圖中|图上|圖上|第.{0,3}[张張]图)/.test(String(history[last].content||''))){for(let i=last;i>=0;i--){if(history[i].role==='user'&&window.KissLinkCards.get(history[i]).length){selected=[{m:history[i],i}];break;}}}
  return {last,selected};
 }
 function record(card){return {url:card.url,title:card.title,author:card.author||'',text:card.body||card.description||card.excerpt||'',textScope:card.textKind==='provider_extract'?'接口返回的作品或商品详情，按原样全部传入；未核验原站完整性，未读取视频或音轨':card.textKind==='page_extract'?'网页实际提取的正文，按原样全部传入；未核验原站完整性，未读取视频或音轨':card.textKind==='post_caption'?'接口返回的作品文案，按原样全部传入，未另行核验完整性':card.textKind==='video_description'?'视频简介，按原样全部传入；没有读取视频画面或音轨':'网页预览摘要或分享文案，不是已核验的全文',imageCount:card.images.length,comments:card.comments?.length?card.comments:'未获取评论区',state:card.previewState||'idle',error:card.previewError||card.readerError||'',source:card.sourceProvider||''};}
@@ -30,16 +30,16 @@ async function loadImage(url,generation){
 async function prepare(history,generation){
  const {last,selected}=relevant(history);if(last<0||!selected.length)return {history,prompt:'',provided:false};
  const cards=[];for(const {m}of selected){check(generation);await wait(window.KissLinkCards.prefetch(m),generation);check(generation);cards.push(...window.KissLinkCards.get(m));}
- const parts=[];let successful=0;
- for(const card of cards){check(generation);const info=record(card);if(card.previewState==='loaded')successful++;parts.push({type:'text',text:'\n<link_attachment>\n'+JSON.stringify(info)+'\n</link_attachment>\n'});
+ const parts=[],media=[];let successful=0;
+ for(const [cardIndex,card]of cards.entries()){check(generation);const info=record(card);info.images=card.images.map((url,index)=>({ref:'link-'+(cardIndex+1)+'-'+(index+1),index:index+1}));if(card.previewState==='loaded')successful++;parts.push({type:'text',text:'\n<link_attachment>\n'+JSON.stringify(info)+'\n</link_attachment>\n'});
   // Preserve every returned image and its order; failures remain explicit in the request.
   const results=new Array(card.images.length);let next=0;const run=async()=>{while(next<card.images.length){const index=next++;try{results[index]={data:await loadImage(card.images[index],generation)};}catch(error){check(generation);results[index]={error:error.message};}}};await wait(Promise.all([run(),run()]),generation);check(generation);
-  for(const [index,result]of results.entries()){parts.push({type:'text',text:'链接 '+card.url+' 的第 '+(index+1)+'/'+results.length+' 张图片'+(result.error?'：未读取成功，'+result.error:'：')});if(result.data)parts.push({type:'image',data:result.data});}
+  for(const [index,result]of results.entries()){parts.push({type:'text',text:'链接 '+card.url+' 的第 '+(index+1)+'/'+results.length+' 张图片'+(result.error?'：未读取成功，'+result.error:'：')});if(result.data){parts.push({type:'image',data:result.data});media.push({ref:'link-'+(cards.indexOf(card)+1)+'-'+(index+1),index:index+1,title:card.title,url:card.url,imageURL:card.images[index],data:result.data});}}
  }
  const original=history[last],base=original.parts?.length?original.parts.map(p=>({...p})):[{type:'text',text:original.content||''}];if(original.quote)base.push({type:'text',text:'\n引用消息：'+String(original.quote.content||'')});
  const updated={...original,content:String(original.content||'')+parts.filter(p=>p.type==='text').map(p=>p.text).join('\n'),parts:[...base,...parts],linkAttachment:true};
- return {history:history.map((m,i)=>i===last?updated:m),prompt,provided:successful===cards.length&&successful>0,count:cards.length,receipt:{titles:cards.map(c=>c.title),textCharacters:cards.reduce((n,c)=>n+String(c.body||c.description||c.excerpt||'').length,0),imageCandidates:cards.reduce((n,c)=>n+c.images.length,0),imageRefs:parts.filter(p=>p.type==='image').map(p=>p.data)}};
+ return {history:history.map((m,i)=>i===last?updated:m),prompt,media,provided:successful===cards.length&&successful>0,count:cards.length,receipt:{titles:cards.map(c=>c.title),textCharacters:cards.reduce((n,c)=>n+String(c.body||c.description||c.excerpt||'').length,0),imageCandidates:cards.reduce((n,c)=>n+c.images.length,0),imageRefs:parts.filter(p=>p.type==='image').map(p=>p.data)}};
 }
-function skipTools(generation,text){return generation?.linkContext?.provided===true&&!/(?:搜索|搜尋|搜一下|查找|核实|核實|上网|上網|联网|聯網|最新|调用.{0,6}MCP|調用.{0,6}MCP)/i.test(String(text||''));}
+function skipTools(generation,text){return (generation?.linkContext?.provided===true||!!generation?.linkImages)&&!/(?:搜索|搜尋|搜一下|查找|核实|核實|上网|上網|联网|聯網|最新|调用.{0,6}MCP|調用.{0,6}MCP)/i.test(String(text||''));}
 window.KissLinkContext={prepare,relevant,record,loadImage,skipTools};
 })();
