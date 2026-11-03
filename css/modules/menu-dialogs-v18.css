@@ -25,3 +25,24 @@
 #red-packet-details-modal .modal-window{border:1px solid #fff!important;border-radius:23px!important;background:linear-gradient(125deg,#fff,#f9fafc)!important;color:#171b2c!important;box-shadow:0 18px 65px #272c4021!important}
 #red-packet-details-modal .red-packet-modal-header{background:linear-gradient(125deg,#f4f5f9,#e5e9f1)!important;color:#525d78!important}
 #red-packet-details-modal :is(.red-packet-modal-title,.red-packet-modal-amount){color:#525d78!important}
+
+#cot-preset-manage-modal .kc-preset-head {
+ display:grid;
+ grid-template-columns:minmax(0,1fr) auto auto;
+ align-items:center;
+ column-gap:8px;
+}
+#cot-preset-manage-modal .kc-preset-head h3 {overflow-wrap:anywhere}
+#cot-preset-manage-modal .kc-preset-head > .kmd-close {
+ width:32px;
+ height:32px;
+ display:grid;
+ place-items:center;
+ padding:0;
+ border:1px solid #dfe1e6;
+ border-radius:50%;
+ background:transparent;
+ color:inherit;
+ font:22px/1 Arial,sans-serif;
+ cursor:pointer;
+}
