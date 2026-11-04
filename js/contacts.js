@@ -268,6 +268,7 @@ function openProfileCard(charId) {
     messageBtn.dataset.charId = charId;
 
     document.getElementById('profile-card-modal').classList.add('visible');
+    window.KissSocialProfile?.open(char);
 }
 
 // --- NEW My Profile Logic (Cover Flow) ---
@@ -765,3 +766,4 @@ async function saveCurrentPersona() {
     renderMyProfile(); 
     showToast(`已保存并同步到 ${syncCount} 个角色`);
 }
+

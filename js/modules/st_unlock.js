@@ -19,7 +19,7 @@ function requestStImportUnlock(targetId = 'character-card-input') {
     if (keyInput) keyInput.value = '';
     const heading = modal.querySelector('h3');
     if (heading) heading.textContent = stUnlockScope(targetId) === 'preset' ? '酒馆预设导入认证' : '酒馆角色卡导入认证';
-    modal.classList.toggle('pt-preset-unlock', stUnlockScope(targetId) === 'preset');
+    modal.classList.add('pt-preset-unlock');
     modal.classList.add('visible');
 }
 
@@ -343,4 +343,5 @@ function calculateCRC(bytes) {
     }
     return (crc ^ -1) >>> 0;
 }
+
 

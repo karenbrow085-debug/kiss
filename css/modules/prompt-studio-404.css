@@ -174,3 +174,33 @@
 .tps-overlay.pt-cot-picker .tps-name:hover{background:#eaf0f9!important}
 .tps-overlay.pt-cot-picker .tps-apply{background:#8fa3c2!important}
 .tps-overlay.pt-cot-picker .tps-footer{border-color:#e1e8f3;color:#a0aabe}
+
+
+/* T.T hides the last settings row; the last visible row must have no bottom rule. */
+#cot-settings-screen .pt-settings .kkt-item:has(+.kkt-item[style*="display: none"]),
+#cot-settings-screen .pt-settings .kkt-item:has(+.kkt-item[style*="display:none"]){border-bottom:0}
+/* Beauty preset search/management: same blue-gray palette, no list page selectors. */
+.bps-overlay{background:#4d58752b;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.bps-overlay .bps-dialog{background:#f8faff;border:1px solid #fff;border-radius:27px;box-shadow:0 18px 70px #3d527f16;color:#4c5d78}
+.bps-overlay .bps-kicker{color:#9eabc0;font-size:9px;letter-spacing:2px}
+.bps-overlay .bps-title{color:#465671;font-size:19px;font-weight:550}
+.bps-overlay .bps-header .bps-icon{color:#8f9fba!important;background:#edf2fa!important}
+.bps-overlay .bps-search{background:#edf2f9;border:1px solid #e0e8f3}
+.bps-overlay .bps-search:focus-within{background:#f5f8fd;border-color:#b3c5df}
+.bps-overlay .bps-search .bps-input{color:#5b6c88!important}
+.bps-overlay .bps-search .bps-input::placeholder{color:#a0adc0}
+.bps-overlay .bps-row{border-color:#e6ecf5;min-height:55px}
+.bps-overlay .bps-row .bps-name{color:#526580!important;font-size:13px}
+.bps-overlay .bps-row .bps-name:hover{background:#edf3fa!important}
+.bps-overlay .bps-row .bps-apply{background:#93a7c6!important;color:#fff!important;min-height:32px;padding:7px 15px!important;font-size:11px!important}
+.bps-overlay .bps-count,.bps-overlay .bps-footer{color:#a0adc1;border-color:#e0e7f2}
+.bps-overlay .bps-favorite{color:#a8b6ca!important}
+.bps-overlay .bps-favorite[aria-pressed=true]{color:#849fc5!important}
+.bps-overlay .bps-filter,.bps-overlay .bps-tab{border-color:#e1e8f3!important;color:#8b9db8!important;background:#f0f4fa!important}
+.bps-overlay .bps-filter.active,.bps-overlay .bps-filter[aria-pressed=true],.bps-overlay .bps-tab.active{color:#fff!important;background:#93a7c6!important;border-color:#93a7c6!important}
+
+.bps-overlay .bps-categories{display:flex;gap:8px;padding:12px 20px 2px;flex-shrink:0}
+.bps-overlay .bps-categories button{min-height:34px;border:1px solid #e0e8f3!important;border-radius:22px!important;background:#edf2f9!important;color:#8d9db6!important;padding:7px 13px!important;font:12px/1.4 var(--font-family,sans-serif)!important}
+.bps-overlay .bps-categories button[aria-selected=true]{background:#93a7c6!important;border-color:#93a7c6!important;color:#fff!important}
+.bps-overlay .bps-manage-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bps-overlay .bps-manage-actions .bps-secondary{border:1px solid #dfe7f2!important;border-radius:18px!important;background:#fff!important;color:#8c9eb9!important;padding:7px 10px!important;white-space:nowrap}
