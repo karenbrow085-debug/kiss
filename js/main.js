@@ -243,6 +243,12 @@ function setupGlobalRescueGesture() {
     const CLICK_TIMEOUT = 400; // 400ms 间隔
 
     document.addEventListener('click', (e) => {
+        // Theater navigation often involves several rapid taps on different controls.
+        if (e.target.closest?.('#kiss-acte, #acte-chat-menu-btn')) {
+            globalRescueClickCount = 0;
+            globalRescueLastClickTime = 0;
+            return;
+        }
         const now = Date.now();
         const gap = now - globalRescueLastClickTime;
         

@@ -197,6 +197,10 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             await window.KissMoments?.prepareContext(chat, apiConfig, generation);
             generation.check();
             systemPrompt = generatePrivateSystemPrompt(chat);
+            if (!window.KissOffline?.isActive(chat) && window.KissActe) {
+                systemPrompt += await window.KissActe.onlineContext(chat).catch(() => '');
+                generation.check();
+            }
         } else {
             // generateGroupSystemPrompt 应该在 group_chat.js 中定义
             if (typeof generateGroupSystemPrompt === 'function') {

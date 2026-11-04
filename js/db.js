@@ -490,6 +490,7 @@ var dexieDB; // 声明全局变量，但不初始化
 
 function initDatabase() {
     dexieDB = new Dexie('章鱼喷墨机DB_ee');
+    dexieDB.version(10).stores({acte: '&key'});
     dexieDB.version(9).stores({safeParts: '&id, kind', safeMeta: '&key'});
     dexieDB.version(1).stores({
         storage: 'key, value'
