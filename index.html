@@ -118,7 +118,8 @@
 <link rel="stylesheet" href="css/modules/shop-market.css?v=20261103-market-refined-2">
 <link rel="stylesheet" href="css/modules/shop-refined.css?v=20261104-shop-layout-1">
 <link rel="stylesheet" href="css/modules/api-extensions.css?v=20261104-extensions-2">
-<link rel="stylesheet" href="css/modules/acte.css?v=1">
+<link rel="stylesheet" href="css/modules/acte.css?v=20261104-rework-1">
+<link rel="stylesheet" href="css/modules/sticker-404.css?v=1">
 </head>
 
 <body>
@@ -314,7 +315,8 @@
             <button class="action-sheet-button" id="menu-multi-select-btn">多选管理</button>
             <button class="action-sheet-button" id="menu-batch-import-btn">批量导入</button>
             <button class="action-sheet-button" id="menu-add-new-btn">添加新表情</button>
-            <button class="action-sheet-button danger" id="menu-cancel-btn">取消</button>
+            <button class="action-sheet-button" id="sticker-export-btn">导出表情包</button>
+            <button class="action-sheet-button" id="menu-cancel-btn">取消</button>
         </div>
     </div>
 
@@ -1184,11 +1186,11 @@
     </div>
     <div id="add-sticker-modal" class="modal-overlay">
         <div class="modal-window">
-            <h3 id="add-sticker-modal-title">添加新表情</h3>
+            <div class="ks-sticker-heading"><h3 id="add-sticker-modal-title">添加新表情</h3><button type="button" data-sticker-dismiss aria-label="关闭">×</button></div>
             <form id="add-sticker-form"><input type="hidden" id="sticker-edit-id">
                 <div id="sticker-preview"><span>预览</span></div>
                 <div class="form-group"><label for="sticker-name">表情名称</label><input type="text" id="sticker-name" placeholder="如：开心" required></div>
-                <div class="form-group"><label for="sticker-group">分组名称</label><input type="text" id="sticker-group" placeholder="如：猫猫组 (选填)"></div>
+                <div class="form-group"><label for="sticker-group">分组名称</label><input type="text" id="sticker-group" placeholder="输入新分组"><select aria-label="选择已有分组" data-sticker-group-picker="sticker-group" hidden></select></div>
 
                
                 <div class="form-group"><label for="sticker-url-input">表情URL</label><input type="url"
@@ -1213,16 +1215,18 @@
     <!-- Batch Add Sticker Modal -->
     <div id="batch-add-sticker-modal" class="modal-overlay">
         <div class="modal-window">
-            <h3>批量导入表情</h3>
+            <div class="ks-sticker-heading"><h3>批量导入表情</h3><button type="button" data-sticker-dismiss aria-label="关闭">×</button></div>
             <form id="batch-add-sticker-form">
                 <div class="form-group">
-                    <label for="batch-sticker-group">分组名称 (本批次所有表情将归入此组)</label>
-                    <input type="text" id="batch-sticker-group" placeholder="如：通用组">
+                    <label for="batch-sticker-group">目标分组</label>
+                    <input type="text" id="batch-sticker-group" placeholder="留空保留原分组"><select aria-label="选择已有分组" data-sticker-group-picker="batch-sticker-group" hidden></select>
                 </div>
                 <div class="form-group">
-                    <label for="sticker-urls-textarea">数据格式：名称:URL (英文冒号，每行一个)</label>
+                    <label for="sticker-urls-textarea">每行填写 名称：图片链接</label>
                     <textarea id="sticker-urls-textarea" rows="8" placeholder="例如：&#10;开心:https://example.com/happy.gif&#10;哭泣:https://example.com/cry.png"></textarea>
                 </div>
+                <label class="ks-sticker-file">选择文件 <small>DOCX / TXT / JSON</small><input type="file" id="batch-sticker-file" accept=".docx,.txt,.json"></label>
+                <p id="batch-sticker-status" role="status"></p>
                 <button type="submit" class="btn btn-primary">开始导入</button>
             </form>
         </div>
@@ -2653,7 +2657,7 @@
 <script src="js/modules/settings_customize.js?v=20261026-clear-4"></script> <!-- 个性化与外观设置 -->
 
 <!-- [3. 独立功能模块 (Plugins)] -->
-<script src="js/modules/sticker.js?v=20261023-chat-fixes-1"></script>   <!-- 表情包管理系统 -->
+<script src="js/modules/sticker.js?v=20261104-rework-1"></script>   <!-- 表情包管理系统 -->
 <script src="js/modules/worldbook.js?v=20261023-wb-compact-2"></script> <!-- 世界书设定集 -->
 <script src="js/modules/peek.js?v=20261027-moments-v4"></script>      <!-- 偷看手机(相册/短信等) -->
 <script src="js/modules/journal.js?v=20261104-feature-audit-2"></script>
@@ -2671,7 +2675,7 @@
 <script src="js/modules/shop-market.js?v=20261104-feature-audit-1"></script>    <!-- 商城模块 -->
 <script src="js/modules/cot_settings.js?v=20261031-ui-3"></script>
 <script src="js/modules/tavern-engine.js?v=20261030-st10"></script>
-<script src="js/modules/tavern-runtime.js?v=20261103-memory-4"></script>
+<script src="js/modules/tavern-runtime.js?v=20261104-rework-1"></script>
 <script src="js/modules/tavern-regex.js?v=20261031-tavern-safety"></script>
 <script src="js/modules/prompt-studio.js?v=20261031-ui-3"></script> <!-- 思维链设置模块 -->
 <script src="js/modules/video_call.js?v=20261031-reroll-2"></script> <!-- 视频通话模块 -->
@@ -2731,8 +2735,8 @@
 <script src="js/modules/offline-rich.js?v=20261030-native-5"></script>
 <script src="js/modules/offline-generation.js?v=20261031-search-notes-2"></script>
 <script src="js/modules/offline.js?v=20261103-memory-4"></script>
-<script src="js/modules/acte-data.js?v=1"></script>
-<script src="js/modules/acte.js?v=2"></script>
+<script src="js/modules/acte-data.js?v=20261104-rework-1"></script>
+<script src="js/modules/acte.js?v=20261104-rework-1"></script>
 </body>
 </html>
 

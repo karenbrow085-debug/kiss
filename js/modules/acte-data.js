@@ -66,7 +66,7 @@
             rows: (Array.isArray(act?.rows) ? act.rows : []).map(row => ({
                 id: uid(), role: row?.role === 'assistant' ? 'assistant' : 'user',
                 speaker: string(row?.speaker, 80), text: string(row?.text, 16000),
-                at: Number(row?.at) || Date.now()
+                at: Number(row?.at) || Date.now(), actorId:string(row?.actorId,100)
             }))
         }));
         if (!acts.length) acts.push({id:uid(), title:'开场', rows:[]});
@@ -78,6 +78,7 @@
             synopsis:string(data.synopsis, 6000), html:string(data.html, maxFile), cover:image(data.cover),
             templateHtml:string(data.templateHtml, maxFile), stylePrompt:string(data.stylePrompt, 8000),
             started:data.started === true, example:data.example === true,
+            generation:data.generation && {prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160)},
             htmlProgress:validProgress(data.htmlProgress) ? data.htmlProgress : null,
             art:Number.isInteger(data.art) && data.art >= 0 && data.art <= 5 ? data.art : 1,
             cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true})),
@@ -91,6 +92,20 @@
     }
     function stripPackage(source) {
         return source.replace(/<script\b[^>]*\bid=["']acte-package["'][^>]*>[\s\S]*?<\/script\s*>/gi, '');
+    }
+    async function readFile(file) {
+        if (file.size > maxFile) throw Error('文件需小于 32 MB');
+        const base = file.name.replace(/\.[^.]+$/, '');
+        if (/\.html?$/i.test(file.name)) return readHtml(await file.text(),file.name);
+        let content;
+        if (/\.docx$/i.test(file.name)) {
+            if (!window.mammoth) throw Error('Word 读取器未加载');
+            content = (await window.mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()})).value;
+            content = window.DOMPurify.sanitize(content,{USE_PROFILES:{html:true}});
+        } else if (/\.txt$/i.test(file.name)) {
+            content = '<div style="white-space:pre-wrap">' + esc(await file.text()) + '</div>';
+        } else throw Error('请选择 HTML、DOCX 或 TXT');
+        return readHtml('<!doctype html><html><head><title>' + esc(base) + '</title><style>body{font:16px/1.8 system-ui;margin:24px;overflow-wrap:anywhere}img{max-width:100%}</style></head><body>' + content + '</body></html>',file.name);
     }
     function validProgress(value) {
         if (value === null || value === undefined) return true;
@@ -113,7 +128,7 @@
             '</head><body' + attrs(doc.body) + '>' + doc.body.innerHTML + '</body></html>';
     }
     function portable(work) {
-        const {cast, aware, ...copy} = work;
+        const {cast, aware, generation, ...copy} = work;
         return copy;
     }
     function readHtml(source, filename) {
@@ -139,14 +154,40 @@
         const clean = stripPackage(body);
         return /<\/head\s*>/i.test(clean) ? clean.replace(/<\/head\s*>/i, match => meta + match) : clean + '\n' + meta;
     }
-    async function ask(messages) {
-        const config = {...db.apiSettings, streamEnabled:false};
-        if (!config.url || !config.model || !config.key) throw Error('请先配置桌面 API');
+    async function ask(messages, settings = {}, signal, cast = [], trigger = 'normal') {
+        const draft = {apiPreset:settings.apiPreset,model:settings.model,generationSource:'tavern',tavernPresetId:settings.preset,inheritWorldbooks:false};
+        const actor = character(cast[0]?.id);
+        const chat = {realName:actor ? name(actor) : '角色',myName:actor?.myName || '我',offline:{draft}};
+        const config = {...(window.KissOffline?.resolveOfflineApi(chat) || db.apiSettings),streamEnabled:false};
+        if (!config.url || !config.model || !config.key) throw Error('请在生成设置选择有效的 API 和模型');
         if (typeof BLOCKED_API_DOMAINS !== 'undefined' && BLOCKED_API_DOMAINS.some(domain => config.url.includes(domain))) throw Error('该 API 地址不可用');
         if (config.provider !== 'gemini') config.key = getRandomValue(config.key);
-        const req = buildChatApiRequest(config, messages, {temperature:config.temperatureEnabled ? config.temperature : undefined});
-        const response = await fetchAiResponse(config, req.requestBody, req.headers, req.endpoint);
-        const text = window.KissOfflineGeneration?.split(response).text ?? response;
+        const selected = settings.preset;
+        const system = messages.filter(m => m.role === 'system');
+        if (settings.prompt) system.push({role:'system',content:settings.prompt});
+        if (settings.mode === 'cot') {
+            const cot = (db.cotPresets || []).find(p => String(p.id) === selected);
+            if (!cot) throw Error('请选择思维链预设');
+            const content = (cot.items || []).filter(row => row.enabled !== false).map(row => row.content).filter(Boolean).join('\n')
+                .replace(/\{\{char\}\}/gi,() => chat.realName).replace(/\{\{user\}\}/gi,() => chat.myName);
+            if (content) system.push({role:'system',content});
+        }
+        const history = messages.filter(m => m.role !== 'system');
+        const req = buildChatApiRequest(config,[...system,...history],{temperature:config.temperatureEnabled ? config.temperature : undefined});
+        if (settings.mode === 'tavern') {
+            if (!selected) throw Error('请选择酒馆预设');
+            const report = window.KissTavernRuntime?.prepare({chat,body:req.requestBody,provider:config.provider,history,offline:true,trigger,
+                hostProtocol:system.map(m => m.content).join('\n\n')});
+            if (!report?.active) throw Error('酒馆预设未生效');
+            await window.KissOfflineGeneration?.applyRequestRegex({mode:'tavern',presetId:report.presetId,...req},chat);
+        }
+        if ('stream' in req.requestBody) req.requestBody.stream = false;
+        const response = await fetch(req.endpoint,{method:'POST',headers:req.headers,body:JSON.stringify(req.requestBody),signal});
+        if (!response.ok) throw Error('API 请求失败（HTTP ' + response.status + '）');
+        const result = response.headers.get('content-type')?.includes('text/event-stream')
+            ? await readStreamResponse(response,config.provider)
+            : window.KissOfflineGeneration.consume(await response.json(),config.provider,{full:'',reasoning:''}).full;
+        const text = window.KissOfflineGeneration.split(result).text;
         if (!text?.trim()) throw Error('模型返回了空内容');
         return unwrap(text);
     }
@@ -168,29 +209,11 @@
         return '\n【你知道的剧幕】以下是用户明确告知你的虚构剧场资料。它们与真实聊天记忆分开，只在话题相关时引用。\n' +
             JSON.stringify(visible.map(({title,genre,synopsis}) => ({title,genre,synopsis})));
     }
-    async function installExamples() {
-        if (await one('config','examples-v1')) return;
-        await dexieDB.transaction('rw',table(),async () => {
-            if (await one('config','examples-v1')) return;
-            const examples = [
-                {title:'末班车以后',kind:'prose',genre:genres[0],art:1,started:true,current:1,
-                    synopsis:'如果还有一班车，你会停在现在，还是去另一个世界？',
-                    acts:[{title:'误上末班车',rows:[{speaker:'林钧',role:'assistant',text:'站台的灯已经很暗。雨水顺着顶棚落下来，风吹动了他手里那张过期的车票。\n\n*也许她会像上次一样，忽然就不见了。*\n\n**“你还没走？”**'}]},{title:'雨还没停'},{title:'另一条线路'}]},
-                {title:'雾中剧场',kind:'dialogue',genre:genres[2],art:2,started:true,
-                    synopsis:'闭馆前十五分钟，空荡的观众席里出现了第二张票。',
-                    acts:[{title:'闭馆前',rows:[{speaker:'值夜人',role:'assistant',text:'刚才那位观众，和你一起来的吗？'}]},{title:'第二张票'}]},
-                {title:'潮汐备忘录',kind:'prose',genre:genres[1],art:3,
-                    synopsis:'沿着潮水退去的地方，把没来得及说的话写在纸上。',acts:[{title:'海边的信'}]},
-                {title:'双生台',kind:'dialogue',genre:genres[0],art:5,
-                    synopsis:'一份过期的节目单上，写着两个人完全相同的名字。',acts:[{title:'镜中人'}]}
-            ];
-            for (const [i,data] of examples.entries()) {
-                const w = makeWork({...data,example:true});
-                w.created -= i * 1000;
-                await write('work',w);
-            }
-            await write('config',{id:'examples-v1'});
-        });
-    }
-    window.ActeData = {maxFile,validProgress,installExamples,kinds,genres,presets,uid,esc,image,characters,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
+    const ideas = [
+        {title:'末班车以后',kind:'prose',genre:genres[0],art:2,synopsis:'末班车突然驶向一条地图上没有的线路。它可以把乘客带回一次没来得及告别的夜晚。'},
+        {title:'雾中剧场',kind:'dialogue',genre:genres[2],art:0,synopsis:'闭馆前十五分钟，空荡的观众席里出现了第二张票。票上印着明天的日期。'},
+        {title:'潮汐备忘录',kind:'prose',genre:genres[1],art:3,synopsis:'沿着潮水退去的地方，把没来得及说的话写在纸上。第二天，海边多了一封回信。'},
+        {title:'双生台',kind:'dialogue',genre:genres[0],art:5,synopsis:'一份过期的节目单上，写着两个人完全相同的名字。演出即将开始。'}
+    ];
+    window.ActeData = {maxFile,validProgress,ideas,readFile,kinds,genres,presets,uid,esc,image,characters,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
 })();

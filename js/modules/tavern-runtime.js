@@ -149,7 +149,7 @@
         return stream;
     }
 
-    function prepare({ chat, chatType = 'private', body, provider, trigger = 'normal', history, isBackground = false, offline = false }) {
+    function prepare({ chat, chatType = 'private', body, provider, trigger = 'normal', history, isBackground = false, offline = false, hostProtocol }) {
         const source=chat?.offline?.draft?.generationSource;
         if (!(offline === true && chatType === 'private' && (source ? source === 'tavern' : isEnabled(chatType, offline)))) return { active: false };
         if (!chat || !body) throw Error('缺少酒馆预设请求上下文。');
@@ -163,7 +163,7 @@
         const activeRows = engine.orderedPrompts(preset, preset.groupIndex ?? setting.groupIndex ?? 0)
             .filter(row => row.enabled && !row.unordered && (!Array.isArray(row.prompt.injection_trigger) || !row.prompt.injection_trigger.length || row.prompt.injection_trigger.includes(trigger)));
         const hasMarker = id => activeRows.some(row => row.prompt.identifier === id && (row.prompt.marker === true || !row.prompt.content));
-        const hostParts = [protocol(chat, offline)];
+        const hostParts = [hostProtocol ?? protocol(chat, offline)];
         // Standard ST presets have no 404-specific memory/status markers. Preserve host functionality exactly once.
         if (context.memory && !hasMarker('kissMemory')) hostParts.push('404 已收藏的剧情记忆：\n' + context.memory);
         if (context.status && !hasMarker('kissStatus')) hostParts.push('404 状态栏格式：\n' + context.status);

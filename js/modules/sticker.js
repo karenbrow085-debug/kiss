@@ -1,5 +1,45 @@
 // --- 表情包管理 (js/modules/sticker.js) ---
 
+function stickerImageSource(value) {
+    const src = String(value || '').trim();
+    if (/^data:image\/(?:png|jpe?g|gif|webp|avif|bmp);base64,[a-z0-9+/=\s]+$/i.test(src)) return src;
+    try { const url = new URL(src); return ['https:','http:'].includes(url.protocol) ? url.href : ''; } catch { return ''; }
+}
+
+function parseStickerRows(text) {
+    const cleaned = text.replace(/^\uFEFF/, '').trim();
+    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+        let data;
+        try { data = JSON.parse(cleaned); } catch { throw Error('JSON 格式错误'); }
+        const rows = Array.isArray(data) ? data : data?.stickers || data?.myStickers || data?.modules?.myStickers;
+        if (!Array.isArray(rows)) throw Error('文件里没有表情包列表');
+        return rows;
+    }
+    return cleaned.split(/\r?\n/).flatMap(line => {
+        const match = line.match(/^\s*(.+?)\s*[:：]\s*((?:https?:\/\/|data:image\/).+)$/i);
+        return match ? [{name:match[1],data:match[2]}] : [];
+    });
+}
+
+async function readStickerFile(file) {
+    if (file.size > 32 * 1024 * 1024) throw Error('表情包文件需小于 32 MB');
+    if (!/\.docx$/i.test(file.name)) return parseStickerRows(await file.text());
+    if (!window.mammoth) throw Error('Word 读取器未加载');
+    const output = await window.mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
+    const doc = new DOMParser().parseFromString(output.value,'text/html');
+    const rows = [];
+    for (const block of doc.querySelectorAll('p,li,h1,h2,h3')) {
+        const name = block.textContent.trim().replace(/[:：]$/, '');
+        const images = [...block.querySelectorAll('img')];
+        const links = [...block.querySelectorAll('a[href]')];
+        const parsed = parseStickerRows(block.textContent);
+        if (parsed.length) rows.push(...parsed);
+        else if (links.length) for (const link of links) rows.push({name:link.textContent.trim() || name,data:link.getAttribute('href')});
+        for (const img of images) rows.push({name:name || img.alt || '表情 ' + (rows.length + 1),data:img.getAttribute('src')});
+    }
+    return rows;
+}
+
 async function setupStickerSystem() {
     const stickerMenuBtn = document.getElementById('sticker-menu-btn');
     const stickerMenuActionSheet = document.getElementById('sticker-menu-actionsheet');
@@ -35,10 +75,58 @@ async function setupStickerSystem() {
     const stickerFileUpload = document.getElementById('sticker-file-upload');
     const addStickerModalTitle = document.getElementById('add-sticker-modal-title');
 
+    const batchFile = document.getElementById('batch-sticker-file');
+    const batchStatus = document.getElementById('batch-sticker-status');
+    let fileRows = [], reading = false, importing = false;
+    function syncGroups() {
+        const groups = [...new Set(db.myStickers.map(s => s.group).filter(Boolean))];
+        existingGroupsList.replaceChildren(...groups.map(g => new Option(g,g)));
+        for (const picker of document.querySelectorAll('[data-sticker-group-picker]')) {
+            picker.replaceChildren(new Option('选择已有分组',''),...groups.map(g => new Option(g,g)));
+            picker.hidden = !groups.length;
+        }
+    }
+    for (const picker of document.querySelectorAll('[data-sticker-group-picker]')) {
+        picker.addEventListener('change',() => {
+            if (picker.value) document.getElementById(picker.dataset.stickerGroupPicker).value = picker.value;
+            picker.value = '';
+        });
+    }
+    for (const modal of [addStickerModal,batchAddStickerModal]) {
+        modal.querySelector('[data-sticker-dismiss]')?.addEventListener('click',() => modal.classList.remove('visible'));
+    }
+    batchFile.addEventListener('change',async () => {
+        fileRows = [];
+        const file = batchFile.files[0];
+        if (!file) { reading = false; batchStatus.textContent = ''; return; }
+        reading = true;
+        batchStatus.textContent = '正在读取…';
+        try {
+            const rows = await readStickerFile(file);
+            if (batchFile.files[0] !== file) return;
+            fileRows = rows;
+            batchStatus.textContent = file.name + ' · ' + rows.length + ' 项';
+        } catch (error) { if (batchFile.files[0] === file) batchStatus.textContent = error.message; }
+        finally { if (batchFile.files[0] === file) reading = false; }
+    });
+    document.getElementById('sticker-export-btn').addEventListener('click',async event => {
+        const button = event.currentTarget;
+        if (button.disabled) return;
+        button.disabled = true;
+        try {
+            const stickers = await PhoneBackup.expand(db.myStickers);
+            const file = new Blob([JSON.stringify({format:'kiss-stickers',version:1,stickers})],{type:'application/json'});
+            PhoneBackup.download(file,'KISS-stickers.json');
+            stickerMenuActionSheet.classList.remove('visible');
+        } catch (error) { showToast(error.message); }
+        finally { button.disabled = false; }
+    });
+
     stickerMenuBtn.addEventListener('click', () => {
         if (isStickerManageMode) {
             exitStickerManageMode();
         } else {
+            syncGroups();
             stickerMenuActionSheet.classList.add('visible');
         }
     });
@@ -79,6 +167,7 @@ async function setupStickerSystem() {
     menuBatchImportBtn.addEventListener('click', () => {
         stickerMenuActionSheet.classList.remove('visible');
         batchAddStickerModal.classList.add('visible');
+        batchFile.value = ''; fileRows = []; reading = false; batchStatus.textContent = '';
         stickerUrlsTextarea.value = '';
         batchStickerGroupInput.value = '';
     });
@@ -91,6 +180,36 @@ async function setupStickerSystem() {
         stickerPreview.innerHTML = '<span>预览</span>';
         stickerUrlInput.disabled = false;
         addStickerModal.classList.add('visible');
+    });
+
+    const itemMenu = document.getElementById('sticker-actionsheet');
+    document.getElementById('edit-sticker-btn').addEventListener('click',() => {
+        const sticker = db.myStickers.find(s => s.id === currentStickerActionTarget);
+        itemMenu.classList.remove('visible');
+        if (!sticker) return;
+        syncGroups();
+        addStickerForm.reset();
+        stickerEditIdInput.value = sticker.id;
+        stickerNameInput.value = sticker.name;
+        stickerGroupInput.value = sticker.group || '';
+        stickerUrlInput.value = /^https?:/i.test(sticker.data) ? sticker.data : '';
+        const image = new Image();
+        image.src = sticker.data;
+        image.alt = '预览';
+        stickerPreview.replaceChildren(image);
+        addStickerModalTitle.textContent = '编辑表情';
+        addStickerModal.classList.add('visible');
+    });
+    document.getElementById('delete-sticker-btn').addEventListener('click',async () => {
+        const id = currentStickerActionTarget;
+        if (!db.myStickers.some(s => s.id === id) || !confirm('删除这张表情？')) return;
+        try {
+            await dexieDB.myStickers.delete(id);
+            db.myStickers = db.myStickers.filter(s => s.id !== id);
+            itemMenu.classList.remove('visible');
+            renderStickerCategories();
+            renderStickerGrid();
+        } catch (error) { showToast(error.message); }
     });
 
     selectAllStickersBtn.addEventListener('click', () => {
@@ -174,38 +293,38 @@ async function setupStickerSystem() {
 
     batchAddStickerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const textInput = stickerUrlsTextarea.value.trim();
-        const groupName = batchStickerGroupInput.value.trim();
-        if (!textInput) return showToast('请输入数据');
-        const lines = textInput.split('\n');
-        const newStickers = [];
-        for (const line of lines) {
-            let trimmedLine = line.trim().replace('：', ':');
-            if (!trimmedLine) continue;
-            const colonIndex = trimmedLine.indexOf(':');
-            if (colonIndex <= 0) continue;
-            const name = trimmedLine.substring(0, colonIndex).trim();
-            const url = trimmedLine.substring(colonIndex + 1).trim();
-            if (name && url.startsWith('http')) {
-                newStickers.push({
-                    id: `sticker_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    name: name,
-                    data: url,
-                    group: groupName,
-                    lastUsedTime: Date.now() 
-                });
+        if (reading || importing) return;
+        importing = true;
+        const submit = batchAddStickerForm.querySelector('[type=submit]');
+        submit.disabled = true;
+        try {
+            const group = batchStickerGroupInput.value.trim();
+            const known = new Set();
+            for (const sticker of db.myStickers) {
+                const data = PhoneBackup.isImage(sticker.data) ? await PhoneBackup.expand(sticker.data) : sticker.data;
+                known.add(JSON.stringify([sticker.name,stickerImageSource(data),sticker.group || '']));
             }
-        }
-        if (newStickers.length > 0) {
+            const newStickers = [];
+            for (const row of [...fileRows,...parseStickerRows(stickerUrlsTextarea.value)]) {
+                const name = String(row?.name || '').trim().slice(0,120);
+                const data = stickerImageSource(row?.data || row?.url);
+                const target = group || String(row?.group || '').trim().slice(0,120);
+                const key = JSON.stringify([name,data,target]);
+                if (!name || !data || known.has(key)) continue;
+                known.add(key);
+                newStickers.push({id:'sticker_' + (crypto.randomUUID?.() || Date.now() + '_' + Math.random()),name,data,group:target,lastUsedTime:Date.now()});
+            }
+            if (!newStickers.length) throw Error('没有可新增的表情，请检查格式或重复项');
+            const records = [];
+            for (const sticker of newStickers) records.push(await PhoneBackup.compact(sticker));
+            await dexieDB.transaction('rw',dexieDB.myStickers,() => dexieDB.myStickers.bulkAdd(records));
             db.myStickers.push(...newStickers);
-            await saveData();
             batchAddStickerModal.classList.remove('visible');
-            showToast(`导入 ${newStickers.length} 个表情`);
+            showToast('已导入 ' + newStickers.length + ' 个表情');
             renderStickerCategories();
             renderStickerGrid();
-        } else {
-            showToast('格式错误');
-        }
+        } catch (error) { batchStatus.textContent = error.message; }
+        finally { importing = false; submit.disabled = false; }
     });
 
     addStickerForm.addEventListener('submit', async (e) => {
@@ -214,7 +333,7 @@ async function setupStickerSystem() {
         const group = stickerGroupInput.value.trim();
         const id = stickerEditIdInput.value;
         const previewImg = stickerPreview.querySelector('img');
-        const data = previewImg ? previewImg.src : null;
+        const data = previewImg && (stickerImageSource(previewImg.src) || (PhoneBackup.isImage(previewImg.src) ? previewImg.src : ''));
         if (!name || !data) return showToast('请填写完整');
         
         const stickerData = { name, data, group, lastUsedTime: Date.now() };
@@ -234,7 +353,10 @@ async function setupStickerSystem() {
     });
     
     stickerUrlInput.addEventListener('input', (e) => {
-        stickerPreview.innerHTML = `<img src="${e.target.value}" alt="预览">`;
+        const src = stickerImageSource(e.target.value);
+        const image = new Image(); image.alt = '预览';
+        if (src) { image.src = src; stickerPreview.replaceChildren(image); }
+        else stickerPreview.textContent = '预览';
         stickerFileUpload.value = '';
     });
     stickerFileUpload.addEventListener('change', async (e) => {
@@ -244,7 +366,7 @@ async function setupStickerSystem() {
                 const compressedUrl = await compressImage(file, {quality: 0.8, maxWidth: 200, maxHeight: 200});
                 stickerPreview.innerHTML = `<img src="${compressedUrl}" alt="预览">`;
                 stickerUrlInput.value = '';
-                stickerUrlInput.disabled = true;
+                stickerUrlInput.disabled = false;
             } catch (error) {
                 showToast('压缩失败');
             }
@@ -333,7 +455,18 @@ function renderStickerGrid() {
             }
         }
         
-        item.innerHTML = `<img src="${sticker.data}" alt="${sticker.name}"><span style="font-size:10px; margin-top:4px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:center;">${sticker.name}</span>`;
+        const image = new Image();
+        image.src = sticker.data;
+        image.alt = '';
+        image.loading = 'lazy';
+        const caption = document.createElement('span');
+        caption.textContent = sticker.name;
+        item.append(image,caption);
+        item.addEventListener('contextmenu',event => {
+            if (isStickerManageMode) return;
+            event.preventDefault();
+            handleStickerLongPress(sticker.id);
+        });
 
         item.addEventListener('click', () => {
             if (isStickerManageMode) {

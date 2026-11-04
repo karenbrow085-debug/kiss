@@ -182,8 +182,48 @@
 .acte-chat-card b { font-size:10px; border-top:1px solid #d8d6d1; padding-top:2px; }
 @media (min-width:581px) { #kiss-acte { border-inline:1px solid var(--ac-line); } }
 #kiss-acte .ac-notice { position:absolute; z-index:4; left:50%; bottom:calc(63px + env(safe-area-inset-bottom)); transform:translateX(-50%); width:max-content; max-width:calc(100% - 32px); border-radius:7px; padding:7px 12px; color:var(--ac-on-button); background:var(--ac-button); box-shadow:0 2px 12px #0003; font-size:12px; text-align:center; }
-#kiss-acte[data-theme="day"] .ac-discover-hero .ac-top { color:#1b1b1a; background:linear-gradient(180deg,#f7f6f3 4%,#f7f6f3d9 54%,transparent); padding-bottom:17px; }
 
 body:is(.dark-mode,.night-mode) .acte-chat-card { background:#222223; color:#efede9; border-color:#3b3b3c; }
 body:is(.dark-mode,.night-mode) .acte-chat-card small { color:#b8b7b4; }
 body:is(.dark-mode,.night-mode) .acte-chat-card b { border-color:#3b3b3c; }
+
+/* Editorial storefront and the 404 share ticket. */
+#kiss-acte .ac-discover-hero { margin:0 0 8px; min-height:340px; }
+#kiss-acte .ac-discover-hero::after {
+    background:linear-gradient(90deg,#151512bc 5%,#15151220 90%),linear-gradient(180deg,#1515129c,transparent 28%,transparent 52%,#151512b0);
+}
+#kiss-acte[data-theme="day"] .ac-discover-hero .ac-top { color:#fff; background:none; padding-bottom:9px; }
+#kiss-acte .ac-discover-hero .ac-top h1 { letter-spacing:.08em; }
+#kiss-acte .ac-hero-copy { padding:44px 18px 44px; }
+#kiss-acte .ac-hero-copy h2 { font-size:clamp(32px,9vw,48px); }
+#kiss-acte .ac-hero-copy p { max-width:290px; color:#f2efe9; line-height:1.65; }
+#kiss-acte .ac-hero-button { border-radius:24px; padding-inline:14px; }
+#kiss-acte .ac-discovery-shelf .ac-section-title { margin-top:16px; }
+#kiss-acte .ac-discovery-shelf .ac-section-title h2 { font-family:inherit; font-size:17px; }
+#kiss-acte .ac-discovery-shelf .ac-poster-grid { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(105px,32%); grid-template-columns:none; overflow:auto; gap:8px; scroll-snap-type:x mandatory; scrollbar-width:none; padding:1px 0 9px; }
+#kiss-acte .ac-discovery-shelf .ac-poster { scroll-snap-align:start; }
+#kiss-acte .ac-discovery-shelf .ac-poster .ac-art { border-radius:9px; }
+#kiss-acte .ac-discovery-shelf .ac-poster strong { font-family:inherit; font-size:13px; }
+#kiss-acte .ac-discovery-shelf .ac-work-row { margin-bottom:5px; border-bottom:0; background:var(--ac-surface); padding:6px; border-radius:9px; }
+#kiss-acte .ac-cast-picker { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); max-height:220px; overflow:auto; gap:5px; }
+#kiss-acte .ac-cast-picker .ac-cast-option { display:flex; flex-direction:column; align-items:center; min-width:0; }
+#kiss-acte .ac-cast-picker .ac-cast-face { position:relative; display:grid; justify-items:center; width:100%; gap:3px; cursor:pointer; }
+#kiss-acte .ac-cast-face input { position:absolute; opacity:0; width:100%; height:100%; cursor:pointer; }
+#kiss-acte .ac-cast-face .ac-avatar { width:40px; height:40px; border:2px solid transparent; }
+#kiss-acte .ac-cast-face input:checked + .ac-avatar { border-color:var(--ac-ink); outline:2px solid var(--ac-line); }
+#kiss-acte .ac-cast-face span:last-child { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#kiss-acte .ac-cast-option .ac-memory { visibility:hidden; }
+#kiss-acte .ac-cast-option:has([name="cast"]:checked) .ac-memory { visibility:visible; }
+#kiss-acte .ac-models { max-height:150px; overflow:auto; display:grid; gap:3px; }
+#kiss-acte .ac-studio-intro { font-size:12px; color:var(--ac-muted); padding:0 0 5px; }
+#kiss-acte .ac-page-reader > .ac-frame { flex:none; height:min(52dvh,480px); min-height:180px; }
+#kiss-acte .ac-reading header .ac-text-button { min-height:28px; color:var(--ac-muted); }
+.acte-chat-card {
+    grid-template-columns:80px minmax(0,1fr); align-items:stretch; width:min(258px,100%);
+    min-height:91px; padding:0; overflow:hidden; gap:0; border-radius:13px; background:#faf9f6; border-color:#dedbd3;
+}
+.acte-chat-card .ac-art { width:80px; height:100%; min-height:91px; border-radius:0; }
+.acte-chat-card .ac-ticket-copy { min-width:0; display:grid; align-content:center; gap:3px; padding:7px 10px; }
+.acte-chat-card .ac-ticket-label { font:600 9px/1.3 system-ui,sans-serif; letter-spacing:.11em; }
+.acte-chat-card .ac-ticket-copy strong { font:600 16px/1.25 "Songti SC",Georgia,serif; }
+.acte-chat-card .ac-ticket-copy b { padding-top:3px; margin-top:2px; }
