@@ -8,9 +8,14 @@
     ].flatMap(([label,keys]) => keys.split(' ').map(key => [key,label])));
     const tabs = {discover:'发现', library:'剧库', quotes:'剧摘', categories:'分类'};
     const icons = {
-        discover:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/>',
-        library:'<path d="M4 5h4v14H4zm6 0h4v14h-4zm6 0 3-1 4 14-3 1z"/>',
-        categories:'<path d="M4 5h16M4 12h16M4 19h16M4 5v.01M4 12v.01M4 19v.01"/>',
+        discover:'<path d="m3 11 9-8 9 8v9h-6v-6H9v6H3z"/>',
+        library:'<rect x="3" y="5" width="18" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/>',
+        categories:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+        folder:'<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+        next:'<path d="m9 5 7 7-7 7"/>',
+        scene:'<path d="M3 9h18v11H3zm0 0-1-5 18-3 1 5zM8 3l3 4m3-5 3 4M7 14h10"/>',
+        trash:'<path d="M4 6h16M9 6V3h6v3m3 0-1 15H7L6 6m4 4v7m4-7v7"/>',
+        link:'<path d="m10 13 4-4m-6 6-2 2a3 3 0 0 1-4-4l4-4a3 3 0 0 1 4 0m4 6a3 3 0 0 0 4 0l4-4a3 3 0 0 0-4-4l-2 2"/>',
         quotes:'<path d="M6 4h12v16l-6-4-6 4z"/>',
         studio:'<path d="M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-5 0v6"/>',
         sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',
@@ -90,23 +95,27 @@
         return '<header class="ac-top">' + (back ? btn(back,icon(back === 'close' ? 'close' : 'back'),'ac-icon','',readerLabel('Back','返回')) : '') +
             '<h1>' + E(title) + '</h1>' + extra + '</header>';
     }
+    function hubTop(title) {
+        return '<header class="ac-hub-top"><h1>' + title + '</h1><div class="ac-hub-brand"><strong>ACTE 剧幕</strong><small>在 KISS</small></div><div>' +
+            btn('hub-search',icon('search'),'ac-icon','','搜索') + btn('hub-menu',icon('more'),'ac-icon','','更多') + '</div></header>';
+    }
+    const filter = (key, items, selected, label) => '<select data-filter="' + key + '" aria-label="' + label + '">' + options(items,selected) + '</select>';
     function nav() {
         return '<nav class="ac-nav" aria-label="剧幕">' + Object.entries(tabs).map(([key,label]) =>
             btn('tab',icon(key) + '<span>' + label + '</span>',state.page === key ? 'ac-selected' : '',key)).join('') + '</nav>';
     }
     function workRow(w, compact = false) {
-        return btn(compact ? 'resume' : 'detail',art(w) + '<span class="ac-work-copy"><strong>' + E(w.title) + '</strong>' +
-            (!compact ? (w.synopsis ? '<span class="ac-work-synopsis">' + E(w.synopsis) + '</span>' : '') + '<small>' + E(summary(w)) + ' · ' + date(w.updated) + '</small>' : '') + '<small>第 ' + (w.current + 1) + ' 幕　' +
-            E(getAct(w).title) + '</small>' + progressBar(w) + '</span>' + (!compact ? '<em>' + status(w) + '</em>' : ''),
-            'ac-work-row',w.id);
+        return btn(compact ? 'resume' : 'detail',art(w) + '<span class="ac-work-copy"><span class="ac-work-title"><strong>' + E(w.title) +
+            '</strong><em>' + status(w) + '</em></span>' + (w.synopsis ? '<span class="ac-work-synopsis">' + E(w.synopsis) + '</span>' : '') +
+            '<small>' + E(summary(w)) + ' · ' + w.acts.length + ' 幕 · 更新于 ' + date(w.updated) + '</small>' +
+            (compact ? progressBar(w) : '') + '</span>','ac-work-row',w.id);
     }
     function discover() {
         const featured = D.ideas;
         const current = state.works.filter(w => w.status === 'active' && w.started)
             .sort((a,b) => Number(!!b.followed) - Number(!!a.followed) || b.updated - a.updated);
         const tab = state.discoverTab || 'featured';
-        return top('发现',btn('theme',icon(state.theme === 'day' ? 'moon' : 'sun'),'ac-icon','','切换日夜间') +
-            btn('close',icon('close'),'ac-icon','','返回 404')) +
+        return hubTop('发现') +
             '<div class="ac-pad"><label class="ac-search">' + icon('search') + '<input type="search" data-field="discoverQuery" placeholder="搜索剧目、角色、题材或台词"></label></div>' +
             controls({featured:'剧目推荐',continue:'继续演出'},tab,'discover-tab','ac-tabs') +
             (tab === 'continue' ? '<section class="ac-pad ac-discovery-shelf">' +
@@ -114,7 +123,7 @@
                 featured.map((w,i) => '<article class="ac-discover-post"><header>' + art({art:0}) +
                     '<div><strong>ACTE 剧幕</strong><small>故事梗概 · ' + E(summary(w)) + '</small></div></header><h2>' +
                     E(w.title) + '</h2><p>' + E(w.synopsis) + '</p>' + art(w,'ac-discover-photo') +
-                    btn('idea','用此梗概开场','ac-discover-link',i) + '</article>').join('') +
+                    btn('idea',icon('link') + '用此梗概开场','ac-discover-link',i) + '</article>').join('') +
                 '<div class="ac-pad">' + btn('new','自己写','ac-outline') + '</div>');
     }
     function library() {
@@ -126,31 +135,30 @@
             .sort((a,b) => state.sort === 'title' ? a.title.localeCompare(b.title,'zh-CN') : b.updated - a.updated);
         const actions = state.kind === 'html' ? btn('html-create','生成 HTML','ac-outline') +
             uploadButton('导入文件','html','.html,.htm,.docx,.txt') : btn('new','新建文字剧场','ac-outline');
-        return top('剧库') + '<div class="ac-pad ac-library">' +
-            '<label class="ac-search">' + icon('search') + '<input type="search" data-field="query" placeholder="搜索剧目、角色、台词" value="' + E(state.query) + '"></label>' +
+        return hubTop('剧库') + '<div class="ac-pad ac-library">' +
+            (state.query || state.librarySearch ? '<label class="ac-search">' + icon('search') + '<input type="search" data-field="query" placeholder="搜索剧目、角色、台词" value="' + E(state.query) + '"></label>' : '') +
             controls({text:'文字剧场',html:'HTML 剧场'},state.kind === 'html' ? 'html' : 'text','kind','ac-tabs') +
-            '<div class="ac-page-actions">' + actions + '</div>' +
-            (state.kind === 'html' ? '' : controls({'':'全部写法',dialogue:'对话',prose:'长文'},state.textKind || '','text-kind','ac-inline')) +
-            controls({'':'全部题材',...Object.fromEntries(genres().map(x => [x,x]))},state.genre,'genre','ac-chips') +
-            '<div class="ac-library-tools">' + controls({'':'全部',active:'进行中',done:'已落幕'},state.status,'status','ac-inline') +
-            btn('sort',state.sort === 'latest' ? '最新' : '按剧名','ac-text-button') + '</div>' +
+            '<div class="ac-library-tools">' + filter('genre',{'':'全部题材',...Object.fromEntries(genres().map(g=>[g,g]))},state.genre,'题材') +
+            filter('status',{'':'全部状态',active:'进行中',done:'已落幕'},state.status,'状态') +
+            filter('sort',{latest:'最近更新',title:'按剧名'},state.sort,'排序') +
+            btn('library-tools',icon('studio'),'ac-icon','','剧库操作') + '</div>' +
+            (state.kind === 'html' ? '<div class="ac-page-actions">' + actions + '</div>' : '') +
             (state.kind === 'html' && state.templates?.length ? '<section class="ac-template-shelf"><h2>我的模板</h2>' +
                 state.templates.map(t => '<div class="ac-category-row"><strong>' + E(t.name) + '</strong>' +
                     btn('template-use','选角色生成','ac-outline',t.id) + btn('template-remove','删除','ac-text-button',t.id) + '</div>').join('') + '</section>' : '') +
             (state.kind === 'html' ? heading('已生成剧目 <small>' + found.length + '</small>') : '') +
             '<div class="ac-library-results">' + (found.map(w => '<div class="ac-swipe-row" data-swipe="' + E(w.id) + '">' +
-                btn('delete-work','删除','ac-swipe-delete',w.id) + '<div class="ac-swipe-content">' + workRow(w) + '</div></div>').join('') || empty('这个分类还没有剧目。')) + '</div></div>';
+                btn('delete-work',icon('trash') + '<span>删除</span>','ac-swipe-delete',w.id) + '<div class="ac-swipe-content">' + workRow(w) + '</div></div>').join('') || empty('这个分类还没有剧目。')) + '</div></div>';
     }
     function quotePage() {
         const list = state.quoteTab === 'saved' ? state.quotes : state.recent;
         const sources = {'':'全部来源',...Object.fromEntries(list.map(q => [q.workId,q.title]))};
-        return top('剧摘') + '<div class="ac-pad">' +
+        return hubTop('剧摘') + '<div class="ac-pad">' +
             controls({saved:'收藏',recent:'最近'},state.quoteTab,'quote-tab') +
-            (list.length ? controls(sources,state.quoteSource,'quote-source','ac-chips') : '') +
+            (state.quoteSource ? '<div class="ac-active-filter">' + E(sources[state.quoteSource]) + btn('quote-source','清除筛选','ac-text-button') + '</div>' : '') +
             (list.filter(q => !state.quoteSource || q.workId === state.quoteSource).sort((a,b) => b.at-a.at).map(q => {
-                const w = state.works.find(w => w.id === q.workId);
-                return '<article class="ac-quote"><blockquote>' + inline(q.text) + '</blockquote>' + (w ? art(w) : '') +
-                    '<div>' + btn('quote-open',E(q.title) + ' · 第 ' + (q.act + 1) + ' 幕','ac-source',q.id) +
+                return '<article class="ac-quote"><blockquote>' + inline(q.text) + '</blockquote>' +
+                    '<div>' + btn('quote-open','来自《' + E(q.title) + '》' + ' · 第 ' + (q.act + 1) + ' 幕','ac-source',q.id) +
                     '<time>' + date(q.at) + '</time>' + btn('quote-toggle',icon('quotes'),'ac-icon ' +
                     (state.quotes.some(x => x.id === q.id) ? 'ac-marked' : ''),q.id,'切换收藏') + '</div></article>';
             }).join('') || empty('在演出页收藏一句台词或一段长文。')) + '</div>';
@@ -176,8 +184,7 @@
     }
     function sceneRows(w, thumbs) {
         return '<div class="ac-scenes">' + w.acts.map((a,i) => '<div class="ac-scene-line">' + btn('scene',
-            (thumbs ? art({art:i ? (i + w.art) % 6 : w.art}) : '') +
-            '<span class="ac-number">' + num(i+1) + '</span><span class="ac-scene-title">' + E(performing() && a.title === '开场' ? 'Opening' : a.title) + '</span><small>' +
+            '<span class="ac-number">' + num(i+1) + '</span>' + (thumbs ? icon('scene') : '') + '<span class="ac-scene-title">' + E(performing() && a.title === '开场' ? 'Opening' : a.title) + '</span><small>' +
             (i === w.current ? readerLabel('Current','当前') : a.rows.length ? readerLabel('Played','已演出') : readerLabel('Upcoming','未开始')) + '</small>',
             'ac-scene ' + (i === w.current ? 'ac-selected' : ''),i) +
             (state.sceneSort && state.sheet === 'scenes' ? '<div class="ac-order-buttons">' +
@@ -275,7 +282,7 @@
                 handle.className = 'ac-float-handle';
                 handle.tabIndex = 0;
                 handle.setAttribute('aria-label','Move Tavern window');
-                handle.innerHTML = '<strong>Tavern</strong><button type="button" class="ac-icon" aria-label="Close">' + icon('close') + '</button>';
+                handle.innerHTML = '<span class="ac-tavern-grip" aria-hidden="true"></span><button type="button" class="ac-icon" aria-label="Close">' + icon('close') + '</button>';
                 handle.hidden = true;
                 surface.append(handle);
                 let x = 0, y = 0, rects = [], floating = false, dismissed = false;
@@ -296,10 +303,11 @@
                     const bottom = Math.max(...rects.map(r => r.bottom));
                     const width = frame.clientWidth, height = frame.clientHeight;
                     const headerTop = Math.max(0,top-35);
+                    const handleWidth = Math.min(width,64);
                     x = Math.max(-left,Math.min(width-right,x));
                     y = Math.max(-headerTop,Math.min(height-bottom,y));
                     Object.assign(frame.style,{left:x+'px',top:y+'px'});
-                    Object.assign(handle.style,{left:(left+x)+'px',top:(headerTop+y)+'px',width:Math.max(104,right-left)+'px'});
+                    Object.assign(handle.style,{left:Math.max(0,Math.min(width-handleWidth,left+x))+'px',top:(headerTop+y)+'px',width:handleWidth+'px'});
                 };
                 dragWindow(handle,(dx,dy) => { x += dx; y += dy; place(); });
                 const reopen = document.createElement('button');
@@ -333,7 +341,7 @@
                     frame.style.clipPath = paths ? "path('" + paths + "')" : 'inset(100%)';
                     handle.hidden = dismissed || !paths;
                     place();
-                },{context:{text:row.text},onChoice:fillPostChoice}));
+                },{context:{text:row.text,acteTheme:state.theme},onChoice:fillPostChoice}));
             }
         }
     }
@@ -391,16 +399,17 @@
             (a.rows.some(r => r.role === 'user') ? btn('reroll','Reroll','ac-text-button') : '') : '');
         const controlsHtml = !state.shared ? '<form data-form="turn" class="ac-composer"><textarea name="turn" rows="1" maxlength="16000" placeholder="' +
             (prose ? 'Write this scene…' : 'Say something…') + '">' + E(state.draft.get(a.id) || '') + '</textarea>' +
-            '<button type="submit" class="ac-outline">Send</button>' +
+            '<button type="submit" class="ac-send">Send</button>' +
             (generation ? btn('stop','Pause','ac-primary') : btn('call','Perform','ac-primary')) + '</form>' : '';
-        return top(prose ? 'Performance' : 'Dialogue',btn('reader-menu',icon('more'),'ac-icon','','Performance actions'),'detail-back') +
+        return top(prose ? 'Performance' : 'Dialogue',btn('reader-menu','KISS · ACTE','ac-reader-brand','','Performance actions'),'detail-back') +
             '<div class="ac-performance-head">' + (prose ? art(w) : '') + '<div><strong>' + E(w.title) + '</strong><small>Scene ' +
             num(w.current+1) + ' · ' + E(a.title === '开场' ? 'Opening' : a.title) + '</small></div>' +
             (prose && !state.shared ? btn('follow-work',w.followed ? 'Following' : 'Follow','ac-follow-button') : '') + '</div>' +
-            (prose ? '<div class="ac-performance-tab">Long-form</div>' : '') +
-            '<div class="ac-reading' + (prose ? '' : ' ac-dialogue') + '" style="--ac-reading-size:' + state.size + 'px">' +
-            (a.rows.map(r => {
-                if (prose) return post(w,r);
+            (prose ? '<div class="ac-performance-tabs"><strong>Long-form</strong><button type="button" data-acte="reader-dialogue">' +
+                (state.dialogueView ? 'Show posts' : 'Dialogue') + '</button>' + btn('reader-sort',state.readerOldest === false ? 'Newest' : 'In order','ac-text-button') + '</div>' : '') +
+            '<div class="ac-reading' + (prose && !state.dialogueView ? '' : ' ac-dialogue') + '" style="--ac-reading-size:' + state.size + 'px">' +
+            ((state.readerOldest === false && prose ? a.rows.slice().reverse() : a.rows).map(r => {
+                if (prose && !state.dialogueView) return post(w,r);
                 const {label,part,portrait} = speaker(w,r);
                 return '<article id="ac-row-' + E(r.id) + '" class="ac-dialogue-row">' + portrait + '<div><strong>' + E(label) +
                     (part === 'NPC' ? ' <small>(NPC)</small>' : '') + '</strong><div class="ac-post-text">' + postBody(r) + '</div><time>' +
@@ -426,13 +435,24 @@
             (generation ? btn('stop','暂停','ac-outline') : '<button class="ac-primary" type="submit">生成预览</button>') + '</form>';
     }
     function categoryPage() {
-        return top('题材管理') + '<div class="ac-pad"><form class="ac-form ac-page-actions" data-form="genre-add">' +
-            '<input name="genre" maxlength="40" placeholder="新题材名称" required><button type="submit" class="ac-primary">添加</button></form>' +
-            '<div class="ac-category-list">' + genres().map(g => '<div class="ac-category-row"><strong>' + E(g) + '</strong><small>' +
-            state.works.filter(w => w.genre === g).length + ' 部</small>' + btn('genre-edit','编辑','ac-text-button',g) +
-            btn('genre-delete','删除','ac-text-button',g) + '</div>').join('') + '</div></div>';
+        return hubTop('题材') + '<div class="ac-pad"><div class="ac-genre-bar"><strong>题材管理</strong>' +
+            btn('genre-new','＋ 添加题材','ac-text-button') + btn('genre-manage',state.genreEditing ? '完成' : '编辑','ac-text-button') + '</div>' +
+            '<div class="ac-category-list">' + genres().map(g => '<div class="ac-category-row">' +
+            btn('genre-open',icon('folder') + '<span><strong>' + E(g) + '</strong><small>收录 ' +
+            state.works.filter(w => w.genre === g).length + ' 部作品</small></span>' + icon('next'),'ac-genre-item',g) +
+            (state.genreEditing ? btn('genre-edit','编辑','ac-text-button',g) + btn('genre-delete','删除','ac-text-button',g) : '') + '</div>').join('') + '</div></div>';
     }
     function sheet(title, body) {
+        const page = ['scenes','cover','confirm-import'].includes(state.sheet);
+        if (page) return '<section class="ac-sheet-page" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) + '">' +
+            '<header class="ac-sheet-page-head">' + btn('sheet-close',icon('back'),'ac-icon','','Back') +
+            '<div><strong>ACTE ' + readerLabel('Theatre','剧幕') + '</strong><small>' + E(title) + '</small></div></header>' +
+            '<div class="ac-sheet-body">' + body + '</div></section>';
+        const action = state.sheet === 'edit-turn' ? 'Done' : state.sheet === 'reroll' ? 'Confirm' : '';
+        if (action) return '<div class="ac-scrim"><section class="ac-sheet ac-editor-sheet" role="dialog" aria-label="' + title +
+            '"><div class="ac-handle"></div><header>' + btn('sheet-close','Cancel','ac-text-button') + '<h2>' + title +
+            '</h2><button type="submit" form="ac-editor-form" class="ac-text-button">' + action +
+            '</button></header><div class="ac-sheet-body">' + body + '</div></section></div>';
         return '<div class="ac-scrim"><section class="ac-sheet" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) +
             '"><div class="ac-handle"></div><header><h2>' + E(title) + '</h2>' +
             btn('sheet-close',icon('close'),'ac-icon','',readerLabel('Close','关闭')) + '</header><div class="ac-sheet-body">' + body + '</div></section></div>';
@@ -496,9 +516,13 @@
     }
     function coverSheet(w) {
         return '<div class="ac-cover-preview">' + art(w) + '</div><div class="ac-cover-sources">' +
-            btn('cover-create','绘图工坊生图','ac-outline') + uploadButton('本地图片','cover','image/*') + '</div>' +
+            '<button type="button" class="ac-cover-jump" data-acte="cover-fields">' + icon('studio') + '绘图工坊' + icon('next') + '</button>' +
+            uploadButton(icon('copy') + '本地图片' + icon('next'),'cover','image/*') +
+            '<details><summary>' + icon('link') + '图片链接' + icon('next') + '</summary>' +
             '<form class="ac-form" data-form="cover-url">' + field('图片 URL','<input name="url" type="url" required placeholder="https://…">') +
-            '<button type="submit" class="ac-primary">使用链接</button></form>' + (w.cover ? btn('cover-reset','恢复默认封面','ac-text-button') : '');
+            '<button type="submit" class="ac-primary">使用链接</button></form></details></div>' +
+            '<section class="ac-cover-settings">' + heading('生成设置') + coverCreate() + '</section>' +
+            (w.cover ? btn('cover-reset','恢复默认封面','ac-text-button') : '');
     }
     function generationForm(settings) {
         const mode = settings.mode || 'plain';
@@ -532,9 +556,9 @@
     function coverCreate() {
         const provider = db.workshopSettings?.provider === 'gpt' ? 'gpt' : 'novelai';
         return '<form class="ac-form" data-form="cover-create">' +
-            field('绘图工坊渠道','<select name="imageProvider">' + options({novelai:'NovelAI',gpt:'GPT'},provider) + '</select>') +
-            field('生图模型','<select name="imageModel">' + imageModels(provider) + '</select>') +
-            field('封面提示词','<textarea name="imagePrompt" rows="5" required maxlength="8000" placeholder="填写构图、风格和画面内容"></textarea>') +
+            field('提供方','<select name="imageProvider">' + options({novelai:'NovelAI',gpt:'GPT'},provider) + '</select>') +
+            field('模型','<select name="imageModel">' + imageModels(provider) + '</select>') +
+            field('提示词','<textarea name="imagePrompt" rows="5" required maxlength="8000" placeholder="填写构图、风格和画面内容"></textarea>') +
             '<button class="ac-primary" type="submit">生成封面</button></form>';
     }
     function renderModels(query = '') {
@@ -545,21 +569,26 @@
     }
     function sheetContent(w) {
         switch (state.sheet) {
+        case 'hub-menu': return sheet('ACTE 剧幕',btn('theme','切换日夜间','ac-menu-item') + btn('close','返回 404','ac-menu-item'));
+        case 'library-tools': return sheet('剧库操作',btn('new','新建文字剧场','ac-menu-item') +
+            controls({'':'全部写法',dialogue:'对话',prose:'长文'},state.textKind || '','text-kind','ac-inline'));
+        case 'genre-new': return sheet('添加题材','<form class="ac-form" data-form="genre-add"><input name="genre" maxlength="40" placeholder="新题材名称" required><button type="submit" class="ac-primary">添加</button></form>');
         case 'generation': return sheet('生成设置',generationForm(w.generation || {}));
         case 'html-create': return sheet('生成 HTML',htmlCreate());
-        case 'cover-create': return sheet('绘图工坊 · 生成封面',coverCreate());
         case 'npc-list': return sheet('NPC 档案',npcList());
         case 'npc-edit': return sheet('NPC 档案表',npcForm());
         case 'genre-edit': return sheet('编辑题材','<form class="ac-form" data-form="genre-edit"><input name="genre" maxlength="40" required value="' +
             E(state.editGenre) + '"><button class="ac-primary" type="submit">保存</button></form>');
-        case 'edit-turn': return sheet('Edit Post','<form class="ac-form" data-form="edit-turn"><textarea name="text" rows="6" maxlength="16000" required>' +
-            E(editing?.text) + '</textarea><button class="ac-primary" type="submit">Done</button></form>');
-        case 'reroll': return sheet('Reroll','<form class="ac-form" data-form="reroll"><textarea name="note" rows="3" maxlength="2000" placeholder="What should change? (optional)"></textarea><button class="ac-primary" type="submit">Reroll</button></form>');
+        case 'edit-turn': return sheet('Edit Post','<form class="ac-form" id="ac-editor-form" data-form="edit-turn"><textarea name="text" rows="4" maxlength="16000" required>' +
+            E(editing?.text) + '</textarea></form>');
+        case 'reroll': return sheet('Reroll','<form class="ac-form" id="ac-editor-form" data-form="reroll"><div class="ac-reroll-scene">' + icon('scene') + E(getAct(w).title === '开场' ? 'Opening' : getAct(w).title) + '</div><textarea name="note" rows="3" maxlength="2000" placeholder="What should change? (optional)"></textarea></form>');
         case 'new': return sheet('新建文字剧场',formSetup(null));
         case 'settings': return sheet('剧场设置',formSetup(w));
         case 'cover': return sheet('更换封面',coverSheet(w));
-        case 'scenes': return sheet(readerLabel('Scenes','场次'),(!state.shared && w.acts.length > 1 ?
-            heading(readerLabel('Scene order','场次顺序'),btn('scene-sort',state.sceneSort ? readerLabel('Done','完成') :
+        case 'scenes': return sheet(readerLabel('Scenes','场次'),'<nav class="ac-scene-tabs">' +
+            btn('sheet-close',readerLabel('Script','剧本'),'ac-text-button') + '<strong>' + readerLabel('Scenes','场次') + '</strong>' +
+            (!state.shared ? btn('settings',readerLabel('Cast & Settings','角色与设置'),'ac-text-button') : '') + '</nav>' +(!state.shared && w.acts.length > 1 ?
+            heading(readerLabel('Scenes','场次') + ' (' + w.acts.length + ')',btn('scene-sort',state.sceneSort ? readerLabel('Done','完成') :
                 readerLabel('Reorder','编辑排序'),'ac-text-button')) : '') + sceneRows(w,true) + (!state.shared ? '<form data-form="act" class="ac-form ac-form-pair">' +
             '<input name="title" maxlength="80" placeholder="Scene title" required><button class="ac-outline" type="submit">Add scene</button></form>' : ''));
         case 'share': return sheet(readerLabel('Share to 404','发送给角色'),'<div class="acte-chat-card ac-share-preview">' + shareCard(w,performing()) + '</div><form data-form="share" class="ac-form">' + field(readerLabel('Recipient','接收角色'),'<select name="recipient" required><option value="">' + readerLabel('Choose a character','选择角色') + '</option>' +
@@ -567,7 +596,7 @@
             '</select>') + '<fieldset><legend>' + readerLabel('Share Content','发送内容') + '</legend><label><input type="radio" name="scope" value="teaser" checked>' + readerLabel('Teaser','发送预告') + '</label>' +
             '<label><input type="radio" name="scope" value="script">' + readerLabel('Full Script','发送剧本') + '</label></fieldset><button type="submit" class="ac-primary ac-wide">' + readerLabel('Send to 404','发送到 404') + '</button></form>');
         case 'export': return sheet('导出 HTML','<form data-form="export" class="ac-form"><button type="submit" class="ac-primary">导出完整剧场</button></form>');
-        case 'confirm-import': return sheet('导入预览','<p class="ac-empty">预览导入的模板，保存后可选角色生成剧目。</p>' + htmlFrame(state.importFile.html) + btn('commit-import','保存为模板','ac-primary ac-wide'));
+        case 'confirm-import': return sheet('导入预览','<p class="ac-empty">ⓘ 预览导入的互动剧幕，保存后可选择角色。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + btn('expand-html',icon('expand'),'ac-icon ac-html-expand','','Full screen') + '</div>' + btn('commit-import','保存为模板','ac-primary ac-wide'));
         case 'reader-menu': return sheet('Performance',btn('detail-back','Theatre profile','ac-menu-item'));
         case 'detail-menu': return sheet('Post Actions',state.shared ? btn('copy-post','Copy','ac-menu-item',state.menuRow) :
             btn('edit-turn','Edit','ac-menu-item',state.menuRow));
@@ -689,6 +718,7 @@
         if (state.shared) w.current = index;
         else await update(row => { row.current = index; row.started = true; });
         state.page = 'reader';
+        state.dialogueView = false; state.readerOldest = true;
         state.postId = '';
         state.sheet = '';
     }
@@ -735,12 +765,22 @@
         try {
             switch (b.dataset.acte) {
             case 'close': close(); return;
+            case 'hub-search':
+                if (state.page !== 'discover') { state.librarySearch = true; state.page = 'library'; }
+                render();
+                app.querySelector('.ac-search input')?.focus();
+                return;
+            case 'hub-menu': state.sheet = 'hub-menu'; keep = true; break;
+            case 'library-tools': state.sheet = 'library-tools'; keep = true; break;
+            case 'genre-new': state.sheet = 'genre-new'; keep = true; break;
+            case 'genre-manage': state.genreEditing = !state.genreEditing; keep = true; break;
+            case 'genre-open': state.kind = 'text'; state.status = ''; state.query = ''; state.genre = v; state.page = 'library'; break;
             case 'tab': state.page = v; state.sheet = ''; break;
-            case 'theme': state.theme = state.theme === 'day' ? 'night' : 'day'; localStorage.setItem('kiss.acte.theme',state.theme); keep = true; break;
+            case 'theme': state.sheet = ''; state.theme = state.theme === 'day' ? 'night' : 'day'; localStorage.setItem('kiss.acte.theme',state.theme); keep = true; break;
             case 'discover-tab': state.discoverTab = v; break;
             case 'profile-tab': state.profileTab = v; break;
             case 'kind': state.kind = v; state.query = ''; state.genre = ''; break;
-            case 'text-kind': state.textKind = v; break;
+            case 'text-kind': state.textKind = v; state.sheet = ''; break;
             case 'html-create': state.htmlDraft = {cast:state.castFromChat ? [state.castFromChat] : []}; state.sheet = 'html-create'; break;
             case 'template-use': {
                 const template = state.templates.find(t => t.id === v);
@@ -751,7 +791,9 @@
             case 'template-remove':
                 if (confirm('删除这份模板？已生成的剧场会保留。')) { await D.remove('template',v); await refresh(); }
                 break;
-            case 'cover-create': state.sheet = 'cover-create'; break;
+            case 'cover-fields':
+                app.querySelector('.ac-cover-settings')?.scrollIntoView({block:'start',behavior:'smooth'});
+                return;
             case 'delete-work': deleteId = v; state.sheet = 'delete'; break;
             case 'genre-edit': state.editGenre = v; state.sheet = 'genre-edit'; break;
             case 'genre-delete':
@@ -778,10 +820,12 @@
             case 'comment-order': state.oldestFirst = !state.oldestFirst; keep = true; break;
             case 'follow-work': await update(w => { w.followed = !w.followed; }); keep = true; break;
             case 'post-back': state.postId = ''; render(state.feedScroll); return;
+            case 'reader-dialogue': state.dialogueView = !state.dialogueView; keep = true; break;
+            case 'reader-sort': state.readerOldest = state.readerOldest === false; break;
             case 'reader-menu': case 'detail-menu': case 'dialogue-menu':
                 state.sheet = b.dataset.acte; state.menuRow = v || state.postId; keep = true; break;
             case 'expand-html': {
-                const main = app.querySelector('.ac-page-reader');
+                const main = b.closest('.ac-sheet-page,.ac-page-reader');
                 const expanded = main.classList.toggle('ac-html-expanded');
                 b.setAttribute('aria-pressed',String(expanded));
                 b.setAttribute('aria-label',expanded ? 'Exit full screen' : 'Full screen');
@@ -837,7 +881,6 @@
             case 'sheet-close':
                 if (state.sheet === 'npc-edit') state.sheet = 'npc-list';
                 else if (state.sheet === 'npc-list') state.sheet = npcReturn;
-                else if (state.sheet === 'cover-create') state.sheet = 'cover';
                 else if (state.sheet === 'cover' || state.sheet === 'generation') state.sheet = 'settings';
                 else state.sheet = '';
                 keep = true; break;
@@ -901,7 +944,7 @@
         event.preventDefault();
         if (busy) return;
         busy = true;
-        const button = form.querySelector('[type=submit]');
+        const button = event.submitter || form.querySelector('[type=submit]');
         const scroll = position();
         if (button) { button.disabled = true; button.setAttribute('aria-busy','true'); }
         const data = new FormData(form);
@@ -1211,6 +1254,11 @@
         const kind = event.target.dataset.file;
         const file = event.target.files?.[0];
         const el = event.target;
+        if (['genre','status','sort'].includes(el.dataset.filter)) {
+            state[el.dataset.filter] = el.value;
+            render(position());
+            return;
+        }
         if (el.name === 'mode' && el.form?.dataset.form === 'generation') {
             const list = el.value === 'tavern' ? db.tavernPresets : el.value === 'cot' ? db.cotPresets : [];
             el.form.querySelector('[data-prompt-fields]').hidden = el.value === 'tavern';

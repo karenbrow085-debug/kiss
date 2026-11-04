@@ -58,10 +58,30 @@ function compatibilityBridge(token,context){
   document.addEventListener('click',event=>{const option=event.target.closest?.('[data-choice],[data-option],[data-action],.st-choice,.plot-option');if(!option||typeof option.onclick==='function')return;const declared=option.getAttribute('data-choice')||option.getAttribute('data-option');if(declared)choose(declared);});
  };
  document.addEventListener('DOMContentLoaded',()=>{setUp();window.__kissHelperReady?.();},{once:true});
+ // Acte passes its own theme into the sandbox. Imported styles can hard-code
+ // light colors, so adapt those surfaces locally without touching the saved preset.
+ function themeActeCard(){
+  const luminance=value=>{const match=/^rgba?\(([^)]+)\)$/.exec(value);if(!match)return -1;const [r,g,b,a=1]=match[1].split(',').map(Number);return a>.45 ? .2126*r+.7152*g+.0722*b : -1;};
+  const lightSurface=new WeakMap(), changes=[];
+  for(const el of [document.documentElement,document.body,...Array.from(document.body.querySelectorAll('*')).slice(0,650)]){
+   if(!el.style||el.matches('img,video,canvas,svg,svg *,script,style,link,meta,[data-kiss-bridge]'))continue;
+   const style=getComputedStyle(el), bg=luminance(style.backgroundColor), fg=luminance(style.color);
+   const inherited=lightSurface.get(el.parentElement) ?? true;
+   const light=bg<0 ? inherited : bg>=155;
+   lightSurface.set(el,light);
+   if(bg>=155)changes.push([el,'background-color',el===document.body?'#202020':'#292929']);
+   if(light && fg>=0 && (bg>=155 || fg<145))changes.push([el,'color',fg>=110?'#bcbcbc':'#e7e7e7']);
+   for(const edge of ['top','right','bottom','left']){
+    if(light && style.getPropertyValue('border-'+edge+'-style')!=='none' && luminance(style.getPropertyValue('border-'+edge+'-color'))>=150)
+     changes.push([el,'border-'+edge+'-color','#575757']);
+   }
+  }
+  for(const [el,key,value] of changes)if(el.style.getPropertyValue(key)!==value)el.style.setProperty(key,value,'important');
+ }
  // A fully clipped iframe may suspend requestAnimationFrame. Report its first hit area
  // with a timer so the host can unclip it; keep later reports throttled too.
  let scheduled=false,floating=false,lastReport=0;const queue=()=>{if(!scheduled){scheduled=true;setTimeout(report,Math.max(0,100-(performance.now()-lastReport)));}};
- function report(){scheduled=false;lastReport=performance.now();if(!document.body)return;const all=document.body.querySelectorAll('*'),rects=[];
+ function report(){scheduled=false;lastReport=performance.now();if(!document.body)return;if(context.acteTheme==='night')themeActeCard();const all=document.body.querySelectorAll('*'),rects=[];
   let inspected=0;for(const el of all){if(++inspected>3000)break;if(el.hasAttribute('data-kiss-bridge'))continue;const style=getComputedStyle(el);if(style.position!=='fixed'||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)continue;const r=el.getBoundingClientRect();if(r.width>0&&r.height>0&&r.right>0&&r.bottom>0&&r.left<innerWidth&&r.top<innerHeight)rects.push({x:Math.max(0,r.left-3),y:Math.max(0,r.top-3),right:Math.min(innerWidth,r.right+3),bottom:Math.min(innerHeight,r.bottom+3)});}
   if(rects.length)floating=true;
   let bottom=0,width=0;for(const el of document.body.children){if(['SCRIPT','STYLE','LINK','META'].includes(el.tagName)||el.hasAttribute('data-kiss-bridge')||getComputedStyle(el).position==='fixed')continue;const r=el.getBoundingClientRect();bottom=Math.max(bottom,r.bottom+scrollY+(parseFloat(getComputedStyle(el).marginBottom)||0));width=Math.max(width,r.right+scrollX);}
@@ -74,10 +94,11 @@ function compatibilityBridge(token,context){
 function documentHTML(html,token,context={},libraries=''){
  const policy=`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${location.origin}; style-src 'unsafe-inline' https:; img-src data: blob: https: http:; font-src data: https:; media-src data: blob: https:; connect-src 'none'; form-action 'none'; base-uri 'none'">`;
  const style='<meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{--SmartThemeBodyColor:#303136;--SmartThemeQuoteColor:#8a8a94;--SmartThemeBorderColor:#e0e0e6;--mainFontFamily:Arial,sans-serif}html{overscroll-behavior:contain}body{margin:0;overflow-wrap:anywhere;background:transparent}img,video,canvas,svg{max-width:100%}*{box-sizing:border-box}</style>';
+ const theme=context.acteTheme==='night' ? '<style>:root{color-scheme:dark;color:#e7e7e7;--SmartThemeBodyColor:#e7e7e7;--SmartThemeQuoteColor:#bababa;--SmartThemeBorderColor:#555}body{color:inherit}</style>' : '';
  const boot='('+compatibilityBridge.toString()+')('+JSON.stringify(token)+','+JSON.stringify(context).replace(/</g,'\\u003c')+');';
 
  const apiCode=window.KissTavernHelper?'window.__kissHelperInstall='+window.KissTavernHelper.install.toString()+';':'';const regexCode=window.KissTavernRegex?'window.__kissRegexRun='+window.KissTavernRegex.run.toString()+';':'';
- const inject=policy+style+'<script>'+(libraries+';'+apiCode+regexCode+boot).replace(/<\/script/gi,'<\\/script')+'<\/script>';
+ const inject=policy+style+theme+'<script>'+(libraries+';'+apiCode+regexCode+boot).replace(/<\/script/gi,'<\\/script')+'<\/script>';
  if(/<head\b[^>]*>/i.test(html))return html.replace(/<head\b[^>]*>/i,m=>m+inject);
  if(/<html\b[^>]*>/i.test(html))return html.replace(/<html\b[^>]*>/i,m=>m+'<head>'+inject+'</head>');
  return '<!doctype html><html><head>'+inject+'</head><body>'+html+'</body></html>';
