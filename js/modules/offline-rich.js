@@ -20,11 +20,11 @@ function choicesFromText(raw){
  for(const line of lines){if(/^(?:剧情(?:走向|选项)|可选(?:走向|选项)|下一步|选项|choices|options)\s*[:：]?$/i.test(line))continue;const match=mark.exec(line);if(match){current={label:line.slice(match[0].length).trim(),text:line.slice(match[0].length).trim()};if(current.text)out.push(current);}else if(current){current.text+='\n'+line;current.label+=' '+line;}else if(lines.length>1)out.push({label:line,text:line});}
  return out.length?out:(plain?[{label:plain,text:plain}]:[]);
 }
-function layout(value,{escape,paragraph,partition,html:htmlView,id=''}){
+function layout(value,{escape,paragraph,partition,html:htmlView,id='',extraOptions=[],sectionLabels={},choiceButton}){
  const {tree,html}=parse(value,partition),groups=[],frames=[];const sharedSource=String(value??'').replace(/(?:<!doctype[^>]*>\s*)?<html\b[\s\S]*?<\/html>/gi,'');const sharedCSS=(sharedSource.match(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*rel=["']stylesheet["'][^>]*>/gi)||[]).join('');const assetOnly=text=>!text.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>|<link\b[^>]*>|<!--[\s\S]*?-->/gi,'').trim();const sharedScripts=html.filter(n=>assetOnly(n.text)).map(n=>(n.text.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi)||[]).join('')).join('');let sectionNumber=0;
  const markdown=text=>String(text).split(/\n{2,}/).filter(x=>x.trim()).map(block=>{const h=/^\s*#{1,6}\s+([^\n]+)\s*$/.exec(block);if(h)return '<h3 class="of-narrative-heading">'+escape(h[1])+'</h3>';if(/^>\s/m.test(block))return '<blockquote>'+paragraph(block.replace(/^>\s?/gm,''))+'</blockquote>';return paragraph(block);}).join('');
  const flatten=node=>node.type==='text'||node.type==='html'?node.text:(node.children||[]).map(flatten).join('\n');
- const choiceView=(raw,key)=>{const choices=choicesFromText(raw);if(!choices.length)return '';const index=groups.length;groups.push({key,choices});return `<button class="of-options-entry" data-action="plot-options" data-id="${escape(id)}" data-group="${index}"><span><small>NEXT SCENE</small><strong>剧情选项</strong></span><span class="of-options-count">${choices.length} 个走向</span></button>`;};
+ const choiceView=(raw,key)=>{const choices=choicesFromText(raw);if(!choices.length)return '';const index=groups.length;groups.push({key,choices});if(choiceButton)return choiceButton(index,choices);return `<button class="of-options-entry" data-action="plot-options" data-id="${escape(id)}" data-group="${index}"><span><small>NEXT SCENE</small><strong>剧情选项</strong></span><span class="of-options-count">${choices.length} 个走向</span></button>`;};
  const textView=text=>{const at=/(?:^|\n)\s*(?:#{1,6}\s*)?(?:剧情走向|剧情选项|可选走向|下一步选项|可选行动|下一步行动|可选剧情|剧情分支|选项|Choices|Options)\s*[:：]?\s*\n/i.exec(text);if(at){const tail=text.slice(at.index+at[0].length),choices=choicesFromText(tail);if(choices.length>=2)return markdown(text.slice(0,at.index))+choiceView(tail,'auto-'+groups.length);}return markdown(text);};
  const frame=(node,kind)=>{const index=frames.length;frames.push({index:node.index,text:sharedCSS+node.text+(!/<html\b/i.test(node.text)?sharedScripts:''),kind});return `<div class="of-inline-html" data-inline-html="${index}"><iframe title="${escape(kind==='title'?'标题卡片':kind==='ending'?'结尾卡片':'小剧场内容')}" loading="lazy"></iframe></div>`;};
  const visit=(nodes,context='')=>nodes.map((node,index)=>{
@@ -34,8 +34,8 @@ function layout(value,{escape,paragraph,partition,html:htmlView,id=''}){
    if(htmlView&&!id)return htmlView(node.text,node.index);
    return frame(node,['title','top','prologue','heading','header','标题'].includes(context)?'title':['ending','epilogue','afterword','结尾','尾声'].includes(context)?'ending':'html');
   }
-  if(optionTag(node.name)&&!node.children.some(n=>n.type==='html'))return choiceView(flatten(node),node.name+node.key);
-  const label=labels[node.name]||node.name.replace(/[_-]/g,' '),body=visit(node.children,node.name);
+  if((optionTag(node.name)||extraOptions.includes(node.name))&&!node.children.some(n=>n.type==='html'))return choiceView(flatten(node),node.name+node.key);
+  const label=sectionLabels[node.name]||labels[node.name]||node.name.replace(/[_-]/g,' '),body=visit(node.children,node.name);
   if(['title','top','prologue','heading','header','标题'].includes(node.name))return `<section class="of-title-section">${body}</section>`;
   if(['ending','epilogue','afterword','结尾','尾声'].includes(node.name))return `<section class="of-ending-section">${body}</section>`;
   if(['content','story','scene','正文'].includes(node.name))return `<section class="of-story-section">${body}</section>`;

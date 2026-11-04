@@ -158,6 +158,46 @@
         return E(text).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
             .replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
     }
+    const postLayouts = new Map();
+    const postFrames = [];
+    function clearPostFrames() {
+        for (const cleanup of postFrames.splice(0)) cleanup();
+        postLayouts.clear();
+    }
+    function postBody(row) {
+        const value = row.displayText ?? row.text;
+        const rich = window.KissOfflineRich, html = window.KissOfflineHTML;
+        if (row.role === 'user' || !rich || !html) return inline(value);
+        const layout = rich.layout(value,{
+            id:row.id,escape:E,paragraph:window.KissOffline?.narrativeHtml || (text => '<p>' + inline(text) + '</p>'),
+            partition:html.partition,extraOptions:['branches'],sectionLabels:{meow_fm:'场景与剧情'},
+            choiceButton:(index,choices) => state.shared
+                ? '<details class="of-extra-section"><summary>剧情选项</summary><ol>' + choices.map(choice => '<li>' + E(choice.label) + '</li>').join('') + '</ol></details>'
+                : btn('post-options','剧情选项 <small>' + choices.length + ' 个走向</small>','ac-post-options',row.id + ':' + index)
+        });
+        postLayouts.set(row.id,{layout,row});
+        return layout.html;
+    }
+    function fillPostChoice(text) {
+        if (state.shared || state.page !== 'reader' || !state.work) return;
+        const input = app.querySelector('[name=turn]');
+        if (!input) return;
+        input.value = text.slice(0,16000);
+        state.draft.set(getAct(state.work).id,input.value);
+        input.focus({preventScroll:true});
+    }
+    function mountPostFrames() {
+        for (const [id,{layout,row}] of postLayouts) {
+            const post = document.getElementById('ac-row-' + id);
+            for (const box of post?.querySelectorAll('[data-inline-html]') || []) {
+                const frame = box.querySelector('iframe'), data = layout.frames[Number(box.dataset.inlineHtml)];
+                if (!frame || !data) continue;
+                postFrames.push(window.KissOfflineHTML.mount(frame,data.text,
+                    size => { frame.style.height = Math.min(1200,Math.max(80,size.height)) + 'px'; },
+                    {context:{text:row.text},onChoice:fillPostChoice}));
+            }
+        }
+    }
     function reader(w) {
         const a = getAct(w);
         const prose = w.kind === 'prose';
@@ -182,7 +222,7 @@
                 return '<article id="ac-row-' + E(r.id) + '" class="ac-post' + (prose ? ' ac-post-long' : '') + '"><header class="ac-post-header">' +
                     portrait + '<div class="ac-post-person"><strong>' + E(label) + '</strong><small><time>' + time(r.at) +
                     '</time> · ' + E(r.role === 'user' ? '本人' : actor?.part || '剧幕演出') + '</small></div><small class="ac-post-index">#' + num(i+1) +
-                    '</small></header><div class="ac-post-text">' + inline(r.displayText ?? r.text) + '</div>' +
+                    '</small></header><div class="ac-post-text">' + postBody(r) + '</div>' +
                     (actions || stats ? '<footer class="ac-post-footer"><small>' + E(stats) + '</small>' + actions + '</footer>' : '') + '</article>';
             }).join('') || empty(w.synopsis || '这一幕等你开场。')) + '</div><footer class="ac-reader-tools">' +
             '<div>' + tools + '</div>' + (!state.shared && !w.cast.length ? '<small>先在剧场设置选择出场角色。</small>' : '') + controlsHtml + '</footer>';
@@ -346,6 +386,8 @@
             '<label><input type="radio" name="scope" value="script">发送剧本</label></fieldset><button type="submit" class="ac-primary ac-wide">发送到 404</button></form>');
         case 'export': return sheet('导出 HTML','<form data-form="export" class="ac-form"><button type="submit" class="ac-primary">导出完整剧场</button></form>');
         case 'confirm-import': return sheet('导入预览',htmlFrame(state.importFile.html) + btn('commit-import','保存为模板','ac-primary ac-wide'));
+        case 'post-options': return sheet('剧情选项','<p class="ac-empty">点选后填入输入栏，可以修改后再发送。</p><div class="ac-choice-list">' +
+            (state.postChoices || []).map((choice,index) => btn('post-choice','<span>' + num(index+1) + '</span><span>' + E(choice.label) + '</span>','ac-outline',index)).join('') + '</div>');
         case 'generated': return sheet('生成预览',htmlFrame(state.generated.html) + btn('save-generated','保存剧场','ac-primary ac-wide'));
         case 'delete': return sheet('删除剧场','<p>删除「' + E(state.works.find(row => row.id === deleteId)?.title) + '」及其演出进度和剧摘？</p>' +
             btn('confirm-delete','确认删除','ac-primary ac-wide'));
@@ -354,12 +396,14 @@
     }
     function render(scroll = null) {
         if (!app) return;
+        clearPostFrames();
         const w = state.shared?.work || state.work;
         const pages = {discover,library,quotes:quotePage,categories:categoryPage,detail:() => detail(w),
             reader:() => w.kind === 'html' ? top(w.title,'','detail-back') + htmlFrame(w.html,w.htmlProgress,!state.shared) : reader(w)};
         app.dataset.theme = state.theme;
         app.innerHTML = '<main class="ac-main ac-page-' + state.page + '">' + pages[state.page]() + '</main>' +
             (state.page in tabs ? nav() : '') + sheetContent(w);
+        mountPostFrames();
         if (scroll !== null) app.querySelector('.ac-main').scrollTop = scroll;
     }
     async function refresh() {
@@ -414,6 +458,7 @@
         } finally { opening = false; }
     }
     function close() {
+        clearPostFrames();
         app?.remove();
         app = null;
         clearTimeout(noticeTimer);
@@ -540,6 +585,18 @@
             case 'size': state.size = state.size >= 20 ? 14 : state.size+2; keep = true; break;
             case 'idea': setupDraft = null; idea = D.ideas[Number(v)]; state.sheet = 'new'; keep = true; break;
             case 'new': setupDraft = null; idea = null; state.sheet = 'new'; keep = true; break;
+            case 'post-options': {
+                const split = v.lastIndexOf(':');
+                state.postChoices = postLayouts.get(v.slice(0,split))?.layout.groups[Number(v.slice(split+1))]?.choices;
+                if (!state.postChoices?.length) return;
+                state.sheet = 'post-options'; keep = true; break;
+            }
+            case 'post-choice': {
+                const choice = state.postChoices?.[Number(v)];
+                if (!choice) return;
+                state.sheet = '';
+                render(scroll); fillPostChoice(choice.text); return;
+            }
             case 'edit-turn': editing = getAct(state.work).rows.find(r => r.id === v); state.sheet = 'edit-turn'; keep = true; break;
             case 'generation': state.models = []; state.sheet = 'generation'; keep = true; break;
             case 'reroll': state.sheet = 'reroll'; keep = true; break;
@@ -772,8 +829,10 @@
             w.cast.find(c => c.part === '主角' && D.character(c.id))?.id || w.cast.find(c => D.character(c.id))?.id;
         const prompt = '你负责演绎一个独立虚构剧场。只使用提供的剧场设定和演员信息，不代替用户发言，不输出思考过程。' +
             (w.aware ? '你知道这是用户安排的剧场。' : '以剧内视角演出，避免提到在进行试演。') +
-            (w.kind === 'prose' ? '返回一段连贯长文。叙述用普通文本，心理用单星号，台词用双星号。' : '用短台词推进情节。') +
-            '只返回 JSON 数组，每项含 actorId、speaker 和 text，actorId 必须是发言角色资料里的 actorId，speaker 必须是该角色姓名。长文只返回一项。' +
+            (w.kind === 'prose' && w.generation?.mode === 'tavern'
+                ? '返回连贯的剧情正文，保留酒馆预设要求的标签、附卡与选项结构。'
+                : (w.kind === 'prose' ? '返回连贯长文，JSON 数组只含一项。' : '用短台词推进情节。') +
+                    '只返回 JSON 数组，每项含 actorId、speaker 和 text，actorId 必须是发言角色资料里的 actorId，speaker 必须是该角色姓名。') +
             '\n叙事视角：' + (points[w.viewpoint] || points.third) +
             '，视角人物：' + (w.viewpointActor === '@user' ? '用户，只由用户书写其台词和心理' : D.name(D.character(lead))) +
             '。用户' + (w.userOnStage === false ? '只给场外指令，不以角色身份出场。' : '以自己的身份出场，只由用户书写自己的台词。') +
