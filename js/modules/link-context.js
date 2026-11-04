@@ -12,6 +12,9 @@ function relevant(history){
  if(quote?.messageId)quotedTarget=history.find(m=>String(m.id)===String(quote.messageId));
  if(quotedTarget){if(window.KissLinkCards.get(quotedTarget).length&&!selected.some(x=>x.m===quotedTarget))selected.push({m:quotedTarget,i:history.indexOf(quotedTarget)});else if(!window.KissLinkCards.get(quotedTarget).length)return {last,selected};}
  else if(quote?.content){const quoted={role:'user',content:String(quote.content)};if(window.KissLinkCards.get(quoted).length)selected.push({m:quoted,i:-1});}
+ // Reattach pixels for an accepted role proposal even when the final bubble is
+ // only "我看看效果"; the same intent gate controls the eventual operation.
+ if(!selected.length&&window.KissLinkImages?.intent){for(let i=last;i>=0;i--){const m=history[i];if(m.role!=='user'||m.isWithdrawn||m.isContextDisabled)continue;const cards=window.KissLinkCards.get(m);if(!cards.length)continue;const goal=window.KissLinkImages.intent(history,cards.map(c=>({title:c.title})));if(Object.values(goal.allowed).some(Boolean))selected=[{m,i}];break;}}
  if(!selected.length&&/(?:链接|連結|这个|這個|上面|刚才|剛才|这篇|這篇|图片|圖片|正文|内容|內容|就这|就這|就它|按你|你说|你說|你选|你選|你挑|再来|再來|前一|原来|原來|还原|還原|安排|重试|重試|换个|換個|换一|換一|换回|換回|刚才那个|剛才那個|再试|再試|重来|重來|重新来|重新來|用那个|用那個|还是|還是|上一|下一|最后一|最後一|存一|收着|收著|留一份|没换成功|沒換成功|没有换|沒有換|重新换|重新換|再换一次|再換一次|头像|頭像|相册|相冊|第.{0,3}[张張个個幅]|几张图|幾張圖|这组|這組|图里|圖裡|图中|圖中|图上|圖上|第.{0,3}[张張]图)/.test(String(history[last].content||''))){for(let i=last;i>=0;i--){if(history[i].role==='user'&&window.KissLinkCards.get(history[i]).length){selected=[{m:history[i],i}];break;}}}
  return {last,selected};
 }
