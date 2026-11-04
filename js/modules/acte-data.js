@@ -5,12 +5,6 @@
     const maxFile = 32000000;
     const kinds = {dialogue: '对话', prose: '长文', html: 'HTML'};
     const genres = ['平行世界', '日常番外', '悬疑推理', 'R18 成人向'];
-    const presets = [
-        {id:'curtain', name:'舞台 · 帷幕', art:0, prompt:'黑银剧场。炭黑背景，珍珠白衬线剧名，侧光落在银灰帷幕上。首屏仅一个主要开演按钮。场次列表用细线和编号，切幕柔和，正文对比度清晰。'},
-        {id:'radio', name:'深夜电台', art:4, prompt:'深夜电台节目单。墨灰底、冷白字、微量银蓝，场次用播出时间轴和编号。提供节目切换和逐段展开，避免装饰性波形挤占正文。'},
-        {id:'archive', name:'失物档案', art:5, prompt:'黑白失物档案。浅纸灰阅读区，窄列档案编号，克制的印刷边线。线索用可展开的编号卡片，附注和正文有明确字号层级。'},
-        {id:'letters', name:'双人书信', art:3, prompt:'双人往返信笺。冷白纸面、墨灰字，靠日期和署名区分双方。使用适合窄屏的单栏排版和轻量翻页，段落有充足行距。'}
-    ];
     const uid = () => crypto.randomUUID?.() || Date.now() + '-' + Math.random().toString(36).slice(2);
     const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]);
     const string = (value, limit) => String(value ?? '').slice(0, limit);
@@ -22,7 +16,10 @@
         return '';
     }
     const characters = () => db.characters || [];
-    const character = id => characters().find(c => String(c.id) === String(id));
+    let npcs = [];
+    const setNpcs = value => { npcs = value; };
+    const actors = () => [...characters(),...npcs];
+    const character = id => actors().find(c => String(c.id) === String(id));
     const name = c => c?.remarkName || c?.realName || '角色';
     const table = () => dexieDB.acte;
     async function list(group) {
@@ -74,14 +71,16 @@
         return {
             id:uid(), title:string(data.title, 80).trim() || '未命名剧场',
             kind:Object.hasOwn(kinds, data.kind) ? data.kind : 'html',
-            genre:genres.includes(data.genre) ? data.genre : genres[0],
+            genre:string(data.genre,40).trim() || genres[0],
+            viewpoint:['first','second','third'].includes(data.viewpoint) ? data.viewpoint : 'third',
+            viewpointActor:string(data.viewpointActor,100), userOnStage:data.userOnStage !== false,
             synopsis:string(data.synopsis, 6000), html:string(data.html, maxFile), cover:image(data.cover),
             templateHtml:string(data.templateHtml, maxFile), stylePrompt:string(data.stylePrompt, 8000),
             started:data.started === true, example:data.example === true,
-            generation:data.generation && {prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160)},
+            generation:data.generation && {prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160),promptVersion:string(data.generation.promptVersion,100),worldBookIds:Array.isArray(data.generation.worldBookIds) ? data.generation.worldBookIds.map(String) : []},
             htmlProgress:validProgress(data.htmlProgress) ? data.htmlProgress : null,
             art:Number.isInteger(data.art) && data.art >= 0 && data.art <= 5 ? data.art : 1,
-            cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true})),
+            cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true, part:string(c.part,30)})),
             aware:keepCast && data.aware === true, status:data.status === 'done' ? 'done' : 'active',
             current:Math.max(0, Math.min(acts.length - 1, Number.isInteger(data.current) ? data.current : 0)),
             acts, updated:Date.now(), created:Date.now()
@@ -100,10 +99,16 @@
         let content;
         if (/\.docx$/i.test(file.name)) {
             if (!window.mammoth) throw Error('Word 读取器未加载');
-            content = (await window.mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()})).value;
-            content = window.DOMPurify.sanitize(content,{USE_PROFILES:{html:true}});
+            const input = {arrayBuffer:await file.arrayBuffer()};
+            const raw = (await window.mammoth.extractRawText(input)).value;
+            const html = sourceDocument(raw);
+            if (html) return readHtml(html,file.name);
+            content = window.DOMPurify.sanitize((await window.mammoth.convertToHtml(input)).value,{USE_PROFILES:{html:true}});
         } else if (/\.txt$/i.test(file.name)) {
-            content = '<div style="white-space:pre-wrap">' + esc(await file.text()) + '</div>';
+            const raw = await file.text();
+            const html = sourceDocument(raw);
+            if (html) return readHtml(html,file.name);
+            content = '<div style="white-space:pre-wrap">' + esc(raw) + '</div>';
         } else throw Error('请选择 HTML、DOCX 或 TXT');
         return readHtml('<!doctype html><html><head><title>' + esc(base) + '</title><style>body{font:16px/1.8 system-ui;margin:24px;overflow-wrap:anywhere}img{max-width:100%}</style></head><body>' + content + '</body></html>',file.name);
     }
@@ -111,9 +116,35 @@
         if (value === null || value === undefined) return true;
         try { return JSON.stringify(value).length <= 4096; } catch { return false; }
     }
+    function sourceDocument(value) {
+        const raw = unwrap(value).replace(/^\uFEFF/,'').trim();
+        const start = raw.search(/<!doctype\s+html\b|<html(?:\s|>)/i);
+        const closes = [...raw.matchAll(/<\/html\s*>/gi)];
+        if (start < 0 || !closes.length || closes.at(-1).index < start) return '';
+        const end = closes.at(-1);
+        return raw.slice(start,end.index + end[0].length)
+            .replace(/<([a-z][\w:-]*)(\s[^<>]*)?>/gi,(tag,name,attrs) =>
+                attrs ? '<' + name + attrs.replace(/=\s*[“”]([^“”]*)[“”]/g,'="$1"').replace(/=\s*[‘’]([^‘’]*)[‘’]/g,"='$1'") + '>' : tag);
+    }
+    function documentText(body) {
+        const blocks = [...body.querySelectorAll('p,pre,li')];
+        return blocks.length ? blocks.map(node => node.textContent).join('\n') : body.textContent;
+    }
+    function recoverSource(source) {
+        const direct = sourceDocument(source);
+        if (direct) {
+            const parsed = new DOMParser().parseFromString(direct,'text/html');
+            if (!parsed.body.querySelector('script,style,button,main,section') && /&lt;(?:!DOCTYPE|html)/i.test(parsed.body.innerHTML)) {
+                return sourceDocument(documentText(parsed.body)) || direct;
+            }
+            return direct;
+        }
+        if (/&lt;(?:!DOCTYPE|html)/i.test(source)) return sourceDocument(documentText(new DOMParser().parseFromString(source,'text/html').body)) || source;
+        return unwrap(source);
+    }
     function preview(source, progress = null, track = false) {
-        const policy = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; form-action 'none'; base-uri 'none'";
-        const doc = new DOMParser().parseFromString(stripPackage(source), 'text/html');
+        const policy = "default-src 'none'; script-src 'unsafe-inline' https:; style-src 'unsafe-inline' https:; img-src data: blob: https:; font-src data: https:; media-src data: blob: https:; form-action 'none'; base-uri 'none'";
+        const doc = new DOMParser().parseFromString(stripPackage(recoverSource(source)), 'text/html');
         for (const node of doc.querySelectorAll('base, iframe, frame, object, embed, meta[http-equiv]')) node.remove();
         for (const node of doc.querySelectorAll('a[href], area[href]')) {
             if (!node.getAttribute('href').startsWith('#')) node.removeAttribute('href');
@@ -132,10 +163,16 @@
         return copy;
     }
     function readHtml(source, filename) {
+        const original = source;
+        source = recoverSource(source);
         if (!/<[a-z!][^>]*>/i.test(source) || source.length > maxFile) throw Error('请选择 32 MB 以内的 HTML 文件');
         const doc = new DOMParser().parseFromString(source, 'text/html');
         let pack;
-        try { pack = JSON.parse(doc.querySelector('script#acte-package[type="application/json"]')?.textContent); } catch {}
+        try {
+            const meta = doc.querySelector('script#acte-package[type="application/json"]') ||
+                new DOMParser().parseFromString(original,'text/html').querySelector('script#acte-package[type="application/json"]');
+            pack = JSON.parse(meta?.textContent);
+        } catch {}
         return {
             title:doc.title || filename.replace(/\.html?$/i, ''),
             html:stripPackage(source),
@@ -155,16 +192,30 @@
         return /<\/head\s*>/i.test(clean) ? clean.replace(/<\/head\s*>/i, match => meta + match) : clean + '\n' + meta;
     }
     async function ask(messages, settings = {}, signal, cast = [], trigger = 'normal') {
-        const draft = {apiPreset:settings.apiPreset,model:settings.model,generationSource:'tavern',tavernPresetId:settings.preset,inheritWorldbooks:false};
+        const followRole = !settings.apiPreset;
+        const draft = {apiPreset:settings.apiPreset === '@desktop' ? '' : settings.apiPreset,model:followRole ? '' : settings.model,generationSource:'tavern',tavernPresetId:settings.preset,inheritWorldbooks:false};
         const actor = character(cast[0]?.id);
-        const chat = {realName:actor ? name(actor) : '角色',myName:actor?.myName || '我',offline:{draft}};
-        const config = {...(window.KissOffline?.resolveOfflineApi(chat) || db.apiSettings),streamEnabled:false};
+        const chat = {id:actor?.id,realName:actor ? name(actor) : '角色',myName:actor?.myName || '我',
+            persona:actor?.persona,personality:actor?.personality,myPersona:actor?.myPersona,
+            exclusiveApiEnabled:followRole && actor?.exclusiveApiEnabled,exclusiveApiPreset:actor?.exclusiveApiPreset,
+            exclusiveApiModel:followRole ? actor?.exclusiveApiModel : undefined,
+            worldBookIds:(db.worldBooks || []).filter(b => (settings.worldBookIds || []).includes(String(b.id))).map(b => b.id),
+            offline:{draft}};
+        const config = {...(window.KissOffline?.resolveOfflineApi(chat,followRole ? undefined : db.apiSettings) || db.apiSettings),streamEnabled:false};
         if (!config.url || !config.model || !config.key) throw Error('请在生成设置选择有效的 API 和模型');
         if (typeof BLOCKED_API_DOMAINS !== 'undefined' && BLOCKED_API_DOMAINS.some(domain => config.url.includes(domain))) throw Error('该 API 地址不可用');
         if (config.provider !== 'gemini') config.key = getRandomValue(config.key);
         const selected = settings.preset;
         const system = messages.filter(m => m.role === 'system');
-        if (settings.prompt) system.push({role:'system',content:settings.prompt});
+        const books = (db.worldBooks || []).filter(b => chat.worldBookIds.includes(b.id));
+        if (books.length) system.push({role:'system',content:'【世界书】\n' + books.map(b => (b.name || b.title || '') + '\n' + (b.content || '')).join('\n\n')});
+        if (settings.mode !== 'tavern') {
+            if (settings.promptVersion && typeof generatePrivateSystemPrompt === 'function') {
+                const text = generatePrivateSystemPrompt({...chat,id:undefined,worldBookIds:[],_kissSkipCollectionPrompt:true,exclusivePromptVersion:settings.promptVersion});
+                if (text) system.unshift({role:'system',content:text + '\n上面的聊天输出格式与本次冲突时，以后续剧幕输出规则为准。'});
+            }
+            if (settings.prompt) system.push({role:'system',content:settings.prompt});
+        }
         if (settings.mode === 'cot') {
             const cot = (db.cotPresets || []).find(p => String(p.id) === selected);
             if (!cot) throw Error('请选择思维链预设');
@@ -176,7 +227,7 @@
         const req = buildChatApiRequest(config,[...system,...history],{temperature:config.temperatureEnabled ? config.temperature : undefined});
         if (settings.mode === 'tavern') {
             if (!selected) throw Error('请选择酒馆预设');
-            const report = window.KissTavernRuntime?.prepare({chat,body:req.requestBody,provider:config.provider,history,offline:true,trigger,
+            const report = window.KissTavernRuntime?.prepare({chat:{...chat,worldBookIds:[]},body:req.requestBody,provider:config.provider,history,offline:true,trigger,
                 hostProtocol:system.map(m => m.content).join('\n\n')});
             if (!report?.active) throw Error('酒馆预设未生效');
             await window.KissOfflineGeneration?.applyRequestRegex({mode:'tavern',presetId:report.presetId,...req},chat);
@@ -195,7 +246,7 @@
         const roles = work.cast.map(row => {
             const c = character(row.id);
             if (!c) return '';
-            const profile = {name:name(c), persona:c.persona || ''};
+            const profile = {name:name(c), part:row.part || '配角', persona:c.persona || '', profile:c.profile || undefined};
             if (row.memory) profile.memories = (c.memoryJournals || []).filter(j => j.isFavorited && !j.isContextDisabled && !j.mergedIntoId)
                 .slice(-20).map(j => string(j.content, 1600));
             return JSON.stringify(profile);
@@ -215,5 +266,5 @@
         {title:'潮汐备忘录',kind:'prose',genre:genres[1],art:3,synopsis:'沿着潮水退去的地方，把没来得及说的话写在纸上。第二天，海边多了一封回信。'},
         {title:'双生台',kind:'dialogue',genre:genres[0],art:5,synopsis:'一份过期的节目单上，写着两个人完全相同的名字。演出即将开始。'}
     ];
-    window.ActeData = {maxFile,validProgress,ideas,readFile,kinds,genres,presets,uid,esc,image,characters,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
+    window.ActeData = {maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
 })();
