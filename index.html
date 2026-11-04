@@ -121,6 +121,7 @@
 <link rel="stylesheet" href="css/modules/acte.css?v=20261105-weibo-3">
 <link rel="stylesheet" href="css/modules/sticker-404.css?v=1">
     <link rel="stylesheet" href="css/modules/status-presets-404.css?v=20261105-1">
+    <link rel="stylesheet" href="css/modules/prompt-studio-404.css?v=20261105-1">
 </head>
 
 <body>
@@ -852,13 +853,13 @@
 
     <div id="cot-settings-screen" class="screen">
         <header class="pt-masthead">
-            <button class="pt-close" data-target="more-screen" aria-label="关闭提示词设置">×</button>
-            <span>404 / KISS</span><button class="pt-help" id="pt-help" aria-label="使用说明">?</button>
+            <button class="pt-close" data-target="more-screen" aria-label="返回菜单"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button>
+            <h1>思维链 <span aria-hidden="true">✦</span></h1><button class="pt-help" id="pt-help" aria-label="使用说明">?</button><span class="pt-wordmark">KISS</span>
         </header>
         <nav class="settings-tabs pt-tabs" id="cot-settings-tabs" aria-label="提示词页面">
-            <button class="settings-tab-item active" data-mode="chat">聊天</button>
-            <button class="settings-tab-item" data-mode="call">通话</button>
-            <button class="pt-tab" data-mode="tavern">酒馆预设</button>
+            <button class="settings-tab-item active" data-mode="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5c-2-2-6-1-8 2-2-3-6-4-8-2-4 4 2 9 8 14 6-5 12-10 8-14Z"/></svg>聊天</button>
+            <button class="settings-tab-item" data-mode="call"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 4 5-2 3 5 5 3-2 5 4-2 3C9 22 2 15 3 5Z"/></svg>通话</button>
+            <button class="pt-tab" data-mode="tavern"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v11h18V10M2 10l3-7h14l3 7M2 10c1 4 4 4 5 0 1 4 4 4 5 0 1 4 4 4 5 0 1 4 4 4 5 0M9 21v-7h6v7"/></svg>酒馆预设</button>
         </nav>
         <main class="content pt-content">
           <div class="pt-hero"><h1 id="pt-page-name">Dialogue.</h1><span id="pt-page-index">01</span><p id="pt-page-caption">聊天提示词</p></div>
@@ -871,7 +872,7 @@
             </div>
             <div class="pt-section-head"><h2>当前预设</h2><div class="pt-text-actions"><button id="cot-new-preset-btn">新建</button><button id="cot-manage-presets-btn">管理</button><button id="cot-reset-preset-btn">重置</button></div></div>
             <div class="pt-select-wrap"><select id="cot-preset-select" aria-label="当前思维链预设"></select><span aria-hidden="true">⌕</span></div>
-            <div class="pt-section-head"><h2 class="kkt-item-label">Prompt 条目序列</h2><button id="cot-add-item-btn">＋ 添加</button></div>
+            <div class="pt-section-head"><h2 class="kkt-item-label">Prompt 条目序列 <span id="cot-item-count" class="pt-count"></span></h2><button id="cot-add-item-btn">＋ 添加</button></div>
             <div id="cot-items-list"></div>
           </section>
           <section id="pt-tavern-page" hidden>
@@ -884,29 +885,20 @@
     </div>
 
     <!-- CoT Item Edit Modal -->
-    <div id="cot-item-edit-modal" class="modal-overlay">
-        <div class="modal-window">
-            <h3>编辑条目</h3>
+    <div id="cot-item-edit-modal" class="modal-overlay pt-legacy-dialog" role="dialog" aria-modal="true" aria-labelledby="cot-editor-heading">
+        <div class="modal-window pt-cot-editor">
+            <header class="pt-entry-head"><button type="button" id="cot-item-top-close" aria-label="关闭条目编辑"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button><h3 id="cot-editor-heading">编辑条目</h3><span class="pt-wordmark">KISS</span></header>
             <form id="cot-item-edit-form">
                 <input type="hidden" id="cot-item-id">
-                <div class="form-group">
-                    <label>条目名称</label>
-                    <input type="text" id="cot-item-name" required>
-                </div>
-                <div class="form-group">
-                    <label>Prompt 内容</label>
-                    <textarea id="cot-item-content" rows="10" required style="font-family: monospace; font-size: 13px;"></textarea>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
-                    <button type="button" id="cot-item-cancel-btn" class="btn btn-neutral" style="flex: 1;">取消</button>
-                </div>
+                <div class="form-group pt-entry-name"><label for="cot-item-name">条目名称</label><input type="text" id="cot-item-name" required></div>
+                <div class="form-group pt-entry-content"><label for="cot-item-content">Prompt 内容</label><textarea id="cot-item-content" rows="12" required></textarea></div>
+                <div class="pt-entry-footer"><button type="submit" class="btn btn-primary">保存条目</button><button type="button" id="cot-item-cancel-btn" class="btn btn-neutral">取消</button></div>
             </form>
         </div>
     </div>
 
     <!-- CoT Preset Manage Modal -->
-    <div id="cot-preset-manage-modal" class="modal-overlay">
+    <div id="cot-preset-manage-modal" class="modal-overlay pt-legacy-dialog">
         <div class="modal-window kc-preset-window" role="dialog" aria-modal="true" aria-labelledby="kc-preset-heading">
             <header class="kc-preset-head"><h3 id="kc-preset-heading">预设管理</h3><span class="kc-preset-count"></span></header>
             <div id="cot-preset-list-container"></div>
@@ -2644,11 +2636,12 @@
 <script src="js/modules/gallery.js?v=20261103-memory-4"></script> <!-- 角色相册管理模块 -->
 <script src="js/modules/shop.js?v=20261104-feature-audit-2"></script>
 <script src="js/modules/shop-market.js?v=20261104-feature-audit-1"></script>    <!-- 商城模块 -->
-<script src="js/modules/cot_settings.js?v=20261031-ui-3"></script>
+<script src="js/modules/cot_settings.js?v=20261105-prompt-1"></script>
 <script src="js/modules/tavern-engine.js?v=20261030-st10"></script>
 <script src="js/modules/tavern-runtime.js?v=20261104-rework-1"></script>
 <script src="js/modules/tavern-regex.js?v=20261031-tavern-safety"></script>
-<script src="js/modules/prompt-studio.js?v=20261031-ui-3"></script> <!-- 思维链设置模块 -->
+<script src="js/modules/prompt-studio.js?v=20261105-prompt-1"></script>
+<script src="js/modules/prompt-studio-404.js?v=20261105-1"></script> <!-- 思维链设置模块 -->
 <script src="js/modules/video_call.js?v=20261031-reroll-2"></script> <!-- 视频通话模块 -->
 <script src="js/workshop_html.js?v=20261031-preset-upload-1"></script> <!-- 绘图工坊HTML注入 -->
 <script src="js/modules/image-workshop/novelai-models.js?v=20261031-nai-models-1"></script>
@@ -2662,7 +2655,7 @@
 <script src="js/modules/image-workshop/atelier.js?v=20261031-atelier-1"></script>
 <script src="js/workshop.js?v=20261031-atelier-1"></script> <!-- 绘图工坊模块 -->
 <script src="js/modules/community.js"></script> <!-- 社区模块 -->
-<script src="js/modules/st_unlock.js?v=20261030-st10"></script> <!-- 酒馆解锁模块 -->
+<script src="js/modules/st_unlock.js?v=20261105-prompt-1"></script> <!-- 酒馆解锁模块 -->
 <script src="js/modules/reader_parser.js"></script> <!-- TXT解析模块 -->
 <script src="js/modules/reader_html.js"></script> <!-- 阅读器HTML注入 -->
 <script src="js/modules/reader_bookshelf.js"></script> <!-- 阅读器书架逻辑 -->
@@ -2710,6 +2703,7 @@
 <script src="js/modules/acte.js?v=20261105-weibo-2"></script>
 </body>
 </html>
+
 
 
 

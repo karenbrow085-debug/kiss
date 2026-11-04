@@ -154,7 +154,7 @@ function render() {
     const s=state();if(s.presets.some(needsMainOrder)){if(!busy)commit(next=>next.presets.forEach(keepMainOrder)).catch(error=>{body.replaceChildren(text('div','预设整理未保存：'+error.message,'pt-warning'));action(body,'重试',render);});return;}const filtered=s.presets.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
     $('pt-export').disabled=!active();$('pt-manage').disabled=!s.presets.length;
     if(!s.presets.length){body.appendChild(text('div','尚未导入预设\n导入酒馆 JSON，或新建空白预设。','pt-empty'));return;}
-    const wrap=text('div','','pt-preset-select');wrap.appendChild(text('small','JSON / PRESET'));
+    const wrap=text('div','','pt-preset-select');wrap.appendChild(text('small','当前预设'));
     const select=document.createElement('select');select.setAttribute('aria-label','当前酒馆预设');
     const ph=text('option',filtered.length?'选择预设':'没有匹配的预设');ph.value='';select.appendChild(ph);
     filtered.forEach(p=>{const opt=text('option',p.name);opt.value=p.id;select.appendChild(opt);});select.value=filtered.some(p=>p.id===s.settings.activePresetId)?s.settings.activePresetId:'';
@@ -216,8 +216,12 @@ function renderItems(p,list) {
     visible.forEach(({prompt:item,enabled},index)=>{
         const row=text('div','','pt-st-row');row.dataset.identifier=item.identifier;
         const grip=action(row,'⠿',()=>moveItem(p.id,item.identifier),'pt-grip');grip.setAttribute('aria-label','移动条目：'+(item.name||item.identifier));
-        const button=text('button','','pt-item-open');button.type='button';button.appendChild(text('strong',item.name||item.identifier));button.setAttribute('aria-label','编辑条目：'+(item.name||item.identifier));button.onclick=()=>editItem(p.id,item.identifier);row.appendChild(button);
-        row.appendChild(toggle(enabled,'启用：'+(item.name||item.identifier),checked=>editRecord(p.id,r=>{const order=E.getOrder(r,group(r));const ref=order.find(x=>x.identifier===item.identifier);if(ref)ref.enabled=checked;else order.push({identifier:item.identifier,enabled:checked});E.setOrder(r,order,group(r));})));list.appendChild(row);
+        const button=text('button','','pt-item-open');button.type='button';const line=text('strong',item.name||item.identifier);line.appendChild(text('span',item.role||'system','pt-role-tag'));button.appendChild(line);button.appendChild(text('small',item.marker?'动态插入点':(item.content||'').replace(/\s+/g,' ').slice(0,70)));button.setAttribute('aria-label','编辑条目：'+(item.name||item.identifier));button.onclick=()=>editItem(p.id,item.identifier);row.appendChild(button);
+        row.appendChild(toggle(enabled,'启用：'+(item.name||item.identifier),checked=>editRecord(p.id,r=>{const order=E.getOrder(r,group(r));const ref=order.find(x=>x.identifier===item.identifier);if(ref)ref.enabled=checked;else order.push({identifier:item.identifier,enabled:checked});E.setOrder(r,order,group(r));})));
+        const tools=text('div','','pt-row-actions');
+        const pencil=action(tools,'',()=>editItem(p.id,item.identifier),'pt-row-icon');pencil.setAttribute('aria-label','编辑条目：'+(item.name||item.identifier));pencil.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5M4 16l-1 5 5-1L21 7l-5-5Z"/></svg>';
+        const remove=action(tools,'',async()=>{if(!await confirmDialog('删除条目','从此预设中删除该条目？'))return;await editRecord(p.id,r=>{r.data.prompts=(r.data.prompts||[]).filter(x=>x.identifier!==item.identifier);updateOrders(r,refs=>refs.filter(x=>x.identifier!==item.identifier));});},'pt-row-icon');remove.setAttribute('aria-label','删除条目：'+(item.name||item.identifier));remove.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M6 6l1 15h10l1-15M9 6V3h6v3M10 10v7m4-7v7"/></svg>';
+        row.appendChild(tools);list.appendChild(row);
     });
     if(!visible.length)list.appendChild(text('div','没有匹配的条目','pt-empty'));
     if(!itemSearch&&typeof Sortable==='function')tavernSort=new Sortable(list,{handle:'.pt-grip',animation:140,delay:130,delayOnTouchOnly:true,ghostClass:'pt-sort-ghost',onEnd:()=>run(()=>editRecord(p.id,r=>{const old=E.getOrder(r,group(r));const refs=new Map(old.map(x=>[x.identifier,x]));const order=[...list.children].map(n=>refs.get(n.dataset.identifier)||{identifier:n.dataset.identifier,enabled:false});E.setOrder(r,order,group(r));}))});
@@ -330,6 +334,7 @@ function init() {
     $('pt-import-file').onchange=async e=>{try{await importFiles([...e.target.files]);}catch(error){toast('导入失败：'+error.message);}finally{e.target.value='';}};
     $('pt-export').onclick=()=>{const p=active();if(p)download(p);};$('pt-new').onclick=()=>run(createPreset);$('pt-manage').onclick=manage;
 }
-global.KissPromptUI={refreshMode,attachCotSort,destroyCotSort,moveCot,askName,confirmDialog,showTavern,render,parameters,importFiles,commit,showXmlHelp,editRegex,pickRegex};
+global.KissPromptUI={dialog,refreshMode,attachCotSort,destroyCotSort,moveCot,askName,confirmDialog,showTavern,render,parameters,importFiles,commit,showXmlHelp,editRegex,pickRegex};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);
+

@@ -544,6 +544,8 @@ function renderCotItems() {
     const list = document.getElementById('cot-items-list');
     window.KissPromptUI?.destroyCotSort();
     list.innerHTML = '';
+    const count = document.getElementById('cot-item-count');
+    if (count) count.textContent = '';
     list.className = 'cot-items-container'; // 使用新 CSS 类
 
     let activeId;
@@ -556,6 +558,7 @@ function renderCotItems() {
     const activePreset = db.cotPresets.find(p => p.id === activeId);
     if (!activePreset || !activePreset.items) return;
 
+    if (count) count.textContent = activePreset.items.length;
     activePreset.items.forEach((item, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = `cot-item-card ${item.locked ? 'locked' : ''}`;
@@ -810,11 +813,9 @@ function createIconBtn(text, onClick, isDanger = false) {
     
     // 使用 SVG 图标替代文字
     let iconSvg = '';
-    if (text === '↑') iconSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>';
-    else if (text === '↓') iconSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
-    else if (text === '✎') iconSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
-    else if (text === '×') iconSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-    
+    const paths = {'↑':'m6 14 6-6 6 6','↓':'m6 10 6 6 6-6','✎':'m15 4 5 5M4 16l-1 5 5-1L21 7l-5-5Z','×':'M4 6h16M6 6l1 15h10l1-15M9 6V3h6v3M10 10v7m4-7v7','⭳':'M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6'};
+    if (paths[text]) iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+paths[text]+'"/></svg>';
+    btn.type = 'button';
     btn.innerHTML = iconSvg || text;
     btn.title = text === '✎' ? '编辑条目' : text === '×' ? '删除条目' : text === '⭳' ? '导出预设' : text;
     btn.setAttribute('aria-label', btn.title);
@@ -868,7 +869,7 @@ async function deleteCotItem(index) {
     const item = activePreset.items[index];
     if (item.locked) return showToast('锁定条目无法删除');
 
-    if (!confirm('确定要删除这个条目吗？')) return;
+    if (!await window.KissPromptUI.confirmDialog('删除条目', '确定要删除这个条目吗？')) return;
 
     activePreset.items.splice(index, 1);
     await saveData();
@@ -1034,7 +1035,7 @@ async function resetCotPreset() {
     const activePreset = db.cotPresets.find(p => p.id === activeId);
     if (!activePreset) return;
 
-    if (!confirm(`确定要将预设“${activePreset.name}”重置为默认思维链吗？\n此操作将覆盖当前所有条目。`)) return;
+    if (!await window.KissPromptUI.confirmDialog('重置预设', `确定要将预设“${activePreset.name}”重置为默认思维链吗？\n此操作将覆盖当前所有条目。`)) return;
 
     // 深度复制默认条目
     if (isSharedHhCotPreset(activePreset.id)) {
@@ -1106,7 +1107,7 @@ function openCotPresetManageModal() {
 
         const deleteBtn = createIconBtn('×', async () => {
             if (db.cotPresets.length <= 1) return showToast('至少保留一个预设');
-            if (!confirm(`确定要删除预设“${preset.name}”吗？`)) return;
+            if (!await window.KissPromptUI.confirmDialog('删除预设', `确定要删除预设“${preset.name}”吗？`)) return;
             
             db.cotPresets.splice(index, 1);
             
@@ -1176,3 +1177,4 @@ async function importCotPreset(e) {
 
 // 暴露给全局
 window.initCotSettings = initCotSettings;
+
