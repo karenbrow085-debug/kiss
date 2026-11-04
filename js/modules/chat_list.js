@@ -409,7 +409,7 @@ function renderChatList() {
                 const inviteRegex = /\[(.*?)邀请(.*?)加入了群聊\]/;
                 const renameRegex = /\[.*?修改群名为：.*?\]/;
                 const timeSkipRegex = /\[system-display:([\s\S]+?)\]/;
-                const timeSkipMatch = lastEverMsg.content.match(timeSkipRegex);
+                const timeSkipMatch = !isChatGapNotice(lastEverMsg) && lastEverMsg.content.match(timeSkipRegex);
 
                 if (timeSkipMatch) {
                     lastMessageText = timeSkipMatch[1];
@@ -472,3 +472,4 @@ function renderChatList() {
         chatListContainer.appendChild(li);
     });
 }
+

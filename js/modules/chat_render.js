@@ -4,12 +4,20 @@ function isOfflineChatRecord(message) {
     return !!(message.offlineNarrative || message.offlineSessionId || message.offlineArchiveId || message.offlineBoundary);
 }
 
+// Legacy elapsed-time notices are presentation-only and no longer shown.
+function isChatGapNotice(message) {
+    return message?.role === 'system' && (
+        String(message.id || '').startsWith('msg_visual_timesense_') ||
+        /^\[system-display:\s*距离上次聊天已经过去[\s\S]*\]$/.test(String(message.content || '').trim())
+    );
+}
+
 function renderMessages(isLoadMore = false, forceScrollToBottom = false, focusMessageId = null) {
     window.KissOffline?.refresh(forceScrollToBottom);
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
     if (!chat || !chat.history) return;
     const oldScrollHeight = messageArea.scrollHeight;
-    const onlineHistory = chat.history.filter(m => !isOfflineChatRecord(m) && !m.offlineHidden);
+    const onlineHistory = chat.history.filter(m => !isOfflineChatRecord(m) && !m.offlineHidden && !isChatGapNotice(m));
     const totalMessages = onlineHistory.length;
     
     // 确保 MESSAGES_PER_PAGE 存在
@@ -92,7 +100,7 @@ function renderMessages(isLoadMore = false, forceScrollToBottom = false, focusMe
             
             for (let i = currentIndexInHistory - 1; i >= 0; i--) {
                 const candidate = onlineHistory[i];
-                if (!isOfflineChatRecord(candidate) && !candidate.offlineHidden && !invisibleRegex.test(candidate.content)) {
+                if (!isOfflineChatRecord(candidate) && !candidate.offlineHidden && !isChatGapNotice(candidate) && !invisibleRegex.test(candidate.content)) {
                     prevMsg = candidate;
                     break;
                 }
@@ -148,7 +156,7 @@ function loadMoreMessages() {
 }
 
 function createMessageBubbleElement(message, isContinuous = false) {
-    if (isOfflineChatRecord(message) || message.offlineHidden) return null;
+    if (isOfflineChatRecord(message) || message.offlineHidden || isChatGapNotice(message)) return null;
     if (message.type === 'acte-share' && !message.isWithdrawn) return window.KissActe?.renderCard(message) || null;
     if (message.type === 'hearu-session-event') return null;
     if (message.type === 'hearu-invite') return window.KissTogether?.renderCard(message) || null;
@@ -1206,7 +1214,7 @@ window.sendPayResponse = async function(msgId, action) {
 
 function addMessageBubble(message, targetChatId, targetChatType) {
     window.KissOffline?.refresh();
-    if (isOfflineChatRecord(message) || message.offlineHidden) return;
+    if (isOfflineChatRecord(message) || message.offlineHidden || isChatGapNotice(message)) return;
     if (targetChatId !== currentChatId || targetChatType !== currentChatType) {
         const senderChat = (targetChatType === 'private')
             ? db.characters.find(c => c.id === targetChatId)
@@ -1451,7 +1459,7 @@ function addMessageBubble(message, targetChatId, targetChatType) {
                 let prevMsg = null;
                 for (let i = character.history.length - 2; i >= 0; i--) {
                     const candidate = character.history[i];
-                    if (!isOfflineChatRecord(candidate) && !candidate.offlineHidden && !invisibleRegex.test(candidate.content)) {
+                    if (!isOfflineChatRecord(candidate) && !candidate.offlineHidden && !isChatGapNotice(candidate) && !invisibleRegex.test(candidate.content)) {
                         prevMsg = candidate;
                         break;
                     }
@@ -1472,7 +1480,7 @@ function addMessageBubble(message, targetChatId, targetChatType) {
             const bubbleElement = createMessageBubbleElement(message, isContinuous);
             if (bubbleElement) {
                 // Check for timestamp display
-                const history = character.history.filter(m => !isOfflineChatRecord(m) && !m.offlineHidden);
+                const history = character.history.filter(m => !isOfflineChatRecord(m) && !m.offlineHidden && !isChatGapNotice(m));
                 let shouldShowTimestamp = false;
                 if (history.length >= 2) {
                     const prevMsg = history[history.length - 2];
@@ -1538,7 +1546,7 @@ function addMessageBubble(message, targetChatId, targetChatType) {
             let prevMsg = null;
             for (let i = group.history.length - 2; i >= 0; i--) {
                 const candidate = group.history[i];
-                if (!isOfflineChatRecord(candidate) && !candidate.offlineHidden && !invisibleRegex.test(candidate.content)) {
+                if (!isOfflineChatRecord(candidate) && !candidate.offlineHidden && !isChatGapNotice(candidate) && !invisibleRegex.test(candidate.content)) {
                     prevMsg = candidate;
                     break;
                 }
@@ -1585,3 +1593,4 @@ function addMessageBubble(message, targetChatId, targetChatType) {
         }
     }
 }
+
