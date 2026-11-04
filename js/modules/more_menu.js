@@ -81,38 +81,35 @@ function openStatusBarManager() {
 // 渲染状态栏预设列表
 function renderStatusBarManager() {
     const listContainer = document.getElementById('status-bar-preset-list');
-    listContainer.innerHTML = '';
-
+    listContainer.replaceChildren();
     const presets = db.statusBarPresets || [];
-
-    if (presets.length === 0) {
-        listContainer.innerHTML = '<div class="placeholder-text" style="grid-column: 1/-1;">暂无预设，点击右上角“+”添加</div>';
-        return;
+    const count = document.getElementById('sb-preset-count');
+    if (count) count.textContent = String(presets.length).padStart(2, '0');
+    if (!presets.length) {
+        const empty = document.createElement('div');
+        empty.className = 'placeholder-text'; empty.textContent = '暂无预设';
+        listContainer.append(empty); return;
     }
-
     presets.forEach(preset => {
         const div = document.createElement('div');
-        div.className = 'preset-card';
-        div.onclick = (e) => {
-            // 如果点击的是按钮，不触发编辑
-            if (e.target.closest('.preset-action-btn')) return;
-            openStatusBarEditor(preset.id);
-        };
-        div.innerHTML = `
-            <div class="preset-info-col">
-                <div class="preset-name">${preset.name}</div>
-                <div class="preset-desc">${preset.promptSuffix || '无 Prompt 后缀'}</div>
-            </div>
-            <div class="preset-actions-col">
-                <button class="preset-action-btn" title="导出" onclick="exportStatusBarPreset('${preset.id}')">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                </button>
-                <button class="preset-action-btn delete" title="删除" onclick="deleteStatusBarPreset('${preset.id}', event)">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </div>
-        `;
-        listContainer.appendChild(div);
+        div.className = 'preset-card' + (window.kissStatusLastEdited === preset.id ? ' sbp-last-edited' : '');
+        const info = document.createElement('div'); info.className = 'preset-info-col';
+        const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'preset-open';
+        const name = document.createElement('div'); name.className = 'preset-name'; name.textContent = preset.name;
+        const desc = document.createElement('div'); desc.className = 'preset-desc'; desc.textContent = preset.promptSuffix || '—';
+        edit.append(name, desc); info.append(edit);
+        div.onclick = event => { if (!event.target.closest('.preset-action-btn')) openStatusBarEditor(preset.id); };
+        const actions = document.createElement('div'); actions.className = 'preset-actions-col';
+        for (const [label, cls, path, handler] of [
+            ['导出', '', 'M12 15V3m-5 7 5 5 5-5M4 15v5h16v-5', () => exportStatusBarPreset(preset.id)],
+            ['删除', ' delete', 'M3 6h18M5 6l1 15h12l1-15M9 6V3h6v3M10 10v7m4-7v7', event => deleteStatusBarPreset(preset.id, event)]
+        ]) {
+            const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'preset-action-btn' + cls;
+            btn.title = label; btn.setAttribute('aria-label', label + ' ' + preset.name);
+            btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>';
+            btn.onclick = handler; actions.append(btn);
+        }
+        div.append(info, actions); listContainer.append(div);
     });
 }
 
@@ -125,15 +122,18 @@ window.openStatusBarEditor = function(presetId = null) {
     const htmlInput = document.getElementById('sb-preset-html');
     const idInput = document.getElementById('sb-preset-id');
     const testInput = document.getElementById('sb-test-input');
+    let editingPreset = null;
 
     if (presetId) {
         const preset = db.statusBarPresets.find(p => p.id === presetId);
         if (preset) {
+            editingPreset = preset;
+            window.kissStatusLastEdited = preset.id;
             title.textContent = '编辑预设';
             nameInput.value = preset.name;
-            promptInput.value = preset.promptSuffix;
-            regexInput.value = preset.regexPattern;
-            htmlInput.value = preset.replacePattern;
+            promptInput.value = preset.promptSuffix || '';
+            regexInput.value = preset.regexPattern || '';
+            htmlInput.value = preset.replacePattern || '';
             idInput.value = preset.id;
         }
     } else {
@@ -146,8 +146,8 @@ window.openStatusBarEditor = function(presetId = null) {
     }
 
     // 重置测试输入和预览
-    testInput.value = '';
-    updateStatusBarPreview(); // 触发一次预览更新
+    testInput.value = editingPreset?.previewText || '';
+    window.KissStatusPresetPreview?.open(editingPreset);
 
     switchScreen('status-bar-editor-screen');
 };
@@ -165,50 +165,7 @@ function initStatusBarPreview() {
 
 // 更新预览
 function updateStatusBarPreview() {
-    const testText = document.getElementById('sb-test-input').value;
-    const regexStr = document.getElementById('sb-preset-regex').value;
-    const htmlTpl = document.getElementById('sb-preset-html').value;
-    const statusTag = document.getElementById('sb-match-status');
-    const previewContainer = document.getElementById('sb-preview-container');
-
-    if (!testText || !regexStr) {
-        statusTag.textContent = '等待输入';
-        statusTag.className = 'status-tag';
-        previewContainer.innerHTML = '<span style="color:#ccc;">请输入测试文本和正则...</span>';
-        return;
-    }
-
-    try {
-        const regex = new RegExp(regexStr);
-        const match = testText.match(regex);
-
-        if (match) {
-            statusTag.textContent = '匹配成功';
-            statusTag.className = 'status-tag success';
-            
-            let resultHtml = htmlTpl;
-            // 替换 $1, $2 等变量
-            // 注意：match[0] 是完整匹配，match[1] 是第一个捕获组
-            // 用户习惯用 $1 代表第一个捕获组
-            
-            // 倒序替换，防止 $1 误伤 $10
-            for (let i = match.length - 1; i >= 1; i--) {
-                // 对捕获内容进行 HTML 转义，防止破坏布局
-                const safeContent = escapeHtml(match[i]);
-                resultHtml = resultHtml.replace(new RegExp('\\$' + i, 'g'), safeContent);
-            }
-            
-            previewContainer.innerHTML = resultHtml;
-        } else {
-            statusTag.textContent = '未匹配';
-            statusTag.className = 'status-tag';
-            previewContainer.innerHTML = '<span style="color:#999;">正则未匹配到内容</span>';
-        }
-    } catch (e) {
-        statusTag.textContent = '正则错误';
-        statusTag.className = 'status-tag error';
-        previewContainer.innerHTML = `<span style="color:red;">${e.message}</span>`;
-    }
+    window.KissStatusPresetPreview?.update();
 }
 
 // 导出单个预设
@@ -236,9 +193,10 @@ function importStatusBarPreset(e) {
         try {
             const imported = JSON.parse(event.target.result);
             // 简单校验结构
-            if (imported.name && imported.regexPattern !== undefined) {
+            const items = Array.isArray(imported) ? imported : [imported];
+            if (items.length && items.every(p => p && typeof p.name === 'string' && typeof p.regexPattern === 'string' && typeof p.replacePattern === 'string')) {
                 // 可能是单个对象，也可能是数组（如果是批量导出的话，虽然目前只做了单个导出，但兼容一下数组更好）
-                const presetsToAdd = Array.isArray(imported) ? imported : [imported];
+                const presetsToAdd = items;
                 
                 if (!db.statusBarPresets) db.statusBarPresets = [];
 
@@ -272,6 +230,7 @@ async function saveStatusBarPreset() {
     const promptSuffix = document.getElementById('sb-preset-prompt').value;
     const regexPattern = document.getElementById('sb-preset-regex').value;
     const replacePattern = document.getElementById('sb-preset-html').value;
+    const previewText = document.getElementById('sb-test-input').value;
 
     if (!name) {
         showToast('请输入预设名称');
@@ -292,7 +251,7 @@ async function saveStatusBarPreset() {
         // 编辑现有
         const index = db.statusBarPresets.findIndex(p => p.id === id);
         if (index !== -1) {
-            db.statusBarPresets[index] = { id, name, promptSuffix, regexPattern, replacePattern };
+            db.statusBarPresets[index] = { ...db.statusBarPresets[index], id, name, promptSuffix, regexPattern, replacePattern, previewText };
         }
     } else {
         // 新增
@@ -301,7 +260,8 @@ async function saveStatusBarPreset() {
             name,
             promptSuffix,
             regexPattern,
-            replacePattern
+            replacePattern,
+            previewText
         };
         db.statusBarPresets.push(newPreset);
     }
@@ -313,7 +273,7 @@ async function saveStatusBarPreset() {
 
 // 删除预设
 window.deleteStatusBarPreset = async function(presetId, event) {
-    event.stopPropagation(); // 阻止冒泡触发编辑
+    event?.stopPropagation(); // 阻止冒泡触发编辑
     if (confirm('确定要删除这个预设吗？')) {
         db.statusBarPresets = db.statusBarPresets.filter(p => p.id !== presetId);
         await saveData();
@@ -402,3 +362,4 @@ async function saveStatusBarPresetFromSettings() {
 // 导出全局函数供 HTML 调用
 window.openStatusBarEditor = openStatusBarEditor;
 window.deleteStatusBarPreset = deleteStatusBarPreset;
+

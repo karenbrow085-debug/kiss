@@ -120,6 +120,7 @@
 <link rel="stylesheet" href="css/modules/api-extensions.css?v=20261104-extensions-2">
 <link rel="stylesheet" href="css/modules/acte.css?v=20261105-weibo-3">
 <link rel="stylesheet" href="css/modules/sticker-404.css?v=1">
+    <link rel="stylesheet" href="css/modules/status-presets-404.css?v=20261105-1">
 </head>
 
 <body>
@@ -917,76 +918,45 @@
         </div>
     </div>
 
-    <div id="status-bar-manager-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" data-target="more-screen">‹</button>
-            <div class="title-container"><h1 class="title">状态栏管理</h1></div>
-            <div class="action-btn-group">
-                <button class="action-btn" id="import-status-preset-btn" title="导入预设">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                </button>
-                <button class="action-btn" id="add-status-preset-btn" title="添加预设">+</button>
-            </div>
+    <div id="status-bar-manager-screen" class="screen sbp-screen">
+        <header class="app-header sbp-header">
+            <button type="button" class="back-btn" data-target="more-screen" aria-label="返回菜单"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button>
+            <div class="title-container"><h1 class="title">状态栏管理<span class="sbp-sparkle" aria-hidden="true">✦</span></h1></div>
+            <span class="sbp-wordmark">KISS</span>
         </header>
-        <main class="content" style="padding: 15px;">
-            <div id="status-bar-preset-list" class="preset-grid">
-                <!-- JS 动态生成 -->
-            </div>
-            <input type="file" id="status-preset-import-input" accept=".json" style="display: none;">
+        <main class="content sbp-content">
+            <div class="sbp-toolbar"><h2>预设 <span id="sb-preset-count">00</span></h2><div class="sbp-toolbar-actions">
+                <button type="button" id="import-status-preset-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></svg><span>导入</span></button>
+                <button type="button" id="add-status-preset-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>新建</span></button>
+            </div></div>
+            <div id="status-bar-preset-list" class="preset-grid"></div>
+            <input type="file" id="status-preset-import-input" accept=".json" hidden>
         </main>
     </div>
 
-    <div id="status-bar-editor-screen" class="screen">
-        <header class="app-header">
-            <button class="back-btn" data-target="status-bar-manager-screen">‹</button>
+    <div id="status-bar-editor-screen" class="screen sbp-screen">
+        <header class="app-header sbp-header">
+            <button type="button" class="back-btn" data-target="status-bar-manager-screen" aria-label="返回预设列表"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button>
             <div class="title-container"><h1 class="title" id="status-bar-editor-title">编辑预设</h1></div>
-            <div class="placeholder"></div>
+            <span class="sbp-wordmark">KISS</span>
         </header>
-        <main class="content">
+        <main class="content sbp-content">
             <form id="status-bar-editor-form" onsubmit="event.preventDefault();">
                 <input type="hidden" id="sb-preset-id">
-                
-                <!-- 基础信息 -->
-                <div class="editor-section">
-                    <div class="form-group">
-                        <label>预设名称</label>
-                        <input type="text" id="sb-preset-name" placeholder="例如：通用HP条" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Prompt 后缀 <span class="hint">(告诉AI如何输出状态)</span></label>
-                        <textarea id="sb-preset-prompt" rows="2" placeholder="例如：请在回复末尾输出状态码：[HP:xx]"></textarea>
-                    </div>
+                <div class="editor-section sbp-panel">
+                    <div class="form-group sbp-name-field"><label for="sb-preset-name">预设名称</label><input type="text" id="sb-preset-name" placeholder="为预设命名" required></div>
+                    <div class="form-group"><label for="sb-preset-prompt">Prompt 后缀</label><textarea id="sb-preset-prompt" rows="3" placeholder="输入输出规则"></textarea></div>
                 </div>
-
-                <!-- 核心配置与预览 -->
-                <div class="editor-section">
-                    <div class="form-group">
-                        <label>提取正则 (Regex) <span class="hint">(使用 () 捕获变量)</span></label>
-                        <input type="text" id="sb-preset-regex" class="code-input" placeholder="例如：\[HP:(\d+)\]">
-                    </div>
-                    <div class="form-group">
-                        <label>HTML 模板 <span class="hint">(使用 $1, $2 引用变量)</span></label>
-                        <textarea id="sb-preset-html" class="code-input" rows="3" placeholder='例如：<div class="hp-bar" style="width:$1%"></div>'></textarea>
-                    </div>
+                <div class="editor-section sbp-panel">
+                    <div class="form-group"><label for="sb-preset-regex">提取正则</label><input type="text" id="sb-preset-regex" class="code-input" spellcheck="false" placeholder="\[HP:(\d+)\]"></div>
+                    <div class="form-group"><label for="sb-preset-html">HTML 模板</label><textarea id="sb-preset-html" class="code-input" rows="5" spellcheck="false" placeholder="粘贴 HTML 模板"></textarea></div>
                 </div>
-
-                <!-- 实时预览实验室 -->
-                <div class="editor-section preview-lab">
-                    <div class="lab-header">🧪 实时预览实验室</div>
-                    <div class="form-group">
-                        <label>测试文本 <span class="hint">(模拟AI的回复内容)</span></label>
-                        <textarea id="sb-test-input" rows="2" placeholder="输入包含状态码的文本，例如：受到攻击！[HP:80]"></textarea>
-                    </div>
-                    <div class="preview-result-box">
-                        <div class="preview-label">匹配结果：<span id="sb-match-status" class="status-tag">未匹配</span></div>
-                        <div class="preview-container" id="sb-preview-container">
-                            <!-- 渲染结果 -->
-                            <span style="color:#999; font-size:12px;">预览区域</span>
-                        </div>
-                    </div>
+                <div class="editor-section sbp-panel preview-lab">
+                    <div class="sbp-preview-heading"><h2><i aria-hidden="true"></i>实时预览</h2><span id="sb-match-status" class="status-tag" role="status" aria-live="polite">示例预览</span></div>
+                    <div class="form-group"><label for="sb-test-input">试说一句</label><div class="sbp-test-entry"><textarea id="sb-test-input" rows="2" placeholder="随便说一句，或直接看下方效果"></textarea><button type="button" id="sb-preview-test-btn" aria-label="测试这句话"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7M12 5v15"/></svg></button></div></div>
+                    <div class="preview-result-box"><div class="preview-container" id="sb-preview-container"></div></div>
                 </div>
-
-                <button class="btn btn-primary" id="save-status-preset-btn" style="margin-top: 10px;">保存预设</button>
+                <button type="button" class="btn btn-primary" id="save-status-preset-btn">保存预设</button>
             </form>
         </main>
     </div>
@@ -2667,7 +2637,8 @@
 <script src="js/modules/widgets.js"></script>   <!-- 桌面小组件设置 -->
 <script src="js/modules/widget_market.js?v=20261024-studio-2"></script> <!-- 小组件市场 -->
 <script src="js/modules/tutorial.js?v=20261024-archive-1"></script>  <!-- 教程、更新日志、GitHub备份 -->
-<script src="js/modules/more_menu.js"></script> <!-- 更多菜单与状态栏管理 -->
+<script src="js/modules/more_menu.js?v=20261105-status-1"></script>
+<script src="js/modules/status-preset-preview.js?v=20261105-1"></script> <!-- 更多菜单与状态栏管理 -->
 <script src="js/modules/search.js?v=20261031-ui-3"></script> <!-- 聊天记录搜索模块 -->
 <script src="js/modules/battery_interaction.js"></script> <!-- 电量交互模块 -->
 <script src="js/modules/gallery.js?v=20261103-memory-4"></script> <!-- 角色相册管理模块 -->
@@ -2739,6 +2710,7 @@
 <script src="js/modules/acte.js?v=20261105-weibo-2"></script>
 </body>
 </html>
+
 
 
 
