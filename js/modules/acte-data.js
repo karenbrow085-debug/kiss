@@ -63,7 +63,10 @@
             rows: (Array.isArray(act?.rows) ? act.rows : []).map(row => ({
                 id: uid(), role: row?.role === 'assistant' ? 'assistant' : 'user',
                 speaker: string(row?.speaker, 80), text: string(row?.text, 16000),
-                at: Number(row?.at) || Date.now(), actorId:string(row?.actorId,100)
+                at: Number(row?.at) || Date.now(), actorId:string(row?.actorId,100),
+                avatar:image(row?.avatar), presetId:string(row?.presetId,120), displayText:typeof row?.displayText === 'string' ? string(row.displayText,16000) : undefined,
+                duration:Number.isFinite(row?.duration) ? row.duration : undefined,
+                tokens:Number.isFinite(row?.tokens) ? row.tokens : undefined, estimated:row?.estimated === true
             }))
         }));
         if (!acts.length) acts.push({id:uid(), title:'开场', rows:[]});
@@ -73,14 +76,14 @@
             kind:Object.hasOwn(kinds, data.kind) ? data.kind : 'html',
             genre:string(data.genre,40).trim() || genres[0],
             viewpoint:['first','second','third'].includes(data.viewpoint) ? data.viewpoint : 'third',
-            viewpointActor:string(data.viewpointActor,100), userOnStage:data.userOnStage !== false,
+            viewpointActor:string(data.viewpointActor,100),userProfileId:string(data.userProfileId,100), userOnStage:data.userOnStage !== false,
             synopsis:string(data.synopsis, 6000), html:string(data.html, maxFile), cover:image(data.cover),
-            templateHtml:string(data.templateHtml, maxFile), stylePrompt:string(data.stylePrompt, 8000),
+            templateHtml:string(data.templateHtml, maxFile), templateId:string(data.templateId,100), stylePrompt:string(data.stylePrompt, 8000),
             started:data.started === true, example:data.example === true,
             generation:data.generation && {prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160),promptVersion:string(data.generation.promptVersion,100),worldBookIds:Array.isArray(data.generation.worldBookIds) ? data.generation.worldBookIds.map(String) : []},
             htmlProgress:validProgress(data.htmlProgress) ? data.htmlProgress : null,
             art:Number.isInteger(data.art) && data.art >= 0 && data.art <= 5 ? data.art : 1,
-            cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true, part:string(c.part,30)})),
+            cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true, part:string(c.part,30), notes:string(c.notes,1000)})),
             aware:keepCast && data.aware === true, status:data.status === 'done' ? 'done' : 'active',
             current:Math.max(0, Math.min(acts.length - 1, Number.isInteger(data.current) ? data.current : 0)),
             acts, updated:Date.now(), created:Date.now()
@@ -159,7 +162,7 @@
             '</head><body' + attrs(doc.body) + '>' + doc.body.innerHTML + '</body></html>';
     }
     function portable(work) {
-        const {cast, aware, generation, ...copy} = work;
+        const {cast, aware, generation, userProfileId, ...copy} = work;
         return copy;
     }
     function readHtml(source, filename) {
@@ -191,7 +194,7 @@
         const clean = stripPackage(body);
         return /<\/head\s*>/i.test(clean) ? clean.replace(/<\/head\s*>/i, match => meta + match) : clean + '\n' + meta;
     }
-    async function ask(messages, settings = {}, signal, cast = [], trigger = 'normal') {
+    async function ask(messages, settings = {}, signal, cast = [], trigger = 'normal', withStats = false) {
         const followRole = !settings.apiPreset;
         const draft = {apiPreset:settings.apiPreset === '@desktop' ? '' : settings.apiPreset,model:followRole ? '' : settings.model,generationSource:'tavern',tavernPresetId:settings.preset,inheritWorldbooks:false};
         const actor = character(cast[0]?.id);
@@ -201,7 +204,7 @@
             exclusiveApiModel:followRole ? actor?.exclusiveApiModel : undefined,
             worldBookIds:(db.worldBooks || []).filter(b => (settings.worldBookIds || []).includes(String(b.id))).map(b => b.id),
             offline:{draft}};
-        const config = {...(window.KissOffline?.resolveOfflineApi(chat,followRole ? undefined : db.apiSettings) || db.apiSettings),streamEnabled:false};
+        const config = {...(window.KissOffline?.resolveOfflineApi(chat,followRole ? undefined : db.apiSettings) || db.apiSettings)};
         if (!config.url || !config.model || !config.key) throw Error('请在生成设置选择有效的 API 和模型');
         if (typeof BLOCKED_API_DOMAINS !== 'undefined' && BLOCKED_API_DOMAINS.some(domain => config.url.includes(domain))) throw Error('该 API 地址不可用');
         if (config.provider !== 'gemini') config.key = getRandomValue(config.key);
@@ -224,29 +227,31 @@
             if (content) system.push({role:'system',content});
         }
         const history = messages.filter(m => m.role !== 'system');
-        const req = buildChatApiRequest(config,[...system,...history],{temperature:config.temperatureEnabled ? config.temperature : undefined});
+        const offline = window.KissOfflineGeneration;
+        let req;
         if (settings.mode === 'tavern') {
             if (!selected) throw Error('请选择酒馆预设');
-            const report = window.KissTavernRuntime?.prepare({chat:{...chat,worldBookIds:[]},body:req.requestBody,provider:config.provider,history,offline:true,trigger,
-                hostProtocol:system.map(m => m.content).join('\n\n')});
-            if (!report?.active) throw Error('酒馆预设未生效');
-            await window.KissOfflineGeneration?.applyRequestRegex({mode:'tavern',presetId:report.presetId,...req},chat);
+            req = offline.build({...chat,worldBookIds:[]},history,config,()=>'',trigger,
+                {hostProtocol:system.map(m => m.content).join('\n\n'),skipCollections:true});
+            await offline.applyRequestRegex(req,chat);
+        } else {
+            req = buildChatApiRequest({...config,streamEnabled:false},[...system,...history],
+                {temperature:config.temperatureEnabled ? config.temperature : undefined});
         }
-        if ('stream' in req.requestBody) req.requestBody.stream = false;
-        const response = await fetch(req.endpoint,{method:'POST',headers:req.headers,body:JSON.stringify(req.requestBody),signal});
+        const started = performance.now();
+        const response = await fetch(req.endpoint,{method:'POST',headers:req.headers,
+            body:JSON.stringify(window.KissBilingual?.prepareBody(req.requestBody) || req.requestBody),signal});
         if (!response.ok) throw Error('API 请求失败（HTTP ' + response.status + '）');
-        const result = response.headers.get('content-type')?.includes('text/event-stream')
-            ? await readStreamResponse(response,config.provider)
-            : window.KissOfflineGeneration.consume(await response.json(),config.provider,{full:'',reasoning:''}).full;
-        const text = window.KissOfflineGeneration.split(result).text;
+        const output = await offline.readResponse(response,config.provider);
+        const text = unwrap(offline.split(output.full).text);
         if (!text?.trim()) throw Error('模型返回了空内容');
-        return unwrap(text);
+        return withStats ? {text,usage:output.usage,duration:(performance.now()-started)/1000,presetId:req.presetId,actor:chat.realName,user:chat.myName} : text;
     }
     function castContext(work) {
         const roles = work.cast.map(row => {
             const c = character(row.id);
             if (!c) return '';
-            const profile = {name:name(c), part:row.part || '配角', persona:c.persona || '', profile:c.profile || undefined};
+            const profile = {actorId:String(c.id),name:name(c), part:row.part || '配角', notes:row.notes || undefined, persona:c.persona || '', profile:c.profile || undefined};
             if (row.memory) profile.memories = (c.memoryJournals || []).filter(j => j.isFavorited && !j.isContextDisabled && !j.mergedIntoId)
                 .slice(-20).map(j => string(j.content, 1600));
             return JSON.stringify(profile);

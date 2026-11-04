@@ -18,7 +18,7 @@ function consume(data,provider,target){
  return target;
 }
 function contextChat(chat){const draft=chat.offline?.draft||{};return {...chat,worldBookIds:draft.inheritWorldbooks===false?(draft.worldBookIds||[]):(chat.worldBookIds||[])};}
-function build(chat,history,apiConfig,basePrompt,trigger='normal'){
+function build(chat,history,apiConfig,basePrompt,trigger='normal',options={}){
  const draft=chat.offline?.draft||{},mode=draft.generationSource==='tavern'?'tavern':'cot',effective=contextChat(chat);
  const messages=history.map(m=>({role:m.role,content:m.content}));
  if(!messages.length)messages.push({role:'user',content:'请根据当前场景开始线下剧情，留出我的回应空间。'});
@@ -35,12 +35,12 @@ function build(chat,history,apiConfig,basePrompt,trigger='normal'){
  let stream=!!apiConfig.streamEnabled,report=null;
  if(mode==='tavern'){
   if(!root.KissTavernRuntime?.prepare)throw Error('酒馆预设模块未加载，请刷新完整更新后的页面');
-  report=root.KissTavernRuntime.prepare({chat:effective,chatType:'private',body:built.requestBody,provider:apiConfig.provider,history:messages,offline:true,trigger});
+  report=root.KissTavernRuntime.prepare({chat:effective,chatType:'private',body:built.requestBody,provider:apiConfig.provider,history:messages,offline:true,trigger,hostProtocol:options.hostProtocol});
   if(!report.active)throw Error('酒馆预设没有生效，已停止请求；请重新选择预设');
   stream=report.stream;
  }
  // Append after Tavern composition so a preset cannot silently drop collection context.
- const collectionContext=root.KissCollections?.prompt(chat);
+ const collectionContext=options.skipCollections?'':root.KissCollections?.prompt(chat);
  if(collectionContext&&!JSON.stringify(built.requestBody).includes('<双方收藏资料>')){
   if(apiConfig.provider==='gemini'){
    // The app and Tavern runtime both emit snake_case. Never send both aliases.
@@ -64,5 +64,18 @@ async function applyRequestRegex(built,chat){
  const result=await root.KissTavernRegex.apply(fields.map(f=>({text:f.owner[f.key],context:f.context})),preset,{target:'prompt',char:chat.realName||chat.remarkName||'角色',user:chat.myName||'我'});
  if(result.items)fields.forEach((f,index)=>f.owner[f.key]=result.items[index]);if(result.warnings.length)console.warn('[Preset regex]',...result.warnings);
 }
-root.KissOfflineGeneration={split,consume,build,contextChat,applyRequestRegex};
+async function readResponse(response,provider){
+ const output={full:'',reasoning:'',usage:null};
+ if(!(response.headers.get('content-type')||'').includes('text/event-stream')){
+  const data=await response.json();for(const item of Array.isArray(data)?data:[data])consume(item,provider,output);return output;
+ }
+ const reader=response.body.getReader(),decoder=new TextDecoder();let pending='';
+ try{for(;;){
+  const {done,value}=await reader.read();pending+=decoder.decode(value,{stream:!done});
+  const lines=pending.split(/\r?\n/);pending=lines.pop();if(done)lines.push(pending);
+  for(const line of lines){if(!line.startsWith('data:'))continue;const item=line.slice(5).trim();if(item&&item!=='[DONE]')consume(JSON.parse(item),provider,output);}
+  if(done)return output;
+ }}finally{reader.releaseLock();}
+}
+root.KissOfflineGeneration={split,consume,build,contextChat,applyRequestRegex,readResponse};
 })(window);
