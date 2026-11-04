@@ -528,3 +528,5 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-cover-settings { margin-top:12px; border-top:1px solid var(--ac-line); }
 #kiss-acte .ac-cover-settings .ac-field:has(select) { display:grid; grid-template-columns:80px 1fr; align-items:center; border-bottom:1px solid var(--ac-line); }
 #kiss-acte .ac-cover-settings select { text-align:right; border:0; background:transparent; }
+
+#kiss-acte[data-theme=night] .ac-post-text .of-inline-html iframe { color-scheme:dark; }
