@@ -1276,6 +1276,7 @@ function openSoundManageModal() {
         new MutationObserver(() => sync(select)).observe(select, {childList:true, subtree:true, characterData:true, attributes:true});
         button.onclick = () => {
             source = select; returnFocus = button; input.value = '';
+            modal.classList.toggle('pt-cot-picker', select.id === 'cot-preset-select');
             modal.querySelector('.tps-title').textContent = config.title;
             modal.querySelector('.tps-footer').textContent = config.hint;
             input.setAttribute('aria-label','搜索' + config.title);

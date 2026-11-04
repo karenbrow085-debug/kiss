@@ -15,7 +15,7 @@ function init(){
  }
  function sync(){pending=false;
   for(const [select,button] of hooked){if(!select.isConnected){button.remove();hooked.delete(select);}}
-  for(const select of [...root.querySelectorAll('select'),...document.querySelectorAll('.pt-dialog select')]){
+  for(const select of [...root.querySelectorAll('select:not(#cot-preset-select)'),...document.querySelectorAll('.pt-dialog select')]){
    let button=hooked.get(select);if(!button){button=document.createElement('button');button.type='button';button.className='pt-choice-button';button.setAttribute('aria-haspopup','dialog');const span=document.createElement('span');const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','m6 9 6 6 6-6');svg.append(path);button.append(span,svg);button.onclick=()=>choice(select);select.after(button);select.classList.add('pt-native-select');select.tabIndex=-1;hooked.set(select,button);}
    const caption=select.selectedOptions[0]?.textContent||'选择预设';if(button.firstChild.textContent!==caption)button.firstChild.textContent=caption;
    button.disabled=select.disabled;button.setAttribute('aria-label',(select.getAttribute('aria-label')||'选择')+'：'+caption);
