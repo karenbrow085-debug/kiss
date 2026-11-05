@@ -76,11 +76,11 @@
             kind:Object.hasOwn(kinds, data.kind) ? data.kind : 'html',
             genre:string(data.genre,40).trim() || genres[0],
             viewpoint:['first','second','third'].includes(data.viewpoint) ? data.viewpoint : 'third',
-            viewpointActor:string(data.viewpointActor,100),userProfileId:string(data.userProfileId,100), userOnStage:data.userOnStage !== false,
+            viewpointActor:string(data.viewpointActor,100),userProfileId:string(data.userProfileId,100),protagonistName:string(data.protagonistName,60),roleTags:string(data.roleTags,300), userOnStage:data.userOnStage !== false,
             synopsis:string(data.synopsis, 6000), html:string(data.html, maxFile), cover:image(data.cover),
             templateHtml:string(data.templateHtml, maxFile), templateId:string(data.templateId,100), stylePrompt:string(data.stylePrompt, 8000),
             started:data.started === true, example:data.example === true,
-            generation:data.generation && {prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160),promptVersion:string(data.generation.promptVersion,100),worldBookIds:Array.isArray(data.generation.worldBookIds) ? data.generation.worldBookIds.map(String) : []},
+            generation:data.generation && {responseStyle:string(data.generation.responseStyle,2000),temperature:typeof data.generation.temperature === 'number' && Number.isFinite(data.generation.temperature) && data.generation.temperature >= 0 && data.generation.temperature <= 2 ? data.generation.temperature : null,maxOutput:Number.isInteger(data.generation.maxOutput) && data.generation.maxOutput > 0 && data.generation.maxOutput <= 200000 ? data.generation.maxOutput : null,prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160),promptVersion:string(data.generation.promptVersion,100),worldBookIds:Array.isArray(data.generation.worldBookIds) ? data.generation.worldBookIds.map(String) : []},
             htmlProgress:validProgress(data.htmlProgress) ? data.htmlProgress : null,
             art:Number.isInteger(data.art) && data.art >= 0 && data.art <= 5 ? data.art : 1,
             cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true, part:string(c.part,30), notes:string(c.notes,1000)})),
@@ -155,7 +155,7 @@
         doc.querySelector('meta[name="viewport"]')?.remove();
         const attrs = element => [...element.attributes].map(a => ' ' + a.name + '="' + esc(a.value) + '"').join('');
         const initial = JSON.stringify(progress ?? null).replace(/</g, '\\u003c');
-        const player = '<script>addEventListener("message",e=>{if(e.source!==parent||e.data?.type!=="acte-player")return;const d=e.data;for(const a of document.getAnimations()){if(typeof d.paused==="boolean"){if(d.paused)a.pause();else a.play();}if([1,1.5,2].includes(d.rate))a.playbackRate=d.rate;}for(const m of document.querySelectorAll("video,audio")){if(d.paused===true){m.dataset.acteWasPlaying=String(!m.paused);m.pause();}if(d.paused===false&&m.dataset.acteWasPlaying==="true")m.play().catch(()=>{});if([1,1.5,2].includes(d.rate))m.playbackRate=d.rate;}});<\/script>';
+        const player = '<script>addEventListener("message",e=>{if(e.source!==parent||e.data?.type!=="acte-player")return;const d=e.data;if(Number.isInteger(d.heading))[...document.querySelectorAll("h1,h2,h3")].filter(h=>h.textContent.trim())[d.heading]?.scrollIntoView({behavior:"smooth"});for(const a of document.getAnimations()){if(typeof d.paused==="boolean"){if(d.paused)a.pause();else a.play();}if([1,1.5,2].includes(d.rate))a.playbackRate=d.rate;}for(const m of document.querySelectorAll("video,audio")){if(d.paused===true){m.dataset.acteWasPlaying=String(!m.paused);m.pause();}if(d.paused===false&&m.dataset.acteWasPlaying==="true")m.play().catch(()=>{});if([1,1.5,2].includes(d.rate))m.playbackRate=d.rate;}});<\/script>';
         const bridge = track ? '<script>window.ActeProgress={value:' + initial +
             ',save(value){this.value=value;parent.postMessage({type:"acte-progress",value},"*")}};<\/script>' : '';
         return '<!doctype html><html' + attrs(doc.documentElement) + '><head><meta http-equiv="Content-Security-Policy" content="' + policy +
@@ -227,6 +227,7 @@
                 .replace(/\{\{char\}\}/gi,() => chat.realName).replace(/\{\{user\}\}/gi,() => chat.myName);
             if (content) system.push({role:'system',content});
         }
+        if (settings.responseStyle) system.push({role:'system',content:'【剧幕回复风格】' + string(settings.responseStyle,2000)});
         const history = messages.filter(m => m.role !== 'system');
         const offline = window.KissOfflineGeneration;
         let req;
@@ -238,6 +239,15 @@
         } else {
             req = buildChatApiRequest({...config,streamEnabled:false},[...system,...history],
                 {temperature:config.temperatureEnabled ? config.temperature : undefined});
+        }
+        // Per-theatre overrides never modify the shared API or imported preset.
+        if (typeof settings.temperature === 'number' && Number.isFinite(settings.temperature) && settings.temperature >= 0 && settings.temperature <= 2) {
+            if (config.provider === 'gemini') (req.requestBody.generationConfig ||= {}).temperature = settings.temperature;
+            else req.requestBody.temperature = settings.temperature;
+        }
+        if (Number.isInteger(settings.maxOutput) && settings.maxOutput > 0 && settings.maxOutput <= 200000) {
+            if (config.provider === 'gemini') (req.requestBody.generationConfig ||= {}).maxOutputTokens = settings.maxOutput;
+            else { delete req.requestBody.max_completion_tokens; req.requestBody.max_tokens = settings.maxOutput; }
         }
         const started = performance.now();
         const response = await fetch(req.endpoint,{method:'POST',headers:req.headers,
