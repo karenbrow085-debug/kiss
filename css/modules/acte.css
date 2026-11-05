@@ -1019,3 +1019,11 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 }
 #kiss-acte .ac-top-actions [data-acte="listen-post"] svg { width:25px; height:25px; }
 #kiss-acte .ac-post-shortcuts button:nth-child(4) i { color:#ef852a; }
+
+/* Direct home controls stay outside the overflow menu. */
+#kiss-acte .ac-hub-top { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); padding-inline:12px; }
+#kiss-acte .ac-hub-leading { display:flex; align-items:center; min-width:0; gap:3px; }
+#kiss-acte .ac-hub-leading h1 { margin:0; white-space:nowrap; }
+#kiss-acte .ac-hub-top .ac-icon { width:30px; min-width:30px; padding:0; }
+#kiss-acte .ac-hub-leading .ac-icon { width:25px; min-width:25px; }
+#kiss-acte .ac-hub-top > div:last-child { gap:2px; }

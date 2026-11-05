@@ -79,6 +79,7 @@
     const time = at => new Intl.DateTimeFormat('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}).format(at);
     const status = w => w.status === 'done' ? '已落幕' : '进行中';
     const getAct = w => w.acts[w.current];
+    const findRow = (w,id) => (state.shared?.scope === 'script' ? w.acts.flatMap(a=>a.rows) : getAct(w).rows).find(r=>r.id === id);
     const performing = () => state.page === 'reader';
     const readerLabel = (en, zh) => zh;
     const englishPart = part => {
@@ -110,8 +111,8 @@
             '<h1>' + E(title) + '</h1>' + extra + '</header>';
     }
     function hubTop(title) {
-        return '<header class="ac-hub-top"><h1>' + title + '</h1><div class="ac-hub-brand"><strong>ACTE 剧幕</strong><small>在 KISS</small></div><div>' +
-            btn('hub-search',icon('search'),'ac-icon','','搜索') + btn('hub-menu',icon('more'),'ac-icon','','更多') + '</div></header>';
+        return '<header class="ac-hub-top"><div class="ac-hub-leading">' + btn('close',icon('back'),'ac-icon','','返回 404') + '<h1>' + title + '</h1></div><div class="ac-hub-brand"><strong>ACTE 剧幕</strong><small>在 KISS</small></div><div>' +
+            btn('hub-search',icon('search'),'ac-icon','','搜索') + btn('theme',icon(state.theme === 'night' ? 'sun' : 'moon'),'ac-icon','','切换' + (state.theme === 'night' ? '日间' : '夜间')) + '</div></header>';
     }
     const filter = (key, items, selected, label) => '<select data-filter="' + key + '" aria-label="' + label + '">' + options(items,selected) + '</select>';
     function nav() {
@@ -412,7 +413,7 @@
         const a = getAct(w), prose = w.kind === 'prose';
         const fullShared=state.shared?.scope === 'script';
         const rows=fullShared ? w.acts.flatMap(act=>act.rows) : state.liveGeneration?.reroll ? a.rows.slice(0,state.liveGeneration.pivot+1) : a.rows;
-        const selected = a.rows.find(r=>r.id === state.postId);
+        const selected = findRow(w,state.postId);
         if (prose && selected) return postDetail(w,selected);
         const dialogue = !prose || state.dialogueView;
         const count = w.acts.reduce((n,a)=>n+a.rows.length,0);
@@ -589,7 +590,6 @@
             const idea = D.ideas[state.ideaIndex];
             return sheet(idea.title,'<p class="ac-idea-synopsis">' + E(idea.synopsis) + '</p>' + btn('idea','用此梗概开场','ac-primary ac-wide',state.ideaIndex));
         }
-        case 'hub-menu': return sheet('ACTE 剧幕',btn('theme','切换日夜间','ac-menu-item') + btn('close','返回 404','ac-menu-item'));
         case 'library-tools': return sheet('剧库操作',btn('new','新建文字剧场','ac-menu-item') +
             controls({'':'全部写法',dialogue:'对话',prose:'长文'},state.textKind || '','text-kind','ac-inline'));
         case 'genre-new': return sheet('添加题材','<form class="ac-form" data-form="genre-add"><input name="genre" maxlength="40" placeholder="新题材名称" required><button type="submit" class="ac-primary">添加</button></form>');
@@ -617,7 +617,7 @@
         case 'reader-menu': return sheet('演绎设置',btn('scenes','场次','ac-menu-item') +
             (w.kind === 'prose' ? btn('size','字号','ac-menu-item') : '') +
             (!state.shared && getAct(w).rows.some(r => r.role === 'user') ? btn('reroll','重回','ac-menu-item') : '') +
-            btn('detail-back','剧目主页','ac-menu-item'));
+            (state.shared ? btn('close','返回 404','ac-menu-item') : btn('detail-back','剧目主页','ac-menu-item')));
         case 'detail-menu': return sheet('消息操作',state.shared ? btn('copy-post','复制','ac-menu-item',state.menuRow) :
             btn('edit-turn','编辑','ac-menu-item',state.menuRow));
         case 'dialogue-menu': return sheet('消息操作',btn('edit-turn','编辑','ac-menu-item',state.menuRow) +
@@ -845,7 +845,6 @@
                 render();
                 app.querySelector('.ac-search input')?.focus();
                 return;
-            case 'hub-menu': state.sheet = 'hub-menu'; keep = true; break;
             case 'library-tools': state.sheet = 'library-tools'; keep = true; break;
             case 'genre-new': state.sheet = 'genre-new'; keep = true; break;
             case 'genre-manage': state.genreEditing = !state.genreEditing; keep = true; break;
@@ -890,8 +889,8 @@
             case 'detail': goDetail(v); break;
             case 'resume': goDetail(v); await play(state.work.current,true); break;
             case 'back': if (state.shared) { close(); return; } state.page = returnPage; break;
-            case 'detail-back': state.page = 'detail'; state.postId = ''; state.sheet = ''; break;
-            case 'post-detail': state.feedScroll = scroll; state.postId = v; state.replyCommentId = ''; state.commentActorId = getAct(state.work).rows.find(r=>r.id === v)?.actorId || state.work.cast[0]?.id || ''; state.commentSort = 'hot'; break;
+            case 'detail-back': if (state.shared) { close(); return; } state.page = 'detail'; state.postId = ''; state.sheet = ''; break;
+            case 'post-detail': { const work=state.shared?.work || state.work; state.feedScroll = scroll; state.postId = v; state.replyCommentId = ''; state.commentActorId = findRow(work,v)?.actorId || work.cast[0]?.id || ''; state.commentSort = 'hot'; break; }
             case 'comment-order': state.commentSort = ({hot:'newest',newest:'oldest',oldest:'hot'})[state.commentSort || 'hot']; keep = true; break;
             case 'reply-comment': {
                 state.replyCommentId = v;
@@ -914,13 +913,13 @@
             case 'listen-post': {
                 if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') { note('Speech playback is unavailable.'); return; }
                 if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
-                const row=getAct(state.shared?.work || state.work).rows.find(row=>row.id === state.postId);
+                const row=findRow(state.shared?.work || state.work,state.postId);
                 if (row) speechSynthesis.speak(new SpeechSynthesisUtterance(quotePreview(row.displayText || row.text)));
                 return;
             }
             case 'reader-posts': state.dialogueView = false; keep = true; break;
             case 'follow-work': await update(w => { w.followed = !w.followed; }); keep = true; break;
-            case 'post-back': state.postId = ''; state.replyCommentId = ''; render(state.feedScroll); return;
+            case 'post-back': if (state.shared) { close(); return; } state.postId = ''; state.replyCommentId = ''; render(state.feedScroll); return;
             case 'reader-dialogue': state.dialogueView = true; keep = true; break;
             case 'reader-sort': state.readerOldest = state.readerOldest === false; break;
             case 'reader-menu': case 'detail-menu': case 'dialogue-menu':
@@ -957,7 +956,7 @@
                 await update(w => { const row = getAct(w).rows.find(row => row.id === v); if (row) row.liked = !row.liked; });
                 keep = true; break;
             case 'copy-post': case 'export-post': {
-                const row = getAct(state.shared?.work || state.work).rows.find(row => row.id === v);
+                const row = findRow(state.shared?.work || state.work,v);
                 if (!row) return;
                 const text = row.displayText ?? row.text;
                 if (b.dataset.acte === 'copy-post') { await navigator.clipboard.writeText(text); note('Copied'); }
