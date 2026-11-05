@@ -228,30 +228,9 @@
         state.draft.set(getAct(state.work).id,input.value);
         input.focus({preventScroll:true});
     }
-    function dragWindow(handle, move) {
-        let drag;
-        handle.addEventListener('pointerdown',event => {
-            if (event.button !== 0 || event.target.closest('button')) return;
-            drag = {id:event.pointerId,x:event.clientX,y:event.clientY};
-            handle.setPointerCapture(event.pointerId);
-        });
-        handle.addEventListener('pointermove',event => {
-            if (drag?.id !== event.pointerId) return;
-            move(event.clientX-drag.x,event.clientY-drag.y);
-            drag.x = event.clientX;
-            drag.y = event.clientY;
-        });
-        handle.addEventListener('lostpointercapture',() => { drag = null; });
-        handle.addEventListener('keydown',event => {
-            const delta = {ArrowLeft:[-12,0],ArrowRight:[12,0],ArrowUp:[0,-12],ArrowDown:[0,12]}[event.key];
-            if (!delta || event.target !== handle) return;
-            event.preventDefault(); move(...delta);
-        });
-    }
     function floatingChoices(body) {
         return '<section class="ac-choice-window ac-top-layer" role="dialog" aria-label="Plot Choices">' +
-            '<header class="ac-float-handle" tabindex="0" aria-label="Move Plot Choices"><strong>Plot Choices</strong>' +
-            btn('sheet-close',icon('close'),'ac-icon','','Close') + '</header><div class="ac-sheet-body">' + body + '</div></section>';
+            '<header class="ac-choice-heading"><strong>Plot Choices</strong></header><div class="ac-sheet-body">' + body + '</div></section>';
     }
     function showTopLayer(node) {
         if (!node.showPopover) return;
@@ -262,14 +241,6 @@
         const panel = app.querySelector('.ac-choice-window');
         if (!panel) return;
         showTopLayer(panel);
-        const rect = panel.getBoundingClientRect();
-        let x = rect.left, y = rect.top;
-        dragWindow(panel.firstElementChild,(dx,dy) => {
-            x = Math.max(8,Math.min(innerWidth-panel.offsetWidth-8,x+dx));
-            y = Math.max(8,Math.min(innerHeight-panel.offsetHeight-8,y+dy));
-            Object.assign(panel.style,{inset:'auto',left:x+'px',top:y+'px'});
-        });
-        panel.firstElementChild.focus({preventScroll:true});
     }
     function mountPostFrames() {
         for (const [id,{layout,row}] of postLayouts) {

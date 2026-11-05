@@ -615,3 +615,5 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-tabs .ac-selected { border:0; }
 #kiss-acte .ac-hub-top .ac-hub-brand { justify-self:center; }
 #kiss-acte .ac-hub-top > div:last-child { justify-self:end; }
+
+#kiss-acte .ac-choice-heading { padding:15px 18px; border-bottom:1px solid var(--ac-line); font-size:16px; }
