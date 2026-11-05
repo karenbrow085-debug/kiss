@@ -1,7 +1,7 @@
 /* Instagram-style profile popup; legacy profile skins retain the original DOM. */
 #profile-card-modal.pc-social-mode{position:fixed;inset:0;width:100%;height:100dvh;margin:0;padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px));box-sizing:border-box;align-items:center;justify-content:center;background:#29314052;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:10000}
 #profile-card-modal.pc-social-mode>.modal-window{display:none!important}
-#profile-card-modal .ps-home{position:relative;isolation:isolate;display:flex;flex-direction:column;width:100%;max-width:390px;max-height:100%;min-height:0;overflow:hidden;box-sizing:border-box;border:1px solid #ffffffd9;border-radius:27px;background:linear-gradient(145deg,#fff,#fafbfd);box-shadow:0 18px 65px #283a5229;color:#242832;font-family:var(--font-family,-apple-system,BlinkMacSystemFont,sans-serif);font-size:13px}
+#profile-card-modal .ps-home{position:relative;isolation:isolate;display:flex;flex-direction:column;width:100%;max-width:370px;max-height:100%;min-height:0;overflow:hidden;box-sizing:border-box;border:1px solid #ffffffd9;border-radius:24px;background:linear-gradient(145deg,#fff,#fafbfd);box-shadow:0 18px 65px #283a5229;color:#242832;font-family:var(--font-family,-apple-system,BlinkMacSystemFont,sans-serif);font-size:13px}
 #profile-card-modal .ps-home *{box-sizing:border-box}
 #profile-card-modal .ps-home button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0;box-shadow:none;letter-spacing:0;-webkit-tap-highlight-color:transparent}
 #profile-card-modal .ps-home svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round;flex-shrink:0;pointer-events:none}
@@ -9,13 +9,13 @@
 #profile-card-modal .ps-home button:focus-visible{outline:2px solid #9ab8d1;outline-offset:3px}
 #profile-card-modal .ps-home button:disabled{opacity:.45;cursor:wait}
 #profile-card-modal .ps-home button:active{opacity:.65}
-#profile-card-modal .ps-nav{display:flex;align-items:center;justify-content:center;position:relative;padding:19px 50px 16px;min-height:57px;flex-shrink:0}
+#profile-card-modal .ps-nav{display:flex;align-items:center;justify-content:center;position:relative;padding:14px 48px 12px;min-height:46px;flex-shrink:0}
 #profile-card-modal .ps-top-handle{font-size:12px;letter-spacing:.25px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:#555c69}
-#profile-card-modal .ps-nav button{position:absolute;right:15px;top:11px;display:grid;place-items:center;width:36px;height:36px;border-radius:50%}
+#profile-card-modal .ps-nav button{position:absolute;right:12px;top:5px;display:grid;place-items:center;width:36px;height:36px;border-radius:50%}
 #profile-card-modal .ps-nav svg{width:22px;height:22px;stroke-width:1.6}
-#profile-card-modal .ps-scroll{overflow:auto;overscroll-behavior:contain;min-height:0;padding:11px 23px 26px;scrollbar-width:thin;scrollbar-color:#dce3ed transparent}
-#profile-card-modal .ps-hero{display:flex;align-items:center;gap:17px;margin:2px 0 21px;min-width:0}
-#profile-card-modal .ps-avatar{width:92px;height:92px;flex:0 0 92px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #dbe3ee}
+#profile-card-modal .ps-scroll{overflow:auto;overscroll-behavior:contain;min-height:0;padding:5px 21px 19px;scrollbar-width:thin;scrollbar-color:#dce3ed transparent}
+#profile-card-modal .ps-hero{display:flex;align-items:center;gap:15px;margin:1px 0 13px;min-width:0}
+#profile-card-modal .ps-avatar{width:80px;height:80px;flex:0 0 80px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #dbe3ee}
 #profile-card-modal .ps-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:1;min-width:0;gap:0}
 #profile-card-modal .ps-stat{min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 5px}
 #profile-card-modal .ps-stat:not(:last-child):after{content:'';position:absolute;right:0;top:5px;bottom:5px;width:1px;background:#e6eaf0}
@@ -23,21 +23,21 @@
 #profile-card-modal .ps-stat small{font-size:10px;color:#969eac;white-space:nowrap;line-height:1.6}
 #profile-card-modal .ps-name-line{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:3px}
 #profile-card-modal .ps-name{display:flex;align-items:center;gap:7px;min-width:0}
-#profile-card-modal .ps-name h1{font-size:24px;font-weight:600;line-height:1.45;letter-spacing:.3px;margin:0;overflow-wrap:anywhere}
+#profile-card-modal .ps-name h1{font-size:22px;font-weight:600;line-height:1.4;letter-spacing:.3px;margin:0;overflow-wrap:anywhere}
 #profile-card-modal .ps-verified{display:inline-flex;color:#4b9bd4;flex-shrink:0;align-items:center}
 #profile-card-modal .ps-verified svg{width:17px;height:17px}
 #profile-card-modal .ps-home .ps-edit{font-size:12px;color:#859bb5;min-height:34px;padding:5px 0 5px 10px;flex-shrink:0;border:0;border-radius:0;background:transparent;letter-spacing:.4px;font-weight:500}
-#profile-card-modal .ps-handle{font-size:12px;color:#939caa;overflow-wrap:anywhere;line-height:1.5;margin:0 0 11px}
-#profile-card-modal .ps-bio{font-size:13px;line-height:1.85;color:#59616d;white-space:pre-line;overflow-wrap:anywhere;margin:0 0 20px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-#profile-card-modal .ps-actions{display:flex;align-items:center;gap:10px;margin:22px 0 25px}
+#profile-card-modal .ps-handle{font-size:12px;color:#939caa;overflow-wrap:anywhere;line-height:1.5;margin:0 0 7px}
+#profile-card-modal .ps-bio{font-size:13px;line-height:1.65;color:#59616d;white-space:pre-line;overflow-wrap:anywhere;margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#profile-card-modal .ps-actions{display:flex;align-items:center;gap:9px;margin:14px 0 17px}
 #profile-card-modal .ps-home .ps-primary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:10px 16px;border:1px solid #2d3139;border-radius:14px;background:linear-gradient(120deg,#343942,#292c32);color:#fff;font-size:14px;font-weight:500;flex:1;letter-spacing:.5px}
 #profile-card-modal .ps-actions .ps-primary svg{width:19px;height:19px}
 #profile-card-modal .ps-home .ps-settings{width:45px;height:43px;display:grid;place-items:center;flex-shrink:0;border:1px solid #aab2bf;border-radius:14px;background:transparent;color:#4d5563}
 #profile-card-modal .ps-settings svg{width:21px;height:21px}
-#profile-card-modal .ps-personal{border-top:1px solid #e4e8ef;padding-top:18px}
-#profile-card-modal .ps-personal h2{position:relative;font-size:13px;line-height:1.5;font-weight:550;letter-spacing:.5px;margin:0 0 10px;padding-left:11px}
+#profile-card-modal .ps-personal{border-top:1px solid #e4e8ef;padding-top:13px}
+#profile-card-modal .ps-personal h2{position:relative;font-size:13px;line-height:1.5;font-weight:550;letter-spacing:.5px;margin:0 0 7px;padding-left:10px}
 #profile-card-modal .ps-personal h2:before{content:'';position:absolute;left:0;top:4px;height:13px;width:3px;border-radius:3px;background:#769eb4}
-#profile-card-modal .ps-persona{font-size:13px;line-height:1.85;color:#66717f;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 1px;padding-left:11px;max-height:158px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#dce3ed transparent}
+#profile-card-modal .ps-persona{font-size:13px;line-height:1.7;color:#66717f;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 1px;padding-left:11px;max-height:158px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#dce3ed transparent}
 #profile-card-modal .ps-sheet-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:14px;z-index:10;background:#42527435;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);border-radius:inherit}
 #profile-card-modal .ps-sheet{width:100%;max-height:95%;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid #fff;background:#f8faff;border-radius:21px;padding:18px;box-shadow:0 10px 40px #31476d15}
 #profile-card-modal .ps-sheet>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:17px}
@@ -54,4 +54,5 @@
 #profile-card-modal .ps-token-total{font-size:20px;font-weight:500;text-align:center;color:#708bab}
 #profile-card-modal .ps-empty{font-size:12px;color:#a3adbe;line-height:1.8;text-align:center;padding:25px 12px}
 @media(max-width:350px){#profile-card-modal.pc-social-mode{padding-left:12px;padding-right:12px}#profile-card-modal .ps-scroll{padding-left:18px;padding-right:18px}#profile-card-modal .ps-hero{gap:10px}#profile-card-modal .ps-avatar{width:76px;height:76px;flex-basis:76px}#profile-card-modal .ps-stat b{font-size:14px}#profile-card-modal .ps-stat small{font-size:9px}#profile-card-modal .ps-name h1{font-size:22px}}
-@media(max-height:600px){#profile-card-modal .ps-nav{min-height:47px;padding-top:13px;padding-bottom:11px}#profile-card-modal .ps-scroll{padding-top:7px;padding-bottom:18px}#profile-card-modal .ps-hero{margin-bottom:14px}#profile-card-modal .ps-actions{margin-top:15px;margin-bottom:18px}}
+@media(max-height:600px){#profile-card-modal .ps-nav{min-height:47px;padding-top:13px;padding-bottom:11px}#profile-card-modal .ps-scroll{padding-top:3px;padding-bottom:16px}#profile-card-modal .ps-hero{margin-bottom:11px}#profile-card-modal .ps-actions{margin-top:12px;margin-bottom:14px}}
+
