@@ -992,3 +992,30 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-live-container .ac-post-menu { visibility:hidden; }
 #kiss-acte .ac-live-container .ac-post-text { min-height:42px; }
 #kiss-acte .ac-profile-status { color:var(--ac-link); }
+
+/* Weibo content: symmetric title columns, actions aligned to the screen edge. */
+#kiss-acte .ac-page-reader > .ac-top:has(> .ac-top-actions):not(:has(> button:last-child)) {
+    grid-template-columns:64px minmax(0,1fr) 64px;
+    padding-inline:10px;
+}
+#kiss-acte .ac-page-reader > .ac-top:has(> .ac-top-actions) > h1 {
+    text-align:center;
+    margin:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+#kiss-acte .ac-page-reader > .ac-top > .ac-top-actions {
+    width:64px;
+    justify-self:end;
+    justify-content:flex-end;
+    gap:4px;
+}
+#kiss-acte .ac-page-reader > .ac-top > .ac-top-actions .ac-icon {
+    width:30px;
+    min-width:30px;
+    flex:0 0 30px;
+    padding:0;
+}
+#kiss-acte .ac-top-actions [data-acte="listen-post"] svg { width:25px; height:25px; }
+#kiss-acte .ac-post-shortcuts button:nth-child(4) i { color:#ef852a; }

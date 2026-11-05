@@ -37,13 +37,17 @@
         export:'<path d="M4 14v6h16v-6M12 3v12m-4-4 4 4 4-4"/>',
         expand:'<path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5"/>',
         weibo:'<path d="M20 11c1 2-1 6-6 8s-10 1-11-2 2-7 6-9c3-2 5-1 4 1 3-1 5-1 5 1z"/><ellipse cx="10" cy="15" rx="3" ry="2"/><path d="M17 4a5 5 0 0 1 5 5m-5-2a2 2 0 0 1 2 2"/>',
-        listen:'<path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H2v7h5v-7zm16 0h2v7h-5v-7z"/>',
+        listen:"<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 13v-2a8 8 0 0 1 16 0v2\"/><rect x=\"2.2\" y=\"12\" width=\"4.5\" height=\"8\" rx=\"1.5\"/><rect x=\"17.3\" y=\"12\" width=\"4.5\" height=\"8\" rx=\"1.5\"/></g><text x=\"12\" y=\"16.3\" text-anchor=\"middle\" fill=\"currentColor\" stroke=\"none\" font-family=\"sans-serif\" font-weight=\"700\" font-size=\"8.2\">听</text>",
         socialChat:'<path d="M14 14a6 6 0 1 0-7 2l-2 3 4-2"/><path d="M22 16a5 5 0 1 0-3 4l3 1-1-3"/><path d="M7 9h.1m4 0h.1m3 6h.1m4 0h.1"/>',
         aperture:'<circle cx="12" cy="12" r="9"/><path d="m8 4 7 1 3 7-4 7-7-1-3-7zm0 0 4 8 6 0m-3-7-5 8-3 5m7 1-4-6-6-2"/>',
         imageExport:'<rect x="3" y="3" width="17" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m3 17 6-6 4 4m4-3v10m-3-3 3 3 3-3"/>',
+        postRepost:"<g stroke=\"none\"><path fill=\"currentColor\" d=\"M15.85 8.14c.39 0 .77.03 1.14.08C16.31 5.25 13.19 3 9.44 3c-4.25 0-7.7 2.88-7.7 6.43c0 2.05 1.15 3.86 2.94 5.04L3.67 16.5l2.76-1.19c.59.21 1.21.38 1.87.47c-.09-.39-.14-.79-.14-1.21c-.01-3.54 3.44-6.43 7.69-6.43M12 5.89a.96.96 0 1 1 0 1.92a.96.96 0 0 1 0-1.92M6.87 7.82a.96.96 0 1 1 0-1.92a.96.96 0 0 1 0 1.92\"/><path fill=\"currentColor\" d=\"M22.26 14.57c0-2.84-2.87-5.14-6.41-5.14s-6.41 2.3-6.41 5.14s2.87 5.14 6.41 5.14c.58 0 1.14-.08 1.67-.2L20.98 21l-1.2-2.4c1.5-.94 2.48-2.38 2.48-4.03m-8.34-.32a.96.96 0 1 1 .96-.96c.01.53-.43.96-.96.96m3.85 0a.96.96 0 1 1 0-1.92a.96.96 0 0 1 0 1.92\"/></g>",
+        postSave:"<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"4\"><path d=\"M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20\"/><path d=\"M31 7v17\"/><path d=\"m16.636 6.636l14.142 14.142\"/><path d=\"M7 17h17\"/><path d=\"M20.364 17.636L6.222 31.778\"/><path d=\"M17 25v17\"/><path d=\"m17.636 27.636l14.142 14.142\"/><path d=\"M24 31h18\"/><path d=\"M42.364 16.636L28.222 30.778M24 31a7 7 0 1 0 0-14a7 7 0 0 0 0 14\"/></g>",
+        postCopy:"<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"M7 9.667A2.667 2.667 0 0 1 9.667 7h8.666A2.667 2.667 0 0 1 21 9.667v8.666A2.667 2.667 0 0 1 18.333 21H9.667A2.667 2.667 0 0 1 7 18.333z\"/><path d=\"M4.012 16.737A2 2 0 0 1 3 15V5c0-1.1.9-2 2-2h10c.75 0 1.158.385 1.5 1\"/></g>",
+        postExport:"<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21\"/><path d=\"m14 19l3 3v-5.5m0 5.5l3-3\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/></g>",
         search:'<circle cx="10" cy="10" r="5.5"/><path d="m14 14 5 5"/>'
     };
-    const icon = (type) => '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icons[type] + '</svg>';
+    const icon = (type) => '<svg viewBox="' + (type === 'postSave' ? '0 0 48 48' : '0 0 24 24') + '" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icons[type] + '</svg>';
     const E = D.esc;
     const btn = (action, label, css = '', value = '', aria = '') => '<button type="button" class="' + css + '" data-acte="' + action + '" data-value="' + E(value) + '"' + (aria ? ' aria-label="' + E(aria) + '"' : '') + '>' + label + '</button>';
     const field = (label, body) => '<label class="ac-field"><span>' + label + '</span>' + body + '</label>';
@@ -384,7 +388,7 @@
         const all = D.comments(r);
         const sort = state.commentSort || 'hot';
         const roots = all.filter(c=>!c.parentId).sort((a,b)=>sort === 'oldest' ? a.at-b.at : sort === 'newest' ? b.at-a.at : Number(b.liked)-Number(a.liked) || a.at-b.at);
-        const actions = [['share','socialChat','Repost'],['save-row','aperture','Save'],['copy-post','copy','Copy'],['export-post','imageExport','Export']].filter(([action])=>!state.shared || !['share','save-row'].includes(action));
+        const actions = [['share','postRepost','Repost'],['save-row','postSave','Save'],['copy-post','postCopy','Copy'],['export-post','postExport','Export']].filter(([action])=>!state.shared || !['share','save-row'].includes(action));
         const reply = all.find(c=>c.id === state.replyCommentId);
         const cast = w.cast.filter(c=>D.character(c.id));
         const draft = state.commentDraft?.get(r.id) || '';
