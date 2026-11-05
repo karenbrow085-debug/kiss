@@ -64,18 +64,20 @@ async function applyRequestRegex(built,chat){
  const result=await root.KissTavernRegex.apply(fields.map(f=>({text:f.owner[f.key],context:f.context})),preset,{target:'prompt',char:chat.realName||chat.remarkName||'角色',user:chat.myName||'我'});
  if(result.items)fields.forEach((f,index)=>f.owner[f.key]=result.items[index]);if(result.warnings.length)console.warn('[Preset regex]',...result.warnings);
 }
-async function readResponse(response,provider){
+async function readResponse(response,provider,onUpdate,signal){
  const output={full:'',reasoning:'',usage:null};
+ const report=()=>{signal?.throwIfAborted();if(typeof onUpdate==='function')onUpdate({...output});};
  if(!(response.headers.get('content-type')||'').includes('text/event-stream')){
-  const data=await response.json();for(const item of Array.isArray(data)?data:[data])consume(item,provider,output);return output;
+  const data=await response.json();for(const item of Array.isArray(data)?data:[data]){consume(item,provider,output);report();}return output;
  }
  const reader=response.body.getReader(),decoder=new TextDecoder();let pending='';
+ const abort=()=>{reader.cancel(signal.reason).catch(()=>{});};signal?.addEventListener('abort',abort,{once:true});
  try{for(;;){
-  const {done,value}=await reader.read();pending+=decoder.decode(value,{stream:!done});
+  const {done,value}=await reader.read();signal?.throwIfAborted();pending+=decoder.decode(value,{stream:!done});
   const lines=pending.split(/\r?\n/);pending=lines.pop();if(done)lines.push(pending);
-  for(const line of lines){if(!line.startsWith('data:'))continue;const item=line.slice(5).trim();if(item&&item!=='[DONE]')consume(JSON.parse(item),provider,output);}
+  for(const line of lines){if(!line.startsWith('data:'))continue;const item=line.slice(5).trim();if(item&&item!=='[DONE]'){consume(JSON.parse(item),provider,output);report();}}
   if(done)return output;
- }}finally{reader.releaseLock();}
+ }}finally{signal?.removeEventListener('abort',abort);reader.releaseLock();}
 }
 root.KissOfflineGeneration={split,consume,build,contextChat,applyRequestRegex,readResponse};
 })(window);

@@ -8,14 +8,14 @@ const {webcrypto} = require('node:crypto');
 function fixture(provider = 'openai') {
     const calls = [];
     const db = {characters:[],worldBooks:[],apiSettings:{provider,url:'https://example.invalid',key:'test',model:'test',temperature:0.8}};
-    const box = {db,URL,crypto:webcrypto,performance,Response,window:{},getRandomValue:x=>x,
+    const box = {db,URL,crypto:webcrypto,performance,Response,TextDecoder,window:{},getRandomValue:x=>x,
         buildChatApiRequest:(_config,messages)=>({endpoint:'https://example.invalid',headers:{},requestBody:{messages,temperature:0.8,max_completion_tokens:4096}}),
         fetch:async(_url,args)=>{calls.push(JSON.parse(args.body));return new Response('{}');}};
     box.window.KissOffline = {resolveOfflineApi:()=>db.apiSettings};
     box.window.KissOfflineGeneration = {readResponse:async()=>({full:'Scene'}),split:text=>({text})};
     vm.createContext(box);
     vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/modules/acte-data.js'),'utf8'),box);
-    return {api:box.window.ActeData,db,calls};
+    return {api:box.window.ActeData,db,calls,box};
 }
 
 test('theatre settings preserve zero temperature and reject malformed imported numeric overrides',()=>{
@@ -109,4 +109,48 @@ test('HTML fragments keep their inline handlers and existing full documents keep
     const complete='<!doctype html><html><head><title>原网页</title></head><body><pre>&lt;div&gt;示例&lt;/div&gt;</pre><main id="live">实际界面</main></body></html>';
     assert.equal(api.sourceDocument(complete),complete);
     assert.equal(api.sourceDocument('普通文档说明，没有网页代码。'),'');
+});
+
+
+test('floor numbers survive deletion and comments never consume a floor',()=>{
+    const {api}=fixture();const w=api.makeWork({acts:[{rows:[{role:'user',text:'开场'},{role:'assistant',text:'正文',comments:[{text:'戏外评论'}]}]}]});
+    assert.equal(w.acts[0].rows[1].floor,2);assert.equal(w.nextFloor,3);
+    w.acts[0].rows.shift();w.acts[0].rows.push({role:'assistant',text:'下一楼'});api.ensureFloors(w);
+    assert.equal(w.acts[0].rows[0].floor,2);assert.equal(w.acts[0].rows[1].floor,3);assert.equal(w.nextFloor,4);
+    api.ensureFloors(w);assert.equal(w.acts[0].rows[1].floor,3);
+});
+
+test('partial structured streaming reveals text without displaying JSON syntax',()=>{
+    const {api}=fixture();const rows=api.streamRows('[{"actorId":"a","speaker":"林钧","type":"speech","text":"你好');
+    assert.equal(rows[0].text,'你好');assert.equal(rows[0].actorId,'a');assert.equal(rows[0].type,'speech');
+    assert.equal(api.streamRows('[{"actorId":"a"').length,0);
+    assert.equal(api.streamRows('普通剧情')[0].text,'普通剧情');
+});
+
+test('ACTE observes streamed reasoning and usage through the shared offline decoder',async()=>{
+    const {api,db,calls,box}=fixture();
+    vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/modules/offline-generation.js'),'utf8'),box);
+    db.cotPresets=[{id:'cot-a',items:[]}];
+    box.fetch=async(_url,args)=>{calls.push(JSON.parse(args.body));const events=[{choices:[{delta:{reasoning_content:'接口推理'}}]},{choices:[{delta:{content:'<thinking>标签推理</thinking>正文'}}]},{choices:[],usage:{completion_tokens:7}}];const bytes=new TextEncoder().encode(events.map(x=>'data: '+JSON.stringify(x)+'\r\n\r\n').join('')+'data: [DONE]\n\n');return new Response(new ReadableStream({start(c){for(let i=0;i<bytes.length;i+=9)c.enqueue(bytes.slice(i,i+9));c.close();}}),{headers:{'content-type':'text/event-stream'}});};
+    const frames=[];
+    const result=await api.ask([{role:'user',content:'演出'}],{mode:'cot',preset:'cot-a',debugMode:true},undefined,[],'normal',true,frame=>frames.push(frame));
+    assert.equal(calls[0].stream,true);assert.equal(result.text,'正文');assert.equal(result.usage,7);assert(result.reasoning.includes('接口推理'));assert(result.reasoning.includes('标签推理'));assert(frames.length>=3);assert.equal(frames.at(-1).text,'正文');
+    const hidden=await api.ask([{role:'user',content:'演出'}],{mode:'cot',preset:'cot-a',debugMode:false},undefined,[],'normal',true);
+    assert.equal(hidden.reasoning,'');
+});
+
+test('Tavern keeps its own stream and sampling parameters and returned thought display',async()=>{
+    const {api,db,calls,box}=fixture();
+    vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/modules/offline-generation.js'),'utf8'),box);
+    box.window.KissTavernRuntime={prepare({body}){body.stream=false;body.temperature=.25;return {active:true,presetId:'tav-a',stream:false};}};
+    box.fetch=async(_url,args)=>{calls.push(JSON.parse(args.body));return new Response(JSON.stringify({choices:[{message:{content:'剧情',reasoning_content:'酒馆思考'}}]}),{headers:{'content-type':'application/json'}});};
+    const result=await api.ask([{role:'system',content:'剧场规则'},{role:'user',content:'演出'}],{mode:'tavern',preset:'tav-a',temperature:1.5,maxOutput:99},undefined,[],'normal',true);
+    assert.equal(calls[0].stream,false);assert.equal(calls[0].temperature,.25);assert.equal(calls[0].max_tokens,undefined);assert.equal(result.reasoning,'酒馆思考');
+});
+
+test('aborting the shared stream reader cancels the body and rejects the unfinished output',async()=>{
+    const {box}=fixture();vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/modules/offline-generation.js'),'utf8'),box);
+    let cancelled=false;const response=new Response(new ReadableStream({cancel(){cancelled=true;}}),{headers:{'content-type':'text/event-stream'}});const controller=new AbortController();
+    const reading=box.window.KissOfflineGeneration.readResponse(response,'openai',null,controller.signal);controller.abort();
+    await assert.rejects(reading,{name:'AbortError'});assert.equal(cancelled,true);
 });

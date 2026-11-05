@@ -27,6 +27,7 @@
     }
     const recordKey = (group, id) => prefix + group + ':' + id;
     async function write(group, value) {
+        if (group === 'work') ensureFloors(value);
         const row = {key:recordKey(group, value.id), value};
         if (group !== 'work') {
             await table().put(row);
@@ -65,9 +66,9 @@
         });
         const byId = new Map(result.map(c=>[c.id,c]));
         for (const comment of result) {
-            const visited = new Set([comment.id]); let parent = byId.get(comment.parentId);
+            const visited = new Set([comment.id]); let parent = byId.get(comment.parentId || comment.replyTo);
             if (!parent) { comment.parentId = ''; continue; }
-            while (parent?.parentId && !visited.has(parent.id)) { visited.add(parent.id); parent = byId.get(parent.parentId); }
+            while ((parent?.parentId || parent?.replyTo) && !visited.has(parent.id)) { visited.add(parent.id); parent = byId.get(parent.parentId || parent.replyTo); }
             comment.parentId = !parent || visited.has(parent.id) ? '' : parent.id;
         }
         return result;
@@ -97,12 +98,40 @@
         const others = work.cast.filter(c=>c.id !== lead);
         return others.findIndex(c=>c.id === id) % 2 === 0 ? 'right' : 'left';
     }
+    function ensureFloors(work) {
+        let floor = Math.max(0,(Number(work.nextFloor) || 1)-1);
+        const used = new Set();
+        for (const act of work.acts || []) for (const row of act.rows || []) {
+            if (Number.isInteger(row.floor) && row.floor > 0 && !used.has(row.floor)) { used.add(row.floor); floor = Math.max(floor,row.floor); }
+            else delete row.floor;
+        }
+        for (const act of work.acts || []) for (const row of act.rows || []) if (!row.floor) row.floor = ++floor;
+        work.nextFloor = floor + 1;
+        return work;
+    }
+    function streamRows(value) {
+        const raw = String(value || '').replace(/^\s*```(?:json)?\s*/i,'');
+        try { const parsed=JSON.parse(raw); if (Array.isArray(parsed)) return parsed.filter(row=>row && typeof row.text === 'string'); } catch {}
+        if (!/^\s*[\[{]/.test(raw)) return raw.trim() ? [{text:raw}] : [];
+        const rows=[];
+        for (const key of raw.matchAll(/"text"\s*:\s*"/g)) {
+            if (raw[key.index-1] === '\\') continue;
+            const start=key.index+key[0].length;let end=start,escaped=false;
+            for (;end<raw.length;end++) {const ch=raw[end];if(!escaped && ch==='"')break;if(!escaped && ch==='\\')escaped=true;else escaped=false;}
+            let body=raw.slice(start,end),text='';
+            for(let trim=0;trim<Math.min(7,body.length+1);trim++){try{text=JSON.parse('"'+body.slice(0,body.length-trim)+'"');break;}catch{}}
+            const prefix=raw.slice(raw.lastIndexOf('{',key.index),key.index);
+            const read=name=>{const match=new RegExp('"'+name+'"\\s*:\\s*("(?:\\\\.|[^"\\\\])*"|[0-9]+)').exec(prefix);try{return match?JSON.parse(match[1]):'';}catch{return '';}};
+            rows.push({text,actorId:String(read('actorId')),speaker:read('speaker'),type:read('type')});
+        }
+        return rows;
+    }
     function makeWork(data = {}, keepCast = false) {
         const actRows = Array.isArray(data.acts) ? data.acts : [];
         const acts = actRows.map((act, i) => ({
             id: uid(), title: string(act?.title, 80) || '第 ' + (i + 1) + ' 幕',
             rows: (Array.isArray(act?.rows) ? act.rows : []).map(row => ({
-                id: uid(), role: row?.role === 'assistant' ? 'assistant' : 'user',
+                id: uid(),floor:Number.isInteger(row?.floor) ? row.floor : undefined,reasoning:string(row?.reasoning,64000),generationSource:string(row?.generationSource,12),requestStats:row?.requestStats === true, role: row?.role === 'assistant' ? 'assistant' : 'user',
                 speaker: string(row?.speaker, 80), text: string(row?.text, 16000),
                 at: Number(row?.at) || Date.now(), actorId:string(row?.actorId,100),
                 avatar:image(row?.avatar),comments:comments(row),liked:row?.liked === true,reposts:Math.max(0,Math.floor(Number(row?.reposts) || 0)),views:Math.max(0,Math.floor(Number(row?.views) || 0)),client:string(row?.client,40),location:string(row?.location,80),messageType:['speech','narration'].includes(row?.messageType) ? row.messageType : '',side:['left','right'].includes(row?.side) ? row.side : '', presetId:string(row?.presetId,120), displayText:typeof row?.displayText === 'string' ? string(row.displayText,16000) : undefined,
@@ -112,7 +141,7 @@
         }));
         if (!acts.length) acts.push({id:uid(), title:'开场', rows:[]});
         const cast = keepCast && Array.isArray(data.cast) ? data.cast : [];
-        return {
+        const work = {
             id:uid(), title:string(data.title, 80).trim() || '未命名剧场',
             kind:Object.hasOwn(kinds, data.kind) ? data.kind : 'html',
             genre:string(data.genre,40).trim() || genres[0],
@@ -120,8 +149,8 @@
             viewpointActor:string(data.viewpointActor,100),userProfileId:string(data.userProfileId,100),protagonistName:string(data.protagonistName,60),roleTags:string(data.roleTags,300), userOnStage:data.userOnStage !== false,
             synopsis:string(data.synopsis, 6000), html:string(data.html, maxFile), cover:image(data.cover),
             templateHtml:string(data.templateHtml, maxFile), templateId:string(data.templateId,100), stylePrompt:string(data.stylePrompt, 8000),
-            started:data.started === true, example:data.example === true,
-            generation:data.generation && {responseStyle:string(data.generation.responseStyle,2000),temperature:typeof data.generation.temperature === 'number' && Number.isFinite(data.generation.temperature) && data.generation.temperature >= 0 && data.generation.temperature <= 2 ? data.generation.temperature : null,maxOutput:Number.isInteger(data.generation.maxOutput) && data.generation.maxOutput > 0 && data.generation.maxOutput <= 200000 ? data.generation.maxOutput : null,prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160),promptVersion:string(data.generation.promptVersion,100),worldBookIds:Array.isArray(data.generation.worldBookIds) ? data.generation.worldBookIds.map(String) : []},
+            nextFloor:Math.max(1,Math.floor(Number(data.nextFloor) || 1)),playCount:Math.max(0,Math.floor(Number(data.playCount) || 0)),completedAt:Number(data.completedAt) || null,started:data.started === true, example:data.example === true,
+            generation:data.generation && {debugMode:data.generation.debugMode === true,streamEnabled:typeof data.generation.streamEnabled === 'boolean' ? data.generation.streamEnabled : null,responseStyle:string(data.generation.responseStyle,2000),temperature:typeof data.generation.temperature === 'number' && Number.isFinite(data.generation.temperature) && data.generation.temperature >= 0 && data.generation.temperature <= 2 ? data.generation.temperature : null,maxOutput:Number.isInteger(data.generation.maxOutput) && data.generation.maxOutput > 0 && data.generation.maxOutput <= 200000 ? data.generation.maxOutput : null,prompt:string(data.generation.prompt,8000),mode:string(data.generation.mode,12),preset:string(data.generation.preset,120),apiPreset:string(data.generation.apiPreset,120),model:string(data.generation.model,160),promptVersion:string(data.generation.promptVersion,100),worldBookIds:Array.isArray(data.generation.worldBookIds) ? data.generation.worldBookIds.map(String) : []},
             htmlProgress:validProgress(data.htmlProgress) ? data.htmlProgress : null,
             art:Number.isInteger(data.art) && data.art >= 0 && data.art <= 5 ? data.art : 1,
             cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true, part:string(c.part,30), notes:string(c.notes,1000)})),
@@ -129,6 +158,7 @@
             current:Math.max(0, Math.min(acts.length - 1, Number.isInteger(data.current) ? data.current : 0)),
             acts, updated:Date.now(), created:Date.now()
         };
+        return ensureFloors(work);
     }
     function unwrap(value) {
         return String(value ?? '').trim().replace(/^\s*```(?:html|json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/, '');
@@ -241,7 +271,7 @@
         const clean = stripPackage(body);
         return /<\/head\s*>/i.test(clean) ? clean.replace(/<\/head\s*>/i, match => meta + match) : clean + '\n' + meta;
     }
-    async function ask(messages, settings = {}, signal, cast = [], trigger = 'normal', withStats = false) {
+    async function ask(messages, settings = {}, signal, cast = [], trigger = 'normal', withStats = false, onUpdate = null) {
         const followRole = !settings.apiPreset;
         const draft = {apiPreset:settings.apiPreset === '@desktop' ? '' : settings.apiPreset,model:followRole ? '' : settings.model,generationSource:'tavern',tavernPresetId:settings.preset,inheritWorldbooks:false};
         const actor = character(cast[0]?.id);
@@ -283,15 +313,22 @@
                 {hostProtocol:system.map(m => m.content).join('\n\n'),skipCollections:true});
             await offline.applyRequestRegex(req,chat);
         } else {
-            req = buildChatApiRequest({...config,streamEnabled:false},[...system,...history],
+            req = buildChatApiRequest(config,[...system,...history],
                 {temperature:config.temperatureEnabled ? config.temperature : undefined});
         }
+        if (settings.mode !== 'tavern') {
+            req.stream = typeof settings.streamEnabled === 'boolean' ? settings.streamEnabled : config.streamEnabled !== false;
+            if (config.provider === 'gemini') {
+                req.endpoint = req.endpoint.replace(':streamGenerateContent',':generateContent').replace(/([?&])alt=sse(&|$)/,'$1').replace(/[?&]$/,'');
+                if (req.stream) req.endpoint=req.endpoint.replace(':generateContent',':streamGenerateContent')+(req.endpoint.includes('?')?'&':'?')+'alt=sse';
+            } else req.requestBody.stream=req.stream;
+        }
         // Per-theatre overrides never modify the shared API or imported preset.
-        if (typeof settings.temperature === 'number' && Number.isFinite(settings.temperature) && settings.temperature >= 0 && settings.temperature <= 2) {
+        if (settings.mode !== 'tavern' && typeof settings.temperature === 'number' && Number.isFinite(settings.temperature) && settings.temperature >= 0 && settings.temperature <= 2) {
             if (config.provider === 'gemini') (req.requestBody.generationConfig ||= {}).temperature = settings.temperature;
             else req.requestBody.temperature = settings.temperature;
         }
-        if (Number.isInteger(settings.maxOutput) && settings.maxOutput > 0 && settings.maxOutput <= 200000) {
+        if (settings.mode !== 'tavern' && Number.isInteger(settings.maxOutput) && settings.maxOutput > 0 && settings.maxOutput <= 200000) {
             if (config.provider === 'gemini') (req.requestBody.generationConfig ||= {}).maxOutputTokens = settings.maxOutput;
             else { delete req.requestBody.max_completion_tokens; req.requestBody.max_tokens = settings.maxOutput; }
         }
@@ -299,10 +336,17 @@
         const response = await fetch(req.endpoint,{method:'POST',headers:req.headers,
             body:JSON.stringify(window.KissBilingual?.prepareBody(req.requestBody) || req.requestBody),signal});
         if (!response.ok) throw Error('API 请求失败（HTTP ' + response.status + '）');
-        const output = await offline.readResponse(response,config.provider);
-        const text = unwrap(offline.split(output.full).text);
+        const showReasoning = settings.mode === 'tavern' || settings.mode === 'cot' && settings.debugMode === true;
+        const progress = output => {
+            if (typeof onUpdate !== 'function') return;
+            const parsed=offline.split(output.full);
+            onUpdate({text:unwrap(parsed.text),reasoning:showReasoning ? [output.reasoning,parsed.reasoning].filter(Boolean).join('\n\n') : '',usage:output.usage,duration:(performance.now()-started)/1000,showReasoning,stream:req.stream});
+        };
+        const output = await offline.readResponse(response,config.provider,progress,signal);
+        signal?.throwIfAborted();
+        const parsed=offline.split(output.full),text=unwrap(parsed.text);
         if (!text?.trim()) throw Error('模型返回了空内容');
-        return withStats ? {text,usage:output.usage,duration:(performance.now()-started)/1000,presetId:req.presetId,actor:chat.realName,user:chat.myName} : text;
+        return withStats ? {text,reasoning:showReasoning ? [output.reasoning,parsed.reasoning].filter(Boolean).join('\n\n') : '',showReasoning,stream:req.stream,usage:output.usage,duration:(performance.now()-started)/1000,presetId:req.presetId,actor:chat.realName,user:chat.myName} : text;
     }
     function castContext(work) {
         const roles = work.cast.map(row => {
@@ -328,5 +372,5 @@
         {title:'潮汐备忘录',kind:'prose',genre:genres[1],art:3,synopsis:'沿着潮水退去的地方，把没来得及说的话写在纸上。第二天，海边多了一封回信。'},
         {title:'双生台',kind:'dialogue',genre:genres[0],art:5,synopsis:'一份过期的节目单上，写着两个人完全相同的名字。演出即将开始。'}
     ];
-    window.ActeData = {sourceDocument,comments,dialogueSegments,dialogueSide,maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
+    window.ActeData = {ensureFloors,streamRows,sourceDocument,comments,dialogueSegments,dialogueSide,maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
 })();

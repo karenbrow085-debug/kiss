@@ -32,7 +32,7 @@
         previous:'<path d="M6 6v12m12-12-9 6 9 6z"/>',
         nextTrack:'<path d="M18 6v12M6 6l9 6-9 6z"/>',
         pause:'<path stroke-width="3" d="M8 5v14m8-14v14"/>',
-        settings:'<path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/><circle cx="12" cy="12" r="3"/>',
+        settings:'<path fill="currentColor" stroke="none" d="m10.135 21l-.362-2.892q-.479-.145-1.035-.454q-.557-.31-.947-.664l-2.668 1.135l-1.865-3.25l2.306-1.739q-.045-.27-.073-.558q-.03-.288-.03-.559q0-.252.03-.53q.028-.278.073-.626L3.258 9.126l1.865-3.212L7.771 7.03q.448-.373.97-.673q.52-.3 1.013-.464L10.134 3h3.732l.361 2.912q.575.202 1.016.463t.909.654l2.725-1.115l1.865 3.211l-2.382 1.796q.082.31.092.569t.01.51q0 .233-.02.491q-.019.259-.088.626l2.344 1.758l-1.865 3.25l-2.681-1.154q-.467.393-.94.673t-.985.445L13.866 21zM11 20h1.956l.369-2.708q.756-.2 1.36-.549q.606-.349 1.232-.956l2.495 1.063l.994-1.7l-2.189-1.644q.125-.427.166-.786q.04-.358.04-.72q0-.38-.04-.72t-.166-.747l2.227-1.683l-.994-1.7l-2.552 1.07q-.454-.499-1.193-.935q-.74-.435-1.4-.577L13 4h-1.994l-.312 2.689q-.756.161-1.39.52q-.633.358-1.26.985L5.55 7.15l-.994 1.7l2.169 1.62q-.125.336-.175.73t-.05.82q0 .38.05.755t.156.73l-2.15 1.645l.994 1.7l2.475-1.05q.589.594 1.222.953q.634.359 1.428.559zm.973-5.5q1.046 0 1.773-.727T14.473 12t-.727-1.773t-1.773-.727q-1.052 0-1.776.727T9.473 12t.724 1.773t1.776.727M12 12"/>',
         copy:'<rect x="8" y="7" width="12" height="14" rx="2"/><path d="M15 7V3H4v13h4"/>',
         export:'<path d="M4 14v6h16v-6M12 3v12m-4-4 4 4 4-4"/>',
         expand:'<path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5"/>',
@@ -177,7 +177,7 @@
             '<div class="ac-library-results">' + (found.map(w => '<div class="ac-swipe-row" data-swipe="' + E(w.id) + '">' +
                 btn('delete-work',icon('trash') + '<span>删除</span>','ac-swipe-delete',w.id) + '<div class="ac-swipe-content">' + workRow(w) + '</div></div>').join('') || empty('这个分类还没有剧目。')) + '</div></div>';
     }
-    function quotePreview(value) {
+    function quotePreview(value, fallback = '查看剧摘') {
         const parser = new DOMParser();
         const source = String(value || '');
         const decoded = /&lt;\/?(?:top|content|story|div|p)\b/i.test(source) ? parser.parseFromString(source,'text/html').body.textContent : source;
@@ -185,7 +185,7 @@
         doc.querySelectorAll('script,style,template,noscript,top,title,header,ending,epilogue,afterword,think,thinking,analysis,reasoning,branches,options,choices,meow_fm').forEach(node => node.remove());
         const narrative = doc.querySelector('content,story,scene');
         const text = (narrative || doc.body).textContent.replace(/```(?:html|xml|json)?/gi,'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
-        return text || '查看剧摘';
+        return text || fallback;
     }
     function quotePage() {
         const list = state.quoteTab === 'saved' ? state.quotes : state.recent;
@@ -200,27 +200,21 @@
                     (state.quotes.some(x => x.id === q.id) ? 'ac-marked' : ''),q.id,'切换收藏') + '</div></article>';
             }).join('') || empty('在演出页收藏一句台词或一段长文。')) + '</div>';
     }
+    function workStats(w) {
+        const words=w.kind === 'html' ? quotePreview(w.html,'').length : w.acts.reduce((n,a)=>n+a.rows.reduce((n,r)=>n+quotePreview(r.text,'').length,0),0);
+        return {words,episodes:w.kind === 'html' && w.html ? w.acts.length : w.acts.filter(a=>a.rows.length).length,plays:w.playCount || 0,castCount:w.cast.length};
+    }
     function detail(w) {
-        const tab = state.profileTab || 'info';
-        const cast = w.cast.filter(r => D.character(r.id)).map(r => {
-            const c = D.character(r.id);
-            return '<div class="ac-cast-card">' + avatar(r.id) + '<strong>' + E(D.name(c)) + '</strong><small>' +
-                E(r.part || (r.memory ? '携带记忆' : '配角')) + '</small></div>';
-        }).join('');
-        const wordCount = w.acts.reduce((total,act) => total + act.rows.reduce((sum,row) => sum + quotePreview(row.text).length,0),0);
+        const tab=state.profileTab || 'info',stats=w.profileStats || workStats(w);
+        const cast=state.shared && w.castPreview ? w.castPreview.map(c=>'<div class="ac-cast-card">' + avatar('',c.name,c.avatar) + '<strong>' + E(c.name) + '</strong><small>' + E(c.part) + '</small></div>').join('') : w.cast.filter(r=>D.character(r.id)).map(r=>'<div class="ac-cast-card">' + avatar(r.id) + '<strong>' + E(D.name(D.character(r.id))) + '</strong><small>' + E(r.part || '配角') + '</small></div>').join('');
+        const tags=[...new Set(String(w.roleTags || '').split(/[\s,，、#]+/).filter(Boolean))];
         return top('剧目主页',!state.shared ? btn('settings',icon('more'),'ac-icon','','剧场设置') : '','back') + sourceBand() +
-            '<div class="ac-detail-hero">' + art(w) + '</div><div class="ac-pad ac-detail-body">' +
-            '<header class="ac-profile-head">' + art(w) + '<div><h1>' + E(w.title) + '</h1><small>' + E(summary(w)) +
-            '</small><small>' + w.acts.length + ' 幕 · ' + status(w) + '</small></div>' +
-            (state.shared?.scope === 'teaser' ? '' : '<div class="ac-profile-buttons">' + btn('play',w.started ? '继续演出' : '开始演出','ac-primary') +
-                (!state.shared ? btn('share','分享','ac-outline') : '') + '</div>') + '</header>' +
+            '<div class="ac-detail-hero">' + art(w) + '</div><div class="ac-pad ac-detail-body"><header class="ac-profile-head">' + art(w) + '<div><h1>' + E(w.title) + '</h1><small>' + E(summary(w)) + '</small><small>更新 ' + stats.episodes + ' 集 · ' + stats.plays + ' 次演出</small><small class="ac-profile-status">' + (w.status === 'done' ? '已落幕 · 共 ' + stats.episodes + ' 集' : '进行中') + '</small></div>' +
+            (state.shared?.scope === 'teaser' ? '' : '<div class="ac-profile-buttons">' + btn('play',w.status === 'done' ? '重温剧目' : w.started ? '继续演出' : '开始演出','ac-primary') + (!state.shared ? btn('share','分享','ac-outline') : '') + '</div>') + '</header>' +
             (w.synopsis ? '<p class="ac-profile-description">' + E(w.synopsis) + '</p>' : '') +
             (state.shared?.scope === 'teaser' ? '' : controls({info:'简介',scenes:'场次'},tab,'profile-tab','ac-tabs')) +
-            (tab === 'scenes' && state.shared?.scope !== 'teaser' ? sceneRows(w,true) :
-                '<dl class="ac-profile-facts"><dt>题材</dt><dd>' + E(w.genre) + '</dd><dt>字数</dt><dd>' + wordCount + ' 字</dd><dt>演出方式</dt><dd>' +
-                E(D.kinds[w.kind]) + ' · ' + w.cast.length + ' 位演员</dd></dl>' +
-                (w.synopsis ? '<details class="ac-profile-story" open><summary>故事简介</summary><p>' + E(w.synopsis) + '</p></details>' : '') +
-                (cast ? heading('主演') + '<div class="ac-cast">' + cast + '</div>' : '')) + '</div>';
+            (tab === 'scenes' && state.shared?.scope !== 'teaser' ? sceneRows(w,true) : '<dl class="ac-profile-facts"><dt>题材</dt><dd>' + E(w.genre) + '</dd><dt>字数</dt><dd>' + stats.words + ' 字' + (w.status === 'done' ? '（已完结）' : '（进行中）') + '</dd><dt>演出方式</dt><dd>' + E(D.kinds[w.kind]) + ' · ' + stats.castCount + ' 位演员</dd><dt>更新</dt><dd>' + stats.episodes + ' 集 · ' + date(w.updated) + '</dd><dt>播放</dt><dd>' + stats.plays + ' 次演出</dd>' + (tags.length ? '<dt>标签</dt><dd>' + tags.map(t=>'#' + E(t)).join('　') + '</dd>' : '') + '</dl>' +
+            (w.synopsis ? '<details class="ac-profile-story" open><summary>故事简介</summary><p>' + E(w.synopsis) + '</p></details>' : '') + (cast ? heading('主演') + '<div class="ac-cast">' + cast + '</div>' : '')) + '</div>';
     }
     function sceneRows(w, thumbs) {
         return '<div class="ac-scenes">' + w.acts.map((a,i) => '<div class="ac-scene-line">' + btn('scene',
@@ -243,6 +237,7 @@
         postLayouts.clear();
     }
     function postBody(row) {
+        if (row.pending) { const text=row.text ? quotePreview(row.text) : '';return '<p>' + E(text && text !== '查看剧摘' ? text : row.reasoning ? 'Thinking…' : 'Performing…') + '</p>'; }
         const value = row.displayText ?? row.text;
         const rich = window.KissOfflineRich, html = window.KissOfflineHTML;
         if (row.role === 'user' || !rich || !html) return inline(value);
@@ -316,6 +311,8 @@
     const uiClient = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iPhone' : /Android/i.test(navigator.userAgent) ? 'Android' : 'Web';
     const postDate = at => {const d = new Date(at || Date.now()); return String(d.getFullYear()).slice(-2) + '-' + num(d.getMonth()+1) + '-' + num(d.getDate()) + ' ' + time(d);};
     const selfProfile = w => D.character(w.userProfileId) || D.character(state.castFromChat) || D.character(w.cast[0]?.id);
+    const leadId = w => (w.viewpointActor !== '@user' && w.viewpointActor) || w.cast.find(c=>c.part === '主角')?.id || w.cast[0]?.id;
+    const performerPortrait = w => avatar(leadId(w),'Cast');
     const userPortrait = w => avatar('','You',selfProfile(w)?.myAvatar);
     function visibility(w) {
         return '<div class="ac-visibility">' + icon('lock') + (!state.shared && !w.aware ? 'Private' : 'Shared with cast') + '</div>';
@@ -327,16 +324,48 @@
         return {label,part:r.role === 'user' ? 'You' : englishPart(actor?.part),
             portrait:r.role === 'user' ? avatar('',label,r.avatar || self?.myAvatar) : avatar(r.actorId || actor?.id,label,r.avatar)};
     }
+    function reasoningMarkup(w,row) {
+        const visible=row.generationSource === 'tavern' || row.generationSource === 'cot' && w.generation?.debugMode;
+        return row.reasoning && visible ? '<details class="ac-reasoning" data-reasoning-row="' + E(row.id) + '"><summary>' + (row.pending ? 'Thinking…' : 'Thought process') + '</summary><div>' + E(row.reasoning) + '</div></details>' : '';
+    }
+    function generationMeta(row) {
+        const stats=[Number.isFinite(row.tokens) ? (row.estimated ? '~' : '') + row.tokens + ' tokens' : '',Number.isFinite(row.duration) ? row.duration.toFixed(1) + 's' : ''].filter(Boolean);
+        return stats.length ? '<div class="ac-generation-meta">' + (row.requestStats ? 'Request · ' : '') + E(stats.join(' · ')) + '</div>' : '';
+    }
+    function liveMarkup(w) {
+        const live=state.liveGeneration;
+        if (!live || live.workId !== w.id || live.actId !== getAct(w).id) return '';
+        const parts=D.streamRows(live.text),items=parts.length ? parts : [{text:''}];
+        return items.slice(0,w.kind === 'prose' ? 1 : 10).map((part,i)=>{
+            const actor=w.cast.find(c=>c.id === String(part.actorId))?.id || live.actorId;
+            const row={id:i ? live.id+'-'+i : live.id,role:'assistant',actorId:actor,speaker:D.name(D.character(actor)),text:part.text || '',pending:true,floor:live.floor+i,at:live.at,client:uiClient(),reasoning:i ? '' : live.reasoning,generationSource:live.mode,tokens:i ? undefined : live.usage ?? (part.text ? Math.ceil(part.text.length/2) : undefined),estimated:!Number.isFinite(live.usage),duration:live.duration,messageType:part.type,side:D.dialogueSide(w,{role:'assistant',actorId:actor})};
+            return w.kind === 'prose' && !state.dialogueView ? post(w,row) : dialogueRow(w,row);
+        }).join('');
+    }
+    let liveFrame;
+    function scheduleLive() {
+        if (liveFrame) return;
+        liveFrame=setTimeout(()=>{
+            liveFrame=null;
+            if (!app || state.page !== 'reader' || state.postId || !state.liveGeneration || state.work?.id !== state.liveGeneration.workId) return;
+            const box=app.querySelector('.ac-live-container'),main=app.querySelector('.ac-main');
+            if (!box) return;
+            const near=main.scrollHeight-main.scrollTop-main.clientHeight<110;
+            const opened=new Set([...box.querySelectorAll('[data-reasoning-row][open]')].map(d=>d.dataset.reasoningRow));
+            box.innerHTML=liveMarkup(state.work);
+            box.querySelectorAll('[data-reasoning-row]').forEach(d=>{d.open=opened.has(d.dataset.reasoningRow);});
+            if (near) main.scrollTop=main.scrollHeight;
+        },80);
+    }
     function post(w,r,full = false) {
         const {label,portrait} = speaker(w,r);
         const comments = D.comments(r);
-        const stats = [Number.isFinite(r.duration) ? r.duration.toFixed(1) + 's' : '',Number.isFinite(r.tokens) ? (r.estimated ? '~' : '') + r.tokens + ' tokens' : ''].filter(Boolean);
         const menu = !state.shared && !full ? btn('edit-turn',icon('more'),'ac-icon ac-post-menu',r.id,'Edit post') : '';
         const client = r.client || 'Web';
         return '<article id="ac-row-' + E(r.id) + '" class="ac-post ac-post-long">' + visibility(w).replace('</div>',menu + '</div>') +
             '<header class="ac-post-header">' + portrait + '<div class="ac-post-person"><strong>' + E(label) + '</strong><small><time>' + postDate(r.at) + '</time> from <span>' + E(client) + (client === 'Web' ? '' : ' client') + '</span></small>' +
-            '<small>' + (r.location ? 'Posted from ' + E(r.location) : 'Posted in ACTE') + '</small>' + '</div><small class="ac-post-stats">' + (stats.length ? '<em>Generated</em>' + stats.map(stat=>'<span>' + E(stat) + '</span>').join('') : '<span>' + (r.views || 0) + '</span><span>Views</span>') + '</small></header>' +
-            '<div class="ac-post-text">' + postBody(r) + '</div>' + (full ? '' : '<footer class="ac-social-actions">' + (!state.shared ? btn('share',icon('repost') + 'Repost','',r.id) : '') + btn('post-detail',icon('comment') + 'Comments' + (comments.length ? ' ' + comments.length : ''),'',r.id) + (!state.shared ? btn('like-post',icon('like') + 'Likes' + (r.liked ? ' 1' : ''),r.liked ? 'ac-marked' : '',r.id) : '') + '</footer>') + '</article>';
+            '<small>' + (r.location ? 'Posted from ' + E(r.location) : 'Posted in ACTE') + '</small>' + '</div><small class="ac-post-stats"><span>' + (r.floor || 1) + '</span><span>Views</span></small></header>' +
+            reasoningMarkup(w,r) + '<div class="ac-post-text">' + postBody(r) + '</div>' + generationMeta(r) + (full || r.pending ? '' : '<footer class="ac-social-actions">' + (!state.shared ? btn('share',icon('repost') + 'Repost','',r.id) : '') + btn('post-detail',icon('comment') + 'Comments' + (comments.length ? ' ' + comments.length : ''),'',r.id) + (!state.shared ? btn('like-post',icon('like') + 'Likes' + (r.liked ? ' 1' : ''),r.liked ? 'ac-marked' : '',r.id) : '') + '</footer>') + '</article>';
     }
     function commentPerson(w,comment) {
         const actor = comment.authorType === 'actor' ? D.character(comment.actorId) : null;
@@ -361,29 +390,32 @@
         const draft = state.commentDraft?.get(r.id) || '';
         return top('Weibo Content','<div class="ac-top-actions">' + btn('listen-post',icon('listen'),'ac-icon','', 'Listen to post') + btn('detail-menu',icon('more'),'ac-icon','','Post actions') + '</div>','post-back') +
             '<div class="ac-reading ac-post-detail" style="--ac-reading-size:' + state.size + 'px">' + post(w,r,true) + '<div class="ac-post-shortcuts">' + actions.map(([action,glyph,label])=>btn(action,'<i>' + icon(glyph) + '</i><span>' + label + '</span>','',r.id)).join('') + '</div><div class="ac-comments-tabs"><span>Repost ' + (r.reposts || 0) + '</span><strong>Comments ' + all.length + '</strong>' + (!state.shared ? btn('like-post','Likes ' + Number(!!r.liked),r.liked ? 'ac-marked' : '',r.id) : '<span>Likes ' + Number(!!r.liked) + '</span>') + '</div><section class="ac-comments"><div class="ac-comment-sort">' + btn('comment-order',icon('studio') + (sort === 'hot' ? 'by hot' : sort === 'newest' ? 'by newest' : 'by oldest'),'ac-text-button') + '</div>' + (roots.map(c=>'<section class="ac-comment-thread">' + commentRow(w,r,c,false,all) + '<div class="ac-comment-replies">' + all.filter(reply=>reply.parentId === c.id).sort((a,b)=>a.at-b.at).map(reply=>commentRow(w,r,reply,true,all)).join('') + '</div></section>').join('') || empty('No comments yet.')) + '</section></div>' +
-            (!state.shared ? '<footer class="ac-reader-tools ac-annotation-tools">' + (reply ? '<div class="ac-comment-replying"><span>Reply to ' + E(commentPerson(w,reply).name) + '</span>' + btn('cancel-comment-reply',icon('close'),'ac-icon','','Cancel reply') + '</div>' : '') + '<div class="ac-annotation-cast">' + (cast.length ? '<select aria-label="Commenting actor" data-comment-actor>' + options(Object.fromEntries(cast.map(c=>[c.id,D.name(D.character(c.id))])),state.commentActorId || (reply?.authorType === 'actor' ? reply.actorId : r.actorId) || cast[0].id) + '</select>' + btn('cast-comment','Cast note','ac-text-button','','Ask cast for an independent comment') : '') + '<small>Off-stage notes</small></div><form data-form="comment" class="ac-composer"><textarea name="comment" rows="1" maxlength="2000" placeholder="' + (reply ? 'Write a reply…' : 'Write a comment…') + '" required>' + E(draft) + '</textarea>' + (generation ? btn('stop',userPortrait(w),'ac-avatar-send','','Pause commentary') : '<button class="ac-avatar-send" type="submit" aria-label="Post comment">' + userPortrait(w) + '</button>') + '</form></footer>' : '');
+            (!state.shared ? '<footer class="ac-reader-tools ac-annotation-tools">' + (reply ? '<div class="ac-comment-replying"><span>Reply to ' + E(commentPerson(w,reply).name) + '</span>' + btn('cancel-comment-reply',icon('close'),'ac-icon','','Cancel reply') + '</div>' : '') + '<div class="ac-annotation-cast">' + (cast.length ? '<select aria-label="Commenting actor" data-comment-actor>' + options(Object.fromEntries(cast.map(c=>[c.id,D.name(D.character(c.id))])),state.commentActorId || (reply?.authorType === 'actor' ? reply.actorId : r.actorId) || cast[0].id) + '</select>' + btn('cast-comment','Cast note','ac-text-button','','Cast note') : '') + '<small>Off-stage notes</small></div><form data-form="comment" class="ac-composer"><textarea name="comment" rows="1" maxlength="2000" placeholder="' + (reply ? 'Write a reply…' : 'Write a comment…') + '" required>' + E(draft) + '</textarea>' + (generation ? btn('stop',userPortrait(w),'ac-avatar-send','','Pause commentary') : '<button class="ac-avatar-send" type="submit" aria-label="Post comment">' + userPortrait(w) + '</button>') + '</form></footer>' : '');
     }
     function dialogueRow(w,row) {
         const {label,portrait} = speaker(w,row);
         const side = D.dialogueSide(w,row);
-        const segments = D.dialogueSegments(row);
+        const segments = row.pending && !row.text ? [{type:'narration',text:row.reasoning ? 'Thinking…' : 'Performing…'}] : D.dialogueSegments(row);
         let shown = false;
-        return '<article id="ac-row-' + E(row.id) + '" class="ac-dialogue-row ac-dm-row ac-dm-' + side + (row.role === 'user' ? ' ac-dm-user' : ' ac-dm-actor') + '">' + segments.map(segment=>{
+        return '<article id="ac-row-' + E(row.id) + '" class="ac-dialogue-row ac-dm-row ac-dm-' + side + (row.role === 'user' ? ' ac-dm-user' : ' ac-dm-actor') + '">' + reasoningMarkup(w,row) + segments.map(segment=>{
             if (segment.type === 'narration') return '<div class="ac-dm-narration">' + (segments.length === 1 && /<[^>]+>/.test(segment.text) ? postBody(row) : inline(segment.text)) + '</div>';
             const first = !shown; shown = true;
             return '<div class="ac-dm-message' + (first ? '' : ' ac-dm-continuation') + '">' + (first ? portrait : '<span class="ac-dm-avatar-space"></span>') + '<div class="ac-dm-copy">' + (first ? '<strong>' + E(label) + '</strong>' : '') + '<div class="ac-dm-bubble">' + inline(segment.text) + '</div></div></div>';
-        }).join('') + '<footer class="ac-dm-meta"><time>' + time(row.at) + '</time>' + (!state.shared ? btn('dialogue-menu',icon('more'),'ac-icon',row.id,'Message actions') : '') + '</footer></article>';
+        }).join('') + generationMeta(row) + '<footer class="ac-dm-meta"><span class="ac-dm-floor">' + (row.floor || 1) + ' Views</span><time>' + time(row.at) + '</time>' + (!state.shared ? btn('dialogue-menu',icon('more'),'ac-icon',row.id,'Message actions') : '') + '</footer></article>';
     }
     function reader(w) {
+        D.ensureFloors(w);
         const a = getAct(w), prose = w.kind === 'prose';
+        const fullShared=state.shared?.scope === 'script';
+        const rows=fullShared ? w.acts.flatMap(act=>act.rows) : state.liveGeneration?.reroll ? a.rows.slice(0,state.liveGeneration.pivot+1) : a.rows;
         const selected = a.rows.find(r=>r.id === state.postId);
         if (prose && selected) return postDetail(w,selected);
         const dialogue = !prose || state.dialogueView;
         const count = w.acts.reduce((n,a)=>n+a.rows.length,0);
-        const controlsHtml = !state.shared ? '<form data-form="turn" class="ac-composer"><textarea name="turn" rows="1" maxlength="16000" placeholder="' + (prose ? 'Write this scene…' : 'Say something…') + '">' + E(state.draft.get(a.id) || '') + '</textarea><button type="submit" class="ac-send">Send</button>' + (generation ? btn('stop',userPortrait(w),'ac-avatar-send','','Pause performance') : btn('call','Perform','ac-primary')) + '</form>' : '';
+        const controlsHtml = !state.shared ? '<form data-form="turn" class="ac-composer"><textarea name="turn" rows="1" maxlength="16000" placeholder="' + (prose ? 'Write this scene…' : 'Say something…') + '">' + E(state.draft.get(a.id) || '') + '</textarea><button type="submit" class="ac-send">Send</button>' + (generation ? btn('stop',userPortrait(w),'ac-avatar-send','','Pause performance') : btn('call',performerPortrait(w),'ac-avatar-send ac-perform-avatar','','Perform')) + '</form>' : '';
         return top(prose ? 'Performance' : 'Dialogue',btn('reader-menu','KISS · ACTE','ac-reader-brand','','Performance actions'),'detail-back') +
-            '<div class="ac-performance-head">' + art(w) + '<div><strong>' + E(w.title) + '</strong><small>Scene ' + num(w.current+1) + ' · ' + E(a.title === '开场' ? 'Opening' : a.title) + '</small><small class="ac-performance-count">' + w.acts.length + ' scenes · ' + count + ' posts</small></div>' + (!state.shared ? btn('follow-work',w.followed ? 'Following' : 'Follow','ac-follow-button') : '') + '</div>' +
-            (prose ? '<nav class="ac-performance-tabs">' + btn('reader-posts','Long-form',!dialogue ? 'ac-selected' : '') + btn('reader-dialogue','Dialogue',dialogue ? 'ac-selected' : '') + btn('reader-sort',state.readerOldest === false ? 'Newest' : 'In order','ac-text-button') + '</nav>' : '') + '<div class="ac-reading' + (dialogue ? ' ac-dialogue' : '') + '" style="--ac-reading-size:' + state.size + 'px">' + ((state.readerOldest === false && prose ? a.rows.slice().reverse() : a.rows).map(r=>dialogue ? dialogueRow(w,r) : post(w,r)).join('') || empty(w.synopsis || 'This scene is ready to begin.')) + '</div><footer class="ac-reader-tools">' + (!state.shared && !w.cast.length ? '<small>Choose a cast in Theatre Settings first.</small>' : '') + controlsHtml + '</footer>';
+            '<div class="ac-performance-head">' + art(w) + '<div><strong>' + E(w.title) + '</strong><small>Scene ' + (fullShared ? 'Complete script' : num(w.current+1) + ' · ' + E(a.title === '开场' ? 'Opening' : a.title)) + '</small><small class="ac-performance-count">' + w.acts.length + ' scenes · ' + count + ' posts</small></div>' + (!state.shared ? btn('follow-work',w.followed ? 'Following' : 'Follow','ac-follow-button') : '') + '</div>' +
+            (prose ? '<nav class="ac-performance-tabs">' + btn('reader-posts','Long-form',!dialogue ? 'ac-selected' : '') + btn('reader-dialogue','Dialogue',dialogue ? 'ac-selected' : '') + btn('reader-sort',state.readerOldest === false ? 'Newest' : 'In order','ac-text-button') + '</nav>' : '') + '<div class="ac-reading' + (dialogue ? ' ac-dialogue' : '') + '" style="--ac-reading-size:' + state.size + 'px">' + ((state.readerOldest === false && prose ? rows.slice().reverse() : rows).map(r=>dialogue ? dialogueRow(w,r) : post(w,r)).join('') || empty(w.synopsis || 'This scene is ready to begin.')) + '<div class="ac-live-container">' + liveMarkup(w) + '</div></div><footer class="ac-reader-tools">' + (!state.shared && !w.cast.length ? '<small>Choose a cast in Theatre Settings first.</small>' : '') + controlsHtml + '</footer>';
     }
     function htmlFrame(source, progress, track = false) {
         return '<iframe class="ac-frame" title="HTML Theatre" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="' + E(D.preview(source,progress,track)) + '"></iframe>';
@@ -500,11 +532,15 @@
         const mode = settings.mode || 'plain';
         const list = mode === 'tavern' ? db.tavernPresets : mode === 'cot' ? db.cotPresets : [];
         const select = (name,items,value) => '<select name="' + name + '">' + options(items,value) + '</select>';
-        const promptOptions = {'':'使用剧幕提示词',...Object.fromEntries((window.KissOffline?.promptChoices() || []).map(p => [p.value,p.label]))};
+        const supplied = window.KissOffline?.promptChoices?.() || [];
+        const choices = supplied.length ? supplied : [{value:'uwu',label:'UwU'},{value:'tt',label:'T.T'},{value:'hh',label:'ㅎ.ㅎ（线上）'},{value:'hh_offline',label:'ㅎ-ㅎ（线下）'}];
+        const promptOptions = {'':'使用剧幕提示词',...Object.fromEntries(choices.map(p=>[p.value,p.label]))};
         return '<form class="ac-form ac-generation" data-form="generation"><h3 class="ac-settings-heading">生成策略</h3>' +
-            settingRow('提示词',settings.prompt ? '已配置（' + settings.prompt.length + ' 字）' : (promptOptions[settings.promptVersion] || '使用剧幕提示词'),'<div data-prompt-fields' + (mode === 'tavern' ? ' hidden' : '') + '>' + field('已有提示词',select('promptVersion',promptOptions,settings.promptVersion)) + field('补充提示词','<textarea name="prompt" rows="4" maxlength="8000">' + E(settings.prompt) + '</textarea>') + '</div>') +
-            settingRow('思维链（CoT）',mode === 'cot' ? '开启' : '关闭',field('生成方式',select('mode',{plain:'提示词',cot:'提示词 + 思维链',tavern:'酒馆预设'},mode)) + '<div data-preset-fields' + (mode === 'plain' ? ' hidden' : '') + '>' + field('预设',select('preset',{'':'选择预设',...Object.fromEntries((list || []).map(p=>[String(p.id),p.name || p.title || p.id]))},settings.preset)) + '</div>') +
-            settingRow('酒馆预设',mode === 'tavern' ? (list.find(p=>String(p.id) === settings.preset)?.name || '已开启') : '未启用',btn('choose-tavern','选择酒馆预设','ac-menu-item')) +
+            field('生成方式',select('mode',{plain:'提示词',cot:'提示词 + 思维链',tavern:'酒馆预设'},mode)) +
+            '<div data-prompt-fields' + (mode === 'tavern' ? ' hidden' : '') + '>' + settingRow('提示词',promptOptions[settings.promptVersion] || '使用剧幕提示词',field('已有提示词',select('promptVersion',promptOptions,settings.promptVersion)) + field('补充提示词','<textarea name="prompt" rows="4" maxlength="8000">' + E(settings.prompt) + '</textarea>')) + '</div>' +
+            '<div data-preset-fields' + (mode === 'plain' ? ' hidden' : '') + '>' + field('<span data-preset-label>' + (mode === 'tavern' ? '酒馆预设' : '思维链预设') + '</span>',select('preset',{'':'选择预设',...Object.fromEntries((list || []).map(p=>[String(p.id),p.name || p.title || p.id]))},settings.preset)) + '</div>' +
+            '<div data-debug-fields' + (mode === 'tavern' ? ' hidden' : '') + '><label class="ac-check ac-debug-toggle" data-debug-toggle' + (mode !== 'cot' ? ' hidden' : '') + '><input type="checkbox" name="debugMode"' + (settings.debugMode ? ' checked' : '') + '>调试模式 · 显示思考过程</label>' + field('流式输出',select('streamMode',{api:'跟随 API',on:'开启',off:'关闭'},typeof settings.streamEnabled === 'boolean' ? settings.streamEnabled ? 'on' : 'off' : 'api')) + '</div>' +
+            '<small class="ac-preset-follow" data-tavern-note' + (mode !== 'tavern' ? ' hidden' : '') + '>参数、流式输出和思考过程跟随这份酒馆预设。</small>' +
             '<h3 class="ac-settings-heading">模型与接口</h3>' +
             settingRow('API 接口',settings.apiPreset === '@desktop' ? '桌面 API' : settings.apiPreset || '跟随视角角色',field('专属 API',select('apiPreset',{'':'跟随视角角色','@desktop':'桌面 API',...Object.fromEntries((db.apiPresets || []).map(p=>[p.name,p.name]))},settings.apiPreset))) +
             settingRow('模型',settings.model || '跟随所选 API','<div data-api-fields' + (!settings.apiPreset ? ' hidden' : '') + '>' + field('模型','<input name="model" placeholder="留空跟随所选 API 的模型" value="' + E(settings.model) + '">') + '<div class="ac-model-search"><input type="search" name="modelSearch" placeholder="搜索模型">' + btn('models','拉取模型','ac-outline') + '</div><div data-models class="ac-models"></div></div>') +
@@ -585,6 +621,10 @@
         case 'post-options': return floatingChoices('<p class="ac-empty">Choose a direction to fill the composer.</p><div class="ac-choice-list">' +
             (state.postChoices || []).map((choice,index) => btn('post-choice','<span>' + num(index+1) + '</span><span>' + E(choice.label) + '</span>','ac-outline',index)).join('') + '</div>');
         case 'generated': return sheet('生成预览','<div class="ac-html-stage">' + htmlFrame(state.generated.html) + previewTools(state.generated.html) + '</div>');
+        case 'cast-note': {
+            const row=getAct(w).rows.find(r=>r.id === state.postId),latest=D.comments(row).filter(c=>c.authorType === 'user').sort((a,b)=>b.at-a.at)[0];
+            return sheet('角色批注',(latest ? btn('cast-reply','回复最新用户评论：' + E(latest.text.slice(0,36)),'ac-menu-item',latest.id) : '') + btn('cast-independent','独立批注','ac-menu-item'));
+        }
         case 'delete-comment': {
             const row=getAct(w).rows.find(r=>r.id === state.postId), target=D.comments(row).find(c=>c.id === state.deleteCommentId);
             return sheet('删除批注','<p>' + (target?.parentId ? '删除这条回复？其他批注会保留。' : '删除这条批注及下面的所有回复？') + '</p>' + btn('confirm-delete-comment','确认删除','ac-primary ac-wide'));
@@ -596,6 +636,7 @@
     }
     function render(scroll = null) {
         if (!app) return;
+        const opened=new Set([...app.querySelectorAll('[data-reasoning-row][open]')].map(d=>d.dataset.reasoningRow));
         clearPostFrames();
         const w = state.shared?.work || state.work;
         const pages = {discover,library,quotes:quotePage,categories:categoryPage,detail:() => detail(w),
@@ -610,12 +651,14 @@
         app.dataset.theme = state.theme;
         app.innerHTML = '<main class="ac-main ac-page-' + state.page + '">' + pages[state.page]() + '</main>' +
             (state.page in tabs && !(state.page === 'library' && state.kind === 'html') ? nav() : '') + sheetContent(w);
+        app.querySelectorAll('[data-reasoning-row]').forEach(d=>{d.open=opened.has(d.dataset.reasoningRow);});
         mountPostFrames();
         mountChoiceWindow();
         if (scroll !== null) app.querySelector('.ac-main').scrollTop = scroll;
     }
     async function refresh() {
         [state.works,state.quotes,state.recent,state.npcs,state.templates] = await Promise.all(['work','quote','recent','npc','template'].map(D.list));
+        state.works.forEach(D.ensureFloors);
         D.setNpcs(state.npcs);
         state.genres = [...new Set([...((await D.one('config','genres'))?.items || D.genres),...state.works.filter(w => !w.example).map(w => w.genre).filter(Boolean)])];
         const saved = new Set(state.quotes.map(q => q.workId));
@@ -633,7 +676,7 @@
             try { state.ideaLikes = JSON.parse(localStorage.getItem('kiss.acte.ideaLikes') || '[]').filter(Number.isInteger); } catch { state.ideaLikes = []; }
             state.theme = localStorage.getItem('kiss.acte.theme') === 'night' ? 'night' : 'day';
             state.castFromChat = String(currentChat()?.id || '');
-            state.page = shared ? 'detail' : 'discover';
+            state.page = shared ? shared.scope === 'script' ? 'reader' : 'detail' : 'discover';
             state.shared = shared;
             state.profileTab = 'info';
             state.work = null;
@@ -671,7 +714,7 @@
     }
     function close() {
         clearPostFrames();
-        generation?.abort(); generation = null;
+        generation?.abort(); generation = null; state.liveGeneration=null;clearTimeout(liveFrame);liveFrame=null;
         window.speechSynthesis?.cancel();
         app?.remove();
         app = null;
@@ -706,12 +749,12 @@
         state.profileTab = 'info';
         state.sheet = '';
     }
-    async function play(index) {
+    async function play(index,countPlay = false) {
         const w = state.shared?.work || state.work;
         if (state.shared) w.current = index;
         else await update(row => {
             if (row.kind === 'html' && row.current !== index) row.htmlProgress = {...(row.htmlProgress && typeof row.htmlProgress === 'object' && !Array.isArray(row.htmlProgress) ? row.htmlProgress : {}),scene:index};
-            row.current = index; row.started = true;
+            row.current = index; row.started = true; if (countPlay) row.playCount=(row.playCount || 0)+1;
         });
         state.page = 'reader';
         state.dialogueView = false; state.readerOldest = true;
@@ -751,14 +794,6 @@
             return;
         }
         if (b.dataset.acte === 'npc-photo-close') { app.querySelector('.ac-avatar-picker')?.remove(); return; }
-        if (b.dataset.acte === 'choose-tavern') {
-            const form = b.closest('form');
-            form.elements.mode.value = 'tavern';
-            form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}));
-            const editor = form.elements.mode.closest('details');
-            editor.open = true; editor.scrollIntoView({block:'nearest'});
-            return;
-        }
         if (b.dataset.acte === 'cast-edit') {
             const editor = app.querySelector('.ac-cast-editor');
             if (editor) { editor.open = true; const row = b.dataset.value ? [...editor.querySelectorAll('.ac-roster-row')].find(r=>r.querySelector('[name=cast]').value === b.dataset.value) : editor; row?.scrollIntoView({block:'nearest'}); }
@@ -849,10 +884,10 @@
             case 'status': state.status = v; break;
             case 'sort': state.sort = state.sort === 'latest' ? 'title' : 'latest'; break;
             case 'detail': goDetail(v); break;
-            case 'resume': goDetail(v); await play(state.work.current); break;
+            case 'resume': goDetail(v); await play(state.work.current,true); break;
             case 'back': if (state.shared) { close(); return; } state.page = returnPage; break;
             case 'detail-back': state.page = 'detail'; state.postId = ''; state.sheet = ''; break;
-            case 'post-detail': state.feedScroll = scroll; state.postId = v; state.replyCommentId = ''; state.commentActorId = getAct(state.work).rows.find(r=>r.id === v)?.actorId || state.work.cast[0]?.id || ''; state.commentSort = 'hot'; await update(w=>{const row=getAct(w).rows.find(r=>r.id === v);if(row)row.views=(row.views || 0)+1;}); break;
+            case 'post-detail': state.feedScroll = scroll; state.postId = v; state.replyCommentId = ''; state.commentActorId = getAct(state.work).rows.find(r=>r.id === v)?.actorId || state.work.cast[0]?.id || ''; state.commentSort = 'hot'; break;
             case 'comment-order': state.commentSort = ({hot:'newest',newest:'oldest',oldest:'hot'})[state.commentSort || 'hot']; keep = true; break;
             case 'reply-comment': {
                 state.replyCommentId = v;
@@ -861,7 +896,11 @@
                 keep = true; break;
             }
             case 'cancel-comment-reply': state.replyCommentId = ''; keep = true; break;
-            case 'cast-comment': state.commentActorId = app.querySelector('[data-comment-actor]')?.value; await annotate(state.replyCommentId || '',state.commentActorId); state.replyCommentId = ''; keep = true; break;
+            case 'cast-comment':
+                state.commentActorId = app.querySelector('[data-comment-actor]')?.value;
+                if (!state.replyCommentId) { state.sheet='cast-note'; keep=true; break; }
+                await annotate(state.replyCommentId,state.commentActorId); state.replyCommentId='';keep=true;break;
+            case 'cast-independent': case 'cast-reply': state.sheet='';await annotate(b.dataset.acte === 'cast-reply' ? v : '',state.commentActorId);state.replyCommentId='';keep=true;break;
             case 'delete-comment': state.deleteCommentId = v; state.sheet = 'delete-comment'; keep = true; break;
             case 'confirm-delete-comment':
                 await update(w=>{const row=getAct(w).rows.find(row=>row.id === state.postId);if(row){const all=D.comments(row); row.comments=all.filter(c=>c.id !== state.deleteCommentId && c.parentId !== state.deleteCommentId); if (!row.comments.some(c=>c.id === state.replyCommentId)) state.replyCommentId = '';}});
@@ -921,7 +960,7 @@
                 else download(row.speaker || 'Acte',text,'txt','text/plain');
                 return;
             }
-            case 'play': await play((state.shared?.work || state.work).current); break;
+            case 'play': await play((state.shared?.work || state.work).current,true); break;
             case 'scene': await play(Number(v)); break;
             case 'size': state.sheet = ''; state.size = state.size >= 20 ? 14 : state.size+2; keep = true; break;
             case 'idea-share':
@@ -974,7 +1013,7 @@
                 else state.sheet = '';
                 keep = true; break;
             case 'finish':
-                await update(w => { w.status = w.status === 'done' ? 'active' : 'done'; });
+                await update(w => { w.status = w.status === 'done' ? 'active' : 'done'; w.completedAt=w.status === 'done' ? Date.now() : null; });
                 state.sheet = ''; break;
             case 'cover': if (app.querySelector('[data-form=setup]')) setupDraft = setupValues(new FormData(app.querySelector('[data-form=setup]'))); state.sheet = 'cover'; break;
             case 'cover-reset': await setCover(''); break;
@@ -1150,12 +1189,13 @@
             case 'generation': {
                 const settings = Object.fromEntries(['prompt','promptVersion','mode','preset','apiPreset','model','responseStyle'].map(key => [key,value(key)]));
                 settings.worldBookIds = data.getAll('book');
+                settings.debugMode = data.has('debugMode');
+                settings.streamEnabled = value('streamMode') === 'api' ? null : value('streamMode') === 'on';
                 settings.temperature = value('temperature') === '' ? null : Number(value('temperature'));
                 settings.maxOutput = value('maxOutput') === '' ? null : Number(value('maxOutput'));
                 if (settings.temperature !== null && (!Number.isFinite(settings.temperature) || settings.temperature < 0 || settings.temperature > 2)) throw Error('温度须介于 0 到 2');
                 if (settings.maxOutput !== null && (!Number.isInteger(settings.maxOutput) || settings.maxOutput < 1 || settings.maxOutput > 200000)) throw Error('最大输出须为 1 到 200000 的整数');
                 if (settings.mode !== 'plain' && !settings.preset) throw Error('请选择预设');
-                if (settings.mode === 'tavern') { settings.prompt = ''; settings.promptVersion = ''; }
                 if (!settings.apiPreset) settings.model = '';
                 const memories = data.getAll('castMemory');
                 await update(w => { w.generation = settings; w.cast.forEach(row => { row.memory = memories.includes(row.id); }); });
@@ -1257,7 +1297,7 @@
         if (!w.cast.some(r => D.character(r.id))) throw Error('Choose a cast in Theatre Settings first.');
         const lead = (w.viewpointActor !== '@user' && D.character(w.viewpointActor) ? w.viewpointActor : '') ||
             w.cast.find(c => c.part === '主角' && D.character(c.id))?.id || w.cast.find(c => D.character(c.id))?.id;
-        const prompt = '你负责演绎一个独立虚构剧场。只使用提供的剧场设定和演员信息，不代替用户发言，不输出思考过程。' +
+        const prompt = '你负责演绎一个独立虚构剧场。只使用提供的剧场设定和演员信息，不代替用户发言，不要把思考过程混入剧情正文。' +
             (w.aware ? '你知道这是用户安排的剧场。' : '以剧内视角演出，避免提到在进行试演。') +
             (w.kind === 'prose' && w.generation?.mode === 'tavern'
                 ? '返回连贯的剧情正文，保留酒馆预设要求的标签、附卡与选项结构。'
@@ -1274,7 +1314,9 @@
         const context = {title:w.title,genre:w.genre,synopsis:w.synopsis,act:a.title,previous:w.acts.slice(0,w.current)
             .flatMap(p => p.rows).slice(-8).map(r => ({speaker:r.speaker,text:r.text.slice(0,1200)})),
             recent:(reroll || hasPending ? a.rows.slice(0,lastUser) : a.rows).slice(-24).map(r => ({speaker:r.speaker,text:r.text.slice(0,4000)})),input:reroll || hasPending ? user.text : a.rows.length ? '继续这一幕' : '请按设定开场',revision:hint};
-        generation = new AbortController();
+        const controller=new AbortController();generation=controller;
+        state.liveGeneration={controller,id:D.uid(),workId:w.id,actId:a.id,actorId:lead,text:'',reasoning:'',mode:w.generation?.mode || 'plain',floor:reroll ? a.rows[lastUser+1]?.floor || w.nextFloor : w.nextFloor,at:Date.now(),duration:0,usage:null,reroll,pivot:lastUser};
+        try {
         render(); app.querySelector('.ac-main').scrollTop = app.querySelector('.ac-main').scrollHeight;
         note('Performing…');
         const started = performance.now();
@@ -1286,8 +1328,8 @@
                 ...history.map(r => ({role:r.role,content:r.speaker + '：' + r.text.slice(0,4000)})),
                 {role:'user',content:context.input + (hint ? '\n【重回要求】' + hint : '')});
         } else messages.push({role:'user',content:JSON.stringify(context)});
-        const result = await D.ask(messages,w.generation,generation.signal,cast,reroll ? 'regenerate' : 'normal',true);
-        generation.signal.throwIfAborted();
+        const result = await D.ask(messages,w.generation,controller.signal,cast,reroll ? 'regenerate' : 'normal',true,progress=>{if(state.liveGeneration?.controller !== controller || controller.signal.aborted)return;Object.assign(state.liveGeneration,progress);scheduleLive();});
+        controller.signal.throwIfAborted();
         const raw = typeof result === 'string' ? result : result.text;
         const actors = cast.map(r => D.character(r.id));
         let rows;
@@ -1298,20 +1340,22 @@
         for (let i=extras.length-1;i>0;i--) {const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]];}
         extras.forEach((id,i)=>{dialogueSides[id]=i%2===0 ? 'right' : 'left';});
         dialogueSides[lead] = 'left';
-        const replies = rows.slice(0,w.kind === 'prose' ? 1 : 10).flatMap(r => {
+        const replies = rows.slice(0,w.kind === 'prose' ? 1 : 10).flatMap((r,i) => {
             if (typeof r?.text !== 'string' || !r.text.trim()) return [];
             const matching = actors.filter(c => D.name(c) === r.speaker);
             const c = actors.find(c => String(c.id) === String(r.actorId)) || (matching.length === 1 ? matching[0] : null);
-            return c ? [{id:D.uid(),role:'assistant',speaker:D.name(c),actorId:String(c.id),
+            return c ? [{id:i ? D.uid() : state.liveGeneration.id,role:'assistant',speaker:D.name(c),actorId:String(c.id),
                 avatar:D.image(c.avatar,true),client:uiClient(),messageType:w.kind === 'dialogue' && ['narration','speech'].includes(r.type) ? r.type : '',side:dialogueSides[String(c.id)] || 'left',text:r.text.trim().slice(0,16000),at:Date.now()}] : [];
         });
         if (!replies.length) throw Error('没能匹配到发言角色，可点重回再试');
-        if (w.kind === 'prose') {
-            const row = replies[0];
+        for (const row of replies) {
             row.duration = result.duration ?? (performance.now()-started)/1000;
             row.estimated = !Number.isFinite(result.usage);
             row.tokens = row.estimated ? (window.KissOffline?.estimate?.(row.text) ?? Math.ceil(row.text.length/2)) : result.usage;
+            row.requestStats = replies.length > 1;
+            row.generationSource = w.generation?.mode || 'plain';
         }
+        if (result.reasoning) replies[0].reasoning=result.reasoning;
         for (const row of replies) {
             const portrait = D.character(row.actorId)?.avatar;
             if (typeof portrait === 'string' && portrait.startsWith('blob:') && window.PhoneBackup?.isImage(portrait)) {
@@ -1322,13 +1366,14 @@
             row.presetId = result.presetId;
             await applyPostRegex(row,w.generation,result.actor || row.speaker,result.user || '我');
         }
-        generation.signal.throwIfAborted();
+        controller.signal.throwIfAborted();
         await update(work => {
             const act = work.acts.find(act => act.id === a.id);
             if (!act) throw Error('场次已不存在');
             if (reroll) {
                 const pivot = act.rows.findIndex(r => r.id === user.id);
                 if (pivot < 0) throw Error('找不到原始消息');
+                const previous=act.rows.slice(pivot+1);replies.forEach((row,i)=>{if(previous[i]?.floor)row.floor=previous[i].floor;});
                 act.rows.splice(pivot + 1);
             }
             work.dialogueSides = dialogueSides;
@@ -1338,13 +1383,10 @@
             await D.write('recent',{id:replies[0].id,workId:w.id,act:w.current,title:w.title,text:replies[0].text,at:Date.now()});
             state.recent = await D.list('recent');
         } catch { note('演出已保存，最近剧摘暂未更新'); }
+        } finally {if(state.liveGeneration?.controller === controller)state.liveGeneration=null;clearTimeout(liveFrame);liveFrame=null;}
     }
     function sharedScript(w) {
-        if (w.kind === 'html') {
-            const doc = new DOMParser().parseFromString(w.html,'text/html');
-            doc.querySelectorAll('script,style,template,noscript').forEach(node => node.remove());
-            return doc.body.textContent.trim();
-        }
+        if (w.kind === 'html') return w.html || '';
         return w.acts.map(a => a.title + '\n' + a.rows.map(r => r.speaker + '：' + r.text).join('\n')).join('\n\n');
     }
     async function sendCard(id,scope) {
@@ -1356,14 +1398,17 @@
         try {
             await PhoneBackup.hydrateChat(c);
             const work = D.portable(w), teaser = scope !== 'script';
+            work.profileStats=workStats(w);
+            work.castPreview=w.cast.filter(row=>D.character(row.id)).map(row=>{const c=D.character(row.id);return {name:D.name(c),part:row.part || '配角',avatar:D.image(c.avatar,true)};});
             delete work.templateHtml;
             delete work.stylePrompt;
             delete work.followed;
             delete work.htmlProgress;
             if (teaser) work.html = '';
-            work.acts = work.acts.map(a => ({...a,rows:teaser ? [] : a.rows.map(({liked,comments,...row}) => row)}));
-            const body = '[用户发送了剧幕' + (teaser ? '预告' : '剧本') + '《' + w.title + '》]\n' + w.synopsis +
-                (teaser ? '' : '\n' + sharedScript(w).slice(0,12000));
+            work.acts = work.acts.map(a => ({...a,rows:teaser ? [] : a.rows.map(({liked,comments,reasoning,generationSource,presetId,...row}) => row)}));
+            const profileText=[w.synopsis,'题材：'+w.genre,'更新 '+work.profileStats.episodes+' 集 · '+work.profileStats.plays+' 次演出',w.roleTags ? '标签：'+w.roleTags : '',work.castPreview.length ? '主演：'+work.castPreview.map(c=>c.name).join('、') : ''].filter(Boolean).join('\n');
+            const body = '[用户发送了剧幕' + (teaser ? '预告' : '剧本') + '《' + w.title + '》]\n' + (teaser ? profileText : w.synopsis + '\n' + sharedScript(w));
+            if (new Blob([body,JSON.stringify(work)]).size > D.maxFile) throw Error('剧本超过 32 MB，请缩小附件后再发送');
             const signature = [w.id,w.updated,id,scope].join('/');
             const message = pendingCards.get(signature) || {
                 id:'msg_acte_' + D.uid(),role:'user',type:'acte-share',content:body,parts:[{type:'text',text:body}],
@@ -1383,9 +1428,9 @@
             renderChatList();
         } finally { release(); }
     }
-    function shareCard(w, english = false) {
+    function shareCard(w, english = false, scope = '') {
         return '<small class="ac-share-source">' + icon('weibo') + (english ? 'Acte · Weibo Share' : '剧幕 · 微博分享') + '</small>' + art(w) +
-            '<span class="ac-share-copy"><strong>' + E(w.title) + '</strong><small>' + E(summary(w)) + '</small></span>';
+            '<span class="ac-share-copy"><strong>' + E(w.title) + '</strong><small>' + E((scope ? (scope === 'script' ? '完整剧本 · ' : '预告 · ') : '') + summary(w)) + '</small></span>';
     }
     function renderCard(message) {
         const w = message.acte?.work;
@@ -1393,13 +1438,13 @@
         const row = document.createElement('div');
         row.className = 'message-wrapper sent acte-chat-wrapper';
         row.dataset.id = message.id;
-        row.innerHTML = btn('chat-card',shareCard(w),'acte-chat-card');
+        row.innerHTML = btn('chat-card',shareCard(w,false,message.acte.scope),'acte-chat-card');
         row.querySelector('button').onclick = e => {
             if ((typeof isInMultiSelectMode !== 'undefined' && isInMultiSelectMode) ||
                 (typeof isDebugMode !== 'undefined' && isDebugMode) ||
                 document.getElementById('chat-expansion-panel')?.classList.contains('visible')) return;
             e.stopPropagation();
-            open({scope:message.acte.scope,work:{...w,cast:[]}}).catch(error);
+            open({scope:message.acte.scope,work:{...w,cast:[],current:message.acte.scope === 'script' ? 0 : w.current}}).catch(error);
         };
         return row;
     }
@@ -1427,22 +1472,21 @@
             app.querySelectorAll('[data-acte=commit-import]').forEach(b=>b.textContent = state.importMode === 'work' ? '导入剧场' : '保存为模板');
             return;
         }
+        if (el.name === 'promptVersion') { const row=el.closest('.ac-setting-row');if(row)row.querySelector('summary > small').textContent=el.selectedOptions[0]?.textContent || '使用剧幕提示词'; }
         if (el.hasAttribute('data-comment-actor')) { state.commentActorId = el.value; return; }
         if (el.name === 'cast') {
             const count = el.form?.querySelector('[data-cast-count]');
             if (count) count.textContent = el.form.querySelectorAll('[name=cast]:checked').length;
         }
         if (el.name === 'mode' && el.form?.dataset.form === 'generation') {
-            const list = el.value === 'tavern' ? db.tavernPresets : el.value === 'cot' ? db.cotPresets : [];
-            el.form.querySelector('[data-prompt-fields]').hidden = el.value === 'tavern';
-            el.form.querySelector('[data-preset-fields]').hidden = el.value === 'plain';
-            el.form.elements.preset.replaceChildren(new Option('选择预设',''),...(list || []).map(p => new Option(p.name || p.title || p.id,p.id)));
-        }
-        if ((el.name === 'mode' || el.name === 'preset') && el.form?.dataset.form === 'generation') {
-            const form = el.form;
-            form.elements.mode.closest('details').querySelector('summary > small').textContent = form.elements.mode.value === 'cot' ? '开启' : '关闭';
-            const row = [...form.querySelectorAll('.ac-setting-row')].find(row=>row.querySelector('summary > span')?.textContent === '酒馆预设');
-            row.querySelector('summary > small').textContent = form.elements.mode.value === 'tavern' ? form.elements.preset.selectedOptions[0]?.textContent || '选择预设' : '未启用';
+            const form=el.form,list=el.value === 'tavern' ? db.tavernPresets : el.value === 'cot' ? db.cotPresets : [];
+            form.querySelector('[data-prompt-fields]').hidden = el.value === 'tavern';
+            form.querySelector('[data-preset-fields]').hidden = el.value === 'plain';
+            form.querySelector('[data-debug-fields]').hidden = el.value === 'tavern';
+            form.querySelector('[data-debug-toggle]').hidden = el.value !== 'cot';
+            form.querySelector('[data-tavern-note]').hidden = el.value !== 'tavern';
+            form.querySelector('[data-preset-label]').textContent = el.value === 'tavern' ? '酒馆预设' : '思维链预设';
+            form.elements.preset.replaceChildren(new Option('选择预设',''),...(list || []).map(p=>new Option(p.name || p.title || p.id,p.id)));
         }
         if (el.form?.dataset.form === 'setup' && (el.name === 'cast' || el.name.startsWith('part:') || el.name.startsWith('note:'))) {
             const selected = setupValues(new FormData(el.form)).cast;

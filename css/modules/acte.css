@@ -969,3 +969,26 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-performance-tabs { gap:0; }
 #kiss-acte .ac-first-comment { margin-left:auto; color:var(--ac-ui); font-size:10px; font-style:italic; font-weight:600; }
 #kiss-acte .ac-reader-tools .ac-composer textarea { font-size:16px; }
+
+/* Constrain intrinsic long-title widths rather than allowing the whole page to pan. */
+#kiss-acte .ac-work-title { min-width:0; width:100%; overflow:hidden; align-items:start; }
+#kiss-acte .ac-work-title strong { display:block; flex:1 1 0; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#kiss-acte .ac-work-title em { flex:0 0 auto; }
+#kiss-acte .ac-work-copy { grid-template-columns:minmax(0,1fr); overflow:hidden; }
+#kiss-acte .ac-work-row { min-width:0; max-width:100%; }
+#kiss-acte .ac-performance-head > div strong { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+#kiss-acte .ac-discovery-shelf { overflow-x:clip; }
+#kiss-acte .ac-generation [data-prompt-fields] { min-width:0; }
+#kiss-acte .ac-generation [data-preset-fields] select { border:0!important; box-shadow:none!important; outline-offset:2px; padding:4px!important; min-width:0; }
+#kiss-acte .ac-debug-toggle { display:flex; min-height:40px; font-size:13px; gap:9px; }
+#kiss-acte .ac-preset-follow { display:block; padding:10px 0; font-size:12px; color:var(--ac-muted); }
+#kiss-acte .ac-generation-meta { display:block; padding:0 13px 7px; text-align:right; font:10px/1.5 -apple-system,BlinkMacSystemFont,sans-serif; color:var(--ac-muted); }
+#kiss-acte .ac-reasoning { margin:10px 13px 0; border:1px solid var(--ac-line); border-radius:5px; font-size:12px; color:var(--ac-muted); }
+#kiss-acte .ac-reasoning summary { padding:7px 9px; cursor:pointer; }
+#kiss-acte .ac-reasoning > div { padding:2px 9px 10px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.65; max-height:44dvh; overflow:auto; }
+#kiss-acte .ac-dm-row .ac-reasoning { margin-inline:0; }
+#kiss-acte .ac-dm-row .ac-generation-meta { padding:0 0 4px; }
+#kiss-acte .ac-dm-floor { font-size:10px; color:var(--ac-muted); }
+#kiss-acte .ac-live-container .ac-post-menu { visibility:hidden; }
+#kiss-acte .ac-live-container .ac-post-text { min-height:42px; }
+#kiss-acte .ac-profile-status { color:var(--ac-link); }
