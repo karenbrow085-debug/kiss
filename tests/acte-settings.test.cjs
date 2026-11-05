@@ -54,3 +54,56 @@ for (const provider of ['openai','gemini']) test(provider+' theatre overrides af
     assert.equal(calls[1].max_completion_tokens,4096);
     assert.equal(calls[1].temperature,0.8);
 });
+
+
+test('annotations preserve author identity and nested replies when a work is normalised',()=>{
+    const {api}=fixture();
+    const work=api.makeWork({kind:'prose',acts:[{rows:[{role:'assistant',text:'剧情',comments:[
+        {text:'旧批注',at:1},
+        {id:'root',authorType:'actor',actorId:'a',name:'林钧',text:'演员点评',at:2},
+        {id:'reply',authorType:'user',parentId:'root',replyTo:'root',text:'用户回复',at:3},
+        {id:'reply2',authorType:'actor',actorId:'a',parentId:'reply',replyTo:'reply',text:'演员再回复',at:4}
+    ]}]}]});
+    const notes=work.acts[0].rows[0].comments;
+    assert.equal(notes[0].id,'legacy-0');
+    assert.equal(notes[1].authorType,'actor');
+    assert.equal(notes[2].parentId,'root');
+    assert.equal(notes[3].parentId,'root');
+    assert.equal(notes[3].replyTo,'reply');
+    assert.equal(work.acts[0].rows.length,1);
+    const restored=api.makeWork(JSON.parse(JSON.stringify(work)));
+    assert.equal(restored.acts[0].rows[0].comments.length,4);
+    assert.equal(restored.acts[0].rows[0].comments[2].id,'reply');
+});
+
+test('dialogue speech and narration remain separate and NPCs use both sides',()=>{
+    const {api}=fixture();
+    const parts=api.dialogueSegments({role:'assistant',text:'他笑了笑。“你好。”随后低下头。'});
+    assert.equal(parts.length,3);
+    assert.equal(parts[0].type,'narration');
+    assert.equal(parts[1].type,'speech');
+    assert.equal(parts[1].text,'你好。');
+    assert.equal(parts[2].type,'narration');
+    assert.equal(api.dialogueSegments({messageType:'narration',text:'他低下头。'})[0].type,'narration');
+    const work={cast:[{id:'a',part:'主角'},{id:'b'},{id:'c'}]};
+    assert.equal(api.dialogueSide(work,{role:'user'}),'right');
+    assert.equal(api.dialogueSide(work,{role:'assistant',actorId:'a'}),'left');
+    assert.equal(api.dialogueSide(work,{role:'assistant',actorId:'b'}),'right');
+    assert.equal(api.dialogueSide(work,{role:'assistant',actorId:'c'}),'left');
+    work.dialogueSides={b:'left',c:'right'};
+    assert.equal(api.dialogueSide(work,{role:'assistant',actorId:'c'}),'right');
+});
+
+
+test('HTML fragments keep their inline handlers and existing full documents keep escaped examples',()=>{
+    const {api}=fixture();
+    const fragment='<div id="s-win" style="width:310px"><button onclick="document.getElementById(\'page\').hidden=false">商店</button><div id="page" hidden>页面</div></div>';
+    const result=api.sourceDocument(fragment);
+    assert(result.startsWith('<!doctype html>'));
+    assert(result.includes(fragment));
+    assert(api.sourceDocument('<body><div>片段</div></body>').includes('<body><div>片段</div></body>'));
+    assert(api.sourceDocument('<!doctype html><html><body><div>未闭合文档</div>').includes('未闭合文档'));
+    const complete='<!doctype html><html><head><title>原网页</title></head><body><pre>&lt;div&gt;示例&lt;/div&gt;</pre><main id="live">实际界面</main></body></html>';
+    assert.equal(api.sourceDocument(complete),complete);
+    assert.equal(api.sourceDocument('普通文档说明，没有网页代码。'),'');
+});

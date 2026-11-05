@@ -37,6 +37,10 @@
         export:'<path d="M4 14v6h16v-6M12 3v12m-4-4 4 4 4-4"/>',
         expand:'<path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5"/>',
         weibo:'<path d="M20 11c1 2-1 6-6 8s-10 1-11-2 2-7 6-9c3-2 5-1 4 1 3-1 5-1 5 1z"/><ellipse cx="10" cy="15" rx="3" ry="2"/><path d="M17 4a5 5 0 0 1 5 5m-5-2a2 2 0 0 1 2 2"/>',
+        listen:'<path d="M4 14v-3a8 8 0 0 1 16 0v3M4 12H2v7h5v-7zm16 0h2v7h-5v-7z"/>',
+        socialChat:'<path d="M14 14a6 6 0 1 0-7 2l-2 3 4-2"/><path d="M22 16a5 5 0 1 0-3 4l3 1-1-3"/><path d="M7 9h.1m4 0h.1m3 6h.1m4 0h.1"/>',
+        aperture:'<circle cx="12" cy="12" r="9"/><path d="m8 4 7 1 3 7-4 7-7-1-3-7zm0 0 4 8 6 0m-3-7-5 8-3 5m7 1-4-6-6-2"/>',
+        imageExport:'<rect x="3" y="3" width="17" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m3 17 6-6 4 4m4-3v10m-3-3 3 3 3-3"/>',
         search:'<circle cx="10" cy="10" r="5.5"/><path d="m14 14 5 5"/>'
     };
     const icon = (type) => '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icons[type] + '</svg>';
@@ -48,7 +52,7 @@
     const state = {
         page:'discover', kind:'text', genre:'', status:'', query:'', sort:'latest',
         quoteTab:'saved', quoteSource:'', work:null, sheet:'', theme:'day',
-        draft:new Map(), size:16, castFromChat:'', works:[], quotes:[], recent:[],
+        draft:new Map(),commentDraft:new Map(), size:16, castFromChat:'', works:[], quotes:[], recent:[],
         promptDraft:null, importFile:null, generated:null, shared:null
     };
     let app, busy = false, returnPage = 'discover', opening = false;
@@ -309,6 +313,10 @@
             }
         }
     }
+    const uiClient = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iPhone' : /Android/i.test(navigator.userAgent) ? 'Android' : 'Web';
+    const postDate = at => {const d = new Date(at || Date.now()); return String(d.getFullYear()).slice(-2) + '-' + num(d.getMonth()+1) + '-' + num(d.getDate()) + ' ' + time(d);};
+    const selfProfile = w => D.character(w.userProfileId) || D.character(state.castFromChat) || D.character(w.cast[0]?.id);
+    const userPortrait = w => avatar('','You',selfProfile(w)?.myAvatar);
     function visibility(w) {
         return '<div class="ac-visibility">' + icon('lock') + (!state.shared && !w.aware ? 'Private' : 'Shared with cast') + '</div>';
     }
@@ -320,63 +328,62 @@
             portrait:r.role === 'user' ? avatar('',label,r.avatar || self?.myAvatar) : avatar(r.actorId || actor?.id,label,r.avatar)};
     }
     function post(w,r,full = false) {
-        const {label,part,portrait} = speaker(w,r);
-        const stats = [Number.isFinite(r.duration) ? r.duration.toFixed(1) + 's' : '',
-            Number.isFinite(r.tokens) ? (r.estimated ? '~' : '') + r.tokens + ' tokens' : ''].filter(Boolean);
-        const comments = r.comments || [];
+        const {label,portrait} = speaker(w,r);
+        const comments = D.comments(r);
+        const stats = [Number.isFinite(r.duration) ? r.duration.toFixed(1) + 's' : '',Number.isFinite(r.tokens) ? (r.estimated ? '~' : '') + r.tokens + ' tokens' : ''].filter(Boolean);
         const menu = !state.shared && !full ? btn('edit-turn',icon('more'),'ac-icon ac-post-menu',r.id,'Edit post') : '';
+        const client = r.client || 'Web';
         return '<article id="ac-row-' + E(r.id) + '" class="ac-post ac-post-long">' + visibility(w).replace('</div>',menu + '</div>') +
-            '<header class="ac-post-header">' + portrait + '<div class="ac-post-person"><strong>' + E(label) +
-            '</strong><small><time>' + date(r.at) + ' ' + time(r.at) + '</time> · <span>from Web</span></small><small>' + E(part) + '</small></div>' +
-            (stats.length ? '<small class="ac-post-stats"><em>Generated</em>' + stats.map(stat => '<span>' + E(stat) + '</span>').join('') + '</small>' : '') +
-            '</header><div class="ac-post-text">' + (full ? '<h2 class="ac-post-scene-title">《' + E(w.title) + '》 · Scene ' + num(w.current+1) + '</h2>' : '') + postBody(r) + '</div>' + (full ? '' :
-            '<footer class="ac-social-actions">' + (!state.shared ? btn('share',icon('repost') + 'Repost','',r.id) : '') +
-            btn('post-detail',icon('comment') + 'Comments' + (comments.length ? ' ' + comments.length : ''),'',r.id) +
-            (!state.shared ? btn('like-post',icon('like') + 'Likes' + (r.liked ? ' 1' : ''),r.liked ? 'ac-marked' : '',r.id) : '') + '</footer>') + '</article>';
+            '<header class="ac-post-header">' + portrait + '<div class="ac-post-person"><strong>' + E(label) + '</strong><small><time>' + postDate(r.at) + '</time> from <span>' + E(client) + (client === 'Web' ? '' : ' client') + '</span></small>' +
+            '<small>' + (r.location ? 'Posted from ' + E(r.location) : 'Posted in ACTE') + '</small>' + '</div><small class="ac-post-stats">' + (stats.length ? '<em>Generated</em>' + stats.map(stat=>'<span>' + E(stat) + '</span>').join('') : '<span>' + (r.views || 0) + '</span><span>Views</span>') + '</small></header>' +
+            '<div class="ac-post-text">' + postBody(r) + '</div>' + (full ? '' : '<footer class="ac-social-actions">' + (!state.shared ? btn('share',icon('repost') + 'Repost','',r.id) : '') + btn('post-detail',icon('comment') + 'Comments' + (comments.length ? ' ' + comments.length : ''),'',r.id) + (!state.shared ? btn('like-post',icon('like') + 'Likes' + (r.liked ? ' 1' : ''),r.liked ? 'ac-marked' : '',r.id) : '') + '</footer>') + '</article>';
+    }
+    function commentPerson(w,comment) {
+        const actor = comment.authorType === 'actor' ? D.character(comment.actorId) : null;
+        return {name:comment.name || (actor ? D.name(actor) : selfProfile(w)?.myName || 'You'),portrait:comment.authorType === 'actor' ? avatar(comment.actorId,comment.name,comment.avatar) : avatar('','You',comment.avatar || selfProfile(w)?.myAvatar)};
+    }
+    function commentRow(w,post,comment,nested = false,all = []) {
+        const person = commentPerson(w,comment);
+        const target = all.find(c=>c.id === comment.replyTo);
+        const replying = target ? commentPerson(w,target).name : comment.replyName;
+        const showReplyName = nested && replying && (target?.parentId || !target && comment.replyTo !== comment.parentId);
+        const first = !nested && all.filter(c=>!c.parentId).reduce((a,c)=>!a || c.at < a.at ? c : a,null)?.id === comment.id;
+        const author = comment.authorType === 'actor' ? comment.actorId === post.actorId : post.role === 'user';
+        return '<article class="ac-comment' + (nested ? ' ac-comment-reply' : '') + '" data-comment-id="' + E(comment.id) + '">' + person.portrait + '<div class="ac-comment-copy"><div class="ac-comment-author"><strong class="' + (comment.authorType === 'actor' ? 'ac-comment-actor' : '') + '">' + E(person.name) + '</strong>' + (author ? '<small class="ac-author-badge">Author</small>' : '') + (first ? '<small class="ac-first-comment">First</small>' : '') + '</div><p>' + (showReplyName ? '<span class="ac-reply-to">Reply to ' + E(replying) + ': </span>' : '') + E(comment.text) + '</p><footer class="ac-comment-meta"><time>' + postDate(comment.at) + '</time><span>from ' + E(comment.client || 'Web') + '</span><div>' + (!state.shared ? btn('delete-comment',icon('trash'),'ac-comment-action',comment.id,'Delete comment') + btn('reply-comment',icon('comment'),'ac-comment-action',comment.id,'Reply to comment') + btn('like-comment',icon('like') + (comment.liked ? '<small>1</small>' : ''),'ac-comment-action' + (comment.liked ? ' ac-marked' : ''),comment.id,'Like comment') : '') + '</div></footer></div></article>';
     }
     function postDetail(w,r) {
-        const commentRows = [...(r.comments || [])].sort((a,b) => state.oldestFirst ? a.at-b.at : b.at-a.at);
-        const actions = [
-            ['share','repost','Repost'],['save-row','quotes','Save'],
-            ['copy-post','copy','Copy'],['export-post','export','Export']
-        ].filter(([action]) => !state.shared || !['share','save-row'].includes(action));
-        const self = speaker(w,{role:'user'}).portrait;
-        return top('Weibo Content',btn('detail-menu',icon('more'),'ac-icon','','Post actions'),'post-back') +
-            '<div class="ac-reading" style="--ac-reading-size:' + state.size + 'px">' + post(w,r,true) +
-            '<div class="ac-post-shortcuts">' + actions.map(([action,glyph,label]) =>
-                btn(action,'<i>' + icon(glyph) + '</i>' + label,'',r.id)).join('') + '</div>' +
-            '<div class="ac-comments-tabs">' + '<span>Repost</span>' +
-            '<strong>Comments ' + commentRows.length + '</strong>' +
-            (!state.shared ? btn('like-post','Likes ' + Number(!!r.liked),r.liked ? 'ac-marked' : '',r.id) : '<span>Likes ' + Number(!!r.liked) + '</span>') + '</div>' +
-            '<section class="ac-comments">' + (commentRows.length > 1 ? '<div class="ac-comment-sort">' +
-            btn('comment-order',state.oldestFirst ? 'Oldest first' : 'Newest first','ac-text-button') + '</div>' : '') + (commentRows.map(comment => '<div class="ac-comment">' + self +
-                '<div><strong>You</strong><p>' + E(comment.text) + '</p><time>' + time(comment.at) + '</time></div></div>').join('') || empty('No comments yet.')) + '</section></div>' +
-            (!state.shared ? '<footer class="ac-reader-tools"><form data-form="comment" class="ac-composer"><textarea name="comment" rows="1" maxlength="2000" placeholder="Write a comment…" required></textarea><button class="ac-primary" type="submit">Post</button></form></footer>' : '');
+        const all = D.comments(r);
+        const sort = state.commentSort || 'hot';
+        const roots = all.filter(c=>!c.parentId).sort((a,b)=>sort === 'oldest' ? a.at-b.at : sort === 'newest' ? b.at-a.at : Number(b.liked)-Number(a.liked) || a.at-b.at);
+        const actions = [['share','socialChat','Repost'],['save-row','aperture','Save'],['copy-post','copy','Copy'],['export-post','imageExport','Export']].filter(([action])=>!state.shared || !['share','save-row'].includes(action));
+        const reply = all.find(c=>c.id === state.replyCommentId);
+        const cast = w.cast.filter(c=>D.character(c.id));
+        const draft = state.commentDraft?.get(r.id) || '';
+        return top('Weibo Content','<div class="ac-top-actions">' + btn('listen-post',icon('listen'),'ac-icon','', 'Listen to post') + btn('detail-menu',icon('more'),'ac-icon','','Post actions') + '</div>','post-back') +
+            '<div class="ac-reading ac-post-detail" style="--ac-reading-size:' + state.size + 'px">' + post(w,r,true) + '<div class="ac-post-shortcuts">' + actions.map(([action,glyph,label])=>btn(action,'<i>' + icon(glyph) + '</i><span>' + label + '</span>','',r.id)).join('') + '</div><div class="ac-comments-tabs"><span>Repost ' + (r.reposts || 0) + '</span><strong>Comments ' + all.length + '</strong>' + (!state.shared ? btn('like-post','Likes ' + Number(!!r.liked),r.liked ? 'ac-marked' : '',r.id) : '<span>Likes ' + Number(!!r.liked) + '</span>') + '</div><section class="ac-comments"><div class="ac-comment-sort">' + btn('comment-order',icon('studio') + (sort === 'hot' ? 'by hot' : sort === 'newest' ? 'by newest' : 'by oldest'),'ac-text-button') + '</div>' + (roots.map(c=>'<section class="ac-comment-thread">' + commentRow(w,r,c,false,all) + '<div class="ac-comment-replies">' + all.filter(reply=>reply.parentId === c.id).sort((a,b)=>a.at-b.at).map(reply=>commentRow(w,r,reply,true,all)).join('') + '</div></section>').join('') || empty('No comments yet.')) + '</section></div>' +
+            (!state.shared ? '<footer class="ac-reader-tools ac-annotation-tools">' + (reply ? '<div class="ac-comment-replying"><span>Reply to ' + E(commentPerson(w,reply).name) + '</span>' + btn('cancel-comment-reply',icon('close'),'ac-icon','','Cancel reply') + '</div>' : '') + '<div class="ac-annotation-cast">' + (cast.length ? '<select aria-label="Commenting actor" data-comment-actor>' + options(Object.fromEntries(cast.map(c=>[c.id,D.name(D.character(c.id))])),state.commentActorId || (reply?.authorType === 'actor' ? reply.actorId : r.actorId) || cast[0].id) + '</select>' + btn('cast-comment','Cast note','ac-text-button','','Ask cast for an independent comment') : '') + '<small>Off-stage notes</small></div><form data-form="comment" class="ac-composer"><textarea name="comment" rows="1" maxlength="2000" placeholder="' + (reply ? 'Write a reply…' : 'Write a comment…') + '" required>' + E(draft) + '</textarea>' + (generation ? btn('stop',userPortrait(w),'ac-avatar-send','','Pause commentary') : '<button class="ac-avatar-send" type="submit" aria-label="Post comment">' + userPortrait(w) + '</button>') + '</form></footer>' : '');
+    }
+    function dialogueRow(w,row) {
+        const {label,portrait} = speaker(w,row);
+        const side = D.dialogueSide(w,row);
+        const segments = D.dialogueSegments(row);
+        let shown = false;
+        return '<article id="ac-row-' + E(row.id) + '" class="ac-dialogue-row ac-dm-row ac-dm-' + side + (row.role === 'user' ? ' ac-dm-user' : ' ac-dm-actor') + '">' + segments.map(segment=>{
+            if (segment.type === 'narration') return '<div class="ac-dm-narration">' + (segments.length === 1 && /<[^>]+>/.test(segment.text) ? postBody(row) : inline(segment.text)) + '</div>';
+            const first = !shown; shown = true;
+            return '<div class="ac-dm-message' + (first ? '' : ' ac-dm-continuation') + '">' + (first ? portrait : '<span class="ac-dm-avatar-space"></span>') + '<div class="ac-dm-copy">' + (first ? '<strong>' + E(label) + '</strong>' : '') + '<div class="ac-dm-bubble">' + inline(segment.text) + '</div></div></div>';
+        }).join('') + '<footer class="ac-dm-meta"><time>' + time(row.at) + '</time>' + (!state.shared ? btn('dialogue-menu',icon('more'),'ac-icon',row.id,'Message actions') : '') + '</footer></article>';
     }
     function reader(w) {
-        const a = getAct(w);
-        const prose = w.kind === 'prose';
-        const selected = a.rows.find(r => r.id === state.postId);
+        const a = getAct(w), prose = w.kind === 'prose';
+        const selected = a.rows.find(r=>r.id === state.postId);
         if (prose && selected) return postDetail(w,selected);
-        const controlsHtml = !state.shared ? '<form data-form="turn" class="ac-composer"><textarea name="turn" rows="1" maxlength="16000" placeholder="' +
-            (prose ? 'Write this scene…' : 'Say something…') + '">' + E(state.draft.get(a.id) || '') + '</textarea>' +
-            '<button type="submit" class="ac-send">Send</button>' +
-            (generation ? btn('stop','Pause','ac-primary') : btn('call','Perform','ac-primary')) + '</form>' : '';
+        const dialogue = !prose || state.dialogueView;
+        const count = w.acts.reduce((n,a)=>n+a.rows.length,0);
+        const controlsHtml = !state.shared ? '<form data-form="turn" class="ac-composer"><textarea name="turn" rows="1" maxlength="16000" placeholder="' + (prose ? 'Write this scene…' : 'Say something…') + '">' + E(state.draft.get(a.id) || '') + '</textarea><button type="submit" class="ac-send">Send</button>' + (generation ? btn('stop',userPortrait(w),'ac-avatar-send','','Pause performance') : btn('call','Perform','ac-primary')) + '</form>' : '';
         return top(prose ? 'Performance' : 'Dialogue',btn('reader-menu','KISS · ACTE','ac-reader-brand','','Performance actions'),'detail-back') +
-            '<div class="ac-performance-head">' + (prose ? art(w) : '') + '<div><strong>' + E(w.title) + '</strong><small>Scene ' +
-            num(w.current+1) + ' · ' + E(a.title === '开场' ? 'Opening' : a.title) + '</small></div>' +
-            (prose && !state.shared ? btn('follow-work',w.followed ? 'Following' : 'Follow','ac-follow-button') : '') + '</div>' +
-            (prose ? '<div class="ac-performance-tabs"><strong>Long-form</strong><button type="button" data-acte="reader-dialogue">' +
-                (state.dialogueView ? 'Show posts' : 'Dialogue') + '</button>' + btn('reader-sort',state.readerOldest === false ? 'Newest' : 'In order','ac-text-button') + '</div>' : '') +
-            '<div class="ac-reading' + (prose && !state.dialogueView ? '' : ' ac-dialogue') + '" style="--ac-reading-size:' + state.size + 'px">' +
-            ((state.readerOldest === false && prose ? a.rows.slice().reverse() : a.rows).map(r => {
-                if (prose && !state.dialogueView) return post(w,r);
-                const {label,part,portrait} = speaker(w,r);
-                return '<article id="ac-row-' + E(r.id) + '" class="ac-dialogue-row">' + portrait + '<div><strong>' + E(label) +
-                    (part === 'NPC' ? ' <small>(NPC)</small>' : '') + '</strong><div class="ac-post-text">' + postBody(r) + '</div><time>' +
-                    time(r.at) + '</time></div>' + (!state.shared ? btn('dialogue-menu',icon('more'),'ac-icon',r.id,'Message actions') : '') + '</article>';
-            }).join('') || empty(w.synopsis || 'This scene is ready to begin.')) + '</div><footer class="ac-reader-tools">' +
-            (!state.shared && !w.cast.length ? '<small>Choose a cast in Theatre Settings first.</small>' : '') + controlsHtml + '</footer>';
+            '<div class="ac-performance-head">' + art(w) + '<div><strong>' + E(w.title) + '</strong><small>Scene ' + num(w.current+1) + ' · ' + E(a.title === '开场' ? 'Opening' : a.title) + '</small><small class="ac-performance-count">' + w.acts.length + ' scenes · ' + count + ' posts</small></div>' + (!state.shared ? btn('follow-work',w.followed ? 'Following' : 'Follow','ac-follow-button') : '') + '</div>' +
+            (prose ? '<nav class="ac-performance-tabs">' + btn('reader-posts','Long-form',!dialogue ? 'ac-selected' : '') + btn('reader-dialogue','Dialogue',dialogue ? 'ac-selected' : '') + btn('reader-sort',state.readerOldest === false ? 'Newest' : 'In order','ac-text-button') + '</nav>' : '') + '<div class="ac-reading' + (dialogue ? ' ac-dialogue' : '') + '" style="--ac-reading-size:' + state.size + 'px">' + ((state.readerOldest === false && prose ? a.rows.slice().reverse() : a.rows).map(r=>dialogue ? dialogueRow(w,r) : post(w,r)).join('') || empty(w.synopsis || 'This scene is ready to begin.')) + '</div><footer class="ac-reader-tools">' + (!state.shared && !w.cast.length ? '<small>Choose a cast in Theatre Settings first.</small>' : '') + controlsHtml + '</footer>';
     }
     function htmlFrame(source, progress, track = false) {
         return '<iframe class="ac-frame" title="HTML Theatre" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="' + E(D.preview(source,progress,track)) + '"></iframe>';
@@ -411,7 +418,7 @@
     }
     function sheet(title, body) {
         const page = ['scenes','cover','confirm-import','settings','generation','npc-list','npc-edit','html-create','cover-create','generated'].includes(state.sheet);
-        const footer = state.sheet === 'html-create' ? (generation ? btn('stop','暂停','ac-primary ac-wide') : '<button class="ac-primary ac-wide" type="submit" form="ac-html-generate-form">生成预览</button>') : state.sheet === 'confirm-import' ? btn('commit-import','保存为模板','ac-primary ac-wide') : state.sheet === 'generated' ? btn('save-generated','保存剧场','ac-primary ac-wide') : '';
+        const footer = state.sheet === 'html-create' ? (generation ? btn('stop','暂停','ac-primary ac-wide') : '<button class="ac-primary ac-wide" type="submit" form="ac-html-generate-form">生成预览</button>') : state.sheet === 'confirm-import' ? btn('commit-import',state.importMode === 'work' ? '导入剧场' : '保存为模板','ac-primary ac-wide') : state.sheet === 'generated' ? btn('save-generated','保存剧场','ac-primary ac-wide') : '';
         if (page) return '<section class="ac-sheet-page" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) + '">' +
             '<header class="ac-sheet-page-head">' + btn('sheet-close',icon('back'),'ac-icon','','返回') +
             '<div>' + (['settings','generation','npc-edit','npc-list','html-create'].includes(state.sheet) ? '<strong>' + E(title === 'NPC 档案表' ? 'NPC 档案' : title) + '</strong>' : '<strong>ACTE 剧幕</strong><small>' + E(title) + '</small>') + '</div>' + btn('page-menu',icon('more'),'ac-icon','','更多') + '</header>' +
@@ -566,7 +573,7 @@
             '<input name="title" maxlength="80" placeholder="下一幕的名字" aria-label="下一幕的名字" required><button class="ac-text-button" type="submit">⊕ 新增一幕</button></form>' : ''));
         case 'share': return sheet('分享剧目','<div class="acte-chat-card ac-share-preview">' + shareCard(w,performing()) + '</div><form data-form="share" class="ac-form ac-share-form"><h3>发送给</h3><div class="ac-share-recipients">' + D.characters().map(c=>'<label><input type="radio" name="recipient" value="' + E(c.id) + '" required' + (String(c.id) === state.castFromChat ? ' checked' : '') + '>' + avatar(c.id) + '<span>' + E(D.name(c)) + '</span></label>').join('') + '</div><fieldset><legend>分享内容</legend><label>' + icon('scene') + '<span>预告</span><input type="radio" name="scope" value="teaser" checked></label><label>' + icon('copy') + '<span>完整剧本（HTML 链接）</span><input type="radio" name="scope" value="script"></label></fieldset><button type="submit" class="ac-primary ac-wide">发送到 404</button></form>');
         case 'export': return sheet('导出 HTML','<form data-form="export" class="ac-form"><button type="submit" class="ac-primary">导出完整剧场</button></form>');
-        case 'confirm-import': return sheet('导入预览','<p class="ac-empty">ⓘ 预览导入的互动剧幕，保存后可选择角色。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + previewTools(state.importFile.html) + '</div>');
+        case 'confirm-import': return sheet('导入预览','<fieldset class="ac-import-kind"><legend>导入方式</legend><label><input type="radio" name="importMode" value="template"' + (state.importMode !== 'work' ? ' checked' : '') + '>存为模板</label><label><input type="radio" name="importMode" value="work"' + (state.importMode === 'work' ? ' checked' : '') + '>直接导入剧场</label></fieldset><p class="ac-empty">可直接播放原内容，也可以选演员后基于模板生成。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + previewTools(state.importFile.html) + '</div>');
         case 'reader-menu': return sheet('演绎设置',btn('scenes','场次','ac-menu-item') +
             (w.kind === 'prose' ? btn('size','字号','ac-menu-item') : '') +
             (!state.shared && getAct(w).rows.some(r => r.role === 'user') ? btn('reroll','重回','ac-menu-item') : '') +
@@ -578,6 +585,10 @@
         case 'post-options': return floatingChoices('<p class="ac-empty">Choose a direction to fill the composer.</p><div class="ac-choice-list">' +
             (state.postChoices || []).map((choice,index) => btn('post-choice','<span>' + num(index+1) + '</span><span>' + E(choice.label) + '</span>','ac-outline',index)).join('') + '</div>');
         case 'generated': return sheet('生成预览','<div class="ac-html-stage">' + htmlFrame(state.generated.html) + previewTools(state.generated.html) + '</div>');
+        case 'delete-comment': {
+            const row=getAct(w).rows.find(r=>r.id === state.postId), target=D.comments(row).find(c=>c.id === state.deleteCommentId);
+            return sheet('删除批注','<p>' + (target?.parentId ? '删除这条回复？其他批注会保留。' : '删除这条批注及下面的所有回复？') + '</p>' + btn('confirm-delete-comment','确认删除','ac-primary ac-wide'));
+        }
         case 'delete': return sheet('删除剧场','<p>删除「' + E(state.works.find(row => row.id === deleteId)?.title) + '」及其演出进度和剧摘？</p>' +
             btn('confirm-delete','确认删除','ac-primary ac-wide'));
         default: return '';
@@ -660,6 +671,8 @@
     }
     function close() {
         clearPostFrames();
+        generation?.abort(); generation = null;
+        window.speechSynthesis?.cancel();
         app?.remove();
         app = null;
         clearTimeout(noticeTimer);
@@ -756,7 +769,7 @@
             if (old) { old.remove(); return; }
             const form = app.querySelector('.ac-sheet-page form');
             const submit = form?.querySelector('button[type=submit]');
-            const action = state.sheet === 'confirm-import' ? btn('commit-import','保存为模板','ac-menu-item') : state.sheet === 'generated' ? btn('save-generated','保存剧场','ac-menu-item') : submit ? btn('page-save',E(submit.textContent),'ac-menu-item') : '';
+            const action = state.sheet === 'confirm-import' ? btn('commit-import',state.importMode === 'work' ? '导入剧场' : '保存为模板','ac-menu-item') : state.sheet === 'generated' ? btn('save-generated','保存剧场','ac-menu-item') : submit ? btn('page-save',E(submit.textContent),'ac-menu-item') : '';
             app.querySelector('.ac-sheet-page').insertAdjacentHTML('beforeend','<div class="ac-page-actions-popup" role="menu">' + action + btn('page-menu-close','取消','ac-menu-item') + '</div>');
             return;
         }
@@ -839,11 +852,33 @@
             case 'resume': goDetail(v); await play(state.work.current); break;
             case 'back': if (state.shared) { close(); return; } state.page = returnPage; break;
             case 'detail-back': state.page = 'detail'; state.postId = ''; state.sheet = ''; break;
-            case 'post-detail': state.feedScroll = scroll; state.postId = v; state.oldestFirst = false; break;
-            case 'comment-order': state.oldestFirst = !state.oldestFirst; keep = true; break;
+            case 'post-detail': state.feedScroll = scroll; state.postId = v; state.replyCommentId = ''; state.commentActorId = getAct(state.work).rows.find(r=>r.id === v)?.actorId || state.work.cast[0]?.id || ''; state.commentSort = 'hot'; await update(w=>{const row=getAct(w).rows.find(r=>r.id === v);if(row)row.views=(row.views || 0)+1;}); break;
+            case 'comment-order': state.commentSort = ({hot:'newest',newest:'oldest',oldest:'hot'})[state.commentSort || 'hot']; keep = true; break;
+            case 'reply-comment': {
+                state.replyCommentId = v;
+                const row=getAct(state.work).rows.find(r=>r.id === state.postId), notes=D.comments(row), target=notes.find(c=>c.id === v), root=notes.find(c=>c.id === target?.parentId);
+                state.commentActorId = (target?.authorType === 'actor' ? target.actorId : root?.authorType === 'actor' ? root.actorId : row?.actorId) || state.work.cast[0]?.id || '';
+                keep = true; break;
+            }
+            case 'cancel-comment-reply': state.replyCommentId = ''; keep = true; break;
+            case 'cast-comment': state.commentActorId = app.querySelector('[data-comment-actor]')?.value; await annotate(state.replyCommentId || '',state.commentActorId); state.replyCommentId = ''; keep = true; break;
+            case 'delete-comment': state.deleteCommentId = v; state.sheet = 'delete-comment'; keep = true; break;
+            case 'confirm-delete-comment':
+                await update(w=>{const row=getAct(w).rows.find(row=>row.id === state.postId);if(row){const all=D.comments(row); row.comments=all.filter(c=>c.id !== state.deleteCommentId && c.parentId !== state.deleteCommentId); if (!row.comments.some(c=>c.id === state.replyCommentId)) state.replyCommentId = '';}});
+                state.sheet = ''; keep = true; break;
+            case 'like-comment':
+                await update(w=>{const row=getAct(w).rows.find(row=>row.id === state.postId);if(row){row.comments=D.comments(row);const c=row.comments.find(c=>c.id === v);if(c)c.liked=!c.liked;}});keep = true;break;
+            case 'listen-post': {
+                if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') { note('Speech playback is unavailable.'); return; }
+                if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
+                const row=getAct(state.shared?.work || state.work).rows.find(row=>row.id === state.postId);
+                if (row) speechSynthesis.speak(new SpeechSynthesisUtterance(quotePreview(row.displayText || row.text)));
+                return;
+            }
+            case 'reader-posts': state.dialogueView = false; keep = true; break;
             case 'follow-work': await update(w => { w.followed = !w.followed; }); keep = true; break;
-            case 'post-back': state.postId = ''; render(state.feedScroll); return;
-            case 'reader-dialogue': state.dialogueView = !state.dialogueView; keep = true; break;
+            case 'post-back': state.postId = ''; state.replyCommentId = ''; render(state.feedScroll); return;
+            case 'reader-dialogue': state.dialogueView = true; keep = true; break;
             case 'reader-sort': state.readerOldest = state.readerOldest === false; break;
             case 'reader-menu': case 'detail-menu': case 'dialogue-menu':
                 state.sheet = b.dataset.acte; state.menuRow = v || state.postId; keep = true; break;
@@ -929,9 +964,9 @@
                 });
                 keep = true; break;
             }
-            case 'scenes': state.sceneSort = false;
-            case 'share': case 'export':
-                state.sheet = b.dataset.acte; keep = true; break;
+            case 'scenes': state.sceneSort = false; state.sheet = 'scenes'; keep = true; break;
+            case 'share': state.sharePostId = v || state.postId || ''; state.sheet = 'share'; keep = true; break;
+            case 'export': state.sheet = 'export'; keep = true; break;
             case 'sheet-close':
                 if (state.sheet === 'npc-edit') state.sheet = 'npc-list';
                 else if (state.sheet === 'npc-list') state.sheet = npcReturn;
@@ -975,6 +1010,7 @@
             default: return;
             }
             render(keep ? scroll : null);
+            if (b.dataset.acte === 'reply-comment') app.querySelector('[name=comment]')?.focus({preventScroll:true});
             if (b.dataset.acte === 'call') app.querySelector('.ac-main').scrollTop = app.querySelector('.ac-main').scrollHeight;
             if (notice) note(notice);
             if (targetRow) document.getElementById('ac-row-' + targetRow)?.scrollIntoView({block:'center'});
@@ -985,13 +1021,49 @@
     }
     async function commitImport() {
         const entry = state.importFile;
-        const template = await D.write('template',{id:D.uid(),name:entry.title,html:entry.html});
+        if (!entry) throw Error('请重新选择导入文件');
+        if (state.importMode === 'work') {
+            const saved = entry.pack?.kind === 'work' && entry.pack.work && typeof entry.pack.work === 'object' && !Array.isArray(entry.pack.work) ? entry.pack.work : {};
+            const work = await D.write('work',D.makeWork({...saved,title:saved.title || entry.title,html:entry.html,kind:saved.kind || 'html',started:false},true));
+            await refresh(); state.kind = work.kind === 'html' ? 'html' : 'text'; state.importFile = null;
+            goDetail(work.id);
+            return;
+        }
+        const template = await D.write('template',{id:D.uid(),name:entry.pack?.name || entry.title,html:entry.html});
         await refresh();
         state.htmlDraft = {templateId:template.id,title:template.name,cast:state.castFromChat ? [state.castFromChat] : []};
         state.sheet = 'html-create'; state.importFile = null;
-
     }
-
+    async function annotate(replyTo = '', actorId = '') {
+        const w = state.work, act = getAct(w), post = act.rows.find(row=>row.id === state.postId);
+        if (!post) throw Error('这条帖子已不存在');
+        const chosen = actorId || state.commentActorId || post.actorId || w.cast[0]?.id;
+        const actor = w.cast.some(row=>row.id === chosen) ? D.character(chosen) : null;
+        if (!actor) throw Error('请先选择点评角色');
+        const notes = D.comments(post), target = notes.find(note=>note.id === replyTo);
+        if (replyTo && !target) throw Error('要回复的评论已被删除');
+        const controller = new AbortController(); generation = controller;
+        render(position());
+        const settings = {mode:'plain',apiPreset:w.generation?.apiPreset || '',model:w.generation?.model || '',temperature:w.generation?.temperature,maxOutput:Math.min(w.generation?.maxOutput || 800,2000)};
+        const prompt = '你是演员本人，正在和用户在虚构小剧场之外的评论区点评作品。评论与剧情、角色在剧中的发言完全分开；不要继续演出，不继承剧内身份或假装剧情真实发生。保持演员本人的日常性格与对用户的称呼。不要代替用户发表评论，只返回一条简短自然的评论纯文本，不要标签、JSON、标题或旁白。' + '\n演员姓名：' + D.name(actor) + '\n演员本人资料：' + String(actor.persona || actor.personality || JSON.stringify(actor.profile || {})).slice(0,8000) + '\n用户称呼：' + (selfProfile(w)?.myName || '用户');
+        const context = {work:w.title,post:quotePreview(post.text).slice(0,6500),comments:notes.slice(-20).map(c=>({id:c.id,author:commentPerson(w,c).name,text:c.text,parentId:c.parentId})),task:target ? '回复这条评论：' + target.text : '独立发表一条对这段作品的点评',replyTo:target?.id};
+        try {
+            const output = await D.ask([{role:'system',content:prompt},{role:'user',content:JSON.stringify(context)}],settings,controller.signal,[{id:chosen}]);
+            controller.signal.throwIfAborted();
+            const text = String(output?.text ?? output).trim().slice(0,2000);
+            if (!text) throw Error('角色返回了空评论');
+            const comment = {id:D.uid(),text,at:Date.now(),authorType:'actor',actorId:chosen,name:D.name(actor),avatar:D.image(actor.avatar,true),parentId:target ? target.parentId || target.id : '',replyTo:target?.id || '',replyName:target ? commentPerson(w,target).name : '',client:uiClient()};
+            const updated = await D.revise(w.id,work=>{
+                const row = work.acts.find(a=>a.id === act.id)?.rows.find(row=>row.id === post.id);
+                if (!row) throw Error('这条帖子已不存在');
+                row.comments = D.comments(row);
+                if (target && !row.comments.some(c=>c.id === target.id)) throw Error('要回复的评论已被删除');
+                row.comments.push(comment);
+            });
+            state.works = state.works.map(work=>work.id === updated.id ? updated : work);
+            if (state.work?.id === w.id) state.work = updated;
+        } finally { if (generation === controller) generation = null; if (app) render(position()); }
+    }
     async function submit(event) {
         const form = event.target;
         if (form.dataset.form === 'npc-photo-url') {
@@ -1094,10 +1166,17 @@
             case 'comment': {
                 const text = value('comment');
                 if (state.shared || !state.postId || !text) return;
-                await update(w => {
-                    const row = getAct(w).rows.find(row => row.id === state.postId);
-                    if (row) (row.comments ||= []).push({text,at:Date.now()});
-                });
+                const post = getAct(state.work).rows.find(row=>row.id === state.postId);
+                if (!post) throw Error('这条帖子已不存在');
+                const target = D.comments(post).find(c=>c.id === state.replyCommentId);
+                const actorId = app.querySelector('[data-comment-actor]')?.value || (target?.authorType === 'actor' ? target.actorId : post.actorId) || state.work.cast[0]?.id;
+                const comment = {id:D.uid(),text,at:Date.now(),authorType:'user',name:selfProfile(state.work)?.myName || 'You',avatar:D.image(selfProfile(state.work)?.myAvatar,true),parentId:target ? target.parentId || target.id : '',replyTo:target?.id || '',replyName:target ? commentPerson(state.work,target).name : '',client:uiClient()};
+                await update(w=>{const row=getAct(w).rows.find(row=>row.id === state.postId);if(row){row.comments=D.comments(row);row.comments.push(comment);}});
+                state.commentDraft.delete(post.id); state.replyCommentId = '';
+                if (actorId && state.work.cast.some(row=>row.id === actorId)) {
+                    try { await annotate(comment.id,actorId); }
+                    catch (error) { note(error.name === 'AbortError' ? 'Your comment was saved. Reply paused.' : 'Your comment was saved. Cast reply failed: ' + error.message); }
+                }
                 break;
             }
             case 'edit-turn': {
@@ -1120,7 +1199,7 @@
                 const self = D.character(w.userProfileId) || D.character(state.castFromChat) || D.character(w.cast[0]?.id);
                 let portrait = self?.myAvatar || '';
                 if (typeof portrait === 'string' && portrait.startsWith('blob:') && window.PhoneBackup?.isImage(portrait)) portrait = await window.PhoneBackup.expand(portrait).catch(() => portrait);
-                const post = {id:D.uid(),role:'user',speaker:w.userOnStage === false ? '导演' : w.protagonistName || self?.myName || '我',
+                const post = {id:D.uid(),role:'user',client:uiClient(),speaker:w.userOnStage === false ? '导演' : w.protagonistName || self?.myName || '我',
                     avatar:displayImage(portrait),text,at:Date.now()};
                 await applyPostRegex(post,w.generation,D.name(D.character(w.viewpointActor || w.cast[0]?.id)),self?.myName || '我');
                 await update(row => {
@@ -1129,7 +1208,7 @@
                 });
                 state.draft.delete(a.id); break;
             }
-            case 'share': await sendCard(value('recipient'),value('scope')); state.sheet = ''; break;
+            case 'share': await sendCard(value('recipient'),value('scope')); if (state.sharePostId) await update(w=>{const row=getAct(w).rows.find(r=>r.id === state.sharePostId);if(row)row.reposts=(row.reposts || 0)+1;}); state.sheet = ''; break;
             case 'export': download(state.work.title,D.exportHtml(state.work,false)); state.sheet = ''; break;
             case 'generate': {
                 const cast = data.getAll('cast').filter(id => D.character(id)).map(id => ({id}));
@@ -1182,7 +1261,7 @@
             (w.aware ? '你知道这是用户安排的剧场。' : '以剧内视角演出，避免提到在进行试演。') +
             (w.kind === 'prose' && w.generation?.mode === 'tavern'
                 ? '返回连贯的剧情正文，保留酒馆预设要求的标签、附卡与选项结构。'
-                : (w.kind === 'prose' ? '返回连贯长文，JSON 数组只含一项。' : '用短台词推进情节。') +
+                : (w.kind === 'prose' ? '返回连贯长文，JSON 数组只含一项。' : '用短台词推进情节，可让多位演员互相对话。每项另含 type，口头说的话用 speech；动作、心理、场景描述用 narration，分成独立项，不要把描述塞进说话内容。不代写用户。') +
                     '只返回 JSON 数组，每项含 actorId、speaker 和 text，actorId 必须是发言角色资料里的 actorId，speaker 必须是该角色姓名。') +
             '\n叙事视角：' + (points[w.viewpoint] || points.third) +
             '，视角人物：' + (w.viewpointActor === '@user' ? '用户，只由用户书写其台词和心理' : D.name(D.character(lead))) +
@@ -1214,12 +1293,17 @@
         let rows;
         try { rows = JSON.parse(raw); } catch { rows = null; }
         if (!Array.isArray(rows)) rows = (actors.length === 1 || w.kind === 'prose') ? [{actorId:actors[0].id,text:raw}] : [];
+        const dialogueSides = {...w.dialogueSides};
+        const extras = cast.map(c=>c.id).filter(id=>id !== lead && !dialogueSides[id]);
+        for (let i=extras.length-1;i>0;i--) {const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]];}
+        extras.forEach((id,i)=>{dialogueSides[id]=i%2===0 ? 'right' : 'left';});
+        dialogueSides[lead] = 'left';
         const replies = rows.slice(0,w.kind === 'prose' ? 1 : 10).flatMap(r => {
             if (typeof r?.text !== 'string' || !r.text.trim()) return [];
             const matching = actors.filter(c => D.name(c) === r.speaker);
             const c = actors.find(c => String(c.id) === String(r.actorId)) || (matching.length === 1 ? matching[0] : null);
             return c ? [{id:D.uid(),role:'assistant',speaker:D.name(c),actorId:String(c.id),
-                avatar:D.image(c.avatar,true),text:r.text.trim().slice(0,16000),at:Date.now()}] : [];
+                avatar:D.image(c.avatar,true),client:uiClient(),messageType:w.kind === 'dialogue' && ['narration','speech'].includes(r.type) ? r.type : '',side:dialogueSides[String(c.id)] || 'left',text:r.text.trim().slice(0,16000),at:Date.now()}] : [];
         });
         if (!replies.length) throw Error('没能匹配到发言角色，可点重回再试');
         if (w.kind === 'prose') {
@@ -1247,6 +1331,7 @@
                 if (pivot < 0) throw Error('找不到原始消息');
                 act.rows.splice(pivot + 1);
             }
+            work.dialogueSides = dialogueSides;
             act.rows.push(...replies);
         });
         try {
@@ -1337,6 +1422,12 @@
             render(position());
             return;
         }
+        if (el.name === 'importMode') {
+            state.importMode = el.value === 'work' ? 'work' : 'template';
+            app.querySelectorAll('[data-acte=commit-import]').forEach(b=>b.textContent = state.importMode === 'work' ? '导入剧场' : '保存为模板');
+            return;
+        }
+        if (el.hasAttribute('data-comment-actor')) { state.commentActorId = el.value; return; }
         if (el.name === 'cast') {
             const count = el.form?.querySelector('[data-cast-count]');
             if (count) count.textContent = el.form.querySelectorAll('[name=cast]:checked').length;
@@ -1392,7 +1483,7 @@
                 await setCover(data);
             } else {
                 if (file.size > D.maxFile) throw Error('请选择 32 MB 以内的 HTML 文件');
-                state.importFile = {...await D.readFile(file),filename:file.name};
+                state.importFile = {...await D.readFile(file),filename:file.name}; state.importMode = state.importFile.pack?.kind === 'work' ? 'work' : 'template';
                 state.sheet = 'confirm-import';
             }
             render(position());
@@ -1411,6 +1502,7 @@
             if (event.target.name === 'synopsis') state.studioSynopsis = event.target.value;
         }
         if (event.target.name === 'modelSearch') renderModels(event.target.value);
+        if (event.target.name === 'comment' && state.postId) state.commentDraft.set(state.postId,event.target.value);
         if (event.target.name === 'turn') state.draft.set(getAct(state.work).id,event.target.value);
         if (event.target.name === 'prompt') state.promptDraft = event.target.value;
         if (event.target.dataset.field === 'query') {

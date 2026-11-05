@@ -56,6 +56,47 @@
             return write('work', work);
         });
     }
+    function comments(row) {
+        const seen = new Set();
+        const result = (Array.isArray(row?.comments) ? row.comments : []).filter(c=>c && typeof c.text === 'string' && c.text.trim()).map((c,i)=>{
+            let id = string(c.id || 'legacy-' + i,120);
+            if (seen.has(id)) id += '-' + i; seen.add(id);
+            return {id,text:string(c.text,2000),at:Number(c.at) || Number(row.at) || 0,authorType:c.authorType === 'actor' ? 'actor' : 'user',actorId:string(c.actorId,100),name:string(c.name,80),avatar:image(c.avatar),parentId:string(c.parentId,120),replyTo:string(c.replyTo,120),replyName:string(c.replyName,80),liked:c.liked === true,client:string(c.client,40)};
+        });
+        const byId = new Map(result.map(c=>[c.id,c]));
+        for (const comment of result) {
+            const visited = new Set([comment.id]); let parent = byId.get(comment.parentId);
+            if (!parent) { comment.parentId = ''; continue; }
+            while (parent?.parentId && !visited.has(parent.id)) { visited.add(parent.id); parent = byId.get(parent.parentId); }
+            comment.parentId = !parent || visited.has(parent.id) ? '' : parent.id;
+        }
+        return result;
+    }
+    function dialogueSegments(row) {
+        const text = string(row?.displayText ?? row?.text,16000);
+        if (row.messageType === 'narration' || /<(?:html|div|style|script|main|section)\b/i.test(text)) return [{type:'narration',text}];
+        if (row.messageType === 'speech') return [{type:'speech',text}];
+        const quoted = /[“「『]([^”」』]+)[”」』]|"([^"\n]+)"/g;
+        const found = [...text.matchAll(quoted)];
+        if (!found.length) return [{type:row.role === 'user' || text.length <= 120 && !/^\s*(?:\*|（|\()/u.test(text) ? 'speech' : 'narration',text}];
+        const segments = []; let at = 0;
+        for (const match of found) {
+            const before = text.slice(at,match.index).trim(); if (before) segments.push({type:'narration',text:before});
+            segments.push({type:'speech',text:match[1] || match[2]}); at = match.index + match[0].length;
+        }
+        const after = text.slice(at).trim(); if (after) segments.push({type:'narration',text:after});
+        return segments;
+    }
+    function dialogueSide(work,row) {
+        if (row.role === 'user') return 'right';
+        if (['left','right'].includes(row.side)) return row.side;
+        const lead = (work.viewpointActor !== '@user' && work.viewpointActor) || work.cast.find(c=>c.part === '主角')?.id || work.cast[0]?.id;
+        const id = row.actorId || work.cast.find(c=>name(character(c.id)) === row.speaker)?.id;
+        if (!id || id === lead) return 'left';
+        if (['left','right'].includes(work.dialogueSides?.[id])) return work.dialogueSides[id];
+        const others = work.cast.filter(c=>c.id !== lead);
+        return others.findIndex(c=>c.id === id) % 2 === 0 ? 'right' : 'left';
+    }
     function makeWork(data = {}, keepCast = false) {
         const actRows = Array.isArray(data.acts) ? data.acts : [];
         const acts = actRows.map((act, i) => ({
@@ -64,7 +105,7 @@
                 id: uid(), role: row?.role === 'assistant' ? 'assistant' : 'user',
                 speaker: string(row?.speaker, 80), text: string(row?.text, 16000),
                 at: Number(row?.at) || Date.now(), actorId:string(row?.actorId,100),
-                avatar:image(row?.avatar), presetId:string(row?.presetId,120), displayText:typeof row?.displayText === 'string' ? string(row.displayText,16000) : undefined,
+                avatar:image(row?.avatar),comments:comments(row),liked:row?.liked === true,reposts:Math.max(0,Math.floor(Number(row?.reposts) || 0)),views:Math.max(0,Math.floor(Number(row?.views) || 0)),client:string(row?.client,40),location:string(row?.location,80),messageType:['speech','narration'].includes(row?.messageType) ? row.messageType : '',side:['left','right'].includes(row?.side) ? row.side : '', presetId:string(row?.presetId,120), displayText:typeof row?.displayText === 'string' ? string(row.displayText,16000) : undefined,
                 duration:Number.isFinite(row?.duration) ? row.duration : undefined,
                 tokens:Number.isFinite(row?.tokens) ? row.tokens : undefined, estimated:row?.estimated === true
             }))
@@ -84,7 +125,7 @@
             htmlProgress:validProgress(data.htmlProgress) ? data.htmlProgress : null,
             art:Number.isInteger(data.art) && data.art >= 0 && data.art <= 5 ? data.art : 1,
             cast:cast.filter(c => character(c?.id)).map(c => ({id:String(c.id), memory:c.memory === true, part:string(c.part,30), notes:string(c.notes,1000)})),
-            aware:keepCast && data.aware === true, status:data.status === 'done' ? 'done' : 'active',
+            dialogueSides:Object.fromEntries(Object.entries(data.dialogueSides || {}).filter(([id,side])=>cast.some(c=>c.id === id) && ['left','right'].includes(side))),aware:keepCast && data.aware === true, status:data.status === 'done' ? 'done' : 'active',
             current:Math.max(0, Math.min(acts.length - 1, Number.isInteger(data.current) ? data.current : 0)),
             acts, updated:Date.now(), created:Date.now()
         };
@@ -120,14 +161,18 @@
         try { return JSON.stringify(value).length <= 4096; } catch { return false; }
     }
     function sourceDocument(value) {
-        const raw = unwrap(value).replace(/^\uFEFF/,'').trim();
+        let raw = unwrap(value).replace(/^\uFEFF/,'').trim();
+        // Word/TXT may contain either a complete document or an executable fragment.
+        for (let i=0;i<3 && /^\s*&lt;(?:!doctype|[a-z][\w:-]*)\b/i.test(raw);i++) raw = new DOMParser().parseFromString(raw,'text/html').body.textContent.trim();
         const start = raw.search(/<!doctype\s+html\b|<html(?:\s|>)/i);
         const closes = [...raw.matchAll(/<\/html\s*>/gi)];
-        if (start < 0 || !closes.length || closes.at(-1).index < start) return '';
-        const end = closes.at(-1);
-        return raw.slice(start,end.index + end[0].length)
-            .replace(/<([a-z][\w:-]*)(\s[^<>]*)?>/gi,(tag,name,attrs) =>
-                attrs ? '<' + name + attrs.replace(/=\s*[“”]([^“”]*)[“”]/g,'="$1"').replace(/=\s*[‘’]([^‘’]*)[‘’]/g,"='$1'") + '>' : tag);
+        let source;
+        if (start >= 0) {
+            const end = closes.at(-1); source = raw.slice(start,end && end.index >= start ? end.index + end[0].length : raw.length);
+        } else if (/^(?:<!--[\s\S]*?-->\s*)*<[a-z][\w:-]*(?=\s|\/?[>])/i.test(raw)) {
+            source = '<!doctype html><html><head><meta charset="UTF-8"></head><body>' + raw + '</body></html>';
+        } else return '';
+        return source.replace(/<([a-z][\w:-]*)(\s[^<>]*)?>/gi,(tag,name,attrs) => attrs ? '<' + name + attrs.replace(/=\s*[“”]([^“”]*)[“”]/g,'="$1"').replace(/=\s*[‘’]([^‘’]*)[‘’]/g,"='$1'") + '>' : tag);
     }
     function documentText(body) {
         const blocks = [...body.querySelectorAll('p,pre,li')];
@@ -137,7 +182,8 @@
         const direct = sourceDocument(source);
         if (direct) {
             const parsed = new DOMParser().parseFromString(direct,'text/html');
-            if (!parsed.body.querySelector('script,style,button,main,section') && /&lt;(?:!DOCTYPE|html)/i.test(parsed.body.innerHTML)) {
+            const legacyTextWrapper = parsed.head.textContent.includes('body{font:16px/1.8 system-ui;margin:24px;overflow-wrap:anywhere}');
+            if (!parsed.body.querySelector('script,style,button,main,section') && (/&lt;(?:!DOCTYPE|html)/i.test(parsed.body.innerHTML) || legacyTextWrapper && /&lt;[a-z]/i.test(parsed.body.innerHTML))) {
                 return sourceDocument(documentText(parsed.body)) || direct;
             }
             return direct;
@@ -178,7 +224,7 @@
             pack = JSON.parse(meta?.textContent);
         } catch {}
         return {
-            title:doc.title || filename.replace(/\.html?$/i, ''),
+            title:doc.title || filename.replace(/\.(?:html?|docx|txt)$/i, ''),
             html:stripPackage(source),
             pack:pack?.version === 1 && ['work','template'].includes(pack.kind) ? pack : null
         };
@@ -282,5 +328,5 @@
         {title:'潮汐备忘录',kind:'prose',genre:genres[1],art:3,synopsis:'沿着潮水退去的地方，把没来得及说的话写在纸上。第二天，海边多了一封回信。'},
         {title:'双生台',kind:'dialogue',genre:genres[0],art:5,synopsis:'一份过期的节目单上，写着两个人完全相同的名字。演出即将开始。'}
     ];
-    window.ActeData = {maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
+    window.ActeData = {sourceDocument,comments,dialogueSegments,dialogueSide,maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
 })();
