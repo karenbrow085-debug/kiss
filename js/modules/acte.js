@@ -17,6 +17,7 @@
         trash:'<path d="M4 6h16M9 6V3h6v3m3 0-1 15H7L6 6m4 4v7m4-7v7"/>',
         link:'<path d="m10 13 4-4m-6 6-2 2a3 3 0 0 1-4-4l4-4a3 3 0 0 1 4 0m4 6a3 3 0 0 0 4 0l4-4a3 3 0 0 0-4-4l-2 2"/>',
         quotes:'<path d="M6 4h12v16l-6-4-6 4z"/>',
+        palette:'<path d="M12 3a9 9 0 1 0 0 18h2a2 2 0 0 0 0-4h-1a1.5 1.5 0 0 1 0-3h2a6 6 0 0 0 6-6c0-3-4-5-9-5z"/><circle cx="7" cy="10" r=".8"/><circle cx="10" cy="7" r=".8"/><circle cx="14" cy="7" r=".8"/><circle cx="17" cy="10" r=".8"/>',
         studio:'<path d="M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-5 0v6"/>',
         sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',
         moon:'<path d="M20 15A8 8 0 0 1 9 4a8.5 8.5 0 1 0 11 11Z"/>',
@@ -424,17 +425,17 @@
         const selected = initial.cast || (state.castFromChat ? [{id:state.castFromChat,memory:false}] : []);
         const actors = D.actors();
         const subject = Object.fromEntries(actors.map(c => [String(c.id),D.name(c)]));
-        return '<form class="ac-form ac-setup" data-form="setup">' +
+        return '<form class="ac-form ac-setup" data-form="setup"><h3 class="ac-settings-heading">基本信息</h3>' +
             field('剧名','<input name="title" maxlength="80" required value="' + E(initial.title) + '">') +
             '<div class="ac-form-pair">' + (!w ? field('写法','<select name="kind">' + options({dialogue:'对话',prose:'长文'},initial.kind) + '</select>') : '') +
             field('题材','<select name="genre">' + options(Object.fromEntries(genres().map(x => [x,x])),initial.genre) + '</select>') + '</div>' +
-            field('剧情设定','<textarea name="synopsis" maxlength="6000" rows="2">' + E(initial.synopsis) + '</textarea>') +
+            '<details class="ac-setting-editor"' + (!w ? ' open' : '') + '><summary><span>简介</span><small>' + E(initial.synopsis || '填写剧情设定') + '</small>' + icon('next') + '</summary>' + field('剧情设定','<textarea name="synopsis" maxlength="6000" rows="3">' + E(initial.synopsis) + '</textarea>') + '</details>' +
             (w?.kind === 'html' ? '' :
-                '<details class="ac-setting-block" open><summary>出场与视角</summary><div class="ac-form-pair">' +
+                '<h3 class="ac-settings-heading">出场与视角</h3><div class="ac-casting-settings"><div class="ac-form-pair">' +
                 field('叙事视角','<select name="viewpoint">' + options({third:points.third,first:points.first,second:points.second},initial.viewpoint) + '</select>') +
                 field('视角角色','<select name="viewpointActor">' + options({'':'按阵容自动','@user':'用户（自己书写）',...subject},initial.viewpointActor) + '</select>') + '</div>' +
                 '<label class="ac-check"><input type="checkbox" name="userOnStage"' + (initial.userOnStage !== false ? ' checked' : '') + '>用户出场</label>' +
-                '<div class="ac-roster">' + (actors.map(c => {
+                '<h3 class="ac-settings-heading">主要演员</h3><div class="ac-roster">' + (actors.map(c => {
                     const row = selected.find(r => r.id === String(c.id));
                     return '<div class="ac-roster-row"><label class="ac-roster-person">' + avatar(c.id) + '<input type="checkbox" name="cast" value="' +
                         E(c.id) + '"' + (row ? ' checked' : '') + '><span>' + E(D.name(c)) + '</span></label>' +
@@ -442,10 +443,10 @@
                         '</select>' + (!c.profile ? '<label class="ac-check"><input type="checkbox" name="memory" value="' + E(c.id) + '"' +
                         (row?.memory ? ' checked' : '') + '>记忆</label>' : '') + '</div><input class="ac-role-note" name="note:' +
                         E(c.id) + '" maxlength="1000" aria-label="本剧角色设定" placeholder="本剧角色设定（选填）" value="' + E(row?.notes) + '"></div>';
-                }).join('') || empty('还没有出场角色。')) + '</div>' + btn('npc-list','NPC 档案','ac-outline') + '</details>' +
+                }).join('') || empty('还没有出场角色。')) + '</div>' + btn('npc-list','＋ 添加 NPC · 档案管理','ac-menu-item') + '</div>' +
                 '<label class="ac-check"><input type="checkbox" name="aware" value="yes"' + (initial.aware ? ' checked' : '') + '>告知出场角色</label>') +
             '<button type="submit" class="ac-primary ac-wide">' + (w ? '保存设置' : '创建剧场') + '</button></form>' +
-            (w ? '<div class="ac-setting-links">' + btn('cover','更换封面','ac-outline') +
+            (w ? '<h3 class="ac-settings-heading">封面与展示</h3><div class="ac-setting-links">' + btn('cover','更换封面','ac-outline') +
                 (w.kind !== 'html' ? btn('generation','生成设置','ac-outline') : '') +
                 btn('finish',w.status === 'done' ? '恢复演出' : '标记落幕','ac-outline') +
                 btn('export','导出 HTML','ac-outline') + '</div>' : '');
@@ -470,7 +471,7 @@
     }
     function coverSheet(w) {
         return '<div class="ac-cover-preview">' + art(w) + '</div><div class="ac-cover-sources">' +
-            '<button type="button" class="ac-cover-jump" data-acte="cover-fields">' + icon('studio') + '绘图工坊' + icon('next') + '</button>' +
+            '<button type="button" class="ac-cover-jump" data-acte="cover-fields">' + icon('palette') + '绘图工坊' + icon('next') + '</button>' +
             uploadButton(icon('copy') + '本地图片' + icon('next'),'cover','image/*') +
             '<details><summary>' + icon('link') + '图片链接' + icon('next') + '</summary>' +
             '<form class="ac-form" data-form="cover-url">' + field('图片 URL','<input name="url" type="url" required placeholder="https://…">') +
@@ -483,17 +484,17 @@
         const list = mode === 'tavern' ? db.tavernPresets : mode === 'cot' ? db.cotPresets : [];
         const select = (name,items,value) => '<select name="' + name + '">' + options(items,value) + '</select>';
         const promptOptions = {'':'使用剧幕提示词',...Object.fromEntries((window.KissOffline?.promptChoices() || []).map(p => [p.value,p.label]))};
-        return '<form class="ac-form" data-form="generation">' +
+        return '<form class="ac-form ac-generation" data-form="generation"><h3 class="ac-settings-heading">生成策略</h3>' +
             field('生成方式',select('mode',{plain:'提示词',cot:'提示词 + 思维链',tavern:'酒馆预设'},mode)) +
             '<div class="ac-config-group" data-prompt-fields' + (mode === 'tavern' ? ' hidden' : '') + '>' +
             field('已有提示词',select('promptVersion',promptOptions,settings.promptVersion)) +
-            field('补充提示词','<textarea name="prompt" rows="3" maxlength="8000">' + E(settings.prompt) + '</textarea>') + '</div>' +
+            '<details class="ac-setting-editor"><summary><span>补充提示词</span><small>' + (settings.prompt ? settings.prompt.length + ' 字' : '未设置') + '</small>' + icon('next') + '</summary>' + field('提示词内容','<textarea name="prompt" rows="4" maxlength="8000">' + E(settings.prompt) + '</textarea>') + '</details>' + '</div>' +
             '<div data-preset-fields' + (mode === 'plain' ? ' hidden' : '') + '>' + field('预设',select('preset',{'':'选择预设',
                 ...Object.fromEntries((list || []).map(p => [String(p.id),p.name || p.title || p.id]))},settings.preset)) + '</div>' +
-            '<details class="ac-setting-block"><summary>世界书</summary><div class="ac-book-list">' +
+            '<h3 class="ac-settings-heading">世界书与记忆</h3><details class="ac-setting-block ac-worldbook-setting"><summary>世界书</summary><div class="ac-book-list">' +
             ((db.worldBooks || []).map(b => '<label class="ac-check"><input type="checkbox" name="book" value="' + E(b.id) + '"' +
                 ((settings.worldBookIds || []).includes(String(b.id)) ? ' checked' : '') + '>' + E(b.name || b.title || '未命名') + '</label>').join('') || empty('暂无世界书')) + '</div></details>' +
-            field('专属 API',select('apiPreset',{'':'跟随视角角色','@desktop':'桌面 API',
+            '<h3 class="ac-settings-heading">模型与接口</h3>' + field('专属 API',select('apiPreset',{'':'跟随视角角色','@desktop':'桌面 API',
                 ...Object.fromEntries((db.apiPresets || []).map(p => [p.name,p.name]))},settings.apiPreset)) +
             '<div data-api-fields class="ac-config-group"' + (!settings.apiPreset ? ' hidden' : '') + '>' +
             field('模型','<input name="model" placeholder="留空跟随所选 API 的模型" value="' + E(settings.model) + '">') +
@@ -512,7 +513,11 @@
         return '<form class="ac-form" data-form="cover-create">' +
             field('提供方','<select name="imageProvider">' + options({novelai:'NovelAI',gpt:'GPT'},provider) + '</select>') +
             field('模型','<select name="imageModel">' + imageModels(provider) + '</select>') +
-            field('提示词','<textarea name="imagePrompt" rows="5" required maxlength="8000" placeholder="填写构图、风格和画面内容"></textarea>') +
+            '<div class="ac-nai-fields"' + (provider === 'novelai' ? '' : ' hidden') + '>' +
+            field('已有预设','<select name="imagePreset">' + options({'':'自定义',...Object.fromEntries((db.workshopPromptPresets || []).map(p => [p.id,p.name]))},'') + '</select>') +
+            field('画师串 / 正向提示词','<textarea name="imagePositive" rows="3" maxlength="16000">' + E(db.workshopSettings?.positivePrompt || '') + '</textarea>') +
+            field('负向提示词','<textarea name="imageNegative" rows="2" maxlength="16000">' + E(db.workshopSettings?.negativePrompt || '') + '</textarea>') + '</div>' +
+            field('画面提示词','<textarea name="imagePrompt" rows="5" required maxlength="8000" placeholder="填写构图、风格和画面内容"></textarea>') +
             '<button class="ac-primary" type="submit">生成封面</button></form>';
     }
     function renderModels(query = '') {
@@ -577,9 +582,14 @@
         clearPostFrames();
         const w = state.shared?.work || state.work;
         const pages = {discover,library,quotes:quotePage,categories:categoryPage,detail:() => detail(w),
-            reader:() => w.kind === 'html' ? top('HTML Theatre',btn('scenes','Scenes','ac-text-button'),'detail-back') +
-                '<div class="ac-html-stage">' + htmlFrame(w.html,w.htmlProgress,!state.shared) +
-                btn('expand-html',icon('expand'),'ac-icon ac-html-expand','','Full screen') + '</div>' : reader(w)};
+            reader:() => w.kind === 'html' ? top('HTML Playback',btn('reader-menu',icon('more'),'ac-icon','','演绎设置'),'detail-back') +
+                '<div class="ac-html-title"><strong>' + E(w.title) + '</strong><small>ACTE · HTML Theatre</small></div><div class="ac-html-stage">' +
+                htmlFrame(w.html,w.htmlProgress,!state.shared) + btn('expand-html',icon('expand'),'ac-icon ac-html-expand','','Full screen') + '</div>' +
+                '<footer class="ac-html-player"><span>Scene ' + (w.current+1) + ' / ' + w.acts.length + '</span>' +
+                '<button type="button" data-acte="scene" data-value="' + Math.max(0,w.current-1) + '"' + (w.current ? '' : ' disabled') + ' aria-label="Previous scene">◀</button>' +
+                btn('html-pause','Ⅱ','ac-icon','','Pause animation and media') +
+                '<button type="button" data-acte="scene" data-value="' + Math.min(w.acts.length-1,w.current+1) + '"' + (w.current < w.acts.length-1 ? '' : ' disabled') + ' aria-label="Next scene">▶</button>' +
+                btn('html-speed','1.0×','ac-html-speed','','Playback speed') + '</footer>' : reader(w)};
         app.dataset.theme = state.theme;
         app.innerHTML = '<main class="ac-main ac-page-' + state.page + '">' + pages[state.page]() + '</main>' +
             (state.page in tabs && !(state.page === 'library' && state.kind === 'html') ? nav() : '') + sheetContent(w);
@@ -799,6 +809,22 @@
             case 'reader-sort': state.readerOldest = state.readerOldest === false; break;
             case 'reader-menu': case 'detail-menu': case 'dialogue-menu':
                 state.sheet = b.dataset.acte; state.menuRow = v || state.postId; keep = true; break;
+            case 'html-pause': case 'html-speed': {
+                const frame = app.querySelector('.ac-page-reader .ac-frame');
+                if (!frame) return;
+                if (b.dataset.acte === 'html-pause') {
+                    const paused = b.getAttribute('aria-pressed') !== 'true';
+                    b.setAttribute('aria-pressed',String(paused)); b.textContent = paused ? '▶' : 'Ⅱ';
+                    b.setAttribute('aria-label',paused ? 'Resume animation and media' : 'Pause animation and media');
+                    frame.contentWindow.postMessage({type:'acte-player',paused},'*');
+                } else {
+                    const rate = Number(b.dataset.rate || 1);
+                    const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
+                    b.dataset.rate = next; b.textContent = next.toFixed(1) + '×';
+                    frame.contentWindow.postMessage({type:'acte-player',rate:next},'*');
+                }
+                return;
+            }
             case 'expand-html': {
                 const main = b.closest('.ac-sheet-page,.ac-page-reader');
                 const expanded = main.classList.toggle('ac-html-expanded');
@@ -986,6 +1012,7 @@
                 if (!value('imagePrompt')) throw Error('请填写封面提示词');
                 const provider = value('imageProvider');
                 const settings = {...db.workshopSettings,provider,[provider + 'Model']:value('imageModel')};
+                if (provider === 'novelai') { settings.positivePrompt = value('imagePositive'); settings.negativePrompt = value('imageNegative'); }
                 note('正在生成封面…');
                 const result = await window.executeImageGeneration(settings,value('imagePrompt'));
                 const cover = D.image(result.imageData,true);
@@ -1267,7 +1294,18 @@
             el.form.querySelector('[data-preset-fields]').hidden = el.value === 'plain';
             el.form.elements.preset.replaceChildren(new Option('选择预设',''),...(list || []).map(p => new Option(p.name || p.title || p.id,p.id)));
         }
-        if (el.name === 'imageProvider') el.form.elements.imageModel.innerHTML = imageModels(el.value);
+        if (el.name === 'imageProvider') {
+            el.form.elements.imageModel.innerHTML = imageModels(el.value);
+            el.form.querySelector('.ac-nai-fields').hidden = el.value !== 'novelai';
+        }
+        if (el.name === 'imagePreset') {
+            const preset = (db.workshopPromptPresets || []).find(p => String(p.id) === el.value);
+            if (preset) {
+                el.form.elements.imagePositive.value = preset.positive || '';
+                el.form.elements.imageNegative.value = preset.negative || '';
+                if (preset.character) el.form.elements.imagePrompt.value = preset.character;
+            }
+        }
         if (el.name === 'apiPreset') {
             el.form.querySelector('[data-api-fields]').hidden = !el.value;
             el.form.elements.model.value = ''; state.models = []; el.form.querySelector('[data-models]').replaceChildren();

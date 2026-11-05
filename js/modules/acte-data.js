@@ -155,10 +155,11 @@
         doc.querySelector('meta[name="viewport"]')?.remove();
         const attrs = element => [...element.attributes].map(a => ' ' + a.name + '="' + esc(a.value) + '"').join('');
         const initial = JSON.stringify(progress ?? null).replace(/</g, '\\u003c');
+        const player = '<script>addEventListener("message",e=>{if(e.source!==parent||e.data?.type!=="acte-player")return;const d=e.data;for(const a of document.getAnimations()){if(typeof d.paused==="boolean"){if(d.paused)a.pause();else a.play();}if([1,1.5,2].includes(d.rate))a.playbackRate=d.rate;}for(const m of document.querySelectorAll("video,audio")){if(d.paused===true){m.dataset.acteWasPlaying=String(!m.paused);m.pause();}if(d.paused===false&&m.dataset.acteWasPlaying==="true")m.play().catch(()=>{});if([1,1.5,2].includes(d.rate))m.playbackRate=d.rate;}});<\/script>';
         const bridge = track ? '<script>window.ActeProgress={value:' + initial +
             ',save(value){this.value=value;parent.postMessage({type:"acte-progress",value},"*")}};<\/script>' : '';
         return '<!doctype html><html' + attrs(doc.documentElement) + '><head><meta http-equiv="Content-Security-Policy" content="' + policy +
-            '"><meta name="viewport" content="width=device-width,initial-scale=1">' + bridge + doc.head.innerHTML +
+            '"><meta name="viewport" content="width=device-width,initial-scale=1">' + player + bridge + doc.head.innerHTML +
             '</head><body' + attrs(doc.body) + '>' + doc.body.innerHTML + '</body></html>';
     }
     function portable(work) {

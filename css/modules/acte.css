@@ -670,3 +670,60 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-profile-story { border-block:1px solid var(--ac-line); padding:12px 0; }
 #kiss-acte .ac-profile-story summary { font-size:14px; font-weight:600; cursor:pointer; }
 #kiss-acte .ac-profile-story p { font-size:14px; line-height:1.7; padding-top:10px; }
+
+/* Flat settings rows. Each control owns the whole value column. */
+#kiss-acte .ac-settings-heading { font-size:14px; font-weight:650; margin:18px 0 0; padding:0 0 9px; border-bottom:1px solid var(--ac-line); }
+#kiss-acte .ac-setup,#kiss-acte .ac-generation { gap:0; }
+#kiss-acte .ac-setup > .ac-form-pair,#kiss-acte .ac-casting-settings > .ac-form-pair { display:contents; }
+#kiss-acte .ac-setup .ac-field,#kiss-acte .ac-generation .ac-field { display:grid; grid-template-columns:minmax(84px,34%) minmax(0,1fr)!important; align-items:center; min-height:46px; padding:5px 0; gap:10px; font-size:13px; }
+#kiss-acte .ac-setup .ac-field:has(textarea),#kiss-acte .ac-generation .ac-field:has(textarea) { grid-template-columns:1fr!important; padding-block:10px; }
+#kiss-acte :is(.ac-setup,.ac-generation,.ac-cover-settings) select { -webkit-appearance:none!important; appearance:none!important; display:block; width:100%!important; min-width:0!important; min-height:36px!important; height:auto!important; border:0!important; box-shadow:none!important; outline-offset:2px; border-radius:0!important; background:transparent!important; color:var(--ac-ink); padding:5px 0!important; font-size:14px!important; text-align:right; text-overflow:ellipsis; }
+#kiss-acte .ac-setup .ac-field input,#kiss-acte .ac-generation .ac-field input { width:100%; min-width:0; border:0; background:transparent; text-align:right; padding:5px 0; font-size:14px; }
+#kiss-acte .ac-setup .ac-check { min-height:39px; font-size:13px; gap:8px; }
+#kiss-acte .ac-casting-settings { min-width:0; }
+#kiss-acte .ac-roster { max-height:290px; overflow-y:auto; overflow-x:hidden; background:transparent; border-radius:0; }
+#kiss-acte .ac-roster-row { padding:9px 0; gap:8px; min-height:55px; }
+#kiss-acte .ac-roster-person { flex:1; min-width:0; }
+#kiss-acte .ac-roster-person .ac-avatar { width:35px; height:35px; flex:none; }
+#kiss-acte .ac-roster-role { min-width:0; max-width:45%; }
+#kiss-acte .ac-roster-role select { min-width:75px!important; }
+#kiss-acte .ac-setting-links { display:block; }
+#kiss-acte .ac-setting-links button { display:block; border:0; border-radius:0; border-bottom:1px solid var(--ac-line); background:transparent; text-align:left; width:100%; min-height:45px; padding-inline:0; font-size:13px; }
+#kiss-acte .ac-setup > .ac-primary,#kiss-acte .ac-generation > .ac-primary { margin-top:15px; }
+#kiss-acte .ac-social-actions { border-top:0; }
+#kiss-acte .ac-discovery-shelf { padding:0 20px 15px; }
+#kiss-acte .ac-discovery-shelf button.ac-work-row { appearance:none; -webkit-appearance:none; display:grid; grid-template-columns:62px minmax(0,1fr); gap:14px; width:100%; margin:0; padding:15px 0; border:0; border-bottom:1px solid var(--ac-line); border-radius:0; background:transparent; text-align:left; box-shadow:none; }
+#kiss-acte .ac-discovery-shelf .ac-work-row .ac-art { width:62px; height:91px; }
+#kiss-acte .ac-discovery-shelf .ac-work-copy { min-width:0; width:100%; }
+#kiss-acte .ac-discovery-shelf .ac-progress { margin-top:5px; }
+#kiss-acte .ac-id-section { align-items:start; grid-template-columns:31% minmax(0,1fr); }
+#kiss-acte .ac-id-portrait { align-self:start; padding:4px; }
+#kiss-acte .ac-dossier .ac-id-portrait .ac-avatar { width:100%; height:auto; aspect-ratio:3/4; min-height:0; }
+#kiss-acte .ac-dossier-head { padding:9px 3px; text-align:center; }
+#kiss-acte .ac-dossier-head strong { font-family:var(--ac-serif); font-size:21px; letter-spacing:0; }
+#kiss-acte .ac-dossier-head small { display:none; }
+#kiss-acte .ac-dossier-head span { text-align:right; letter-spacing:0; }
+#kiss-acte .ac-dossier .ac-id-fields .ac-field { grid-template-columns:56px minmax(0,1fr); min-height:30px; padding:2px 0; }
+#kiss-acte .ac-dossier .ac-field > span { font-size:11px; overflow-wrap:normal; word-break:normal; }
+#kiss-acte .ac-dossier .ac-field :is(input,textarea) { background:transparent; border:0; border-radius:0; min-height:26px; font-size:12px; }
+#kiss-acte .ac-dossier-record .ac-field { grid-template-columns:68px minmax(0,1fr); padding:5px 0; }
+#kiss-acte .ac-dossier-record textarea { min-height:38px!important; }
+#kiss-acte .ac-html-title { flex:none; padding:11px 16px; background:var(--ac-card); display:grid; gap:3px; }
+#kiss-acte .ac-html-title strong { font-size:16px; }
+#kiss-acte .ac-html-title small { font-size:12px; color:var(--ac-muted); }
+#kiss-acte .ac-html-stage { overflow:hidden; background:var(--ac-card); }
+#kiss-acte .ac-html-stage .ac-frame { width:100%; height:100%; min-height:0; flex:1; background:var(--ac-card); }
+#kiss-acte .ac-html-player { display:flex; align-items:center; gap:10px; padding:10px 14px max(10px,env(safe-area-inset-bottom)); background:var(--ac-card); border-top:2px solid var(--ac-ui); }
+#kiss-acte .ac-html-player > span { margin-right:auto; color:var(--ac-muted); font-size:11px; }
+#kiss-acte .ac-html-player button { min-width:28px; min-height:33px; }
+#kiss-acte .ac-html-player button:disabled { opacity:.3; cursor:default; }
+#kiss-acte .ac-html-speed { border:1px solid var(--ac-muted); border-radius:20px; padding:0 8px; font-size:11px; }
+#kiss-acte .ac-setting-editor { border-bottom:1px solid var(--ac-line); min-width:0; }
+#kiss-acte .ac-setting-editor > summary { display:flex; align-items:center; gap:10px; min-height:47px; cursor:pointer; list-style:none; font-size:13px; }
+#kiss-acte .ac-setting-editor > summary::-webkit-details-marker { display:none; }
+#kiss-acte .ac-setting-editor > summary small { margin-inline-start:auto; color:var(--ac-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%; font-size:13px; }
+#kiss-acte .ac-setting-editor > summary svg { width:15px; height:15px; flex:none; color:var(--ac-muted); }
+#kiss-acte .ac-setting-editor > .ac-field { border:0; }
+#kiss-acte .ac-worldbook-setting { border:0; border-radius:0; padding:9px 0; border-bottom:1px solid var(--ac-line); }
+#kiss-acte .ac-roster-role { display:flex; align-items:center; gap:7px; }
+#kiss-acte .ac-roster-role .ac-check { white-space:nowrap; flex:none; }
