@@ -57,7 +57,7 @@
         '<option value="' + E(value) + '"' + (value === current ? ' selected' : '') + '>' + E(label) + '</option>').join('');
     const genres = () => state.genres || D.genres;
     const uploadButton = (label,type,accept) => '<label class="ac-outline ac-upload">' + label +
-        '<input type="file" aria-label="' + label + '" accept="' + accept + '" data-file="' + type + '"></label>';
+        '<input type="file" aria-label="' + E(label.replace(/<[^>]*>/g,'')) + '" accept="' + accept + '" data-file="' + type + '"></label>';
     const pendingCards = new Map();
     const currentChat = () => typeof currentChatType !== 'undefined' && currentChatType === 'private' ? D.character(currentChatId) : null;
     const num = n => String(n).padStart(2, '0');
@@ -66,7 +66,7 @@
     const status = w => w.status === 'done' ? '已落幕' : '进行中';
     const getAct = w => w.acts[w.current];
     const performing = () => state.page === 'reader';
-    const readerLabel = (en, zh) => performing() ? en : zh;
+    const readerLabel = (en, zh) => zh;
     const englishPart = part => {
         const ordinal = ranks.findIndex(rank => part?.slice(1) === rank) + 1;
         return ordinal ? ({男:'Male',女:'Female',角:'Cast'}[part[0]] || 'Cast') + ' Lead ' + ordinal :
@@ -129,7 +129,21 @@
                         state.ideaLikes?.includes(i) ? 'ac-marked' : '',i) + '</footer></article>').join('') +
                 '<div class="ac-pad">' + btn('new','自己写','ac-outline') + '</div>');
     }
+    const sourceBand = () => '<div class="ac-source-band">' + icon('scene') + '<span>ACTE 剧幕 · KISS</span></div>';
+    function htmlLibrary() {
+        const works = state.works.filter(w => w.kind === 'html').sort((a,b) => b.updated-a.updated);
+        return top('HTML 剧库',btn('html-create',icon('more'),'ac-icon','','生成 HTML'),'text-library') +
+            '<div class="ac-html-library-source">' + sourceBand() + uploadButton('导入文件','html','.html,.htm,.docx,.txt') + '</div>' +
+            '<details class="ac-html-shelf" open><summary>我的模板 ' + state.templates.length + '</summary>' +
+            state.templates.map((t,i) => '<div class="ac-html-library-row">' + btn('template-use',art({art:i%6}) + '<span><strong>' + E(t.name) + '</strong><small>HTML · 剧目模板</small></span>','ac-html-library-item',t.id) +
+                btn('template-menu',icon('more'),'ac-icon',t.id,'模板操作')).join('') + '</details>' +
+            '<details class="ac-html-shelf" open><summary>已生成剧目 ' + works.length + '</summary>' +
+            (works.map(w => '<div class="ac-swipe-row" data-swipe="' + E(w.id) + '">' + btn('delete-work',icon('trash') + '<span>删除</span>','ac-swipe-delete',w.id) +
+                '<div class="ac-swipe-content ac-html-library-row">' + btn('detail',art(w) + '<span><strong>' + E(w.title) + '</strong><small>HTML · ' + date(w.updated) + ' ' + time(w.updated) + '</small></span>','ac-html-library-item',w.id) +
+                btn('resume','▷ 播放','ac-text-button',w.id) + '</div></div>').join('') || empty('还没有生成的剧目。')) + '</details>';
+    }
     function library() {
+        if (state.kind === 'html') return htmlLibrary();
         const query = state.query.toLowerCase().trim();
         const found = state.works.filter(w => state.kind === 'html' ? w.kind === 'html' && (!state.genre || w.genre === state.genre) && (!state.status || w.status === state.status) && (!query || (w.title + w.synopsis).toLowerCase().includes(query)) : w.kind !== 'html' && (!state.textKind || w.kind === state.textKind) &&
             (!state.genre || state.genre === w.genre) && (!state.status || state.status === w.status) &&
@@ -153,14 +167,24 @@
             '<div class="ac-library-results">' + (found.map(w => '<div class="ac-swipe-row" data-swipe="' + E(w.id) + '">' +
                 btn('delete-work',icon('trash') + '<span>删除</span>','ac-swipe-delete',w.id) + '<div class="ac-swipe-content">' + workRow(w) + '</div></div>').join('') || empty('这个分类还没有剧目。')) + '</div></div>';
     }
+    function quotePreview(value) {
+        const parser = new DOMParser();
+        const source = String(value || '');
+        const decoded = /&lt;\/?(?:top|content|story|div|p)\b/i.test(source) ? parser.parseFromString(source,'text/html').body.textContent : source;
+        const doc = parser.parseFromString(decoded,'text/html');
+        doc.querySelectorAll('script,style,template,noscript,top,title,header,ending,epilogue,afterword,think,thinking,analysis,reasoning,branches,options,choices,meow_fm').forEach(node => node.remove());
+        const narrative = doc.querySelector('content,story,scene');
+        const text = (narrative || doc.body).textContent.replace(/```(?:html|xml|json)?/gi,'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
+        return text || '查看剧摘';
+    }
     function quotePage() {
         const list = state.quoteTab === 'saved' ? state.quotes : state.recent;
         const sources = {'':'全部来源',...Object.fromEntries(list.map(q => [q.workId,q.title]))};
         return hubTop('剧摘') + '<div class="ac-pad">' +
-            controls({saved:'收藏',recent:'最近'},state.quoteTab,'quote-tab') +
+            controls({saved:'收藏',recent:'最近'},state.quoteTab,'quote-tab','ac-tabs') +
             (state.quoteSource ? '<div class="ac-active-filter">' + E(sources[state.quoteSource]) + btn('quote-source','清除筛选','ac-text-button') + '</div>' : '') +
             (list.filter(q => !state.quoteSource || q.workId === state.quoteSource).sort((a,b) => b.at-a.at).map(q => {
-                return '<article class="ac-quote"><blockquote>' + inline(q.text) + '</blockquote>' +
+                return '<article class="ac-quote">' + btn('quote-open','「' + E(quotePreview(q.text)) + '」','ac-quote-excerpt',q.id) +
                     '<div>' + btn('quote-open','来自《' + E(q.title) + '》' + ' · 第 ' + (q.act + 1) + ' 幕','ac-source',q.id) +
                     '<time>' + date(q.at) + '</time>' + btn('quote-toggle',icon('quotes'),'ac-icon ' +
                     (state.quotes.some(x => x.id === q.id) ? 'ac-marked' : ''),q.id,'切换收藏') + '</div></article>';
@@ -173,16 +197,19 @@
             return '<div class="ac-cast-card">' + avatar(r.id) + '<strong>' + E(D.name(c)) + '</strong><small>' +
                 E(r.part || (r.memory ? '携带记忆' : '配角')) + '</small></div>';
         }).join('');
-        return top('剧目主页',!state.shared ? btn('settings',icon('more'),'ac-icon','','剧场设置') : '','back') +
+        const wordCount = w.acts.reduce((total,act) => total + act.rows.reduce((sum,row) => sum + quotePreview(row.text).length,0),0);
+        return top('剧目主页',!state.shared ? btn('settings',icon('more'),'ac-icon','','剧场设置') : '','back') + sourceBand() +
             '<div class="ac-detail-hero">' + art(w) + '</div><div class="ac-pad ac-detail-body">' +
             '<header class="ac-profile-head">' + art(w) + '<div><h1>' + E(w.title) + '</h1><small>' + E(summary(w)) +
-            ' · ' + (state.shared?.scope === 'teaser' ? '预告' : status(w)) + '</small></div></header>' +
-            (state.shared?.scope === 'teaser' ? '' : '<div class="ac-detail-actions">' +
-                btn('play',w.started ? '继续演出' : '开始演出','ac-primary') +
-                (!state.shared ? btn('share','分享','ac-outline') : '') + '</div>') +
+            '</small><small>' + w.acts.length + ' 幕 · ' + status(w) + '</small></div>' +
+            (state.shared?.scope === 'teaser' ? '' : '<div class="ac-profile-buttons">' + btn('play',w.started ? '继续演出' : '开始演出','ac-primary') +
+                (!state.shared ? btn('share','分享','ac-outline') : '') + '</div>') + '</header>' +
+            (w.synopsis ? '<p class="ac-profile-description">' + E(w.synopsis) + '</p>' : '') +
             (state.shared?.scope === 'teaser' ? '' : controls({info:'简介',scenes:'场次'},tab,'profile-tab','ac-tabs')) +
             (tab === 'scenes' && state.shared?.scope !== 'teaser' ? sceneRows(w,true) :
-                (w.synopsis ? '<p>' + E(w.synopsis) + '</p>' : '') +
+                '<dl class="ac-profile-facts"><dt>题材</dt><dd>' + E(w.genre) + '</dd><dt>字数</dt><dd>' + wordCount + ' 字</dd><dt>演出方式</dt><dd>' +
+                E(D.kinds[w.kind]) + ' · ' + w.cast.length + ' 位演员</dd></dl>' +
+                (w.synopsis ? '<details class="ac-profile-story" open><summary>故事简介</summary><p>' + E(w.synopsis) + '</p></details>' : '') +
                 (cast ? heading('主演') + '<div class="ac-cast">' + cast + '</div>' : '')) + '</div>';
     }
     function sceneRows(w, thumbs) {
@@ -351,12 +378,12 @@
     function htmlCreate() {
         const draft = state.htmlDraft || {};
         const template = state.templates.find(t => t.id === draft.templateId);
-        return '<form data-form="generate" class="ac-form">' +
-            field('模板','<select name="templateId">' + options({'':'空白剧场',...Object.fromEntries(state.templates.map(t => [t.id,t.name]))},draft.templateId) + '</select>') +
+        return sourceBand() + '<form data-form="generate" class="ac-form ac-html-config">' +
+            field('剧目模板','<select name="templateId">' + options({'':'空白剧场',...Object.fromEntries(state.templates.map(t => [t.id,t.name]))},draft.templateId) + '</select>') +
             (template ? '<p class="ac-empty">以此模板的界面和交互为底稿，生成后才收入剧库。</p>' : '') +
             field('剧名','<input name="title" maxlength="80" required value="' + E(draft.title) + '">') +
             field('剧情设定','<textarea name="synopsis" rows="3" maxlength="6000">' + E(draft.synopsis) + '</textarea>') +
-            '<details class="ac-setting-block" open><summary>选择出演角色</summary><div class="ac-roster">' +
+            '<details class="ac-setting-block" open><summary>角色与演员</summary><div class="ac-roster">' +
             D.actors().map(c => '<label class="ac-roster-row ac-roster-person">' + avatar(c.id) + '<input type="checkbox" name="cast" value="' +
                 E(c.id) + '"' + (draft.cast?.includes(String(c.id)) ? ' checked' : '') + '><span>' + E(D.name(c)) + '</span></label>').join('') + '</div></details>' +
             field('视觉与交互要求','<textarea name="prompt" rows="3" maxlength="8000" placeholder="可选">' + E(draft.prompt) + '</textarea>') +
@@ -373,12 +400,12 @@
     function sheet(title, body) {
         const page = ['scenes','cover','confirm-import','settings','generation','npc-list','npc-edit','html-create','cover-create','generated'].includes(state.sheet);
         if (page) return '<section class="ac-sheet-page" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) + '">' +
-            '<header class="ac-sheet-page-head">' + btn('sheet-close',icon('back'),'ac-icon','','Back') +
+            '<header class="ac-sheet-page-head">' + btn('sheet-close',icon('back'),'ac-icon','','返回') +
             '<div><strong>ACTE ' + readerLabel('Theatre','剧幕') + '</strong><small>' + E(title) + '</small></div></header>' +
-            '<div class="ac-sheet-body">' + body + '</div></section>';
-        const action = state.sheet === 'edit-turn' ? 'Done' : state.sheet === 'reroll' ? 'Confirm' : '';
+            '<div class="ac-sheet-body">' + (['settings','generation','npc-edit'].includes(state.sheet) ? sourceBand() : '') + body + '</div></section>';
+        const action = state.sheet === 'edit-turn' ? '完成' : state.sheet === 'reroll' ? '确认' : '';
         if (action) return '<div class="ac-scrim"><section class="ac-sheet ac-editor-sheet" role="dialog" aria-label="' + title +
-            '"><div class="ac-handle"></div><header>' + btn('sheet-close','Cancel','ac-text-button') + '<h2>' + title +
+            '"><div class="ac-handle"></div><header>' + btn('sheet-close','取消','ac-text-button') + '<h2>' + title +
             '</h2><button type="submit" form="ac-editor-form" class="ac-text-button">' + action +
             '</button></header><div class="ac-sheet-body">' + body + '</div></section></div>';
         return '<div class="ac-scrim"><section class="ac-sheet" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) +
@@ -434,13 +461,12 @@
         const inputs = Object.entries(npcFields).map(([key,label],i) => field(label,i < 6 ?
             '<input name="' + key + '" maxlength="150"' + (key === 'name' ? ' required' : '') + ' value="' + E(key === 'name' ? npc?.realName : npc?.profile?.[key]) + '">' :
             '<textarea name="' + key + '" rows="2" maxlength="1500">' + E(npc?.profile?.[key]) + '</textarea>'));
-        return '<form class="ac-form ac-dossier" data-form="npc"><header class="ac-dossier-head"><small>ACTE PERSONNEL OFFICE　 /　 RECORD</small>' +
-            '<strong>人物档案</strong><span>CAST IDENTIFICATION　·　' + E(npc ? npc.id.slice(-6).toUpperCase() : 'NEW FILE') + '</span></header>' +
-            '<section class="ac-id-section"><div class="ac-id-portrait"><div data-npc-photo>' + avatar(npc?.id,'像') + '</div>' +
-            uploadButton('上传证件照','npc-avatar','image/*') + '</div><div class="ac-id-fields">' + inputs.slice(0,6).join('') + '</div></section>' +
-            field('头像链接','<input name="avatar" type="url" placeholder="https://…" value="' + E(/^https?:/.test(npc?.avatar || '') ? npc.avatar : '') + '">') +
-            '<h3 class="ac-dossier-band">履历及演出设定　/　PROFILE</h3><section class="ac-dossier-record">' + inputs.slice(6).join('') +
-            '</section><footer class="ac-dossier-foot"><small>ACTE / CAST RECORD</small><button class="ac-primary" type="submit">保存档案</button></footer></form>';
+        return '<form class="ac-form ac-dossier" data-form="npc"><header class="ac-dossier-head"><small>ACTE 人物档案</small>' +
+            '<strong>人物档案</strong><span>档案编号　·　' + E(npc ? npc.id.slice(-6).toUpperCase() : '新建') + '</span></header>' +
+            '<section class="ac-id-section"><div class="ac-id-portrait">' + btn('npc-photo','<span data-npc-photo>' + avatar(npc?.id,'像') + '</span>','ac-npc-photo','','更换头像') + '</div><div class="ac-id-fields">' + inputs.slice(0,6).join('') + '</div></section>' +
+            '<input type="hidden" name="avatar" value="' + E(npc?.avatar || '') + '">' +
+            '<h3 class="ac-dossier-band">履历及演出设定</h3><section class="ac-dossier-record">' + inputs.slice(6).join('') +
+            '</section><footer class="ac-dossier-foot"><small>ACTE 人物档案</small><button class="ac-primary" type="submit">保存档案</button></footer></form>';
     }
     function coverSheet(w) {
         return '<div class="ac-cover-preview">' + art(w) + '</div><div class="ac-cover-sources">' +
@@ -497,6 +523,7 @@
     }
     function sheetContent(w) {
         switch (state.sheet) {
+        case 'template-menu': return sheet('模板操作',btn('template-use','选择角色生成','ac-menu-item',state.templateMenuId) + btn('template-remove','删除模板','ac-menu-item',state.templateMenuId));
         case 'idea-read': {
             const idea = D.ideas[state.ideaIndex];
             return sheet(idea.title,'<p class="ac-idea-synopsis">' + E(idea.synopsis) + '</p>' + btn('idea','用此梗概开场','ac-primary ac-wide',state.ideaIndex));
@@ -506,14 +533,14 @@
             controls({'':'全部写法',dialogue:'对话',prose:'长文'},state.textKind || '','text-kind','ac-inline'));
         case 'genre-new': return sheet('添加题材','<form class="ac-form" data-form="genre-add"><input name="genre" maxlength="40" placeholder="新题材名称" required><button type="submit" class="ac-primary">添加</button></form>');
         case 'generation': return sheet('生成设置',generationForm(w.generation || {}));
-        case 'html-create': return sheet('生成 HTML',htmlCreate());
+        case 'html-create': return sheet('模板生成',htmlCreate());
         case 'npc-list': return sheet('NPC 档案',npcList());
         case 'npc-edit': return sheet('NPC 档案表',npcForm());
         case 'genre-edit': return sheet('编辑题材','<form class="ac-form" data-form="genre-edit"><input name="genre" maxlength="40" required value="' +
             E(state.editGenre) + '"><button class="ac-primary" type="submit">保存</button></form>');
-        case 'edit-turn': return sheet('Edit Post','<form class="ac-form" id="ac-editor-form" data-form="edit-turn"><textarea name="text" rows="4" maxlength="16000" required>' +
+        case 'edit-turn': return sheet('编辑消息','<form class="ac-form" id="ac-editor-form" data-form="edit-turn"><textarea name="text" rows="4" maxlength="16000" required>' +
             E(editing?.text) + '</textarea></form>');
-        case 'reroll': return sheet('Reroll','<form class="ac-form" id="ac-editor-form" data-form="reroll"><div class="ac-reroll-scene">' + icon('scene') + E(getAct(w).title === '开场' ? 'Opening' : getAct(w).title) + '</div><textarea name="note" rows="3" maxlength="2000" placeholder="What should change? (optional)"></textarea></form>');
+        case 'reroll': return sheet('重新生成','<form class="ac-form" id="ac-editor-form" data-form="reroll"><div class="ac-reroll-scene">' + icon('scene') + E(getAct(w).title === '开场' ? 'Opening' : getAct(w).title) + '</div><textarea name="note" rows="3" maxlength="2000" placeholder="这次希望怎么回（选填）"></textarea></form>');
         case 'new': return sheet('新建文字剧场',formSetup(null));
         case 'settings': return sheet('剧场设置',formSetup(w));
         case 'cover': return sheet('更换封面',coverSheet(w));
@@ -522,21 +549,21 @@
             (!state.shared ? btn('settings',readerLabel('Cast & Settings','角色与设置'),'ac-text-button') : '') + '</nav>' +(!state.shared && w.acts.length > 1 ?
             heading(readerLabel('Scenes','场次') + ' (' + w.acts.length + ')',btn('scene-sort',state.sceneSort ? readerLabel('Done','完成') :
                 readerLabel('Reorder','编辑排序'),'ac-text-button')) : '') + sceneRows(w,true) + (!state.shared ? '<form data-form="act" class="ac-form ac-form-pair">' +
-            '<input name="title" maxlength="80" placeholder="Scene title" required><button class="ac-outline" type="submit">Add scene</button></form>' : ''));
+            '<input name="title" maxlength="80" placeholder="下一幕的名字" required><button class="ac-outline" type="submit">新增一幕</button></form>' : ''));
         case 'share': return sheet(readerLabel('Share to 404','发送给角色'),'<div class="acte-chat-card ac-share-preview">' + shareCard(w,performing()) + '</div><form data-form="share" class="ac-form">' + field(readerLabel('Recipient','接收角色'),'<select name="recipient" required><option value="">' + readerLabel('Choose a character','选择角色') + '</option>' +
             D.characters().map(c => '<option value="' + E(c.id) + '"' + (String(c.id) === state.castFromChat ? ' selected' : '') + '>' + E(D.name(c)) + '</option>').join('') +
             '</select>') + '<fieldset><legend>' + readerLabel('Share Content','发送内容') + '</legend><label><input type="radio" name="scope" value="teaser" checked>' + readerLabel('Teaser','发送预告') + '</label>' +
             '<label><input type="radio" name="scope" value="script">' + readerLabel('Full Script','发送剧本') + '</label></fieldset><button type="submit" class="ac-primary ac-wide">' + readerLabel('Send to 404','发送到 404') + '</button></form>');
         case 'export': return sheet('导出 HTML','<form data-form="export" class="ac-form"><button type="submit" class="ac-primary">导出完整剧场</button></form>');
         case 'confirm-import': return sheet('导入预览','<p class="ac-empty">ⓘ 预览导入的互动剧幕，保存后可选择角色。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + btn('expand-html',icon('expand'),'ac-icon ac-html-expand','','Full screen') + '</div>' + btn('commit-import','保存为模板','ac-primary ac-wide'));
-        case 'reader-menu': return sheet('Performance',btn('scenes','Scenes','ac-menu-item') +
-            (w.kind === 'prose' ? btn('size','Text size','ac-menu-item') : '') +
-            (!state.shared && getAct(w).rows.some(r => r.role === 'user') ? btn('reroll','Reroll','ac-menu-item') : '') +
-            btn('detail-back','Theatre profile','ac-menu-item'));
-        case 'detail-menu': return sheet('Post Actions',state.shared ? btn('copy-post','Copy','ac-menu-item',state.menuRow) :
-            btn('edit-turn','Edit','ac-menu-item',state.menuRow));
-        case 'dialogue-menu': return sheet('Message Actions',btn('edit-turn','Edit','ac-menu-item',state.menuRow) +
-            btn('save-row','Save excerpt','ac-menu-item',state.menuRow));
+        case 'reader-menu': return sheet('演绎设置',btn('scenes','场次','ac-menu-item') +
+            (w.kind === 'prose' ? btn('size','字号','ac-menu-item') : '') +
+            (!state.shared && getAct(w).rows.some(r => r.role === 'user') ? btn('reroll','重回','ac-menu-item') : '') +
+            btn('detail-back','剧目主页','ac-menu-item'));
+        case 'detail-menu': return sheet('消息操作',state.shared ? btn('copy-post','复制','ac-menu-item',state.menuRow) :
+            btn('edit-turn','编辑','ac-menu-item',state.menuRow));
+        case 'dialogue-menu': return sheet('消息操作',btn('edit-turn','编辑','ac-menu-item',state.menuRow) +
+            btn('save-row','收藏剧摘','ac-menu-item',state.menuRow));
         case 'post-options': return floatingChoices('<p class="ac-empty">Choose a direction to fill the composer.</p><div class="ac-choice-list">' +
             (state.postChoices || []).map((choice,index) => btn('post-choice','<span>' + num(index+1) + '</span><span>' + E(choice.label) + '</span>','ac-outline',index)).join('') + '</div>');
         case 'generated': return sheet('生成预览',htmlFrame(state.generated.html) + btn('save-generated','保存剧场','ac-primary ac-wide'));
@@ -555,7 +582,7 @@
                 btn('expand-html',icon('expand'),'ac-icon ac-html-expand','','Full screen') + '</div>' : reader(w)};
         app.dataset.theme = state.theme;
         app.innerHTML = '<main class="ac-main ac-page-' + state.page + '">' + pages[state.page]() + '</main>' +
-            (state.page in tabs ? nav() : '') + sheetContent(w);
+            (state.page in tabs && !(state.page === 'library' && state.kind === 'html') ? nav() : '') + sheetContent(w);
         mountPostFrames();
         mountChoiceWindow();
         if (scroll !== null) app.querySelector('.ac-main').scrollTop = scroll;
@@ -681,6 +708,16 @@
     async function click(event) {
         const b = event.target.closest('[data-acte]');
         if (!b) return;
+        if (b.dataset.acte === 'npc-photo') {
+            if (app.querySelector('.ac-avatar-picker')) return;
+            app.insertAdjacentHTML('beforeend','<div class="ac-avatar-picker ac-scrim"><section class="ac-sheet" role="dialog" aria-modal="true" aria-label="更换头像"><header><h2>更换头像</h2>' +
+                btn('npc-photo-close',icon('close'),'ac-icon','','关闭') + '</header><div class="ac-sheet-body">' +
+                uploadButton('本地图片','npc-avatar','image/*') + '<form class="ac-form" data-form="npc-photo-url">' +
+                field('图片 URL','<input name="url" type="url" required placeholder="https://…">') +
+                '<button class="ac-primary" type="submit">使用链接</button></form></div></section></div>');
+            return;
+        }
+        if (b.dataset.acte === 'npc-photo-close') { app.querySelector('.ac-avatar-picker')?.remove(); return; }
         if (b.dataset.acte === 'stop') { generation?.abort(); return; }
         if (busy || (state.swipeUntil > Date.now() && b.dataset.acte === 'detail')) return;
         if (b.dataset.acte === 'model') { app.querySelector('[name=model]').value = b.dataset.value; return; }
@@ -701,6 +738,8 @@
         try {
             switch (b.dataset.acte) {
             case 'close': close(); return;
+            case 'text-library': state.kind = 'text'; break;
+            case 'template-menu': state.templateMenuId = v; state.sheet = 'template-menu'; keep = true; break;
             case 'hub-search':
                 if (state.page !== 'discover') { state.librarySearch = true; state.page = 'library'; }
                 render();
@@ -725,7 +764,7 @@
                 state.sheet = 'html-create'; break;
             }
             case 'template-remove':
-                if (confirm('删除这份模板？已生成的剧场会保留。')) { await D.remove('template',v); await refresh(); }
+                if (confirm('删除这份模板？已生成的剧场会保留。')) { await D.remove('template',v); await refresh(); state.sheet = ''; }
                 break;
             case 'cover-fields':
                 app.querySelector('.ac-cover-settings')?.scrollIntoView({block:'start',behavior:'smooth'});
@@ -886,6 +925,13 @@
 
     async function submit(event) {
         const form = event.target;
+        if (form.dataset.form === 'npc-photo-url') {
+            event.preventDefault();
+            const value = D.image(new FormData(form).get('url'));
+            if (!/^https?:/.test(value)) { note('请输入有效的图片 URL'); return; }
+            setNpcPhoto(value);
+            return;
+        }
         if (!form.dataset.form) return;
         event.preventDefault();
         if (busy) return;
@@ -1196,6 +1242,16 @@
         };
         return row;
     }
+    function setNpcPhoto(source) {
+        npcAvatar = source;
+        const form = app.querySelector('[data-form=npc]');
+        if (!form) return;
+        form.elements.avatar.value = source;
+        const image = document.createElement('img');
+        image.className = 'ac-avatar'; image.alt = ''; image.src = source;
+        form.querySelector('[data-npc-photo]').replaceChildren(image);
+        app.querySelector('.ac-avatar-picker')?.remove();
+    }
     async function change(event) {
         const kind = event.target.dataset.file;
         const file = event.target.files?.[0];
@@ -1226,9 +1282,7 @@
                     reader.onerror = () => reject(Error('图片读取失败')); reader.readAsDataURL(file);
                 });
                 if (kind === 'npc-avatar') {
-                    npcAvatar = data;
-                    const image = document.createElement('img'); image.className = 'ac-avatar'; image.alt = ''; image.src = data;
-                    app.querySelector('[data-npc-photo]').replaceChildren(image);
+                    setNpcPhoto(data);
                     return;
                 }
                 await setCover(data);
@@ -1266,6 +1320,7 @@
             return;
         }
         if (event.key !== 'Escape' || busy) return;
+        if (app.querySelector('.ac-avatar-picker')) { app.querySelector('.ac-avatar-picker').remove(); return; }
         if (state.sheet || state.postId) { if (state.sheet) state.sheet = ''; else state.postId = ''; render(position()); } else close();
     }
     window.addEventListener('message',event => {

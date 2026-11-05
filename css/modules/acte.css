@@ -617,3 +617,56 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-hub-top > div:last-child { justify-self:end; }
 
 #kiss-acte .ac-choice-heading { padding:15px 18px; border-bottom:1px solid var(--ac-line); font-size:16px; }
+
+/* Excerpts follow the approved compact list in both themes. */
+#kiss-acte .ac-page-quotes > .ac-pad { padding:0 20px 14px; }
+#kiss-acte .ac-page-quotes .ac-tabs { margin-inline:-20px; background:none; border-radius:0; padding:0; }
+#kiss-acte .ac-page-quotes .ac-tabs button { background:none; border:0; border-radius:0; color:var(--ac-muted); font-weight:400; }
+#kiss-acte .ac-page-quotes .ac-tabs .ac-selected { color:var(--ac-ink); font-weight:650; }
+#kiss-acte .ac-page-quotes .ac-quote { padding:17px 0 14px; }
+#kiss-acte .ac-quote-excerpt { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; width:100%; padding:0 29px 0 0; font-size:15px; font-weight:400; line-height:1.65; white-space:normal; overflow-wrap:anywhere; text-align:left; }
+#kiss-acte .ac-page-quotes .ac-quote > div { margin-top:8px; gap:8px; }
+#kiss-acte .ac-page-quotes .ac-source { min-height:22px; font-size:12px; color:var(--ac-muted); text-align:left; }
+#kiss-acte .ac-page-quotes .ac-quote time { font-size:12px; white-space:nowrap; }
+#kiss-acte .ac-page-quotes .ac-quote [data-acte="quote-toggle"] { right:-4px; top:10px; }
+#kiss-acte .ac-page-quotes .ac-quote [data-acte="quote-toggle"] svg { width:17px; height:17px; }
+#kiss-acte .ac-npc-photo { width:100%; display:block; padding:0; }
+#kiss-acte .ac-npc-photo [data-npc-photo] { display:block; }
+#kiss-acte .ac-avatar-picker { z-index:8; }
+#kiss-acte .ac-avatar-picker .ac-upload { display:flex; justify-content:center; margin-top:12px; min-height:43px; border:1px solid var(--ac-line); border-radius:7px; }
+#kiss-acte .ac-quote-excerpt { -webkit-line-clamp:2; }
+#kiss-acte .ac-page-quotes .ac-quote .ac-marked svg { fill:none; color:var(--ac-ink); }
+#kiss-acte .ac-source-band { display:flex; align-items:center; gap:9px; min-height:41px; padding:8px 17px; color:var(--ac-muted); background:var(--ac-surface); font-size:12px; }
+#kiss-acte .ac-source-band svg { width:19px; height:19px; flex:none; }
+#kiss-acte .ac-sheet-body > .ac-source-band { margin:0 -20px 15px; }
+#kiss-acte .ac-html-library-source { display:flex; justify-content:space-between; align-items:center; gap:8px; padding-right:14px; border-bottom:1px solid var(--ac-line); }
+#kiss-acte .ac-html-library-source .ac-source-band { background:transparent; flex:1; }
+#kiss-acte .ac-html-library-source .ac-upload { min-height:30px; padding:4px 10px; border:1px solid var(--ac-line); border-radius:20px; font-size:12px; }
+#kiss-acte .ac-html-shelf { padding-inline:18px; }
+#kiss-acte .ac-html-shelf > summary { padding-block:17px; font-size:16px; font-weight:600; border-bottom:1px solid var(--ac-line); cursor:pointer; }
+#kiss-acte .ac-html-library-row { display:flex; align-items:center; gap:7px; border-bottom:1px solid var(--ac-line); }
+#kiss-acte .ac-html-library-item { display:flex; flex:1; min-width:0; align-items:center; gap:14px; padding-block:15px; }
+#kiss-acte .ac-html-library-item .ac-art { width:57px; height:64px; flex:none; border-radius:9px; }
+#kiss-acte .ac-html-library-item > span:last-child { display:grid; gap:5px; min-width:0; }
+#kiss-acte .ac-html-library-item strong { font-size:15px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#kiss-acte .ac-html-library-item small { color:var(--ac-muted); font-size:12px; }
+#kiss-acte .ac-html-config > .ac-field { border-radius:6px; padding:10px; background:var(--ac-surface); }
+#kiss-acte .ac-html-config > .ac-field:has(input,select) { display:grid; grid-template-columns:90px 1fr; align-items:center; }
+#kiss-acte .ac-html-config > .ac-field :is(input,textarea,select) { background:none; border:0; padding:3px; font-size:14px; }
+#kiss-acte .ac-html-config .ac-roster-row { min-height:65px; border-bottom:1px solid var(--ac-line); }
+#kiss-acte .ac-html-config .ac-roster-person { display:flex; gap:12px; }
+#kiss-acte .ac-html-config .ac-roster-person input { order:3; margin-inline-start:auto; }
+#kiss-acte .ac-profile-head { margin-top:-25px; gap:10px; }
+#kiss-acte .ac-profile-head > .ac-art { width:76px; height:76px; border-radius:50%; }
+#kiss-acte .ac-profile-head > div:not(.ac-profile-buttons) { flex:1; }
+#kiss-acte .ac-profile-head h1 { font-size:20px; }
+#kiss-acte .ac-profile-head small { display:block; font-size:11px; line-height:1.6; }
+#kiss-acte .ac-profile-buttons { flex:none; display:grid; gap:6px; }
+#kiss-acte .ac-profile-buttons button { padding:4px 11px; min-height:29px; border-radius:20px; font-size:12px; }
+#kiss-acte .ac-profile-description { font-size:14px; line-height:1.65; margin-top:15px; margin-bottom:10px; }
+#kiss-acte .ac-profile-facts { display:grid; grid-template-columns:72px 1fr; gap:7px 10px; margin:15px 0; font-size:13px; }
+#kiss-acte .ac-profile-facts dt { color:var(--ac-muted); }
+#kiss-acte .ac-profile-facts dd { margin:0; }
+#kiss-acte .ac-profile-story { border-block:1px solid var(--ac-line); padding:12px 0; }
+#kiss-acte .ac-profile-story summary { font-size:14px; font-weight:600; cursor:pointer; }
+#kiss-acte .ac-profile-story p { font-size:14px; line-height:1.7; padding-top:10px; }
