@@ -226,6 +226,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         historySlice = filterHistoryForAI(chat, historySlice);
         // API requests require portable data URLs, never browser-local blob URLs.
         historySlice = await PhoneBackup.expand(historySlice);
+        generation.workFileRequest = window.KissWorkFiles?.requestContext(historySlice, chatType === 'group' ? (chat.members || []) : []) || null;
         historySlice = historySlice.map(m => window.KissWorkFiles?.context(m) || m);
         // 【新增】过滤掉不应进入上下文的消息（如思考过程、被撤回的消息标记等）
         historySlice = historySlice.filter(m => !m.isContextDisabled && m.type !== 'mcp-activity' && m.type !== 'mcp-request');
@@ -705,6 +706,9 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
                 fullResponse = result.choices[0].message.content;
             }
             
+            const finishReason = provider === 'gemini' ? result.candidates?.[0]?.finishReason : result.choices?.[0]?.finish_reason;
+            generation.workFileTruncated = /^(?:length|max_tokens|MAX_TOKENS|content_filter|SAFETY|RECITATION)$/i.test(finishReason || '');
+
             // === 【补丁：把被吃掉的开头补回来】 ===
             // 仅在 CoT 开启且检测到闭合标签时补全
             const cotEnabled = db.cotSettings && db.cotSettings.enabled;
@@ -735,7 +739,22 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
     generation?.check();
     const reader = response.body.getReader(), decoder = new TextDecoder();
     if (generation) generation.reader = reader;
-    let fullResponse = "", accumulatedChunk = "";
+    let fullResponse = "", accumulatedChunk = "", streamFinished = false, streamTruncated = false;
+    function consumeEvent(part) {
+        for (const line of part.split(/\r?\n/)) {
+            if (!/^data:\s?/.test(line)) continue;
+            const data = line.replace(/^data:\s?/, '');
+            if (data.trim() === '[DONE]') {streamFinished = true; continue;}
+            try {
+                const choice = JSON.parse(data).choices?.[0];
+                fullResponse += choice?.delta?.content || '';
+                if (choice?.finish_reason) {
+                    streamFinished = true;
+                    if (/^(?:length|max_tokens|content_filter)$/i.test(choice.finish_reason)) streamTruncated = true;
+                }
+            } catch (_) {}
+        }
+    }
     try {
     for (; ;) {
         generation?.check();
@@ -744,19 +763,9 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
         if (done) break;
         accumulatedChunk += decoder.decode(value, {stream: true});
         if (apiType === "openai" || apiType === "deepseek" || apiType === "claude" || apiType === "newapi") {
-            const parts = accumulatedChunk.split("\n\n");
+            const parts = accumulatedChunk.split(/\r?\n\r?\n/);
             accumulatedChunk = parts.pop();
-            for (const part of parts) {
-                if (part.startsWith("data: ")) {
-                    const data = part.substring(6);
-                    if (data.trim() !== "[DONE]") {
-                        try {
-                            fullResponse += JSON.parse(data).choices[0].delta?.content || "";
-                        } catch (e) { 
-                        }
-                    }
-                }
-            }
+            for (const part of parts) consumeEvent(part);
         }
     }
     } finally {
@@ -764,10 +773,16 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
         try { reader.releaseLock(); } catch (_) {}
     }
     generation?.check();
+    if (apiType !== 'gemini') {
+        accumulatedChunk += decoder.decode();
+        if (accumulatedChunk.trim()) consumeEvent(accumulatedChunk);
+        if (generation) generation.workFileTruncated = streamTruncated || !streamFinished;
+    }
     if (apiType === "gemini") {
         try {
             const parsedStream = JSON.parse(accumulatedChunk);
             fullResponse = parsedStream.map(item => item.candidates?.[0]?.content?.parts?.[0]?.text || "").join('');
+            if (generation) generation.workFileTruncated = parsedStream.some(item => /^(?:MAX_TOKENS|SAFETY|RECITATION)$/.test(item.candidates?.[0]?.finishReason || ''));
         } catch (e) {
             console.error("Error parsing Gemini stream:", e, "Chunk:", accumulatedChunk);
             if (!isBackground) showToast("解析Gemini响应失败");
@@ -845,7 +860,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             fullResponse = fullResponse.substring(lastThinkingIndex + 11);
         }
 
-        if(window.KissWorkFiles){const extracted=await KissWorkFiles.extractReplies(fullResponse,()=>generation?.check());fullResponse=extracted.text;workReplies=extracted.files;}
+        if(window.KissWorkFiles){const extracted=await KissWorkFiles.extractReplies(fullResponse,()=>generation?.check(),{request:generation?.workFileRequest,truncated:generation?.workFileTruncated});fullResponse=extracted.text;workReplies=extracted.files;}
         if(targetChatType === 'private' && window.KissTogether) fullResponse=await KissTogether.consume(fullResponse,chat,generation?.hearuContext,()=>generation?.check());
         if(targetChatType === 'private' && window.KissSocial){fullResponse=await KissSocial.consume(fullResponse,chat);if(KissSocial.blocked(chat))return;}
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});
@@ -1432,4 +1447,5 @@ async function handleRegenerate() {
   if(chat.activeArchiveId===archiveId&&!replied){const ids=new Set(chat.history.map(m=>m.id));chat.history.push(...originalTail.filter(m=>m.id==null?!chat.history.includes(m):!ids.has(m.id)));await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatId===currentChatId&&chatType===currentChatType)renderMessages(false,true);}
  }
 }
+
 
