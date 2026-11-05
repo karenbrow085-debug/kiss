@@ -121,9 +121,12 @@
             (tab === 'continue' ? '<section class="ac-pad ac-discovery-shelf">' +
                 (current.map(w => workRow(w,true)).join('') || empty('还没有正在演出的剧目。')) + '</section>' :
                 featured.map((w,i) => '<article class="ac-discover-post"><header>' + art({art:0}) +
-                    '<div><strong>ACTE 剧幕</strong><small>故事梗概 · ' + E(summary(w)) + '</small></div></header><h2>' +
+                    '<div><strong>ACTE 剧幕</strong><small>' + E(summary(w)) + ' · Story premise</small></div><span class="ac-publisher-tag">ACTE</span></header><h2>' +
                     E(w.title) + '</h2><p>' + E(w.synopsis) + '</p>' + art(w,'ac-discover-photo') +
-                    btn('idea',icon('link') + '用此梗概开场','ac-discover-link',i) + '</article>').join('') +
+                    btn('idea',icon('link') + '用此梗概开场','ac-discover-link',i) +
+                    '<footer class="ac-social-actions">' + btn('idea-share',icon('repost') + '转发','',i) +
+                    btn('idea-open',icon('comment') + '梗概','',i) + btn('idea-like',icon('like') + '喜欢',
+                        state.ideaLikes?.includes(i) ? 'ac-marked' : '',i) + '</footer></article>').join('') +
                 '<div class="ac-pad">' + btn('new','自己写','ac-outline') + '</div>');
     }
     function library() {
@@ -184,7 +187,7 @@
     }
     function sceneRows(w, thumbs) {
         return '<div class="ac-scenes">' + w.acts.map((a,i) => '<div class="ac-scene-line">' + btn('scene',
-            '<span class="ac-number">' + num(i+1) + '</span>' + (thumbs ? icon('scene') : '') + '<span class="ac-scene-title">' + E(performing() && a.title === '开场' ? 'Opening' : a.title) + '</span><small>' +
+            '<span class="ac-number">' + num(i+1) + '</span>' + (thumbs ? icon('scene') : '') + '<span class="ac-scene-title">' + E(performing() && a.title === '开场' ? 'Opening' : a.title) + '<small class="ac-scene-subtitle">' + E(a.rows[0]?.text.replace(/<[^>]*>/g,'').slice(0,65) || (performing() ? 'Ready to begin' : '等待开场')) + '</small></span><small>' +
             (i === w.current ? readerLabel('Current','当前') : a.rows.length ? readerLabel('Played','已演出') : readerLabel('Upcoming','未开始')) + '</small>',
             'ac-scene ' + (i === w.current ? 'ac-selected' : ''),i) +
             (state.sceneSort && state.sheet === 'scenes' ? '<div class="ac-order-buttons">' +
@@ -278,14 +281,7 @@
                 surface.className = 'ac-tavern-surface';
                 box.append(surface);
                 surface.append(frame);
-                const handle = document.createElement('div');
-                handle.className = 'ac-float-handle';
-                handle.tabIndex = 0;
-                handle.setAttribute('aria-label','Move Tavern window');
-                handle.innerHTML = '<span class="ac-tavern-grip" aria-hidden="true"></span><button type="button" class="ac-icon" aria-label="Close">' + icon('close') + '</button>';
-                handle.hidden = true;
-                surface.append(handle);
-                let x = 0, y = 0, rects = [], floating = false, dismissed = false;
+                let floating = false;
                 const promote = () => {
                     if (floating) return;
                     floating = true;
@@ -295,39 +291,6 @@
                     showTopLayer(surface);
                 };
                 if (/position\s*:\s*fixed/i.test(data.text)) frame.style.height = '100dvh';
-                const place = () => {
-                    if (!rects.length) return;
-                    const left = Math.min(...rects.map(r => r.x));
-                    const top = Math.min(...rects.map(r => r.y));
-                    const right = Math.max(...rects.map(r => r.right));
-                    const bottom = Math.max(...rects.map(r => r.bottom));
-                    const width = frame.clientWidth, height = frame.clientHeight;
-                    const headerTop = Math.max(0,top-35);
-                    const handleWidth = Math.min(width,64);
-                    x = Math.max(-left,Math.min(width-right,x));
-                    y = Math.max(-headerTop,Math.min(height-bottom,y));
-                    Object.assign(frame.style,{left:x+'px',top:y+'px'});
-                    Object.assign(handle.style,{left:Math.max(0,Math.min(width-handleWidth,left+x))+'px',top:(headerTop+y)+'px',width:handleWidth+'px'});
-                };
-                dragWindow(handle,(dx,dy) => { x += dx; y += dy; place(); });
-                const reopen = document.createElement('button');
-                reopen.type = 'button';
-                reopen.className = 'ac-post-options';
-                reopen.textContent = 'Open Tavern';
-                reopen.hidden = true;
-                box.append(reopen);
-                reopen.onclick = () => {
-                    dismissed = false;
-                    surface.hidden = false;
-                    reopen.hidden = true;
-                    handle.hidden = !rects.length;
-                    showTopLayer(surface);
-                };
-                handle.querySelector('button').onclick = () => {
-                    dismissed = true;
-                    surface.hidden = true;
-                    reopen.hidden = false;
-                };
                 postFrames.push(window.KissOfflineHTML.mount(frame,data.text,size => {
                     if (!frame.isConnected) return;
                     if (!size.floating && !floating) {
@@ -335,12 +298,9 @@
                         return;
                     }
                     promote();
-                    rects = size.rects;
+                    const rects = size.rects;
                     const paths = rects.map(r => 'M '+r.x+' '+r.y+' H '+r.right+' V '+r.bottom+' H '+r.x+' Z').join(' ');
-                    if (!paths) reopen.hidden = true;
                     frame.style.clipPath = paths ? "path('" + paths + "')" : 'inset(100%)';
-                    handle.hidden = dismissed || !paths;
-                    place();
                 },{context:{text:row.text,acteTheme:state.theme},onChoice:fillPostChoice}));
             }
         }
@@ -361,11 +321,11 @@
             Number.isFinite(r.tokens) ? (r.estimated ? '~' : '') + r.tokens + ' tokens' : ''].filter(Boolean);
         const comments = r.comments || [];
         const menu = !state.shared && !full ? btn('edit-turn',icon('more'),'ac-icon ac-post-menu',r.id,'Edit post') : '';
-        return '<article id="ac-row-' + E(r.id) + '" class="ac-post ac-post-long">' + visibility(w) +
+        return '<article id="ac-row-' + E(r.id) + '" class="ac-post ac-post-long">' + visibility(w).replace('</div>',menu + '</div>') +
             '<header class="ac-post-header">' + portrait + '<div class="ac-post-person"><strong>' + E(label) +
-            '</strong><small><time>' + time(r.at) + '</time> · <span>' + E(part) + '</span></small></div>' +
-            (stats.length ? '<small class="ac-post-stats">' + stats.map(stat => '<span>' + E(stat) + '</span>').join('') + '</small>' : '') +
-            menu + '</header><div class="ac-post-text">' + postBody(r) + '</div>' + (full ? '' :
+            '</strong><small><time>' + date(r.at) + ' ' + time(r.at) + '</time> · <span>from Web</span></small><small>' + E(part) + '</small></div>' +
+            (stats.length ? '<small class="ac-post-stats"><em>Generated</em>' + stats.map(stat => '<span>' + E(stat) + '</span>').join('') + '</small>' : '') +
+            '</header><div class="ac-post-text">' + (full ? '<h2 class="ac-post-scene-title">《' + E(w.title) + '》 · Scene ' + num(w.current+1) + '</h2>' : '') + postBody(r) + '</div>' + (full ? '' :
             '<footer class="ac-social-actions">' + (!state.shared ? btn('share',icon('repost') + 'Repost','',r.id) : '') +
             btn('post-detail',icon('comment') + 'Comments' + (comments.length ? ' ' + comments.length : ''),'',r.id) +
             (!state.shared ? btn('like-post',icon('like') + 'Likes' + (r.liked ? ' 1' : ''),r.liked ? 'ac-marked' : '',r.id) : '') + '</footer>') + '</article>';
@@ -394,9 +354,6 @@
         const prose = w.kind === 'prose';
         const selected = a.rows.find(r => r.id === state.postId);
         if (prose && selected) return postDetail(w,selected);
-        const tools = btn('scenes','Scenes','ac-text-button') + (!state.shared ?
-            (prose ? btn('size','Text size','ac-text-button') : '') +
-            (a.rows.some(r => r.role === 'user') ? btn('reroll','Reroll','ac-text-button') : '') : '');
         const controlsHtml = !state.shared ? '<form data-form="turn" class="ac-composer"><textarea name="turn" rows="1" maxlength="16000" placeholder="' +
             (prose ? 'Write this scene…' : 'Say something…') + '">' + E(state.draft.get(a.id) || '') + '</textarea>' +
             '<button type="submit" class="ac-send">Send</button>' +
@@ -415,7 +372,7 @@
                     (part === 'NPC' ? ' <small>(NPC)</small>' : '') + '</strong><div class="ac-post-text">' + postBody(r) + '</div><time>' +
                     time(r.at) + '</time></div>' + (!state.shared ? btn('dialogue-menu',icon('more'),'ac-icon',r.id,'Message actions') : '') + '</article>';
             }).join('') || empty(w.synopsis || 'This scene is ready to begin.')) + '</div><footer class="ac-reader-tools">' +
-            '<div>' + tools + '</div>' + (!state.shared && !w.cast.length ? '<small>Choose a cast in Theatre Settings first.</small>' : '') + controlsHtml + '</footer>';
+            (!state.shared && !w.cast.length ? '<small>Choose a cast in Theatre Settings first.</small>' : '') + controlsHtml + '</footer>';
     }
     function htmlFrame(source, progress, track = false) {
         return '<iframe class="ac-frame" title="HTML Theatre" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="' + E(D.preview(source,progress,track)) + '"></iframe>';
@@ -443,7 +400,7 @@
             (state.genreEditing ? btn('genre-edit','编辑','ac-text-button',g) + btn('genre-delete','删除','ac-text-button',g) : '') + '</div>').join('') + '</div></div>';
     }
     function sheet(title, body) {
-        const page = ['scenes','cover','confirm-import'].includes(state.sheet);
+        const page = ['scenes','cover','confirm-import','settings','generation','npc-list','npc-edit','html-create','cover-create','generated'].includes(state.sheet);
         if (page) return '<section class="ac-sheet-page" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) + '">' +
             '<header class="ac-sheet-page-head">' + btn('sheet-close',icon('back'),'ac-icon','','Back') +
             '<div><strong>ACTE ' + readerLabel('Theatre','剧幕') + '</strong><small>' + E(title) + '</small></div></header>' +
@@ -569,6 +526,10 @@
     }
     function sheetContent(w) {
         switch (state.sheet) {
+        case 'idea-read': {
+            const idea = D.ideas[state.ideaIndex];
+            return sheet(idea.title,'<p class="ac-idea-synopsis">' + E(idea.synopsis) + '</p>' + btn('idea','用此梗概开场','ac-primary ac-wide',state.ideaIndex));
+        }
         case 'hub-menu': return sheet('ACTE 剧幕',btn('theme','切换日夜间','ac-menu-item') + btn('close','返回 404','ac-menu-item'));
         case 'library-tools': return sheet('剧库操作',btn('new','新建文字剧场','ac-menu-item') +
             controls({'':'全部写法',dialogue:'对话',prose:'长文'},state.textKind || '','text-kind','ac-inline'));
@@ -597,7 +558,10 @@
             '<label><input type="radio" name="scope" value="script">' + readerLabel('Full Script','发送剧本') + '</label></fieldset><button type="submit" class="ac-primary ac-wide">' + readerLabel('Send to 404','发送到 404') + '</button></form>');
         case 'export': return sheet('导出 HTML','<form data-form="export" class="ac-form"><button type="submit" class="ac-primary">导出完整剧场</button></form>');
         case 'confirm-import': return sheet('导入预览','<p class="ac-empty">ⓘ 预览导入的互动剧幕，保存后可选择角色。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + btn('expand-html',icon('expand'),'ac-icon ac-html-expand','','Full screen') + '</div>' + btn('commit-import','保存为模板','ac-primary ac-wide'));
-        case 'reader-menu': return sheet('Performance',btn('detail-back','Theatre profile','ac-menu-item'));
+        case 'reader-menu': return sheet('Performance',btn('scenes','Scenes','ac-menu-item') +
+            (w.kind === 'prose' ? btn('size','Text size','ac-menu-item') : '') +
+            (!state.shared && getAct(w).rows.some(r => r.role === 'user') ? btn('reroll','Reroll','ac-menu-item') : '') +
+            btn('detail-back','Theatre profile','ac-menu-item'));
         case 'detail-menu': return sheet('Post Actions',state.shared ? btn('copy-post','Copy','ac-menu-item',state.menuRow) :
             btn('edit-turn','Edit','ac-menu-item',state.menuRow));
         case 'dialogue-menu': return sheet('Message Actions',btn('edit-turn','Edit','ac-menu-item',state.menuRow) +
@@ -641,6 +605,7 @@
         try {
             setupDraft = null;
             await refresh();
+            try { state.ideaLikes = JSON.parse(localStorage.getItem('kiss.acte.ideaLikes') || '[]').filter(Number.isInteger); } catch { state.ideaLikes = []; }
             state.theme = localStorage.getItem('kiss.acte.theme') === 'night' ? 'night' : 'day';
             state.castFromChat = String(currentChat()?.id || '');
             state.page = shared ? 'detail' : 'discover';
@@ -844,7 +809,17 @@
             }
             case 'play': await play((state.shared?.work || state.work).current); break;
             case 'scene': await play(Number(v)); break;
-            case 'size': state.size = state.size >= 20 ? 14 : state.size+2; keep = true; break;
+            case 'size': state.sheet = ''; state.size = state.size >= 20 ? 14 : state.size+2; keep = true; break;
+            case 'idea-share':
+                await navigator.clipboard.writeText(D.ideas[Number(v)].title + '\n' + D.ideas[Number(v)].synopsis);
+                note('梗概已复制'); return;
+            case 'idea-open': state.ideaIndex = Number(v); state.sheet = 'idea-read'; keep = true; break;
+            case 'idea-like': {
+                const index = Number(v);
+                state.ideaLikes ||= [];
+                state.ideaLikes = state.ideaLikes.includes(index) ? state.ideaLikes.filter(i => i !== index) : [...state.ideaLikes,index];
+                localStorage.setItem('kiss.acte.ideaLikes',JSON.stringify(state.ideaLikes)); keep = true; break;
+            }
             case 'idea': setupDraft = null; idea = D.ideas[Number(v)]; state.sheet = 'new'; keep = true; break;
             case 'new': setupDraft = null; idea = null; state.sheet = 'new'; keep = true; break;
             case 'post-options': {
