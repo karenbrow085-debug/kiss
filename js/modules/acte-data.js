@@ -74,7 +74,7 @@
     }
     function dialogueSegments(row) {
         const text = string(row?.displayText ?? row?.text,16000);
-        if (row.messageType === 'narration' || /<(?:html|div|style|script|main|section)\b/i.test(text)) return [{type:'narration',text}];
+        if (row.messageType === 'narration' || /<\/?[a-z][\w:-]*(?:\s|\/?>)/i.test(text)) return [{type:'narration',text}];
         if (row.messageType === 'speech') return [{type:'speech',text}];
         const quoted = /[“「『]([^”」』]+)[”」』]|"([^"\n]+)"/g;
         const found = [...text.matchAll(quoted)];

@@ -84,6 +84,9 @@ test('dialogue speech and narration remain separate and NPCs use both sides',()=
     assert.equal(parts[1].type,'speech');
     assert.equal(parts[1].text,'你好。');
     assert.equal(parts[2].type,'narration');
+    const rich=api.dialogueSegments({role:'assistant',text:'<content>他问：“走吗？”</content><branches>等一等</branches>'});
+    assert.equal(rich.length,1);
+    assert.equal(rich[0].type,'narration');
     assert.equal(api.dialogueSegments({messageType:'narration',text:'他低下头。'})[0].type,'narration');
     const work={cast:[{id:'a',part:'主角'},{id:'b'},{id:'c'}]};
     assert.equal(api.dialogueSide(work,{role:'user'}),'right');
