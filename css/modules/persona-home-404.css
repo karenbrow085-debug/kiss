@@ -1,0 +1,116 @@
+/* Default persona UI; all selectors are scoped away from existing lists and custom persona skins. */
+#my-profile-screen.mp-ins-mode{background:#fff}
+#my-profile-screen.mp-ins-mode>.app-header,#my-profile-screen.mp-ins-mode>main.content{display:none!important}
+#my-profile-screen .mi-root{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;color:#292d36;background:#fff;font-family:var(--font-family,-apple-system,BlinkMacSystemFont,sans-serif);font-size:13px;isolation:isolate}
+#my-profile-screen .mi-root *{box-sizing:border-box}
+#my-profile-screen .mi-root [hidden],#my-profile-screen .mi-root[hidden]{display:none!important}
+#my-profile-screen .mi-root button{font:inherit;border:0;background:none;color:inherit;padding:0;cursor:pointer;box-shadow:none;-webkit-tap-highlight-color:transparent}
+#my-profile-screen .mi-root button:active{opacity:.65}
+#my-profile-screen .mi-root button:disabled{opacity:.4;cursor:wait}
+#my-profile-screen .mi-root button:focus-visible{outline:2px solid #9aacc5;outline-offset:3px}
+#my-profile-screen .mi-root svg{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+#my-profile-screen .mi-root img{object-fit:cover;display:block;max-width:100%;background:#edf0f5}
+#my-profile-screen .mi-image-empty{color:transparent}
+#my-profile-screen :is(.mi-home,.mi-editor){display:flex;flex-direction:column;height:100%;min-height:0}
+#my-profile-screen .mi-bar{height:calc(61px + env(safe-area-inset-top,0px));min-height:calc(61px + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 18px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border-bottom:1px solid #edf0f5;flex-shrink:0}
+#my-profile-screen .mi-bar>button{min-width:32px;min-height:38px;display:grid;place-items:center}
+#my-profile-screen .mi-bar h1{font-size:19px;font-weight:600;line-height:1.4;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#my-profile-screen .mi-brand{font-size:10px;letter-spacing:2px;color:#9299a7;font-weight:600}
+#my-profile-screen .mi-switcher{display:flex;gap:16px;padding:17px 19px 14px;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid #edf0f5;flex-shrink:0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#my-profile-screen .mi-switcher::-webkit-scrollbar{display:none}
+#my-profile-screen .mi-persona-choice{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;flex:0 0 54px;font-size:11px}
+#my-profile-screen .mi-persona-choice>span:last-child{max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#my-profile-screen .mi-persona-avatar{width:52px;height:52px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #edf0f4}
+#my-profile-screen .mi-persona-choice[aria-pressed=true]{font-weight:600}
+#my-profile-screen .mi-persona-choice[aria-pressed=true] img{box-shadow:0 0 0 1.5px #91a3bd}
+#my-profile-screen .mi-add-avatar{width:50px;height:50px;border-radius:50%;border:1px solid #b8c1cf;display:grid;place-items:center;color:#9ba4b3;flex-shrink:0}
+#my-profile-screen .mi-add-avatar svg{width:25px;height:25px;stroke-width:1.3}
+#my-profile-screen .mi-main{padding:18px 19px 25px;min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#e1e7f0 transparent}
+#my-profile-screen .mi-hero{display:flex;align-items:center;gap:15px}
+#my-profile-screen .mi-hero-avatar{width:81px;height:81px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #dfe5ee;flex-shrink:0}
+#my-profile-screen .mi-avatar-slot{flex-shrink:0}
+#my-profile-screen .mi-identity{min-width:0;flex:1}
+#my-profile-screen .mi-name-line{display:flex;align-items:center;gap:6px}
+#my-profile-screen .mi-name-line h2{font-size:23px;font-weight:600;line-height:1.4;margin:0;overflow-wrap:anywhere}
+#my-profile-screen .mi-verified{color:#91a5c1;flex-shrink:0}
+#my-profile-screen .mi-verified svg{width:17px;height:17px}
+#my-profile-screen .mi-identity small{font-size:11px;color:#949dab;overflow-wrap:anywhere;display:inline-block;margin-top:4px}
+#my-profile-screen .mi-badge{font-size:9px;padding:2px 6px;border-radius:5px;background:#eaf0f8;color:#8d9fb8;margin-left:5px;display:inline-block;vertical-align:middle}
+#my-profile-screen .mi-root .mi-star{color:#9aa3b2;align-self:flex-start;min-height:32px;padding:3px}
+#my-profile-screen .mi-star[aria-pressed=true] svg{fill:#e0e8f5;stroke:#8ea2bf}
+#my-profile-screen .mi-bio{font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0 0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;color:#4d5665}
+#my-profile-screen .mi-root .mi-edit-button{border:1px solid #aeb8c7;border-radius:8px;width:100%;min-height:35px;font-size:12px;font-weight:500;margin-top:14px}
+#my-profile-screen .mi-roles{margin-top:18px}
+#my-profile-screen .mi-roles h2{font-size:14px;font-weight:600;line-height:1.5;display:flex;align-items:center;gap:8px;margin:0}
+#my-profile-screen .mi-count{font-size:10px;font-weight:400;background:#eef2f8;color:#97a6bc;padding:0 6px;border-radius:9px}
+#my-profile-screen .mi-role-strip{display:flex;gap:18px;overflow:auto;scrollbar-width:none;margin-top:12px;padding:1px 0 2px}
+#my-profile-screen .mi-role{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;min-width:48px;max-width:60px;flex-shrink:0}
+#my-profile-screen .mi-role>span:last-child{overflow:hidden;max-width:100%;white-space:nowrap;text-overflow:ellipsis}
+#my-profile-screen :is(.mi-role-avatar,.mi-role .mi-add-avatar){width:47px;height:47px;border-radius:50%;flex-shrink:0}
+#my-profile-screen .mi-tabs{display:flex;gap:28px;border-bottom:1px solid #dfe5ed;margin-top:18px}
+#my-profile-screen .mi-tabs button{font-size:13px;color:#9aa3b2;position:relative;min-height:40px}
+#my-profile-screen .mi-tabs button[aria-selected=true]{font-weight:550;color:#303642}
+#my-profile-screen .mi-tabs button[aria-selected=true]:after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:#303642}
+#my-profile-screen .mi-tab-panel{padding:14px 1px 8px}
+#my-profile-screen .mi-eyebrow{display:block;font-size:9px;letter-spacing:4px;color:#a0aabc;line-height:1.5;margin-bottom:9px}
+#my-profile-screen .mi-description{font-size:13px;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+#my-profile-screen .mi-exclusive-row{display:flex;align-items:center;gap:10px;min-height:58px;text-align:left;border-bottom:1px solid #edf0f5;width:100%;padding:9px 0!important}
+#my-profile-screen .mi-exclusive-avatar{width:35px;height:35px;border-radius:50%;flex-shrink:0}
+#my-profile-screen .mi-exclusive-row>span:nth-child(2){flex:1;min-width:0}
+#my-profile-screen .mi-exclusive-row b{font-size:12px;font-weight:500;display:block}
+#my-profile-screen .mi-exclusive-row small{font-size:10px;color:#97a2b5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#my-profile-screen .mi-exclusive-row svg{width:16px;height:16px;color:#a0adbf}
+#my-profile-screen .mi-bottom{padding:11px 16px calc(13px + env(safe-area-inset-bottom,0px));border-top:1px solid #edf0f5;background:#fff;flex-shrink:0}
+#my-profile-screen .mi-root :is(.mi-save,.mi-confirm){display:flex;align-items:center;justify-content:center;min-height:41px;background:#2e3139;border-radius:10px;border:1px solid #2e3139;width:100%;font-size:13px;font-weight:500;color:#fff}
+#my-profile-screen .mi-editor .mi-bar h1{font-size:16px}
+#my-profile-screen .mi-editor .mi-bar button{font-size:12px}
+#my-profile-screen [data-mi-done]{color:#879dbd!important}
+#my-profile-screen .mi-edit-main{flex:1;min-height:0;overflow:auto;padding:0 18px 25px;overscroll-behavior:contain}
+#my-profile-screen .mi-edit-avatar{display:flex;align-items:center;flex-direction:column;padding:19px 0 16px;gap:7px;border-bottom:1px solid #e9edf4}
+#my-profile-screen .mi-editor-photo{width:76px;height:76px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #e2e8f0}
+#my-profile-screen .mi-edit-avatar label{font-size:12px;color:#8ba0bc;cursor:pointer}
+#my-profile-screen #mi-avatar-url{width:78%;font-size:11px;text-align:center;border:0;border-bottom:1px solid #e1e6ef;border-radius:0;background:none;padding:6px 2px;margin:3px 0 0;color:#69788f;outline:none}
+#my-profile-screen .mi-field-row{display:flex;align-items:center;gap:18px;min-height:48px;border-bottom:1px solid #e0e6ee;font-size:12px}
+#my-profile-screen .mi-field-row>span{width:65px;flex-shrink:0}
+#my-profile-screen .mi-field-row input{font:inherit;color:#526076;flex:1;min-width:0;padding:10px 0;border:0;background:none;outline:none;border-radius:0;box-shadow:none}
+#my-profile-screen .mi-form-label{display:block;font-size:12px;margin:17px 0 8px}
+#my-profile-screen #mi-persona{border:1px solid #d9e1ec;border-radius:8px;background:#fff;color:#4e5c73;width:100%;min-height:115px;resize:vertical;padding:10px 11px;font:12px/1.7 var(--font-family,-apple-system,BlinkMacSystemFont,sans-serif);outline:none;box-shadow:none}
+#my-profile-screen .mi-editor :is(input,textarea):focus{border-color:#9eaec7!important}
+#my-profile-screen .mi-friend-slot{margin-top:17px}
+#my-profile-screen .mi-root .ku-profile-card-editor{margin:0;border:0;border-radius:10px;background:#f5f7fc;padding:0;overflow:hidden}
+#my-profile-screen .mi-root .ku-profile-card-editor summary{padding:12px;font-size:12px;line-height:1.5;color:#364357;cursor:pointer;font-weight:550}
+#my-profile-screen .mi-root .ku-profile-card-fields{display:flex;flex-direction:column;gap:9px;padding:0 12px 14px}
+#my-profile-screen .mi-root .ku-profile-card-fields>label{display:grid;grid-template-columns:67px minmax(0,1fr);gap:8px;align-items:center;font-size:11px;color:#75849d;margin:0}
+#my-profile-screen .mi-root .ku-profile-card-fields label:has([data-own-field=handle]){display:none}
+#my-profile-screen .mi-root .ku-profile-card-fields :is(input,textarea,select){font:11px/1.6 var(--font-family,-apple-system,BlinkMacSystemFont,sans-serif);color:#5f708c;border:1px solid #dce4ef;background:#fff;border-radius:7px;padding:6px 8px;width:100%;min-width:0;margin:0;outline:none;box-shadow:none;min-height:30px}
+#my-profile-screen .mi-root .ku-profile-card-fields textarea{min-height:57px;resize:vertical}
+#my-profile-screen .mi-root .ku-field-group{border:1px solid #e2e8f2;border-radius:8px;margin:5px 0 0;padding:10px}
+#my-profile-screen .mi-root .ku-field-group legend{font-size:10px;color:#899bb5;padding:0 4px}
+#my-profile-screen .mi-root .ku-field-group label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#7d8da5;margin:0 0 8px}
+#my-profile-screen .mi-root .ku-field-group .ku-checkbox-row{flex-direction:row;align-items:center;gap:8px}
+#my-profile-screen .mi-root .ku-profile-card-fields input[type=checkbox]{width:16px;height:16px;min-height:0;accent-color:#92a4bf}
+#my-profile-screen .mi-root .mi-delete{color:#b38c95;width:100%;text-align:center;font-size:12px;padding:19px 0;border-top:1px solid #edf0f5;margin-top:24px}
+#my-profile-screen .mi-dialog{padding:19px;border:1px solid #e1e8f3;background:#f9fbff;color:#465673;border-radius:20px;width:calc(100% - 36px);max-width:350px;box-shadow:0 18px 70px #334b6c30}
+#my-profile-screen .mi-dialog::backdrop{background:#3b4b6666;backdrop-filter:blur(6px)}
+#my-profile-screen .mi-dialog header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#my-profile-screen .mi-dialog h2{font-size:15px;font-weight:550;margin:0}
+#my-profile-screen .mi-dialog header button{font-size:22px;width:30px;height:30px;color:#8e9eb7}
+#my-profile-screen .mi-dialog p{font-size:12px;line-height:1.8;margin:12px 0 17px;overflow-wrap:anywhere;color:#8c9ab0}
+#my-profile-screen .mi-empty{font-size:12px;color:#9aa7ba;text-align:center;padding:25px 12px}
+#my-profile-screen.mp-ins-mode :is(#mp-exclusive-sheet,#mp-char-select-modal){background:#44557045;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:10005}
+#my-profile-screen.mp-ins-mode :is(.mp-exclusive-panel,#mp-char-select-modal .modal-window){background:#f8faff;border:1px solid #fff;border-radius:25px;padding:20px;box-shadow:0 15px 60px #465c7b20;color:#56657d;width:calc(100% - 30px);max-width:430px;max-height:85dvh;overflow:auto;margin:0 auto 15px}
+#my-profile-screen.mp-ins-mode #mp-exclusive-sheet .mp-panel-header{padding:0 0 13px;border-bottom:1px solid #e3eaf5;display:flex;align-items:center;justify-content:space-between}
+#my-profile-screen.mp-ins-mode .mp-panel-char-info{display:flex;align-items:center;gap:10px}
+#my-profile-screen.mp-ins-mode .mp-panel-avatar{width:35px;height:35px;border-radius:50%}
+#my-profile-screen.mp-ins-mode .mp-panel-char-info span{font-size:14px;font-weight:550}
+#my-profile-screen.mp-ins-mode #mp-panel-input{width:100%;background:#fff;color:#6c7c96;border:1px solid #dfe7f2;border-radius:12px;padding:11px;font:12px/1.7 var(--font-family,sans-serif);min-height:110px;box-shadow:none}
+#my-profile-screen.mp-ins-mode .mp-label{font-size:12px;color:#92a0b7;display:block;margin:15px 0 8px}
+#my-profile-screen.mp-ins-mode .mp-panel-option{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:11px;color:#9ba8ba}
+#my-profile-screen.mp-ins-mode .mp-panel-footer{display:flex;gap:10px;margin-top:20px}
+#my-profile-screen.mp-ins-mode :is(.mp-panel-footer,#mp-char-select-modal) .btn{flex:1;min-height:38px;border:1px solid #e0e7f2;background:#fff;color:#91a0b8;font-size:12px;border-radius:19px;white-space:nowrap;padding:8px 13px}
+#my-profile-screen.mp-ins-mode :is(.mp-panel-footer,#mp-char-select-modal) .btn-primary{background:#93a3be;color:#fff;border-color:#93a3be}
+#my-profile-screen.mp-ins-mode .mp-select-item{display:flex;align-items:center;gap:10px;padding:11px;border-bottom:1px solid #e3eaf4;font-size:12px;color:#6e7c94;cursor:pointer}
+#my-profile-screen.mp-ins-mode .mp-select-avatar{width:34px;height:34px;border-radius:50%}
+#my-profile-screen.mp-ins-mode .mp-select-checkbox{accent-color:#91a3bf}
+#my-profile-screen.mp-ins-mode #mp-char-select-modal h3{font-size:16px;font-weight:550;margin:0 0 15px}
+@media(max-width:350px){#my-profile-screen .mi-main{padding-left:15px;padding-right:15px}#my-profile-screen .mi-switcher{gap:12px;padding-left:15px;padding-right:15px}#my-profile-screen .mi-hero{gap:12px}#my-profile-screen .mi-hero-avatar{width:70px;height:70px}#my-profile-screen .mi-name-line h2{font-size:21px}}

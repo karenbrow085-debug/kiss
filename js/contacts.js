@@ -308,17 +308,18 @@ function setupMyProfileScreen() {
         if (!p.bindings) p.bindings = {};
     });
 
-    currentPersonaIndex = 0; // 重置到第一个
+    currentPersonaIndex = window.KissPersonaPage?.enabled() ? Math.max(0, db.myPersonaPresets.findIndex(p => p.id === db.activePersonaId)) : 0;
     renderPersonaCarousel();
     
     // 初始化时更新一下视觉效果 (需要等待DOM渲染)
     setTimeout(() => {
         updateCarouselVisuals();
-        updatePersonaInfoArea(0);
+        updatePersonaInfoArea(currentPersonaIndex);
     }, 50);
 }
 
 function renderPersonaCarousel() {
+    if (window.KissPersonaPage?.enabled()) { window.KissPersonaPage.renderSwitcher(); return; }
     const carousel = document.getElementById('mp-carousel');
     const indicators = document.getElementById('mp-carousel-indicators');
     carousel.innerHTML = '';
@@ -384,6 +385,7 @@ function renderPersonaCarousel() {
 }
 
 function updateCarouselVisuals() {
+    if (window.KissPersonaPage?.enabled()) return;
     const carousel = document.getElementById('mp-carousel');
     const items = Array.from(carousel.querySelectorAll('.mp-carousel-item'));
     const dots = document.querySelectorAll('.mp-indicator');
@@ -474,6 +476,7 @@ function updatePersonaInfoArea(index) {
             setActiveBtn.title = '设为展示名片';
         }
     }
+    window.KissPersonaPage?.refresh(index);
 }
 
 function setAsActivePersona() {
@@ -491,6 +494,7 @@ function setAsActivePersona() {
     // 更新按钮状态
     updatePersonaInfoArea(currentPersonaIndex);
     
+    window.KissPersonaPage?.refresh();
     showToast('已设为当前展示名片');
 }
 
@@ -502,6 +506,7 @@ function updateBgBlur(url) {
 }
 
 function renderBindingTags(preset) {
+    if (window.KissPersonaPage?.enabled()) { window.KissPersonaPage.renderBindings(preset); return; }
     const container = document.getElementById('mp-tags-container');
     const addBtn = document.getElementById('mp-add-binding-btn');
     container.innerHTML = ''; 
@@ -539,6 +544,7 @@ function createNewPersona() {
     };
     db.myPersonaPresets.push(newPersona);
     renderPersonaCarousel();
+    if (window.KissPersonaPage?.enabled()) { window.KissPersonaPage.select(db.myPersonaPresets.length - 1); window.KissPersonaPage.openEditor(); return; }
     
     setTimeout(() => {
         const carousel = document.getElementById('mp-carousel');
@@ -550,6 +556,7 @@ function createNewPersona() {
 }
 
 function deleteCurrentPersona() {
+    if (window.KissPersonaPage?.enabled()) return window.KissPersonaPage.deletePersona();
     if (db.myPersonaPresets.length <= 1) {
         showToast('至少保留一个档案');
         return;
@@ -764,6 +771,8 @@ async function saveCurrentPersona() {
 
     await saveData();
     renderMyProfile(); 
+    window.KissPersonaPage?.refresh();
     showToast(`已保存并同步到 ${syncCount} 个角色`);
 }
+
 

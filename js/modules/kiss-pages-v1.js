@@ -264,7 +264,7 @@ function openSelfProfile(){
  },70);
 }
 function renderSelfCardEditor(index){
- if(externalCss())return;
+ if(externalCss()&&!window.KissPersonaPage?.enabled())return;
  const p=db.myPersonaPresets?.[index];if(!p)return;
  let editor=document.getElementById('ku-profile-card-editor');
  if(!editor){
@@ -374,7 +374,7 @@ else if(action==='more-feed'){feedLimit+=40;renderFriends();}
 else if(action==='details')details(id,extra);
 else if(action==='translation'){const key=id+':'+extra,entry=postData.get(key);if(!entry)return;const d=entry.self?entry.owner?.kissFriendsCard:entry.c.kissFriendsDisplay;const translation=entry.status&&!entry.self?(d?.statusTranslation||entry.c.statusTranslation):(d?.translation||entry.m.translation||entry.m.translatedContent);if(!translation){showToast('尚未设置翻译内容，可在卡片显示设置中填写。');return;}translatedPosts.has(key)?translatedPosts.delete(key):translatedPosts.add(key);renderFriends();}
 }
-function restore(){stopMusic();document.querySelectorAll('.ku-nav-icon').forEach(x=>x.remove());document.querySelectorAll('.ku-custom-nav').forEach(x=>x.classList.remove('ku-custom-nav'));document.getElementById('ku-profile-card-editor')?.remove();document.documentElement.classList.remove('ku-mode','ku-nav-active');for(const id of IDS){const screen=document.getElementById(id);if(screen?.classList.contains('ku-mounted'))screen.classList.remove('ku-mounted');$('.ku-view',screen||document)?.remove();}closeSheet();}
+function restore(){stopMusic();document.querySelectorAll('.ku-nav-icon').forEach(x=>x.remove());document.querySelectorAll('.ku-custom-nav').forEach(x=>x.classList.remove('ku-custom-nav'));if(!window.KissPersonaPage?.enabled())document.getElementById('ku-profile-card-editor')?.remove();document.documentElement.classList.remove('ku-mode','ku-nav-active');for(const id of IDS){const screen=document.getElementById(id);if(screen?.classList.contains('ku-mounted'))screen.classList.remove('ku-mounted');$('.ku-view',screen||document)?.remove();}closeSheet();}
 function sync(){frame=0;if(externalCss()){restore();return;}document.documentElement.classList.add('ku-mode');const momentsActive=!!document.querySelector('#kiss-moments-feed.active');const active=IDS.find(id=>document.getElementById(id)?.classList.contains('active'));document.documentElement.classList.toggle('ku-nav-active',!!active||momentsActive);if(active!==IDS[1]&&playingAudio)stopMusic();if(!active)return;try{if(active===IDS[0])renderChats();else if(active===IDS[1])renderFriends();else renderMenu();}catch(error){console.error('[KISS pages]',error);restore();}}
 function schedule(){if(!frame)frame=requestAnimationFrame(sync);}
 // Wrap renderers only; never reparent, replace or rename legacy elements.
@@ -419,5 +419,6 @@ for(const name of ['pointerup','pointercancel'])document.addEventListener(name,f
 document.addEventListener('click',e=>{const el=e.target.closest('.ku-comment-swipe');if(el&&Number(el.dataset.swipedUntil)>Date.now()&&!e.target.closest('.ku-comment-delete')){e.preventDefault();e.stopPropagation();return;}if(!el)closeCommentSwipes();},true);
 document.addEventListener('wheel',()=>closeCommentSwipes(),{passive:true});
 document.addEventListener('keydown',e=>{const el=e.target.closest('.ku-comment-swipe');if(el&&e.key==='ArrowLeft'){e.preventDefault();closeCommentSwipes(el);el.classList.add('is-open');el.querySelector('.ku-comment-delete')?.focus();}else if(el&&e.key==='ArrowRight'){e.preventDefault();closeCommentSwipes();el.focus();}else if(e.key==='Escape')closeCommentSwipes();});
-window.KissPagesUI={getLanguage:()=>uiLanguage,refresh:schedule,hasCustomCss:externalCss,clearLegacyDynamics};schedule();
+window.KissPagesUI={refreshSelfCardEditor:renderSelfCardEditor,getLanguage:()=>uiLanguage,refresh:schedule,hasCustomCss:externalCss,clearLegacyDynamics};schedule();
 })();
+
