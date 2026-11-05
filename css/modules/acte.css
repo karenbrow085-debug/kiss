@@ -856,3 +856,6 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-page-actions-popup button:last-child { border:0; }
 #kiss-acte .ac-memory-actors p { padding:6px 0; color:var(--ac-muted); font-size:12px; }
 #kiss-acte .ac-memory-note { display:block; margin-top:8px; font-size:11px; color:var(--ac-muted); }
+#kiss-acte .ac-page-submit { flex:none; padding:11px 18px max(13px,env(safe-area-inset-bottom)); background:var(--ac-card); border-top:1px solid var(--ac-line); }
+#kiss-acte .ac-page-submit .ac-wide { display:block; width:100%; min-height:42px; margin:0; border-radius:7px; }
+#kiss-acte .ac-html-scene-config .ac-field input { border:0!important; background:transparent!important; border-radius:0!important; padding:3px!important; font-size:14px!important; }

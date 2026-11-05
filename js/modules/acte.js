@@ -388,7 +388,7 @@
     }
     function htmlCreate() {
         const draft = state.htmlDraft || {};
-        return sourceBand() + '<form data-form="generate" class="ac-form ac-html-config">' +
+        return sourceBand() + '<form id="ac-html-generate-form" data-form="generate" class="ac-form ac-html-config">' +
             field('剧目模板','<select name="templateId">' + options({'':'空白剧场',...Object.fromEntries(state.templates.map(t => [t.id,t.name]))},draft.templateId) + '</select>') +
             '<div class="ac-html-description">' + field('剧目标题','<input name="title" maxlength="80" required value="' + E(draft.title) + '">') +
             field('剧目简介','<textarea name="synopsis" rows="2" maxlength="6000">' + E(draft.synopsis) + '</textarea>') + '</div>' +
@@ -399,7 +399,7 @@
             field('场景数量','<select name="sceneCount">' + options(Object.fromEntries([1,2,3,4,5,6,8,10,12].map(n=>[String(n),n+' 场'])),draft.sceneCount || '3') + '</select>') +
             field('剧本长度','<select name="duration">' + options({'1':'约 1 分钟','3':'约 3 分钟','5':'约 5 分钟','10':'约 10 分钟'},draft.duration || '3') + '</select>') + '</div>' +
             settingRow('视觉与交互',draft.prompt || '跟随模板','<textarea name="prompt" rows="3" maxlength="8000" placeholder="可选">' + E(draft.prompt) + '</textarea>') +
-            (generation ? btn('stop','暂停','ac-outline') : '<button class="ac-primary" type="submit">生成预览</button>') + '</form>';
+            '</form>';
     }
     function categoryPage() {
         return hubTop('题材') + '<div class="ac-pad"><div class="ac-genre-bar"><strong>题材管理</strong>' +
@@ -411,10 +411,11 @@
     }
     function sheet(title, body) {
         const page = ['scenes','cover','confirm-import','settings','generation','npc-list','npc-edit','html-create','cover-create','generated'].includes(state.sheet);
+        const footer = state.sheet === 'html-create' ? (generation ? btn('stop','暂停','ac-primary ac-wide') : '<button class="ac-primary ac-wide" type="submit" form="ac-html-generate-form">生成预览</button>') : state.sheet === 'confirm-import' ? btn('commit-import','保存为模板','ac-primary ac-wide') : state.sheet === 'generated' ? btn('save-generated','保存剧场','ac-primary ac-wide') : '';
         if (page) return '<section class="ac-sheet-page" data-sheet="' + E(state.sheet) + '" role="dialog" aria-modal="true" aria-label="' + E(title) + '">' +
             '<header class="ac-sheet-page-head">' + btn('sheet-close',icon('back'),'ac-icon','','返回') +
             '<div>' + (['settings','generation','npc-edit','npc-list','html-create'].includes(state.sheet) ? '<strong>' + E(title === 'NPC 档案表' ? 'NPC 档案' : title) + '</strong>' : '<strong>ACTE 剧幕</strong><small>' + E(title) + '</small>') + '</div>' + btn('page-menu',icon('more'),'ac-icon','','更多') + '</header>' +
-            '<div class="ac-sheet-body">' + (['settings','generation','npc-edit'].includes(state.sheet) ? sourceBand() : '') + body + '</div></section>';
+            '<div class="ac-sheet-body">' + (['settings','generation','npc-edit'].includes(state.sheet) ? sourceBand() : '') + body + '</div>' + (footer ? '<footer class="ac-page-submit">' + footer + '</footer>' : '') + '</section>';
         const action = state.sheet === 'edit-turn' ? '完成' : state.sheet === 'reroll' ? '确认' : '';
         if (action) return '<div class="ac-scrim"><section class="ac-sheet ac-editor-sheet" role="dialog" aria-label="' + title +
             '"><div class="ac-handle"></div><header>' + btn('sheet-close','取消','ac-text-button') + '<h2>' + title +
@@ -452,9 +453,9 @@
                 settingRow('用户形象',initial.userProfileId ? (subject[initial.userProfileId] || '跟随当前聊天') : '跟随当前聊天','<select name="userProfileId" aria-label="用户形象">' + options({'':'跟随当前聊天',...Object.fromEntries(D.characters().map(c=>[String(c.id),'与 ' + D.name(c) + ' 的用户形象']))},initial.userProfileId) + '</select>') +
                 settingRow('主角称谓',initial.protagonistName || '我','<input name="protagonistName" maxlength="60" value="' + E(initial.protagonistName) + '" placeholder="我">') +
                 settingRow('角色标签',initial.roleTags,'<input name="roleTags" maxlength="300" value="' + E(initial.roleTags) + '" placeholder="学生、转学生、目击者…">') +
-                '<details class="ac-cast-editor"' + (!w ? ' open' : '') + '><summary><strong>主要演员</strong><span>管理</span></summary><div class="ac-roster">' + (roster || empty('还没有出场角色。')) + '</div><label class="ac-check"><input type="checkbox" name="aware" value="yes"' + (initial.aware ? ' checked' : '') + '>告知出场角色</label></details><div class="ac-cast-selected">' + selected.map(row=>{
+                '<details class="ac-cast-editor"' + (!w ? ' open' : '') + '><summary><strong>主要演员</strong><span>管理</span></summary><div class="ac-roster">' + (roster || empty('还没有出场角色。')) + '</div>' + btn('npc-list','＋ 添加 NPC · 档案管理','ac-menu-item') + '<label class="ac-check"><input type="checkbox" name="aware" value="yes"' + (initial.aware ? ' checked' : '') + '>告知出场角色</label></details><div class="ac-cast-selected">' + selected.map(row=>{
                     const c = D.character(row.id); return c ? btn('cast-edit',avatar(row.id) + '<span><strong>' + E(D.name(c)) + '</strong><small>' + E([row.part || (c.profile ? 'NPC' : '配角'),row.notes].filter(Boolean).join(' · ')) + '</small></span>' + icon('next'),'ac-cast-summary',row.id) : '';
-                }).join('') + '</div>' + btn('cast-edit','＋ 添加演员','ac-menu-item') + btn('npc-list','＋ 添加 NPC · 档案管理','ac-menu-item')) +
+                }).join('') + '</div>' + btn('cast-edit','＋ 添加演员','ac-menu-item')) +
             '<h3 class="ac-settings-heading">封面与展示</h3>' + (w ? btn('cover','<span>剧目封面</span>' + art(w) + icon('next'),'ac-setting-link') : '') +
             settingRow('简介',initial.synopsis,'<textarea name="synopsis" aria-label="剧情设定" maxlength="6000" rows="4">' + E(initial.synopsis) + '</textarea>') +
             '<button type="submit" class="ac-primary ac-wide">' + (w ? '保存设置' : '创建剧场') + '</button></form>' +
@@ -565,7 +566,7 @@
             '<input name="title" maxlength="80" placeholder="下一幕的名字" aria-label="下一幕的名字" required><button class="ac-text-button" type="submit">⊕ 新增一幕</button></form>' : ''));
         case 'share': return sheet('分享剧目','<div class="acte-chat-card ac-share-preview">' + shareCard(w,performing()) + '</div><form data-form="share" class="ac-form ac-share-form"><h3>发送给</h3><div class="ac-share-recipients">' + D.characters().map(c=>'<label><input type="radio" name="recipient" value="' + E(c.id) + '" required' + (String(c.id) === state.castFromChat ? ' checked' : '') + '>' + avatar(c.id) + '<span>' + E(D.name(c)) + '</span></label>').join('') + '</div><fieldset><legend>分享内容</legend><label>' + icon('scene') + '<span>预告</span><input type="radio" name="scope" value="teaser" checked></label><label>' + icon('copy') + '<span>完整剧本（HTML 链接）</span><input type="radio" name="scope" value="script"></label></fieldset><button type="submit" class="ac-primary ac-wide">发送到 404</button></form>');
         case 'export': return sheet('导出 HTML','<form data-form="export" class="ac-form"><button type="submit" class="ac-primary">导出完整剧场</button></form>');
-        case 'confirm-import': return sheet('导入预览','<p class="ac-empty">ⓘ 预览导入的互动剧幕，保存后可选择角色。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + previewTools(state.importFile.html) + '</div>' + btn('commit-import','保存为模板','ac-primary ac-wide'));
+        case 'confirm-import': return sheet('导入预览','<p class="ac-empty">ⓘ 预览导入的互动剧幕，保存后可选择角色。</p><div class="ac-html-stage">' + htmlFrame(state.importFile.html) + previewTools(state.importFile.html) + '</div>');
         case 'reader-menu': return sheet('演绎设置',btn('scenes','场次','ac-menu-item') +
             (w.kind === 'prose' ? btn('size','字号','ac-menu-item') : '') +
             (!state.shared && getAct(w).rows.some(r => r.role === 'user') ? btn('reroll','重回','ac-menu-item') : '') +
@@ -576,7 +577,7 @@
             btn('save-row','收藏剧摘','ac-menu-item',state.menuRow));
         case 'post-options': return floatingChoices('<p class="ac-empty">Choose a direction to fill the composer.</p><div class="ac-choice-list">' +
             (state.postChoices || []).map((choice,index) => btn('post-choice','<span>' + num(index+1) + '</span><span>' + E(choice.label) + '</span>','ac-outline',index)).join('') + '</div>');
-        case 'generated': return sheet('生成预览','<div class="ac-html-stage">' + htmlFrame(state.generated.html) + previewTools(state.generated.html) + '</div>' + btn('save-generated','保存剧场','ac-primary ac-wide'));
+        case 'generated': return sheet('生成预览','<div class="ac-html-stage">' + htmlFrame(state.generated.html) + previewTools(state.generated.html) + '</div>');
         case 'delete': return sheet('删除剧场','<p>删除「' + E(state.works.find(row => row.id === deleteId)?.title) + '」及其演出进度和剧摘？</p>' +
             btn('confirm-delete','确认删除','ac-primary ac-wide'));
         default: return '';
