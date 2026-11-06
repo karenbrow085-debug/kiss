@@ -193,3 +193,9 @@
 #hearu-app[data-ui="stereo"] .st-orbit .st-orbit-bead {fill:url(#st-orbit-metal);stroke:#e2e4e6;stroke-width:.45;filter:drop-shadow(0 1px 1px #0005)}
 #hearu-app[data-ui="stereo"][data-theme="night"] .st-orbit {stroke:#e0e2ea80;stroke-width:.7}
 #hearu-app[data-ui="stereo"][data-theme="night"] .st-orbit .st-orbit-bead {fill:url(#st-orbit-metal);stroke:#c4c7ce}
+
+/* The reference has a second, broad sweep enclosing the controls and paired capsule. */
+#hearu-app[data-ui="stereo"] .st-sweep {position:absolute;inset:0 -23px 57px;width:calc(100% + 46px);height:calc(100% - 57px);z-index:-1;fill:none;stroke:#ffffffc4;stroke-width:.8;pointer-events:none;overflow:visible}
+#hearu-app[data-ui="stereo"] .st-sweep path {vector-effect:non-scaling-stroke}
+#hearu-app[data-ui="stereo"] .st-chat-player .st-sweep {inset:0 0 18px;width:100%;height:calc(100% - 18px)}
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-sweep {stroke:#cfd1d75c;stroke-width:.75}
