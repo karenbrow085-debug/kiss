@@ -186,3 +186,10 @@
 
 #hearu-app[data-ui="stereo"][data-theme="night"] #hu-chat-form :is(.hu-imessage-field,.hu-sticker-toggle) {background:var(--st-glass)!important;border:1px solid var(--st-rim)!important;box-shadow:var(--st-shadow)!important}
 #hearu-app[data-ui="stereo"] .st-chat-player .st-chat-lyric {margin:3px 0 2px}
+
+/* One continuous orbit sits behind the portraits; no crossing diagonal or open ends. */
+#hearu-app[data-ui="stereo"] .st-orbit {inset:42% -2% auto;width:104%;height:60%;z-index:1;stroke:#ffffffcc;stroke-width:.8;overflow:visible}
+#hearu-app[data-ui="stereo"] .st-hero>.st-pair-portraits {z-index:2}
+#hearu-app[data-ui="stereo"] .st-orbit .st-orbit-bead {fill:url(#st-orbit-metal);stroke:#e2e4e6;stroke-width:.45;filter:drop-shadow(0 1px 1px #0005)}
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-orbit {stroke:#e0e2ea80;stroke-width:.7}
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-orbit .st-orbit-bead {fill:url(#st-orbit-metal);stroke:#c4c7ce}
