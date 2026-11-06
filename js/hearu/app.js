@@ -2524,19 +2524,8 @@ root.addEventListener('click',e=>{if(e.target.closest('#hu-font-size-reset')){ro
 new MutationObserver(scheduleHearuFontSize).observe(root,{childList:true,subtree:true});
 window.addEventListener('resize',scheduleHearuFontSize);document.fonts?.addEventListener?.('loadingdone',scheduleHearuFontSize);scheduleHearuFontSize();
 
-// Continuous user bubble tail; its mask does not depend on the chat background.
+// User and AI bubbles share the mirrored tail rules in hearu.css.
 repairStyle.textContent += `
-#hearu-app .hu-message.mine.tail > p::before{
- content:""!important;display:block!important;position:absolute!important;
- left:auto!important;right:-5px!important;bottom:0!important;top:auto!important;
- width:22px!important;height:20px!important;border:0!important;border-radius:0!important;
- background-color:inherit!important;background-image:none!important;box-shadow:none!important;
- transform:none!important;z-index:-1;pointer-events:none;
- -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 20'%3E%3Cpath d='M0 0H12V8C12 14 16 18 22 20H0Z' fill='black'/%3E%3C/svg%3E");
- mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 20'%3E%3Cpath d='M0 0H12V8C12 14 16 18 22 20H0Z' fill='black'/%3E%3C/svg%3E");
- -webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
-}
-#hearu-app .hu-message.mine.tail > p::after{content:none!important;display:none!important}
 #hearu-app[data-hearu-view="thought"]{overflow:hidden;overscroll-behavior:none}
 #hearu-app[data-hearu-view="thought"] .hu-header{flex-shrink:0}
 #hearu-app[data-hearu-view="thought"] .hu-thought{
