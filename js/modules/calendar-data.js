@@ -92,6 +92,7 @@ async function collectReminders(at=Date.now()){
   const reminder=s.notices.find(n=>n.id===id);if(reminder)reminder.date=date;
  }}
  if(s.cycle.enabled){const next=C.prediction(s.cycle);if(next){const today=C.parts(at,userZone()).date,days=C.distance(today,next.date);if(days>=0&&days<=s.cycle.remindDays)for(const id of s.cycle.shareWith)notice(s,id,`经期记录提醒：预计${next.date}开始，日期为估算。`,'reminder','cycle',at,'cycle:'+next.date+':'+id);}}
+ for(const c of db.characters){const p=C.parts(at,zone(c));if(p.time<'09:00')continue;const f=C.festivals(p.date),names=[...f.names,f.term].filter(Boolean);for(const opt of s.settings.festivalReminders||[]){if(opt.roleId!==String(c.id)||!names.includes(opt.name))continue;notice(s,String(c.id),`${name(c)}提醒你：今天是${opt.name}。`,'reminder','holiday:'+p.date,at,'festival:'+c.id+':'+p.date+':'+opt.name);}}
  });
 }
 async function tick(){

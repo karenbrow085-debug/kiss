@@ -48,6 +48,12 @@ test('bundled lunar calendar identifies variable lunar festivals and actual sola
  const lunar=require('../js/vendor/lunar.js');global.Solar=lunar.Solar;
  assert(C.festivals('2026-02-17').names.includes('春节'));assert.equal(C.festivals('2026-11-07').term,'立冬');assert.equal(C.festivals('2026-11-22').term,'小雪');delete global.Solar;
 });
+test('next solar term never skips a term falling on tomorrow',()=>{
+ global.Solar=require('../js/vendor/lunar.js').Solar;
+ assert.equal(C.nextTerm('2026-11-06').date,'2026-11-07');
+ assert.equal(C.nextTerm('2026-11-07').date,'2026-11-22');
+ delete global.Solar;
+});
 function fixture(){
  let now=Date.parse('2026-11-06T07:00Z'),disk=new Map(),serial=Promise.resolve(),fail=false;
  const copy=x=>x===undefined?undefined:structuredClone(x),table={get:async k=>copy(disk.get(k)),put:async row=>{if(fail)throw Error('disk full');disk.set(row.key,copy(row));}},db={activePersonaId:'me',characters:[{id:'a',realName:'林屿',timeZone:'Asia/Tokyo',history:[]},{id:'b',realName:'另一个角色',timeZone:'UTC',history:[]}],apiSettings:{}};
@@ -92,6 +98,13 @@ test('due-time reminder converts the event zone, survives reopening and never du
 test('recurring completed occurrence is not reminded but next occurrence still is',async()=>{
  const f=fixture(),e=await f.api.saveEntry({title:'每日待办',date:'2026-11-06',time:'09:00',zone:'UTC',roleId:'a',repeat:'daily',kind:'todo',remind:0},null,{account:'me'});await f.api.complete(e.id,'2026-11-06',{account:'me'});
  await f.api.collectReminders(Date.parse('2026-11-06T09:01Z'));assert.equal((await f.api.read()).notices.length,0);await f.api.collectReminders(Date.parse('2026-11-07T09:01Z'));assert.equal((await f.api.read()).notices.length,1);
+});
+test('annual festival reminder uses the actual term date, correct role zone and one notice',async()=>{
+ const f=fixture();f.window.Solar=require('../js/vendor/lunar.js').Solar;
+ await f.api.mutate(s=>{s.settings.festivalReminders=[{roleId:'a',name:'立冬'}];},{account:'me'});
+ await f.api.collectReminders(Date.parse('2026-11-06T23:59Z'));assert.equal((await f.api.read()).notices.length,0);
+ await f.api.collectReminders(Date.parse('2026-11-07T00:00Z'));await f.api.collectReminders(Date.parse('2026-11-07T00:30Z'));
+ const s=await f.api.read();assert.equal(s.notices.length,1);assert.equal(s.notices[0].roleId,'a');assert.equal(s.notices[0].targetId,'holiday:2026-11-07');
 });
 test('malformed action tags never leak into visible chat and private records obey switch',async()=>{
  const f=fixture(),c=f.db.characters[0];assert.equal(await f.api.consume('你好<daybook_action>{broken}</daybook_action>',c,await f.api.context(c)),'你好');
