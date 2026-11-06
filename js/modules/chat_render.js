@@ -158,6 +158,7 @@ function loadMoreMessages() {
 function createMessageBubbleElement(message, isContinuous = false) {
     if (isOfflineChatRecord(message) || message.offlineHidden || isChatGapNotice(message)) return null;
     if (message.type === 'acte-share' && !message.isWithdrawn) return window.KissActe?.renderCard(message) || null;
+    if (message.type === 'daybook-notice' && !message.isWithdrawn) return window.KissCalendarData?.renderNotice(message) || null;
     if (message.type === 'hearu-session-event') return null;
     if (message.type === 'hearu-invite') return window.KissTogether?.renderCard(message) || null;
     if (message.type === 'kiss-event') return window.KissSocial?.renderEvent(message) || null;

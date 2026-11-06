@@ -197,6 +197,11 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             await window.KissMoments?.prepareContext(chat, apiConfig, generation);
             generation.check();
             systemPrompt = generatePrivateSystemPrompt(chat);
+            if (window.KissCalendarData) {
+                generation.calendarContext = await window.KissCalendarData.context(chat);
+                generation.check();
+                systemPrompt += generation.calendarContext.prompt;
+            }
             if (!window.KissOffline?.isActive(chat) && window.KissActe) {
                 systemPrompt += await window.KissActe.onlineContext(chat).catch(() => '');
                 generation.check();
@@ -861,6 +866,9 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         }
 
         if(window.KissWorkFiles){const extracted=await KissWorkFiles.extractReplies(fullResponse,()=>generation?.check(),{request:generation?.workFileRequest,truncated:generation?.workFileTruncated});fullResponse=extracted.text;workReplies=extracted.files;}
+        if(targetChatType === 'private' && window.KissCalendarData) {
+            fullResponse = await window.KissCalendarData.consume(fullResponse,chat,generation?.calendarContext,()=>generation?.check());
+        }
         if(targetChatType === 'private' && window.KissTogether) fullResponse=await KissTogether.consume(fullResponse,chat,generation?.hearuContext,()=>generation?.check());
         if(targetChatType === 'private' && window.KissSocial){fullResponse=await KissSocial.consume(fullResponse,chat);if(KissSocial.blocked(chat))return;}
         if(targetChatType === 'private' && window.KissCollections) fullResponse = await window.KissCollections.consume(fullResponse,chat,{context:generation?.collectionContext,check:()=>generation?.check()});

@@ -485,6 +485,31 @@ async function writeSettings(patch){
  });
  settingsGeneration=committedGeneration;
 }
+// Derive a setting inside the same ordered write queue used by full saves.
+function mutateSetting(key,update){
+ assertKey(key);if(CORE.includes(key)||key.startsWith('_export'))return Promise.reject(Error('无效设置字段'));
+ const job=serial.then(async()=>{
+  assertDataLoaded();if(busy||global.kissCleanupLocked)throw Error('数据正在整理，请稍后重试');
+  let committed,result,value;
+  await dexieDB.transaction('rw',dexieDB.globalSettings,dexieDB.safeMeta,async()=>{
+   const meta=await dexieDB.safeMeta.get(SETTINGS_GENERATION),generation=Number(meta?.generation)||0;
+   if(generation!==settingsGeneration)throw Error('设置已在其他页面更新，已停止当前页面保存，请重新打开');
+   const previous=await dexieDB.globalSettings.get(key);value=previous?clone(previous.value):db[key]===undefined?undefined:clone(db[key]);
+   const next=update(value);value=next.value;result=next.result;
+   const changed=JSON.stringify(previous?.value)!==JSON.stringify(value);
+   if(changed){
+    if(previous)await dexieDB.safeMeta.put({key:'settings-checkpoint:'+key,createdAt:Date.now(),setting:previous});
+    await dexieDB.globalSettings.put({key,value});
+    await dexieDB.safeMeta.put({key:SETTINGS_GENERATION,generation:generation+1,updatedAt:Date.now()});
+   }
+   committed=generation+(changed?1:0);
+  });
+  settingsGeneration=committed;db[key]=value;
+  if(!globalSettingKeys.includes(key))globalSettingKeys.push(key);
+  return {value,result};
+ });
+ serial=job.catch(()=>{});return job;
+}
 function saveSettings(patch){
  const snapshot=clone(patch);
  const job=serial.then(async()=>{
@@ -742,6 +767,6 @@ async function boot(init) {
  sessionStorage.setItem('phone-boot-pending','1');
  try{await init();sessionStorage.removeItem('phone-boot-pending');}catch(e){recovery(e);}
 }
-global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,beginDataLoad,completeDataLoad,saveSettings,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,prepareChatSafety,makeSafetyArchives,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
+global.PhoneBackup={isImage:s=>typeof s==='string'&&(s.startsWith('phone-asset:')||/^image\//.test(mimeByURL.get(s)||'')),collectUnused,materializeBackup,selectPrepared,readFile,importData,exportBlob,download,loadRows,beginDataLoad,completeDataLoad,mutateSetting,saveSettings,save,saveChat,stageMessage,saveHomeSettings,hydrateChat,hydrateArchive,evictOthers,boot,recovery,isCold:c=>cold.has(c),pinChat,isPinned:c=>pins.has(c),historyCount,readChatHistory,waitForWrites,inspectChat,exportChatSafety,prepareChatSafety,makeSafetyArchives,packHistory,unpackHistory,compact,expand,diskChat,runtimeChat,json,JSONReader,publicChat};
 })(window);
 

@@ -66,7 +66,6 @@ async function compressImage(file, options = {}) {
         reader.onerror = reject;
         reader.onload = (event) => {
             const img = new Image();
-            img.src = event.target.result;
             img.onerror = reject;
             img.onload = () => {
                 let width = img.width;
@@ -98,6 +97,8 @@ async function compressImage(file, options = {}) {
                 const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
                 resolve(compressedDataUrl);
             };
+            // Bind handlers before assigning a local data URL (cached mobile images can decode immediately).
+            img.src = event.target.result;
         };
     });
 }
