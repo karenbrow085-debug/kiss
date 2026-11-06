@@ -401,7 +401,7 @@ function stereoAvatars(small = false) {
 }
 function stereoHeader(title,sub='') {
   const inRoom=view==='room', chat=inRoom&&tab==='chat';
-  return `<header class="hu-header st-header"><button data-hu="back" aria-label="返回">${icons.back}</button><div><strong>${inRoom?(chat?'Listen together':tab==='queue'?'PLAYING NEXT':'NOW PLAYING'):esc(title)}</strong><small>${inRoom?'In Stereo':esc(sub)}</small></div>${chat?stereoAvatars(true):''}<button data-hu="${view==='profile'?'profile-settings':chat?'settings':inRoom?'player-menu':'profile-settings'}" aria-label="${chat?'聊天设置':inRoom?'播放菜单':'外观设置'}">${icon('<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>')}</button></header>`;
+  return `<header class="hu-header st-header"><button data-hu="back" aria-label="返回">${icons.back}</button><div><strong>${inRoom?(chat?'Listen together':tab==='queue'?'PLAYING NEXT':'NOW PLAYING'):esc(title)}</strong><small>${inRoom?'In Stereo':esc(sub)}</small></div>${chat?`<button class="st-avatar-toggle" data-stereo="toggle" aria-label="展开或收起播放器" aria-expanded="${!stereoCollapsed}">${stereoAvatars(true)}</button>`:''}<button data-hu="${view==='profile'?'profile-settings':chat?'settings':inRoom?'player-menu':'profile-settings'}" aria-label="${chat?'聊天设置':inRoom?'播放菜单':'外观设置'}">${icon('<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>')}</button></header>`;
 }
 function stereoHero() {
   const art='assets/hearu/in-stereo/';
@@ -414,9 +414,8 @@ function stereoProgress(){return `<div class="st-wave-progress"><span id="hu-tim
 function stereoControls(){return `<div class="hu-controls st-controls"><button data-hu="shuffle" class="hu-mode ${room.shuffle?'active':''}" aria-label="随机播放">${shuffleIcon}</button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button data-hu="toggle" class="hu-play" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="queue" aria-label="播放列表">${stereoQueueIcon()}</button></div>`;}
 function stereoPlayerHtml(chat=false){
  const song=room.song,saved=room.queue.some(x=>String(x.songId)===String(song?.songId));
- return `<section class="st-player ${chat?'st-chat-player':''}">${stereoHero()}<div class="st-track"><div><h2 id="hu-track-title">${esc(song?.title || '一起听一首歌')}</h2><p id="hu-track-artist">${esc(song?.artist || '从喜欢的旋律开始。')}</p></div><div class="st-action-capsule"><button data-hu="favorite" class="hu-favorite ${saved?'saved':''}" aria-label="收藏到待播">${heartIcon}</button><i></i><button data-hu="stereo-download" aria-label="下载当前歌曲">${icon('<path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/>')}</button><i></i><button data-hu="player-menu" aria-label="播放菜单">${icon('<path stroke-width="3" d="M5 12h.01M12 12h.01M19 12h.01"/>')}</button></div></div>${chat?'<div class="st-chat-lyric" id="hu-lyrics"></div><small id="hu-line-trans"></small>':'<button class="st-lyric-window" data-hu="lyrics" aria-label="打开完整歌词">'+Array.from({length:5},(_,i)=>`<span data-st-lyric="${i}"></span>`).join('')+'</button><span id="hu-lyrics" hidden></span><small id="hu-line-trans" hidden></small>'}${stereoProgress()}${stereoControls()}${stereoPairCapsule()}${chat?'<button class="st-collapse" data-stereo="collapse" aria-label="收起播放器">收起 '+icon('<path d="m6 14 6-6 6 6"/>')+'</button>':'<nav class="st-player-links"><button data-hu="lyrics" class="selected">歌词</button><button data-hu="sources">歌单</button><button data-hu="queue">待播</button><button data-tab="chat" class="st-chat-link">'+icon('<path d="M4 4h16v12H9l-5 4Z"/>')+'聊一聊</button></nav>'}</section>`;
+ return `<section class="st-player ${chat?'st-chat-player':''}">${stereoHero()}<div class="st-track"><div><h2 id="hu-track-title">${esc(song?.title || '一起听一首歌')}</h2><p id="hu-track-artist">${esc(song?.artist || '从喜欢的旋律开始。')}</p></div><div class="st-action-capsule"><button data-hu="favorite" class="hu-favorite ${saved?'saved':''}" aria-label="收藏到待播">${heartIcon}</button><i></i><button data-hu="stereo-download" aria-label="下载当前歌曲">${icon('<path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/>')}</button><i></i><button data-hu="player-menu" aria-label="播放菜单">${icon('<path stroke-width="3" d="M5 12h.01M12 12h.01M19 12h.01"/>')}</button></div></div>${chat?'<div class="st-chat-lyric" id="hu-lyrics"></div><small id="hu-line-trans"></small>':'<button class="st-lyric-window" data-hu="lyrics" aria-label="打开完整歌词">'+Array.from({length:5},(_,i)=>`<span data-st-lyric="${i}"></span>`).join('')+'</button><span id="hu-lyrics" hidden></span><small id="hu-line-trans" hidden></small>'}${stereoProgress()}${stereoControls()}${stereoPairCapsule()}${chat?'':'<nav class="st-player-links"><button data-hu="lyrics" class="selected">歌词</button><button data-hu="sources">歌单</button><button data-hu="queue">待播</button><button data-tab="chat" class="st-chat-link">'+icon('<path d="M4 4h16v12H9l-5 4Z"/>')+'聊一聊</button></nav>'}</section>`;
 }
-function stereoMiniHtml(){return `<div class="st-compact"><button data-stereo="expand" class="st-compact-song" aria-label="展开播放器">${stereoAvatars(true)}<span><strong data-st-title>${esc(room.song?.title || '一起听')}</strong><small data-st-artist>${esc(room.song?.artist || 'In Stereo')}</small></span></button><button data-hu="prev" aria-label="上一首">${icons.prev}</button><button data-hu="toggle" class="st-mini-toggle" aria-label="播放或暂停">${icons.play}</button><button data-hu="next" aria-label="下一首">${icons.next}</button><button data-hu="queue" aria-label="播放列表">${stereoQueueIcon()}</button></div>`;}
 function stereoMessageRows(rows){
  const template=document.createElement('template');template.innerHTML=rows;
  template.content.querySelectorAll('article.hu-message').forEach(article=>{const mine=article.classList.contains('mine'),c=character(roleId),image=document.createElement('img');image.className='st-message-avatar';image.alt=mine?'你的头像':name(c);image.src=(mine?c?.myAvatar:c?.avatar)||'assets/hearu.svg';image.referrerPolicy='no-referrer';article.prepend(image);});
@@ -428,7 +427,7 @@ function updateStereoPlayer(at,d){
  const lines=lyricsFor(),index=lines.findLastIndex(l=>l.timeMs<=at),center=Math.max(0,index);
  root.querySelectorAll('[data-st-lyric]').forEach((el,i)=>{el.textContent=lines[center+i-2]?.text || (i===2&&!lines.length?(room.song?'点击查看歌词':'选一首歌，和 TA 一起听。'):'');el.classList.toggle('current',i===2);});
  root.querySelectorAll('[data-st-title]').forEach(el=>el.textContent=room.song?.title || '一起听');root.querySelectorAll('[data-st-artist]').forEach(el=>el.textContent=room.song?.artist || 'In Stereo');
- root.querySelectorAll('.st-mini-toggle').forEach(el=>el.innerHTML=root.dataset.playing==='true'?icons.pause:icons.play);
+ const avatarToggle=root.querySelector('.st-avatar-toggle');if(avatarToggle)avatarToggle.setAttribute('aria-expanded',String(!stereoCollapsed));
  root.querySelector('.st-chat-stage')?.classList.toggle('st-collapsed',stereoCollapsed);
 }
 
@@ -692,7 +691,7 @@ function chatHtml() {
     })
     .join("");
   const stereo=appearance.ui==='stereo';
-  return `<div class="hu-chat-stage ${stereo?'st-chat-stage'+(stereoCollapsed?' st-collapsed':''):''}" data-role-id="${esc(roleId)}">${stereo?stereoMiniHtml()+stereoPlayerHtml(true):liveListeningHtml()}<div class="hu-messages">${(stereo?stereoMessageRows(rows):rows) || '<p class="hu-empty">这一首，有什么想说给 TA 听？</p>'}</div><form id="hu-chat-form"><button class="hu-sticker-toggle" type="button" data-hu="stickers" aria-label="展开404表情包">${icon('<path d="M12 4v16M4 12h16"/>')}</button><div class="hu-imessage-field"><textarea id="hu-message" rows="1" placeholder="a little closer…" aria-label="消息"></textarea><button type="button" data-hu="generate" ${replyPending()?'disabled':''} aria-label="调用角色 API 并回复" title="点此让 TA 回复">${icon('<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/>')}</button></div></form>${replyPending()?'<p class="hu-thinking">正在输入…</p>':''}</div>`;
+  return `<div class="hu-chat-stage ${stereo?'st-chat-stage'+(stereoCollapsed?' st-collapsed':''):''}" data-role-id="${esc(roleId)}">${stereo?stereoPlayerHtml(true):liveListeningHtml()}<div class="hu-messages">${(stereo?stereoMessageRows(rows):rows) || '<p class="hu-empty">这一首，有什么想说给 TA 听？</p>'}</div><form id="hu-chat-form"><button class="hu-sticker-toggle" type="button" data-hu="stickers" aria-label="展开404表情包">${icon('<path d="M12 4v16M4 12h16"/>')}</button><div class="hu-imessage-field"><textarea id="hu-message" rows="1" placeholder="a little closer…" aria-label="消息"></textarea><button type="button" data-hu="generate" ${replyPending()?'disabled':''} aria-label="调用角色 API 并回复" title="点此让 TA 回复">${icon('<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"/>')}</button></div></form>${replyPending()?'<p class="hu-thinking">正在输入…</p>':''}</div>`;
 }
 function lyricNoteHtml(song){
   if(!song?.note)return '';
@@ -2498,13 +2497,18 @@ function nightColor(value,property){
  const a=t.match(/[\d.]+/g)?.map(Number);return a?.length>=3?(neutral(...a)||t):t;
  });
 }
+function splitHearuSelectors(value) {
+ const parts=[];let start=0,depth=0,quote='',escaped=false;
+ for(let i=0;i<value.length;i++){const c=value[i];if(escaped){escaped=false;continue;}if(c==='\\'){escaped=true;continue;}if(quote){if(c===quote)quote='';continue;}if(c==='"'||c==="'"){quote=c;continue;}if(c==='('||c==='[')depth++;else if(c===')'||c===']')depth--;else if(c===','&&depth===0){parts.push(value.slice(start,i).trim());start=i+1;}}
+ parts.push(value.slice(start).trim());return parts.filter(Boolean);
+}
 function buildNightPalette(){
  const walk=rules=>Array.from(rules).map(r=>{
- if(r.selectorText){if(r.selectorText.includes('[data-ui="stereo"]'))return '';if(!/hearu|\.hu-/.test(r.selectorText))return '';const declarations=[];for(const prop of Array.from(r.style)){if(!/(?:color|background|border|outline|shadow|fill|stroke)/.test(prop))continue;const value=r.style.getPropertyValue(prop),dark=nightColor(value,prop);declarations.push(`${prop}:${dark}${r.style.getPropertyPriority(prop)?' !important':''}`);}
- if(!declarations.length)return '';const selectors=r.selectorText.split(',').map(sel=>sel.includes('#hearu-app')?sel.replace(/#hearu-app/g,'#hearu-app:not([data-ui="stereo"])[data-theme="night"]'):'#hearu-app[data-theme="night"] '+sel).join(',');return `${selectors}{${declarations.join(';')}}`;}
+ if(r.selectorText){if(r.selectorText.includes('[data-ui="stereo"]'))return '';if(/\[data-theme\s*=\s*["']?night/i.test(r.selectorText))return '';if(!/hearu|\.hu-/.test(r.selectorText))return '';const declarations=[];for(const prop of Array.from(r.style)){if(!/(?:color|background|border|outline|shadow|fill|stroke)/.test(prop))continue;const value=r.style.getPropertyValue(prop),dark=nightColor(value,prop);declarations.push(`${prop}:${dark}${r.style.getPropertyPriority(prop)?' !important':''}`);}
+ if(!declarations.length)return '';const selectors=splitHearuSelectors(r.selectorText).map(sel=>sel.includes('#hearu-app')?sel.replace(/#hearu-app/g,'#hearu-app[data-theme="night"]'):'#hearu-app[data-theme="night"] '+sel).join(',');return `${selectors}{${declarations.join(';')}}`;}
  if(r.cssRules && r.conditionText)return `${r.type===12?'@supports':'@media'} ${r.conditionText}{${walk(r.cssRules)}}`;return '';
  }).join('\n');
- nightStyle.textContent=Array.from(document.styleSheets).filter(sh=>sh.ownerNode!==nightStyle && sh!==nightStyle.sheet && sh.ownerNode?.id!=='hearu-ui-repair' && sh!==document.getElementById('hearu-ui-repair')?.sheet).map(sh=>{try{return walk(sh.cssRules);}catch{return '';}}).join('\n')+'\n#hearu-app[data-theme="night"]{color-scheme:dark;background:#141414;color:#eee}\n#hearu-app[data-theme="night"] .hu-modal{background:rgba(0,0,0,.65)}\n#hearu-app[data-theme="night"] .hu-profile-identity,#hearu-app[data-theme="night"] .hu-profile-name h1,#hearu-app[data-theme="night"] .hu-profile-cover-caption{color:#f4f4f4}\n#hearu-app[data-theme="night"] .hu-profile-handle{color:#ccc}';
+ nightStyle.textContent=Array.from(document.styleSheets).filter(sh=>sh.ownerNode!==nightStyle && sh!==nightStyle.sheet && sh.ownerNode?.id!=='hearu-ui-repair' && sh!==document.getElementById('hearu-ui-repair')?.sheet).map(sh=>{try{return walk(sh.cssRules);}catch{return '';}}).join('\n')+'\n#hearu-app[data-theme="night"]{color-scheme:dark;background:#141414;color:#eee}\n#hearu-app[data-theme="night"] .hu-modal{background:rgba(0,0,0,.65)}\n#hearu-app[data-theme="night"] .hu-profile-identity,#hearu-app[data-theme="night"] .hu-profile-name h1,#hearu-app[data-theme="night"] .hu-profile-cover-caption{color:#f4f4f4}\n#hearu-app[data-theme="night"] .hu-profile-handle{color:#ccc}\n#hearu-app[data-theme="night"] .hu-profile-masthead,#hearu-app[data-theme="night"] .hu-profile-banner{background-color:#181818}';
 }
 function applyNight(){root.dataset.theme=localStorage.getItem('hearu.night.v1')==='on'?'night':'day';if(root.dataset.theme==='night')buildNightPalette();}
 function toggleNight(){localStorage.setItem('hearu.night.v1',root.dataset.theme==='night'?'off':'on');applyNight();if(view==='profile')paintProfile();}
@@ -2708,10 +2712,10 @@ if(window.KissTogether){
  window.addEventListener('kiss-together-change',()=>{if(view==='contacts'&&!root.hidden)renderContacts();});
 }
 
-// Folding is local to the conversation: no navigation and no lost draft.
-root.addEventListener('click',e=>{const button=e.target.closest('[data-stereo]');if(!button || appearance.ui!=='stereo')return;stereoCollapsed=button.dataset.stereo==='collapse';root.querySelector('.st-chat-stage')?.classList.toggle('st-collapsed',stereoCollapsed);});
-root.addEventListener('focusin',e=>{if(appearance.ui==='stereo'&&e.target.id==='hu-message'){stereoCollapsed=true;root.querySelector('.st-chat-stage')?.classList.add('st-collapsed');}});
-root.addEventListener('wheel',e=>{if(appearance.ui==='stereo'&&tab==='chat'&&e.deltaY>8){stereoCollapsed=true;root.querySelector('.st-chat-stage')?.classList.add('st-collapsed');}},{passive:true});
-let stereoTouchY=null;
-root.addEventListener('touchstart',e=>{stereoTouchY=e.touches[0]?.clientY;},{passive:true});
-root.addEventListener('touchmove',e=>{if(appearance.ui==='stereo'&&tab==='chat'&&stereoTouchY!=null&&stereoTouchY-(e.touches[0]?.clientY||0)>22){stereoCollapsed=true;root.querySelector('.st-chat-stage')?.classList.add('st-collapsed');}},{passive:true});
+// The top pair is the sole folding control; composing and scrolling do not change it.
+root.addEventListener('click',e=>{
+ const button=e.target.closest('.st-avatar-toggle');if(!button || appearance.ui!=='stereo')return;
+ stereoCollapsed=!stereoCollapsed;
+ root.querySelector('.st-chat-stage')?.classList.toggle('st-collapsed',stereoCollapsed);
+ button.setAttribute('aria-expanded',String(!stereoCollapsed));
+});

@@ -39,7 +39,6 @@
 #hearu-app[data-ui="stereo"] .st-track>div:first-child {min-width:0;flex:1}
 #hearu-app[data-ui="stereo"] .st-track h2 {font-size:21px;font-weight:650;line-height:1.4;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0}
 #hearu-app[data-ui="stereo"] .st-track p {font-size:12px;line-height:1.6;color:var(--st-muted);margin:3px 0 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-#hearu-app[data-ui="stereo"] :is(.st-action-capsule,.st-pair-capsule,.st-chat-link,.st-compact) {border:1px solid var(--st-rim);background:var(--st-glass);box-shadow:var(--st-shadow);border-radius:999px;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px)}
 #hearu-app[data-ui="stereo"] .st-action-capsule {display:flex;align-items:center;padding:3px 6px;flex:none;gap:3px;height:33px}
 #hearu-app[data-ui="stereo"] .st-action-capsule button {display:grid;place-items:center;min-width:27px;width:27px;height:26px;padding:3px;color:var(--st-ink)}
 #hearu-app[data-ui="stereo"] .st-action-capsule svg {width:17px;height:17px}
@@ -83,17 +82,6 @@
 #hearu-app[data-ui="stereo"] .st-chat-player .st-pair-capsule {margin:4px auto;min-height:37px;padding:3px 13px}
 #hearu-app[data-ui="stereo"] .st-chat-lyric {font-size:11px;color:var(--st-muted);text-align:center;line-height:20px;min-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hearu-app[data-ui="stereo"] .st-chat-player #hu-line-trans {display:none}
-#hearu-app[data-ui="stereo"] .st-collapse {display:flex;align-items:center;justify-content:center;gap:3px;color:var(--st-muted);font-size:9px;height:18px;flex:none}
-#hearu-app[data-ui="stereo"] .st-collapse svg {width:13px;height:13px}
-#hearu-app[data-ui="stereo"] .st-compact {display:none;align-items:center;flex:none;gap:3px;margin:7px 15px 9px;padding:7px 8px;min-height:52px}
-#hearu-app[data-ui="stereo"] .st-compact>button:not(.st-compact-song) {width:27px;height:30px;padding:4px;flex:none}
-#hearu-app[data-ui="stereo"] .st-compact svg {width:18px;height:18px}
-#hearu-app[data-ui="stereo"] .st-compact-song {display:flex;align-items:center;gap:8px;flex:1;min-width:0;text-align:left}
-#hearu-app[data-ui="stereo"] .st-compact-song>span:last-child {flex:1;min-width:0}
-#hearu-app[data-ui="stereo"] .st-compact strong {display:block;font-size:11px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
-#hearu-app[data-ui="stereo"] .st-compact small {display:block;font-size:9px;line-height:1.5;color:var(--st-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#hearu-app[data-ui="stereo"] .st-collapsed .st-chat-player {display:none}
-#hearu-app[data-ui="stereo"] .st-collapsed .st-compact {display:flex}
 #hearu-app[data-ui="stereo"] .hu-messages {padding:8px 18px 14px;flex:1;min-height:60px;background:transparent;overflow:auto;overscroll-behavior:contain}
 #hearu-app[data-ui="stereo"] .hu-message:not(.hu-card-message) {margin:0 0 15px;max-width:calc(100% - 50px);width:fit-content;position:relative}
 #hearu-app[data-ui="stereo"] .hu-message.theirs {margin-left:42px}
@@ -120,6 +108,46 @@
 /* Keep the legacy floating chat from covering the interactive capsule. */
 #hearu-app[data-ui="stereo"] .st-chat-stage .hu-messages {position:relative;inset:auto;padding:8px 18px 14px;flex:1;min-height:60px;overflow:auto}
 #hearu-app[data-ui="stereo"] .st-chat-stage #hu-chat-form {position:relative;inset:auto;left:auto;right:auto;bottom:auto;margin:8px 15px max(12px,env(safe-area-inset-bottom));z-index:4}
-#hearu-app[data-ui="stereo"] .st-compact {position:relative;z-index:3}
-#hearu-app[data-ui="stereo"] .st-chat-player {transition:max-height .35s ease,opacity .25s ease,padding .35s ease}
-#hearu-app[data-ui="stereo"] .st-collapsed .st-chat-player {display:flex;max-height:0;padding-block:0;overflow:hidden;opacity:0;pointer-events:none}
+/* The paired portraits are the only expand/collapse control. */
+#hearu-app[data-ui="stereo"] {container-type:inline-size}
+#hearu-app[data-ui="stereo"] .st-header>.st-avatar-toggle {display:flex;align-items:center;justify-content:center;width:61px;height:40px;margin-right:4px;padding:2px;flex:none;border-radius:999px}
+#hearu-app[data-ui="stereo"] .st-avatar-toggle:focus-visible {outline:1px solid var(--st-muted);outline-offset:3px}
+#hearu-app[data-ui="stereo"] .st-header .st-avatar-toggle .st-small-pair {width:52px;margin:0}
+#hearu-app[data-ui="stereo"] .st-chat-player {
+ max-height:min(650px,calc(100dvh - 230px));height:auto;overflow:hidden;padding:0 23px 26px;gap:5px;
+ opacity:1;transform:translateY(0);transition:max-height .4s ease,padding .4s ease,opacity .3s ease,transform .4s ease;
+ mask-image:linear-gradient(#000 0 calc(100% - 26px),transparent 100%);
+ -webkit-mask-image:linear-gradient(#000 0 calc(100% - 26px),transparent 100%);
+}
+#hearu-app[data-ui="stereo"] .st-chat-player .st-hero {flex-basis:60cqw;max-height:260px;min-height:0}
+#hearu-app[data-ui="stereo"] .st-chat-player .st-hero .st-pair-portraits img {width:29cqw;height:29cqw;max-width:124px;max-height:124px}
+#hearu-app[data-ui="stereo"] .st-chat-player .st-controls {height:57px}
+#hearu-app[data-ui="stereo"] .st-chat-player .hu-play {width:48px;height:48px}
+#hearu-app[data-ui="stereo"] .st-chat-player .st-pair-capsule {margin:8px auto 0;min-height:42px}
+#hearu-app[data-ui="stereo"] .st-collapsed .st-chat-player {max-height:0;padding-block:0;opacity:0;transform:translateY(-12px);pointer-events:none}
+#hearu-app[data-ui="stereo"] .st-chat-stage .hu-messages {mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent);-webkit-mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent)}
+/* Explicit night surfaces cover every page and every shared settings panel. */
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-modal>section {background:#25262e;color:#eeeeF3;border:1px solid #444650;box-shadow:0 16px 70px #0007}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-modal :is(h2,h3,legend,.hu-setting-row,.hu-file-button) {color:#e8e8ed}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-modal :is(p,label,small) {color:#b4b5bf}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-modal :is(input,textarea,select) {color-scheme:dark;background:#30313a;color:#eeeeF3;border-color:#52545f}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-modal :is(input,textarea)::placeholder {color:#a3a4af;opacity:1}
+#hearu-app[data-ui="stereo"][data-theme="night"] .app-api-panel {--aa-bg:#30313a;--aa-fg:#eeeef3;--aa-muted:#b4b5bf;--aa-line:#52545f;background:transparent;color:#eeeef3}
+#hearu-app[data-ui="stereo"][data-theme="night"] :is(.hu-profile-social,.hu-profile-stats,.hu-account-facts,.hu-profile-switch,.hu-profile-music-panel,.hu-account-details) {background:transparent;color:#e3e3eb;border-color:#454650}
+#hearu-app[data-ui="stereo"][data-theme="night"] :is(.hu-profile-social,.hu-profile-stats,.hu-account-facts,.hu-profile-switch,.hu-account-details) :is(strong,b,button[aria-selected="true"]) {color:#eeeef3}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-mini {background:#2c2d36;color:#eeeef3;border-color:#454650}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-mini :is(strong,button) {color:#eeeef3}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-mini small {color:#b4b5bf}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-bottom button {color:#a7a8b4}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-bottom button.selected {color:#eeeef3}
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-pair-portraits img {border-color:#bfc0c9;outline-color:#656671;box-shadow:0 0 0 3px #ffffff12,0 0 0 4px #777986,0 8px 18px #0005}
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-orbit {stroke:#c4c5cf77}
+@media(max-height:740px){#hearu-app[data-ui="stereo"] .st-chat-player .st-hero{flex-basis:45cqw;max-height:200px}#hearu-app[data-ui="stereo"] .st-chat-player .st-hero .st-pair-portraits img{width:24cqw;height:24cqw}#hearu-app[data-ui="stereo"] .st-chat-player .st-controls{height:46px}#hearu-app[data-ui="stereo"] .st-chat-player .hu-play{width:39px;height:39px}}
+@media(max-height:620px){#hearu-app[data-ui="stereo"] .st-chat-player .st-hero{flex-basis:120px}#hearu-app[data-ui="stereo"] .st-chat-player .st-hero .st-pair-portraits img{width:72px;height:72px}#hearu-app[data-ui="stereo"] .st-chat-player .st-controls{height:39px}#hearu-app[data-ui="stereo"] .st-chat-player .st-pair-capsule{min-height:34px;margin-top:3px}#hearu-app[data-ui="stereo"] .st-chat-player .st-track{min-height:34px}}
+
+/* Native night rules must not flatten the silver controls or the FM message palette. */
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-controls .hu-play {background:var(--st-glass)!important;color:var(--st-ink)!important;border-color:var(--st-rim)!important;box-shadow:var(--st-shadow)!important}
+#hearu-app[data-ui="stereo"][data-theme="night"] .st-chat-stage {background:transparent!important}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-message>p {background:var(--st-received)!important;color:var(--st-ink)!important}
+#hearu-app[data-ui="stereo"][data-theme="night"] .hu-message.mine>p {background:var(--st-sent)!important;color:var(--st-on-sent)!important}
+#hearu-app[data-ui="stereo"][data-theme="night"] :is(.hu-imessage-field,.hu-sticker-toggle) {background:var(--st-glass)!important;box-shadow:var(--st-shadow)!important;border-color:var(--st-rim)!important}
