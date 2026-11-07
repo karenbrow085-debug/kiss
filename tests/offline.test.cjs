@@ -84,3 +84,23 @@ test('active offline mode never stamps incoming online messages as offline',()=>
 test('prompt selector reads existing thought-settings names without including prompt bodies',()=>{const {box,api}=harness();box.document.getElementById=id=>id==='cot-prompt-version-select'?{options:[{value:'uwu',textContent:'UwU'},{value:'hh_offline',textContent:'ㅎ-ㅎ（线下）'}]}:null;const choices=api.promptChoices();assert.deepEqual(Array.from(choices,p=>p.value),['uwu','hh_offline']);assert(choices.every(p=>!Object.hasOwn(p,'content')));});
 
 test('legacy incorrectly archived online messages return to the online stream without being deleted',()=>{const {chat,api}=sessionFixture();chat.history[0].offlineSessionId='s';chat.history[0].offlineArchiveId='s';chat.offline.sessions[0].messageIds=['old','u','a'];api.migrateSessions(chat);assert.equal(chat.history[0].offlineArchiveId,undefined);assert.equal(chat.history[0].offlineSessionId,undefined);assert.equal(chat.history.length,3);assert.equal(api.sessionRows(chat,chat.offline.sessions[0]).length,2);assert(!api.displayRows(chat).some(m=>m.id==='old'));});
+
+test('legacy offline archive opens with numeric references and repairs missing floor markers inside its boundaries',()=>{
+ const {chat,api}=sessionFixture();
+ const session=chat.offline.sessions[0];
+ Object.assign(session,{status:'archived',endedAt:12,endMessageId:'a',messageIds:['old','7','a','not-loaded']});
+ chat.offline.active=false;
+ chat.history[1].id=7;
+ delete chat.history[1].offlineNarrative;
+ delete chat.history[1].offlineSessionId;
+ delete chat.history[2].offlineSessionId;
+ chat.history[2].offlineArchiveId='s';
+ chat.history[2].content='<thinking>inner</thinking>归档原文';
+ api.migrateSessions(chat);
+ assert.deepEqual(Array.from(api.sessionRows(chat,session),m=>m.id),[7,'a']);
+ assert.equal(chat.history[1].offlineNarrative,true);
+ assert.equal(chat.history[1].offlineArchiveId,'s');
+ assert.equal(chat.history[0].offlineNarrative,undefined);
+ assert(session.messageIds.includes('not-loaded'));
+ assert.equal(chat.history[2].content,'<thinking>inner</thinking>归档原文');
+});

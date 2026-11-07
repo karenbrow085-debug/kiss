@@ -29,7 +29,11 @@ const state = { chatId:null, host:null, root:null, panelRoot:null, frame:0, limi
 const $ = sel => state.root?.querySelector(sel) || state.panelRoot?.querySelector(sel);
 const all = sel => [...(state.root?.querySelectorAll(sel)||[]),...(state.panelRoot?.querySelectorAll(sel)||[])];
 const character = () => db.characters.find(c=>c.id===state.chatId);
-const isNarrative = m => ['user','assistant'].includes(m.role) && !m.isThinking && !m.isStatusUpdate && !['mcp-request','mcp-activity'].includes(m.type) && !/^\s*<(?:thinking|think)>/i.test(m.content||'');
+const isNarrative = m => ['user','assistant'].includes(m.role) && !m.isThinking && !m.isStatusUpdate && !['mcp-request','mcp-activity'].includes(m.type) && (!/^\s*<(?:thinking|think)>/i.test(m.content||'') || hasNarrativeAfterThought(m));
+function hasNarrativeAfterThought(message) {
+ const body=textOf(message).trim();
+ return !!body&&!/^<(?:thinking|think)>/i.test(body);
+}
 function config(chat) {
  if (!chat.offline) chat.offline={version:1,active:false,nextFloor:1,sessions:[],css:'',draft:{}};
  chat.offline.sessions ||= []; chat.offline.draft ||= {}; return chat.offline;
@@ -121,7 +125,7 @@ function displayNarrative(chat,m,text){
  const preset=(db.tavernPresets||[]).find(p=>p.id===(m.offlinePresetId||config(chat).draft.tavernPresetId));if(!preset)return text;
  let signature=regexSignatures.get(preset);if(signature===undefined){signature=JSON.stringify(window.KissTavernRegex.entries(preset).map(e=>e.script));regexSignatures.set(preset,signature);}const depth=Math.max(0,chat.history.length-chat.history.indexOf(m)-1),cached=displayRegexCache.get(m);if(cached?.text===text&&cached.preset===preset&&cached.depth===depth&&cached.signature===signature)return cached.output;
  const entry={text,preset,depth,signature,output:text};displayRegexCache.set(m,entry);
- window.KissTavernRegex.apply(text,preset,{target:'display',placement:m.role==='user'?1:2,depth,edited:!!m.offlineEditedAt,char:chat.realName||chat.remarkName||'角色',user:chat.myName||'我'}).then(result=>{if(displayRegexCache.get(m)!==entry)return;entry.output=result.text;if(result.text!==text)refresh(true);if(result.warnings.length)console.warn('[Preset regex]',...result.warnings);});return text;
+ window.KissTavernRegex.apply(text,preset,{target:'display',placement:m.role==='user'?1:2,depth,edited:!!m.offlineEditedAt,char:chat.realName||chat.remarkName||'角色',user:chat.myName||'我'}).then(result=>{if(displayRegexCache.get(m)!==entry)return;entry.output=result.text?.trim() ? result.text : text;if(entry.output!==text)refresh(true);if(result.warnings.length)console.warn('[Preset regex]',...result.warnings);}).catch(error=>console.warn('[Preset regex]',error));return text;
 }
 function openHTML(id,index){
  const chat=character(),m=(chat.history||[]).find(row=>row.id===id);if(!m)throw Error('楼层不存在');
@@ -160,6 +164,10 @@ function ensureHost() {
  <form class="of-composer"><button type="button" data-action="generation-tools" aria-label="Generation controls">${icon('plus')}</button><textarea rows="1" aria-label="Message" placeholder="Message"></textarea><button type="button" data-action="story-tools" aria-label="Archives">${icon('gift')}</button><button type="button" data-action="emoji" aria-label="Emoji">${icon('smile')}</button><button class="of-send" type="button" data-action="send-or-continue" aria-label="Generate reply">${icon('send')}</button></form></div>
  <section class="of-archive-page" hidden><aside class="of-archive-rail"><button data-action="resume-offline" aria-label="Current conversation">${icon('smile')}</button><button class="selected" data-action="archives" aria-label="Archives">${icon('more')}</button><span></span><button data-action="list-back" aria-label="Back to chat">${icon('back')}</button></aside><div class="of-archive-main"><header class="of-archive-header"><h1>Archives</h1><button data-action="new-offline" aria-label="Start offline">${icon('plus')}</button></header><div class="of-archive-search"><span>${icon('search')}</span><input id="of-archive-search" placeholder="Search archives" aria-label="Search archives"></div><div class="of-archive-people"><div><img class="of-archive-char" alt=""><span class="of-archive-person"></span></div><div><img class="of-archive-self" alt=""><span>echo</span></div></div><div class="of-archive-list"></div><footer>Private moments, kept here.</footer></div></section>
  <section class="of-panel" hidden aria-label="设置"><div class="of-dialog" role="dialog" aria-modal="true"><header class="of-panel-header"><button data-action="close-panel" aria-label="返回">${icon('close')}</button><h2></h2><span></span></header><div class="of-panel-body"></div></div></section>`;
+ state.root.querySelector('link').addEventListener('load',()=>{
+  delete $('.of-messages').dataset.inkTheme;
+  refresh();
+ });
  const settingsHost=document.createElement('div');settingsHost.style.display='contents';state.root.append(settingsHost);
  state.panelRoot=settingsHost.attachShadow({mode:'open'});const settingsLink=document.createElement('link');settingsLink.rel='stylesheet';settingsLink.href='css/modules/offline.css?v=20261031-offline-night-1';state.panelRoot.append(settingsLink,state.root.querySelector('.of-panel'));
  applyNightMode();
@@ -225,14 +233,16 @@ function render(force) {
  const area=$('.of-messages'),atBottom=force||area.scrollHeight-area.scrollTop-area.clientHeight<80;
  $('.of-title strong').textContent=readOnly?(archive.title||defaultSessionTitle(archive)):(chat.remarkName||chat.realName||'Offline');$('.of-readonly-label').hidden=!readOnly;$('.of-readonly-label').textContent=readOnly?'Read-only':'';$('.of-composer textarea').placeholder='Message @'+(chat.remarkName||chat.realName||'');
  setAvatar($('.of-header-avatar'),chat.avatar);
- const custom=$('#of-custom-style');if(custom.textContent!==(config(chat).css||''))custom.textContent=config(chat).css||'';
+ const custom=$('#of-custom-style'),css=config(chat).css||'',restyle=custom.textContent!==css||area.dataset.inkTheme!==state.host.dataset.theme;
+ if(custom.textContent!==css)custom.textContent=css;
+ area.dataset.inkTheme=state.host.dataset.theme;
  const messages=readOnly?sessionRows(chat,archive):displayRows(chat);if(force)state.focusEnd=null;const end=state.focusEnd??messages.length,shown=messages.slice(Math.max(0,end-state.limit),end);
  if(state.selecting){const available=new Set(messages.map(m=>m.id));for(const id of state.selected)if(!available.has(id))state.selected.delete(id);$('#of-selection-count').textContent=state.selected.size+' selected';}
  const opened=[...area.querySelectorAll('details[data-thinking-id][open]')].map(el=>el.dataset.thinkingId);state.thinkingOpen=new Set(opened);
  state.sectionOpen=new Set([...area.querySelectorAll('details[data-section-key][open]')].map(el=>el.dataset.sectionKey));
  const previousNodes=new Map([...area.querySelectorAll('.of-message')].map(el=>[el.dataset.messageId,el])),desired=[],append=node=>desired.push(node);
  if(end>shown.length){const more=document.createElement('button');more.className='of-load';more.dataset.action='load';more.textContent='Load earlier messages';append(more);}
- if(!messages.length){const empty=document.createElement('div');empty.className='of-empty';empty.textContent='A moment, just for you two.';append(empty);}
+ if(!messages.length){const empty=document.createElement('div');empty.className='of-empty';empty.textContent=readOnly?'未在当前聊天记录中找到这段归档的原文。':'A moment, just for you two.';append(empty);}
  let day='';let previousMode;
  for(const m of shown){
   const date=new Date(m.timestamp||Date.now()),key=date.toDateString();
@@ -245,7 +255,69 @@ function render(force) {
  if(!readOnly&&state.liveGeneration?.chatId===chat.id&&(state.liveGeneration.content||state.liveGeneration.reasoning)){const live=state.liveGeneration;append(messageElement(chat,{id:live.id,role:'assistant',content:live.content,offlineReasoning:live.reasoning,offlineGenerationSource:live.mode,offlinePending:true,timestamp:Date.now()},true));}
  const keep=new Set(desired);for(const child of [...area.children])if(!keep.has(child)){for(const frame of child.querySelectorAll('iframe')){inlineFrames.get(frame)?.();inlineFrames.delete(frame);}child.remove();}let cursor=area.firstChild;for(const node of desired){if(node===cursor)cursor=cursor.nextSibling;else area.insertBefore(node,cursor);}const latestId=messages.findLast(m=>m.role==='assistant')?.id;for(const [frame]of inlineFrames)if(frame.dataset.floating==='true')frame.hidden=frame.closest('.of-message')?.dataset.messageId!==String(latestId);
  state.renderedLastId=shown.at(-1)?.id||null;state.renderedLastTimestamp=shown.at(-1)?.timestamp;state.renderedCount=shown.length;
+ for(const node of desired){
+  if(node.classList.contains('of-message')&&(restyle||!node.dataset.inkChecked)){
+   restoreProseInk(node.querySelector('.of-prose'));
+   node.dataset.inkChecked='true';
+  }
+ }
  if(atBottom)area.scrollTop=area.scrollHeight;publishHelperState();
+}
+// CSS presets can make native prose the same color as the page after reopening it.
+const recoveredInk = new WeakMap();
+function restoreProseInk(prose) {
+ if(!prose)return;
+ for(const node of [prose,...prose.querySelectorAll('[data-of-ink-recovery]')]){
+  const original=recoveredInk.get(node);
+  if(!original)continue;
+  for(const [property,value,priority] of original){
+   if(value)node.style.setProperty(property,value,priority);
+   else node.style.removeProperty(property);
+  }
+  recoveredInk.delete(node);
+  node.removeAttribute('data-of-ink-recovery');
+ }
+ const colors = new Map(), patches = [];
+ const parse = value => {
+  const parts = value?.match(/[\d.]+/g)?.map(Number);
+  return parts?.length >= 3 && value.startsWith('rgb') ? parts : null;
+ };
+ const luminance = rgb => rgb.slice(0,3).map(x=>x/255)
+  .map(x=>x<=.04045 ? x/12.92 : ((x+.055)/1.055)**2.4)
+  .reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
+ const styleFor = node => {
+  if(!colors.has(node))colors.set(node,getComputedStyle(node));
+  return colors.get(node);
+ };
+ const walker=document.createTreeWalker(prose,NodeFilter.SHOW_TEXT);
+ const seen=new Set();
+ while(walker.nextNode()){
+  const node=walker.currentNode.parentElement;
+  if(!walker.currentNode.textContent.trim()||seen.has(node)||node.closest('iframe,details:not([open]),[hidden]'))continue;
+  seen.add(node);
+  const style=styleFor(node);
+  if(style.display==='none'||style.visibility==='hidden'||style.backgroundClip==='text'||style.webkitBackgroundClip==='text')continue;
+  const foreground=parse(style.webkitTextFillColor||style.color);
+  let background=null;
+  for(let parent=node;parent;parent=parent.parentElement){
+   const backdrop=styleFor(parent);
+   const color=parse(backdrop.backgroundColor);
+   if(backdrop.backgroundImage!=='none')break;
+   if(color&&(color[3]??1)>=.98){background=color;break;}
+  }
+  if(!foreground||!background)continue;
+  const alpha=foreground[3]??1;
+  const fg=luminance(background.map((channel,i)=>foreground[i]*alpha+channel*(1-alpha)));
+  const bg=luminance(background);
+  const contrast=(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+  if(contrast<1.35)patches.push([node,bg>.18?'#303137':'#f2f2f5']);
+ }
+ for(const [node,ink] of patches){
+  const properties=['color','-webkit-text-fill-color'];
+  recoveredInk.set(node,properties.map(property=>[property,node.style.getPropertyValue(property),node.style.getPropertyPriority(property)]));
+  for(const property of properties)node.style.setProperty(property,ink,'important');
+  node.setAttribute('data-of-ink-recovery','');
+ }
 }
 function messageElement(chat,m,readOnly=false){
  const date=new Date(m.timestamp||Date.now());
@@ -255,7 +327,12 @@ function messageElement(chat,m,readOnly=false){
   setAvatar(item.querySelector('img'),user?chat.myAvatar:chat.avatar);
   item.querySelector('.of-name').textContent=user?(chat.myName||'Mio'):(chat.remarkName||chat.realName||'Shen Yu');
   item.querySelector('time').textContent=date.toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
-  const shownStatus=displayStatus(m,chat),layout=m.offlinePending?{html:narrativeHtml(shownStatus.text),frames:[],groups:[]}:narrativeLayout(displayNarrative(chat,m,shownStatus.text),m.id);item.querySelector('.of-prose').innerHTML=layout.html;mountNarrativeFrames(item,layout);if(!m.offlinePending&&m.role==='assistant')window.KissBilingual?.enhance(item);
+  const shownStatus=displayStatus(m,chat);
+  const body=shownStatus.text;
+  const layout=m.offlinePending?{html:narrativeHtml(body),frames:[],groups:[]}:narrativeLayout(displayNarrative(chat,m,body),m.id);
+  const prose=item.querySelector('.of-prose');
+  prose.innerHTML=layout.html;
+  if(!prose.textContent.trim()&&!layout.frames.length&&body.trim())prose.innerHTML=narrativeHtml(body);mountNarrativeFrames(item,layout);if(!m.offlinePending&&m.role==='assistant')window.KissBilingual?.enhance(item);
   if(m.offlineReasoning&&(m.offlineGenerationSource==='tavern'||config(chat).draft.debugMode)){const thought=document.createElement('details');thought.className='of-reasoning';thought.dataset.thinkingId=m.id;thought.open=state.thinkingOpen?.has(m.id)||false;const heading=document.createElement('summary');heading.textContent=m.offlinePending?'思考中…':'思考过程';const content=document.createElement('div');content.className='of-reasoning-text';content.textContent=m.offlineReasoning;thought.append(heading,content);item.querySelector('.of-prose').before(thought);}
   const imageMarkup=floorImageHtml(m,readOnly);if(imageMarkup)item.querySelector('.of-message-content').insertAdjacentHTML('beforeend',imageMarkup);
   item.querySelector('.of-meta').textContent=m.offlinePending?'生成中…':[Number.isFinite(m.offlineDuration)?`${m.offlineDuration.toFixed(1)}s`:null,tokensOf(m),`#${m.offlineFloor}`].filter(Boolean).join(' · ');
@@ -264,8 +341,12 @@ function messageElement(chat,m,readOnly=false){
 }
 // A session references the shared messages; it never creates a second history.
 function sessionRows(chat,session) {
- const ids=new Set(session.messageIds||[]);
- return (chat.history||[]).filter(m=>isNarrative(m)&&m.offlineNarrative&&(m.offlineSessionId===session.id||ids.has(m.id)));
+ const ids=new Set((Array.isArray(session.messageIds)?session.messageIds:[]).map(String)), key=String(session.id);
+ return (chat.history||[]).filter(m=>{
+  if(!isNarrative(m)||!m.offlineNarrative)return false;
+  const owner=m.offlineArchiveId||m.offlineSessionId;
+  return owner ? String(owner)===key : ids.has(String(m.id));
+ });
 }
 function activeSession(chat) {
  const cfg=config(chat);if(!cfg.active)return null;
@@ -273,16 +354,43 @@ function activeSession(chat) {
 }
 function migrateSessions(chat) {
  const cfg=config(chat),history=chat.history||[];
- // Earlier builds tagged online messages while the mode was active. Restore their online ownership.
+ // Explicit saved message IDs and the session boundaries can identify older floors
+ // whose offlineNarrative marker was missing. Never infer ownership by date alone.
+ const byId=new Map(history.map((message,index)=>[String(message.id),{message,index}]));
+ for(const session of cfg.sessions){
+  if(!Array.isArray(session.messageIds)||!(session.endedAt||session.status==='archived'))continue;
+  const start=byId.get(String(session.startAfterMessageId))?.index;
+  const end=byId.get(String(session.endMessageId))?.index;
+  for(const id of session.messageIds){
+   const found=byId.get(String(id));
+   if(!found)continue;
+   const {message,index}=found;
+   if(message.offlineNarrative!=null||!isNarrative(message))continue;
+   const owner=message.offlineArchiveId||message.offlineSessionId;
+   if(owner&&String(owner)!==String(session.id))continue;
+   const afterStart=start!=null?index>start:session.startedAt!=null&&Number(message.timestamp)>=session.startedAt;
+   const beforeEnd=end!=null?index<=end:session.endedAt!=null&&Number(message.timestamp)<=session.endedAt;
+   if(afterStart&&beforeEnd)message.offlineNarrative=true;
+  }
+ }
+ // Earlier builds also tagged online messages while the mode was active.
  for(const m of history)if(!m.offlineNarrative){delete m.offlineSessionId;delete m.offlineArchiveId;}
  for(const session of cfg.sessions){
-  const start=history.findIndex(m=>m.id===session.startAfterMessageId),end=history.findIndex(m=>m.id===session.endMessageId);
-  if(!session.messageIds){
-   const candidates=history.filter((m,index)=>isNarrative(m)&&(m.offlineNarrative||m.offlineSessionId)&&!m.offlineSessionId&&
-    (session.startAfterMessageId&&start>=0?index>start:Number(m.timestamp)>=session.startedAt)&&
-    (end>=0?index<=end:!session.endedAt||Number(m.timestamp)<=session.endedAt));
-   candidates.forEach(m=>{m.offlineSessionId=session.id;});
-   if(session.endedAt){session.messageIds=candidates.map(m=>m.id);session.status='archived';session.title ||= defaultSessionTitle(session);candidates.forEach(m=>m.offlineArchiveId=session.id);}
+  const start=byId.get(String(session.startAfterMessageId))?.index??-1,end=byId.get(String(session.endMessageId))?.index??-1;
+  const linked=sessionRows(chat,session);
+  if(session.endedAt||session.status==='archived'){
+   // Preserve existing IDs even when only part of the history has been loaded.
+   const known=Array.isArray(session.messageIds)?session.messageIds:[];
+   const candidates=known.length ? [] : history.filter((m,index)=>isNarrative(m)&&m.offlineNarrative&&!m.offlineSessionId&&!m.offlineArchiveId&&
+    (start>=0 ? index>start : session.startedAt!=null&&Number(m.timestamp)>=session.startedAt)&&
+    (end>=0 ? index<=end : session.endedAt!=null&&Number(m.timestamp)<=session.endedAt));
+   const rows=[...linked,...candidates];
+   if(rows.length)session.messageIds=[...new Map([...known,...rows.map(m=>m.id)].map(id=>[String(id),id])).values()];
+   session.status='archived';session.title ||= defaultSessionTitle(session);
+   rows.forEach(m=>{m.offlineSessionId=session.id;m.offlineArchiveId=session.id;});
+  }else if(!session.messageIds){
+   history.filter((m,index)=>isNarrative(m)&&m.offlineNarrative&&!m.offlineSessionId&&!m.offlineArchiveId&&
+    (start>=0 ? index>start : Number(m.timestamp)>=session.startedAt)).forEach(m=>{m.offlineSessionId=session.id;});
   }
  }
  if(cfg.active){const session=activeSession(chat);if(session)cfg.activeSessionId=session.id;}
@@ -368,7 +476,12 @@ function renderArchives() {
 }
 function showArchives() {closePanel();state.view='archives';state.archiveId=null;state.selecting=false;state.selected.clear();updateView();}
 function showCurrent() {state.focusEnd=null;closePanel();state.view='chat';state.archiveId=null;state.selecting=false;state.selected.clear();updateView();}
-function openArchive(id) {state.focusEnd=null;if(!config(character()).sessions.some(s=>s.id===id&&s.status==='archived'))throw Error('归档已不存在');closePanel();state.view='archive';state.archiveId=id;state.limit=60;state.selecting=false;state.selected.clear();updateView();}
+async function openArchive(id) {
+ const chat=character(),branch=chat.activeArchiveId,from=state.view;
+ await window.PhoneBackup?.hydrateChat(chat);
+ if(chat!==character()||branch!==chat.activeArchiveId||from!==state.view)return;
+ migrateSessions(chat);
+ state.focusEnd=null;if(!config(chat).sessions.some(s=>s.id===id&&s.status==='archived'))throw Error('归档已不存在');closePanel();state.view='archive';state.archiveId=id;state.limit=60;state.selecting=false;state.selected.clear();updateView();}
 function setSelection(active) {state.selecting=active;$('.of-composer').hidden=active;state.selected.clear();render(false);$('.of-selection-bar').hidden=!active;}
 function floorMenu(id) {
  const chat=character(),m=editableRows(chat,[id])[0];
@@ -639,7 +752,7 @@ function applyNightMode(){
 async function changeNightMode(event){
  const toggle=event.currentTarget,previous=db.offlineNightMode;
  toggle.disabled=true;
- try{await persistGlobalChange(()=>{db.offlineNightMode=toggle.checked;applyNightMode();},()=>{if(previous===undefined)delete db.offlineNightMode;else db.offlineNightMode=previous;applyNightMode();toggle.checked=previous===true;});}
+ try{await persistGlobalChange(()=>{db.offlineNightMode=toggle.checked;applyNightMode();refresh();},()=>{if(previous===undefined)delete db.offlineNightMode;else db.offlineNightMode=previous;applyNightMode();toggle.checked=previous===true;});}
  catch(error){fail(error);}finally{toggle.disabled=false;}
 }
 function presets(){db.offlineStylePresets ||= [];return db.offlineStylePresets;}
@@ -733,7 +846,7 @@ async function onClick(event) {
  case 'resume-offline':if(config(chat).active)showCurrent();else await open(true);break;
  case 'new-offline':if(config(chat).active)showCurrent();else await open(true);break;
  case 'list-back':if(config(chat).active)showCurrent();else{switchScreen('chat-room-screen');renderMessages();}break;
- case 'open-archive':openArchive(button.dataset.id);break;
+ case 'open-archive':await openArchive(button.dataset.id);break;
  case 'archive-info':{const archive=config(chat).sessions.find(s=>s.id===state.archiveId);panel('只读归档',`<p>${escape(archive?.title||'线下记录')}</p><p class="of-note">归档中的楼层只供查看，不能编辑。返回列表可删除整段归档。</p><button data-action="close-panel">返回查看</button>`);break;}
  case 'delete-archive':{state.deleteArchiveId=button.dataset.id;const archive=config(chat).sessions.find(s=>s.id===button.dataset.id);if(!archive)break;panel('删除归档',`<p class="of-confirm-text">删除「${escape(archive.title)}」？</p><p class="of-note">将删除这段归档及其中 ${sessionRows(chat,archive).length} 层原文，无法撤销。已存日记不受影响。</p><button class="of-primary of-danger" data-action="confirm-delete-archive">确认删除</button><button data-action="close-panel">取消</button>`);break;}
  case 'confirm-delete-archive':await deleteArchive(chat,state.deleteArchiveId);closePanel();showArchives();renderMessages();break;
@@ -824,7 +937,7 @@ async function jumpToMessage(chat,id){
  await open(false);if(state.chatId!==chat.id)throw Error('聊天已切换');
  const row=chat.history.find(m=>String(m.id)===String(id));if(!row)throw Error('线下记录已不存在');
  const session=config(chat).sessions.find(s=>s.status==='archived'&&(s.id===row.offlineSessionId||s.id===row.offlineArchiveId||sessionRows(chat,s).some(m=>m.id===row.id)));
- if(session)openArchive(session.id);else showCurrent();
+ if(session)await openArchive(session.id);else showCurrent();
  cancelAnimationFrame(state.frame);
  const rows=session?sessionRows(chat,session):displayRows(chat),index=rows.findIndex(m=>m.id===row.id);if(index<0)throw Error('该线下记录当前不可见');
  state.focusEnd=Math.min(rows.length,index+20);state.limit=40;render(false);
