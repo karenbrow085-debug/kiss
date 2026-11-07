@@ -3,6 +3,7 @@
     'use strict';
     const prefix = 'acte:';
     const maxFile = 32000000;
+    const maxPost = 64000;
     const kinds = {dialogue: '对话', prose: '长文', html: 'HTML'};
     const genres = ['平行世界', '日常番外', '悬疑推理', 'R18 成人向'];
     const uid = () => crypto.randomUUID?.() || Date.now() + '-' + Math.random().toString(36).slice(2);
@@ -23,7 +24,7 @@
     const name = c => c?.remarkName || c?.realName || '角色';
     const table = () => dexieDB.acte;
     async function list(group) {
-        return (await table().where('key').startsWith(prefix + group + ':').toArray()).map(row => row.value);
+        return (await table().where('key').startsWith(prefix + group + ':').toArray()).map(row => group === 'work' ? recoverWork(row.value) : row.value);
     }
     const recordKey = (group, id) => prefix + group + ':' + id;
     async function write(group, value) {
@@ -47,7 +48,10 @@
         return group === 'work' ? table().bulkDelete([recordKey(group,id),recordKey('notice',id)]) :
             table().delete(recordKey(group,id));
     }
-    const one = async (group, id) => (await table().get(prefix + group + ':' + id))?.value;
+    async function one(group, id) {
+        const value = (await table().get(recordKey(group,id)))?.value;
+        return group === 'work' && value ? recoverWork(value) : value;
+    }
     async function revise(id, update) {
         return dexieDB.transaction('rw', table(), async () => {
             const work = await one('work', id);
@@ -74,7 +78,8 @@
         return result;
     }
     function dialogueSegments(row) {
-        const text = string(row?.displayText ?? row?.text,16000);
+        const value = row?.displayText ?? row?.text;
+        const text = string(row?.role === 'assistant' ? visibleText(value) : value,maxPost);
         if (row.messageType === 'narration' || /<\/?[a-z][\w:-]*(?:\s|\/?>)/i.test(text)) return [{type:'narration',text}];
         if (row.messageType === 'speech') return [{type:'speech',text}];
         const quoted = /[“「『]([^”」』]+)[”」』]|"([^"\n]+)"/g;
@@ -109,22 +114,100 @@
         work.nextFloor = floor + 1;
         return work;
     }
+    function structuredReply(raw) {
+        return /^\s*(?:\[\s*\{?|\{\s*")/.test(raw) &&
+            (/^\s*\[\s*(?:\{|\s*$)/.test(raw) || /"(?:actorId|speaker|text|rows|messages|replies)"\s*:/.test(raw));
+    }
     function streamRows(value) {
-        const raw = String(value || '').replace(/^\s*```(?:json)?\s*/i,'');
-        try { const parsed=JSON.parse(raw); if (Array.isArray(parsed)) return parsed.filter(row=>row && typeof row.text === 'string'); } catch {}
-        if (!/^\s*[\[{]/.test(raw)) return raw.trim() ? [{text:raw}] : [];
-        const rows=[];
-        for (const key of raw.matchAll(/"text"\s*:\s*"/g)) {
-            if (raw[key.index-1] === '\\') continue;
-            const start=key.index+key[0].length;let end=start,escaped=false;
-            for (;end<raw.length;end++) {const ch=raw[end];if(!escaped && ch==='"')break;if(!escaped && ch==='\\')escaped=true;else escaped=false;}
-            let body=raw.slice(start,end),text='';
-            for(let trim=0;trim<Math.min(7,body.length+1);trim++){try{text=JSON.parse('"'+body.slice(0,body.length-trim)+'"');break;}catch{}}
-            const prefix=raw.slice(raw.lastIndexOf('{',key.index),key.index);
-            const read=name=>{const match=new RegExp('"'+name+'"\\s*:\\s*("(?:\\\\.|[^"\\\\])*"|[0-9]+)').exec(prefix);try{return match?JSON.parse(match[1]):'';}catch{return '';}};
-            rows.push({text,actorId:String(read('actorId')),speaker:read('speaker'),type:read('type')});
+        let raw = unwrap(value);
+        if (!raw) return [];
+        try {
+            let parsed = JSON.parse(raw);
+            if (typeof parsed === 'string' && structuredReply(parsed)) {
+                raw = parsed;
+                parsed = JSON.parse(raw);
+            }
+            if (Array.isArray(parsed) && !parsed.length) return [];
+            const rows = Array.isArray(parsed) ? parsed : parsed?.rows ?? parsed?.messages ?? parsed?.replies ?? [parsed];
+            if (Array.isArray(rows) && rows.some(row => typeof row?.text === 'string')) {
+                return rows.filter(row => typeof row?.text === 'string');
+            }
+        } catch {}
+        if (!structuredReply(raw)) return [{text:raw}];
+        // Recover the available text if the model stopped inside a JSON string.
+        const rows = [];
+        for (const field of raw.matchAll(/(?<!\\)"text"\s*:\s*"/g)) {
+            const start = field.index + field[0].length;
+            let end = start;
+            for (; end < raw.length; end++) {
+                if (raw[end] === '\\') { end++; continue; }
+                if (raw[end] === '"' && /^\s*(?:[,}\]]|$)/.test(raw.slice(end+1))) break;
+            }
+            const body = raw.slice(start,end).replace(/(?<!\\)"/g,'\\"').replace(/\r\n|\r|\n/g,'\\n').replace(/\t/g,'\\t');
+            let text = '';
+            for (let trim = 0; trim <= Math.min(6,body.length); trim++) {
+                try { text = JSON.parse('"' + body.slice(0,body.length-trim) + '"'); break; } catch {}
+            }
+            const prefix = raw.slice(raw.lastIndexOf('{',field.index),field.index);
+            const read = key => {
+                const match = new RegExp('"' + key + '"\\s*:\\s*("(?:\\\\.|[^"\\\\])*"|[0-9]+)').exec(prefix);
+                try { return match ? JSON.parse(match[1]) : ''; } catch { return ''; }
+            };
+            if (text.trim()) rows.push({text,actorId:String(read('actorId')),speaker:read('speaker'),type:read('type')});
         }
         return rows;
+    }
+    function compactContext(body) {
+        const messages = body.messages || body.contents;
+        if (!Array.isArray(messages)) return false;
+        const history = messages.filter(message => message.role !== 'system');
+        if (history.length > 7) {
+            const old = new Set(history.slice(0,-7));
+            messages.splice(0,messages.length,...messages.filter(message => !old.has(message)));
+            return true;
+        }
+        // Plain ACTE embeds its history as fields inside the final user message.
+        const last = history.at(-1);
+        const carrier = last?.parts?.at(-1) || last;
+        const field = carrier === last ? 'content' : 'text';
+        if (typeof carrier?.[field] !== 'string') return false;
+        try {
+            const context = JSON.parse(carrier[field]);
+            if (typeof context?.input !== 'string' || !Array.isArray(context.recent) ||
+                !Array.isArray(context.previous) || !(context.recent.length || context.previous.length)) return false;
+            context.previous = [];
+            context.recent = context.recent.slice(-4).map(row => ({...row,text:string(row.text,1200)}));
+            carrier[field] = JSON.stringify(context);
+            return true;
+        } catch { return false; }
+    }
+    function visibleText(value) {
+        const raw = String(value ?? '');
+        if (!structuredReply(unwrap(raw))) return raw;
+        return streamRows(raw).map(row => row.text).join('\n\n') || '这层回复的格式不完整，可重新生成。';
+    }
+    function recoverWork(work) {
+        for (const act of work.acts || []) for (const row of act.rows || []) {
+            if (row.role !== 'assistant') continue;
+            for (const key of ['text','displayText']) {
+                if (typeof row[key] !== 'string' || !structuredReply(unwrap(row[key]))) continue;
+                const text = streamRows(row[key]).map(part => part.text).join('\n\n');
+                if (text.trim()) row[key] = text;
+            }
+        }
+        return work;
+    }
+    async function removeFloor(workId, actId, rowId) {
+        return dexieDB.transaction('rw', table(), async () => {
+            const work = await revise(workId, work => {
+                const act = work.acts.find(item => item.id === actId);
+                const index = act?.rows.findIndex(row => row.id === rowId) ?? -1;
+                if (index < 0) throw Error('找不到这一层');
+                act.rows.splice(index,1);
+            });
+            await remove('recent',rowId);
+            return work;
+        });
     }
     function makeWork(data = {}, keepCast = false) {
         const actRows = Array.isArray(data.acts) ? data.acts : [];
@@ -132,9 +215,9 @@
             id: uid(), title: string(act?.title, 80) || '第 ' + (i + 1) + ' 幕',
             rows: (Array.isArray(act?.rows) ? act.rows : []).map(row => ({
                 id: uid(),floor:Number.isInteger(row?.floor) ? row.floor : undefined,reasoning:string(row?.reasoning,64000),generationSource:string(row?.generationSource,12),requestStats:row?.requestStats === true, role: row?.role === 'assistant' ? 'assistant' : 'user',
-                speaker: string(row?.speaker, 80), text: string(row?.text, 16000),
+                speaker: string(row?.speaker, 80), text: string(row?.text, maxPost),
                 at: Number(row?.at) || Date.now(), actorId:string(row?.actorId,100),
-                avatar:image(row?.avatar),comments:comments(row),liked:row?.liked === true,reposts:Math.max(0,Math.floor(Number(row?.reposts) || 0)),views:Math.max(0,Math.floor(Number(row?.views) || 0)),client:string(row?.client,40),location:string(row?.location,80),messageType:['speech','narration'].includes(row?.messageType) ? row.messageType : '',side:['left','right'].includes(row?.side) ? row.side : '', presetId:string(row?.presetId,120), displayText:typeof row?.displayText === 'string' ? string(row.displayText,16000) : undefined,
+                avatar:image(row?.avatar),comments:comments(row),liked:row?.liked === true,reposts:Math.max(0,Math.floor(Number(row?.reposts) || 0)),views:Math.max(0,Math.floor(Number(row?.views) || 0)),client:string(row?.client,40),location:string(row?.location,80),messageType:['speech','narration'].includes(row?.messageType) ? row.messageType : '',side:['left','right'].includes(row?.side) ? row.side : '', presetId:string(row?.presetId,120), displayText:typeof row?.displayText === 'string' ? string(row.displayText,maxPost) : undefined,
                 duration:Number.isFinite(row?.duration) ? row.duration : undefined,
                 tokens:Number.isFinite(row?.tokens) ? row.tokens : undefined, estimated:row?.estimated === true
             }))
@@ -158,7 +241,7 @@
             current:Math.max(0, Math.min(acts.length - 1, Number.isInteger(data.current) ? data.current : 0)),
             acts, updated:Date.now(), created:Date.now()
         };
-        return ensureFloors(work);
+        return ensureFloors(recoverWork(work));
     }
     function unwrap(value) {
         return String(value ?? '').trim().replace(/^\s*```(?:html|json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/, '');
@@ -333,20 +416,53 @@
             else { delete req.requestBody.max_completion_tokens; req.requestBody.max_tokens = settings.maxOutput; }
         }
         const started = performance.now();
-        const response = await fetch(req.endpoint,{method:'POST',headers:req.headers,
+        const send = () => fetch(req.endpoint,{method:'POST',headers:req.headers,
             body:JSON.stringify(window.KissBilingual?.prepareBody(req.requestBody) || req.requestBody),signal});
+        let response = await send();
+        if (!response.ok && [400,413,422].includes(response.status)) {
+            const detail = await response.text().catch(() => '');
+            signal?.throwIfAborted();
+            const body = JSON.parse(JSON.stringify(req.requestBody));
+            const gemini = config.provider === 'gemini';
+            const limits = gemini ? body.generationConfig || {} : body;
+            const tokenKey = gemini ? 'maxOutputTokens' : Object.hasOwn(body,'max_completion_tokens') ? 'max_completion_tokens' : 'max_tokens';
+            const contextLimit = /context[_ ]length|context window|input.{0,25}(?:too long|token limit)|prompt.{0,25}too long|maximum context/i.test(detail) || response.status === 413;
+            const outputLimit = /max[_ ]?(?:completion[_ ]?|output[_ ]?)?tokens|output token limit/i.test(detail);
+            const unsupported = /unsupported|not supported|unrecognized|unknown parameter/i.test(detail);
+            let retry = false;
+            if (!gemini && outputLimit && unsupported && tokenKey === 'max_tokens' && limits[tokenKey] != null) {
+                limits.max_completion_tokens = limits[tokenKey];
+                delete limits.max_tokens;
+                retry = true;
+            } else if (contextLimit || outputLimit && !unsupported) {
+                const current = Number(limits[tokenKey]);
+                if (current > 1 || !current && outputLimit) {
+                    limits[tokenKey] = current > 1 ? Math.min(4096,Math.max(1,Math.floor(current / 2))) : 2048;
+                    retry = true;
+                }
+                if (contextLimit && compactContext(body)) retry = true;
+            }
+            if (retry) {
+                req.requestBody = body;
+                onUpdate?.({retrying:true});
+                response = await send();
+            }
+            if (!response.ok && (contextLimit || outputLimit)) {
+                throw Error('模型拒绝了当前字数或上下文长度。可在生成设置调低最大输出，或缩短本轮要求后重试。');
+            }
+        }
         if (!response.ok) throw Error('API 请求失败（HTTP ' + response.status + '）');
         const showReasoning = settings.mode === 'tavern' || settings.mode === 'cot' && settings.debugMode === true;
         const progress = output => {
             if (typeof onUpdate !== 'function') return;
             const parsed=offline.split(output.full);
-            onUpdate({text:unwrap(parsed.text),reasoning:showReasoning ? [output.reasoning,parsed.reasoning].filter(Boolean).join('\n\n') : '',usage:output.usage,duration:(performance.now()-started)/1000,showReasoning,stream:req.stream});
+            onUpdate({retrying:false,text:unwrap(parsed.text),reasoning:showReasoning ? [output.reasoning,parsed.reasoning].filter(Boolean).join('\n\n') : '',usage:output.usage,duration:(performance.now()-started)/1000,showReasoning,stream:req.stream});
         };
         const output = await offline.readResponse(response,config.provider,progress,signal);
         signal?.throwIfAborted();
         const parsed=offline.split(output.full),text=unwrap(parsed.text);
         if (!text?.trim()) throw Error('模型返回了空内容');
-        return withStats ? {text,reasoning:showReasoning ? [output.reasoning,parsed.reasoning].filter(Boolean).join('\n\n') : '',showReasoning,stream:req.stream,usage:output.usage,duration:(performance.now()-started)/1000,presetId:req.presetId,actor:chat.realName,user:chat.myName} : text;
+        return withStats ? {text,truncated:/^(?:length|max_tokens)$/i.test(output.finishReason || ''),reasoning:showReasoning ? [output.reasoning,parsed.reasoning].filter(Boolean).join('\n\n') : '',showReasoning,stream:req.stream,usage:output.usage,duration:(performance.now()-started)/1000,presetId:req.presetId,actor:chat.realName,user:chat.myName} : text;
     }
     function castContext(work) {
         const roles = work.cast.map(row => {
@@ -372,5 +488,5 @@
         {title:'潮汐备忘录',kind:'prose',genre:genres[1],art:3,synopsis:'沿着潮水退去的地方，把没来得及说的话写在纸上。第二天，海边多了一封回信。'},
         {title:'双生台',kind:'dialogue',genre:genres[0],art:5,synopsis:'一份过期的节目单上，写着两个人完全相同的名字。演出即将开始。'}
     ];
-    window.ActeData = {ensureFloors,streamRows,sourceDocument,comments,dialogueSegments,dialogueSide,maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
+    window.ActeData = {ensureFloors,streamRows,visibleText,removeFloor,maxPost,sourceDocument,comments,dialogueSegments,dialogueSide,maxFile,validProgress,ideas,readFile,kinds,genres,uid,esc,image,characters,actors,setNpcs,character,name,list,one,write,remove,revise,makeWork,preview,portable,readHtml,exportHtml,ask,castContext,onlineContext};
 })();

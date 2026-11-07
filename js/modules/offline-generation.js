@@ -9,6 +9,9 @@ function split(raw){
 }
 function consume(data,provider,target){
  if(data.error)throw Error(data.error.message||'API error');
+ const finishReason=provider==='gemini' ? data.candidates?.[0]?.finishReason :
+  data.choices?.find(choice=>choice.index===undefined||choice.index===0)?.finish_reason;
+ if(finishReason)target.finishReason=finishReason;
  if(data.usage)target.usage=data.usage.completion_tokens;
  if(data.usageMetadata)target.usage=data.usageMetadata.candidatesTokenCount;
  if(provider==='gemini')for(const part of data.candidates?.[0]?.content?.parts||[]){if(part.thought)target.reasoning+=part.text||'';else target.full+=part.text||'';}

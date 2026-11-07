@@ -1027,3 +1027,33 @@ body:is(.dark-mode,.night-mode) .acte-chat-card small,#kiss-acte[data-theme=nigh
 #kiss-acte .ac-hub-top .ac-icon { width:30px; min-width:30px; padding:0; }
 #kiss-acte .ac-hub-leading .ac-icon { width:25px; min-width:25px; }
 #kiss-acte .ac-hub-top > div:last-child { gap:2px; }
+
+#kiss-acte .ac-generating {
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin:0 0 6px;
+    padding:7px 10px;
+    border:1px solid #ef8a4d55;
+    border-radius:10px;
+    background:#f5833d14;
+    color:#a6410b;
+    font-size:13px;
+    font-weight:650;
+}
+#kiss-acte[data-theme=night] .ac-generating { color:#ffb480; }
+#kiss-acte .ac-generating-dot {
+    width:8px;
+    height:8px;
+    flex:0 0 8px;
+    border-radius:50%;
+    background:#f78338;
+    animation:ac-generating-pulse 1.2s ease-in-out infinite;
+}
+@keyframes ac-generating-pulse {
+    50% { box-shadow:0 0 0 5px #f7833829; opacity:.65; }
+}
+@media (prefers-reduced-motion:reduce) {
+    #kiss-acte .ac-generating-dot { animation:none; }
+}
+#kiss-acte .ac-live-container .ac-post-text { white-space:pre-wrap; }

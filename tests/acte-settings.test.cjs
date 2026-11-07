@@ -154,3 +154,45 @@ test('aborting the shared stream reader cancels the body and rejects the unfinis
     const reading=box.window.KissOfflineGeneration.readResponse(response,'openai',null,controller.signal);controller.abort();
     await assert.rejects(reading,{name:'AbortError'});assert.equal(cancelled,true);
 });
+
+test('old prose floors and incomplete model envelopes recover readable text and keep rich tags',()=>{
+    const {api}=fixture();
+    const broken='[{"actorId":"a","speaker":"甲","text":"（卷一）\\n\\n贵州的山峦\n<content>正文';
+    const work=api.makeWork({kind:'prose',acts:[{rows:[{role:'assistant',text:broken}]}]});
+    assert.equal(work.acts[0].rows[0].text,'（卷一）\n\n贵州的山峦\n<content>正文');
+    assert.equal(api.streamRows('```json\n{"replies":[{"actorId":"b","text":"<branches>走吧</branches>"}]}\n```')[0].text,'<branches>走吧</branches>');
+    assert.equal(api.streamRows(JSON.stringify(JSON.stringify([{actorId:'a',text:'两次编码'}])))[0].text,'两次编码');
+    assert.equal(api.visibleText('[旁白] 他回过头。'),'[旁白] 他回过头。');
+});
+
+test('an explicit output limit rejection retries once without changing the saved settings',async()=>{
+    const {api,box,calls}=fixture();
+    const settings={mode:'plain',maxOutput:32000};
+    box.fetch=async(_url,args)=>{
+        calls.push(JSON.parse(args.body));
+        return calls.length === 1 ? new Response('{"error":{"message":"max_tokens exceeds the maximum output token limit"}}',{status:400}) : new Response('{}');
+    };
+    const frames=[];
+    await api.ask([{role:'user',content:'继续'}],settings,undefined,[],'normal',true,frame=>frames.push(frame));
+    assert.deepEqual(calls.map(body=>body.max_tokens),[32000,4096]);
+    assert.equal(settings.maxOutput,32000);
+    assert.equal(frames[0].retrying,true);
+});
+
+test('context limit retry trims embedded history but keeps the latest turn and system prompt',async()=>{
+    const {api,box,calls}=fixture();
+    const context={input:'继续写我的最新要求',revision:'保持角色',previous:[{text:'旧幕'}],recent:Array.from({length:10},()=>({text:'前文'.repeat(1000)}))};
+    const messages=[{role:'system',content:'系统设定'},{role:'user',content:JSON.stringify(context)}];
+    box.fetch=async(_url,args)=>{
+        calls.push(JSON.parse(args.body));
+        return calls.length === 1 ? new Response('{"error":{"code":"context_length_exceeded"}}',{status:400}) : new Response('{}');
+    };
+    await api.ask(messages);
+    const retried=JSON.parse(calls[1].messages.at(-1).content);
+    assert.equal(retried.input,context.input);
+    assert.equal(retried.revision,context.revision);
+    assert.equal(retried.recent.length,4);
+    assert.equal(retried.previous.length,0);
+    assert.equal(calls[1].messages[0].content,'系统设定');
+    assert.equal(messages[1].content,JSON.stringify(context));
+});
