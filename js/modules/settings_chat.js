@@ -1,5 +1,16 @@
 // --- 聊天设置与管理逻辑 ---
 
+function retainOfflineHistory(chat) {
+    // Old archives may reference a message by ID even if its offline flags are missing.
+    const archivedIds = new Set();
+    for (const session of chat.offline?.sessions || []) {
+        if (!Array.isArray(session.messageIds)) continue;
+        for (const id of session.messageIds) archivedIds.add(String(id));
+    }
+    return (chat.history || []).filter(message =>
+        isOfflineChatRecord(message) || archivedIds.has(String(message.id)));
+}
+
 function setupChatSettings() {
     if (typeof injectChatSettingsHtml === 'function') {
         injectChatSettingsHtml();
@@ -167,22 +178,27 @@ function setupChatSettings() {
         });
     }
     
-    document.getElementById('clear-chat-history-btn').addEventListener('click', async () => {
+    const clearHistoryButton = document.getElementById('clear-chat-history-btn');
+    clearHistoryButton.textContent = '清空当前 404 聊天记录';
+    clearHistoryButton.addEventListener('click', async () => {
         const character = db.characters.find(c => c.id === currentChatId);
-        if (!character) return;
-        if (confirm(`你确定要清空与“${character.remarkName}”的所有聊天记录吗？这个操作是不可恢复的！`)) {
-            character.history = [];
-            character.status = '在线'; 
-            await saveData();
-            renderMessages(false, true);
-            renderChatList();
-            if (currentChatId === character.id) {
-                document.getElementById('chat-room-status-text').textContent = '在线';
+        if (currentChatType !== 'private' || !character) return;
+        if (!confirm(`清空与“${character.remarkName || character.realName}”的当前 404 聊天记录？线下会话和归档会保留。此操作无法撤销。`)) return;
+        await withChatArchiveOperation(async chat => {
+            if (chat !== character) throw Error('聊天已切换，请重新操作');
+            chat.history = retainOfflineHistory(chat);
+            chat.status = '在线';
+            await persistChatArchives(chat);
+            if (currentChatType === 'private' && currentChatId === chat.id) {
+                renderMessages(false, true);
+                const status = document.getElementById('chat-room-status-text');
+                if (status) status.textContent = '在线';
             }
-            showToast('聊天记录已清空');
-        }
+            renderChatList();
+            showToast('当前 404 聊天记录已清空，线下记录已保留');
+        });
     });
-    
+
     document.getElementById('link-world-book-btn').addEventListener('click', () => {
         const character = db.characters.find(c => c.id === currentChatId);
         if (!character) return;
