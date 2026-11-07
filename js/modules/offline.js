@@ -70,10 +70,19 @@ function narrativeLayout(text,id){
 }
 function richNarrativeHTML(text,id){return narrativeLayout(text,id).html;}
 const inlineFrames=new Map();
-function clearInlineFrames(){for(const cleanup of inlineFrames.values())cleanup();inlineFrames.clear();}
+function clearInlineFrames(){
+ for(const [frame,cleanup] of inlineFrames){
+  // Cleanup empties srcdoc. Rebuild this floor when returning from Archives.
+  const item=frame.closest('.of-message');
+  if(item)item._ofSignature=null;
+  cleanup();
+ }
+ inlineFrames.clear();
+}
 function mountNarrativeFrames(item,layout){
  for(const detail of item.querySelectorAll('details[data-section-key]'))if(state.sectionOpen?.has(detail.dataset.sectionKey))detail.open=true;
  Promise.resolve().then(()=>{if(!item.isConnected)return;
+  if(state.view==='archives'){if(layout.frames.length)item._ofSignature=null;return;}
   for(const box of item.querySelectorAll('[data-inline-html]')){const data=layout.frames[Number(box.dataset.inlineHtml)],frame=box.querySelector('iframe');if(!data||!frame)continue;
    let mounted=false,isFloating=false,lastSize=null,visible=!window.IntersectionObserver||/position\s*:\s*fixed/i.test(data.text),observer=null;
    const resizeFloating=()=>{if(!isFloating||!frame.isConnected)return;const bounds=state.host.getBoundingClientRect();Object.assign(frame.style,{position:'fixed',left:bounds.left+'px',top:bounds.top+'px',width:bounds.width+'px',height:bounds.height+'px',zIndex:'4',maxWidth:'none'});};
