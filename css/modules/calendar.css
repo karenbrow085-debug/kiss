@@ -189,3 +189,84 @@
 #kiss-daybook[data-page=editor] .dk-primary{margin-top:15px}
 
 #kiss-daybook:focus{outline:none}
+
+/* Match the reference's list hierarchy, local rails and form placement. */
+#kiss-daybook .dk-schedule-group{margin:0 0 20px}
+#kiss-daybook .dk-schedule-date{display:flex;align-items:baseline;gap:16px;margin:0 0 9px 5px}
+#kiss-daybook .dk-schedule-date strong{font-size:18px;letter-spacing:-.5px;line-height:1.4}
+#kiss-daybook .dk-schedule-date small{font-size:11px;color:var(--dk-muted)}
+#kiss-daybook .dk-schedule-rail{position:relative;margin-left:6px;padding-left:23px}
+#kiss-daybook .dk-schedule-rail:before{content:"";position:absolute;left:4px;top:8px;bottom:10px;width:1px;background:var(--dk-line)}
+#kiss-daybook .dk-schedule-rail .dk-entry{position:relative;min-height:57px;padding:8px 0;gap:13px}
+#kiss-daybook .dk-schedule-rail .dk-entry:before{content:"";position:absolute;left:-22px;top:25px;width:7px;height:7px;background:#a4a4a9;border-radius:50%;box-shadow:0 0 0 2px var(--dk-bg)}
+#kiss-daybook .dk-schedule-rail .dk-avatar-small{width:38px;height:38px}
+#kiss-daybook .dk-schedule-rail .dk-mini-pair{min-width:57px}
+#kiss-daybook .dk-schedule-rail .dk-mini-pair .dk-avatar{width:35px;height:35px}
+#kiss-daybook .dk-schedule-rail .dk-entry-copy>small:first-of-type{display:none}
+#kiss-daybook .dk-task{align-items:flex-start;min-height:83px;padding:17px 3px;gap:12px}
+#kiss-daybook .dk-task>.dk-avatar,#kiss-daybook .dk-task>.dk-mini-pair{margin-top:5px}
+#kiss-daybook .dk-task>.dk-avatar-small{width:37px;height:37px}
+#kiss-daybook .dk-task .dk-entry-copy{padding:0}
+#kiss-daybook .dk-task .dk-check{min-width:21px;min-height:28px}
+#kiss-daybook .dk-row-annotation{border-left:1px solid var(--dk-muted);padding-left:8px;margin-top:7px!important}
+#kiss-daybook .dk-count{padding:17px 13px;border:0;border-radius:18px;margin:5px 0 17px}
+#kiss-daybook .dk-count strong{font-size:29px;font-weight:650}
+#kiss-daybook .dk-count strong+strong{border-left:1px solid var(--dk-line)}
+#kiss-daybook .dk-footer nav button{position:relative;isolation:isolate}
+#kiss-daybook .dk-footer nav button.selected:before{content:"";position:absolute;width:32px;height:32px;border-radius:50%;background:var(--dk-ink);z-index:-1;top:50%;left:50%;transform:translate(-50%,-50%)}
+#kiss-daybook .dk-footer nav button.selected svg{width:19px;height:19px;stroke:var(--dk-inverse);fill:none;stroke-width:1.7}
+#kiss-daybook .dk-week button{position:relative;padding:6px 0;min-height:55px}
+#kiss-daybook .dk-week button i{display:block;position:absolute;bottom:3px;left:calc(50% - 2px);height:4px;width:4px;border-radius:50%;background:var(--dk-muted)}
+#kiss-daybook .dk-week button.selected i,#kiss-daybook .dk-date.selected i{background:var(--dk-inverse)}
+#kiss-daybook .dk-form-extra{font-size:10px;color:var(--dk-muted);margin:1px 0 3px}
+#kiss-daybook .dk-form-extra summary{padding:5px 0;cursor:pointer;list-style:none;text-align:right}
+#kiss-daybook .dk-form-extra summary:after{content:" +"}
+#kiss-daybook .dk-form-extra[open] summary:after{content:" −"}
+#kiss-daybook[data-page=editor] .dk-kind-tabs{margin:0 0 10px 12px}
+#kiss-daybook[data-page=editor] .dk-form{border:0;border-radius:17px;padding:7px 17px 16px}
+#kiss-daybook[data-page=editor] .dk-form .dk-primary{margin-top:17px;height:41px}
+#kiss-daybook .dk-completion{justify-content:flex-start;gap:8px;flex-direction:row-reverse;width:max-content;margin:12px 0}
+#kiss-daybook .dk-completion>input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:17px;height:17px;border-radius:3px;margin:0;background:none}
+#kiss-daybook .dk-completion>input[type=checkbox]:before{content:none}
+#kiss-daybook[data-page=anniversaries] .dk-heading{flex-wrap:wrap;row-gap:15px}
+#kiss-daybook[data-page=anniversaries] .dk-heading>div:first-child{flex-basis:100%}
+#kiss-daybook[data-page=anniversaries] .dk-role-switch{margin-inline:auto}
+#kiss-daybook[data-page=anniversaries] .dk-person>small{display:none}
+#kiss-daybook[data-page=anniversaries] .dk-titlebar{padding-bottom:21px}
+#kiss-daybook[data-page=anniversaries] .dk-person>.dk-avatar{width:54px;height:54px}
+#kiss-daybook .dk-anniversary-hero{padding:23px 18px}
+#kiss-daybook .dk-anniversary-number{font-size:50px!important;font-weight:500;letter-spacing:-1px}
+#kiss-daybook .dk-anniversary-row{min-height:67px;padding:12px 5px}
+#kiss-daybook .dk-anniversary-row>.dk-avatar-small{width:39px;height:39px}
+#kiss-daybook .dk-primary{background:linear-gradient(115deg,var(--dk-ink),color-mix(in srgb,var(--dk-ink) 85%,var(--dk-muted)));box-shadow:0 3px 6px #0000000c}
+
+#kiss-daybook .dk-detail-actions{height:0;min-height:0;position:relative;margin:0}
+#kiss-daybook .dk-detail-actions>.dk-link{position:absolute;right:3px;bottom:16px;min-height:28px;font-size:10px}
+#kiss-daybook .dk-extra-details{margin:-15px 0 8px}
+#kiss-daybook .dk-section{justify-content:flex-start;gap:9px}
+#kiss-daybook .dk-section>span{font-size:10px;line-height:15px;border-radius:12px;padding:0 6px;border:1px solid var(--dk-line);margin:0}
+#kiss-daybook .dk-comment{padding:10px 0}
+#kiss-daybook .dk-comment>div>.dk-link{min-height:24px;padding:2px 0;font-size:10px}
+#kiss-daybook .dk-completion{margin:12px 0 0;padding:0;min-height:26px}
+#kiss-daybook .dk-composer{margin-top:10px}
+
+#kiss-daybook .dk-settings-group{margin-bottom:11px;border:0;border-radius:13px;padding:4px 16px 6px;box-shadow:0 2px 6px #2424300c}
+#kiss-daybook .dk-settings-group .dk-setting{min-height:34px;padding:7px 0;font-size:12px}
+#kiss-daybook .dk-setting-info small{font-size:10px;color:var(--dk-muted);text-align:right;max-width:65%;overflow-wrap:anywhere}
+#kiss-daybook .dk-settings-group .dk-field{padding:4px 0;font-size:12px}
+#kiss-daybook .dk-settings-group .dk-field select{font-size:11px;text-align:right;border:0;padding:3px 0;color:var(--dk-muted)}
+#kiss-daybook .dk-setting-help{font-size:10px;color:var(--dk-muted);margin-top:14px;line-height:1.7}
+#kiss-daybook .dk-setting-help summary{cursor:pointer;list-style:none}
+#kiss-daybook .dk-setting-help p{margin-top:9px}
+#kiss-daybook[data-page=settings] .dk-primary{border-radius:24px;margin:23px auto 3px;max-width:82%;display:block;min-height:37px;padding:8px}
+#kiss-daybook .dk-festival{padding:16px 22px 17px}
+#kiss-daybook .dk-festival-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--dk-muted)}
+#kiss-daybook .dk-festival-head>span{font-size:9px;padding:2px 8px;border-radius:20px;background:var(--dk-bg)}
+#kiss-daybook .dk-festival h2{font-weight:650;margin:5px 0 0;font-size:28px}
+#kiss-daybook .dk-festival-date{display:flex;gap:12px;align-items:center}
+#kiss-daybook .dk-festival-date strong{font-size:16px}
+#kiss-daybook .dk-festival-date>span{font-size:11px}
+#kiss-daybook .dk-festival-date>small{margin-left:auto;font-size:9px}
+#kiss-daybook .dk-festival>.dk-muted{font-size:10px;margin-top:13px}
+#kiss-daybook[data-page=holiday] .dk-setting{background:var(--dk-paper);border:1px solid var(--dk-line);border-radius:12px;min-height:38px;padding:7px 13px;margin:7px 0}
+#kiss-daybook .dk-next-term{background:var(--dk-paper);border-radius:12px;border:1px solid var(--dk-line);margin-top:13px;padding:0 12px}
