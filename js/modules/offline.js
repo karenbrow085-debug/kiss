@@ -933,7 +933,14 @@ async function onClick(event) {
   break;
  }
  case 'apply-css':await setConfig(chat,'css',$('#of-css').value);state.editorDraft=config(chat).css;closePanel();refresh();break;
- case 'reset-css':await setConfig(chat,'css','');state.editorDraft='';appearance();refresh();break;
+ case 'reset-css':{
+  const editor=$('#of-css');
+  await setConfig(chat,'css','');
+  if(editor?.isConnected)editor.value='';
+  state.editorDraft='';
+  refresh();
+  break;
+ }
  case 'save-preset':{state.editorDraft=$('#of-css').value;panel('保存预设',`<label class="of-label">预设名称<input id="of-preset-name" placeholder="输入预设名称" maxlength="100"></label><button data-action="confirm-preset" class="of-primary">保存预设</button>`);$('#of-preset-name').focus();break;}
  case 'confirm-preset':{const name=$('#of-preset-name').value.trim();if(!name)throw Error('请填写预设名称');const p={id:uid(),name,css:state.editorDraft||'',updatedAt:Date.now()};await persistGlobalChange(()=>presets().push(p),()=>{db.offlineStylePresets=presets().filter(item=>item!==p);});appearance();break;}
  case 'import-style':$('#of-style-file').click();break;
