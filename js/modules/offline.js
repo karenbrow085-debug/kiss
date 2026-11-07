@@ -766,22 +766,10 @@ async function changeNightMode(event){
 }
 function presets(){db.offlineStylePresets ||= [];return db.offlineStylePresets;}
 function cssEditor() {
- panel('CSS 编辑器',`<div class="of-settings-group of-theme-setting"><label class="of-inline-field" for="of-night-mode"><span>夜间模式</span><input id="of-night-mode" type="checkbox" class="of-switch" role="switch" aria-label="线下夜间模式" ${db.offlineNightMode===true?'checked':''}></label></div><div class="of-section-title"><span>页面样式</span><span><button data-action="style-presets">预设库</button><button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></span></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><div class="of-row"><button data-action="paste-css">粘贴 CSS</button><label class="of-label" style="margin:0">导入到编辑框<input id="of-css-file" type="file" accept=".css,.txt,text/css,text/plain"></label></div><textarea id="of-css" class="of-code" spellcheck="false" autocapitalize="off" autocorrect="off" style="-webkit-user-select:text;user-select:text;-webkit-touch-callout:default" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">存为预设</button><button data-action="reset-css" class="of-text-button">重置</button></div>`);
+ panel('CSS 编辑器',`<div class="of-settings-group of-theme-setting"><label class="of-inline-field" for="of-night-mode"><span>夜间模式</span><input id="of-night-mode" type="checkbox" class="of-switch" role="switch" aria-label="线下夜间模式" ${db.offlineNightMode===true?'checked':''}></label></div><div class="of-section-title"><span>页面样式</span><span><button data-action="style-presets">预设库</button><button data-action="expand-css" aria-label="放大编辑">${icon('expand')}</button></span></div><div class="of-find"><input id="of-find" placeholder="搜索代码关键词" aria-label="搜索代码关键词"><button data-action="find-code">下一处</button></div><textarea id="of-css" class="of-code" spellcheck="false" autocapitalize="off" autocorrect="off" style="-webkit-user-select:text;user-select:text;-webkit-touch-callout:default" aria-label="页面 CSS"></textarea><div class="of-row"><button data-action="apply-css" class="of-primary">应用</button><button data-action="save-preset">存为预设</button><button data-action="reset-css" class="of-text-button">重置</button></div>`);
  const editor=$('#of-css');
  editor.value=state.editorDraft??config(character()).css??'';
  for(const type of ['paste','contextmenu'])editor.addEventListener(type,event=>event.stopPropagation());
- $('#of-css-file').addEventListener('change',async event=>{
-  const input=event.currentTarget,file=input.files?.[0];
-  if(!file)return;
-  try{
-   if(file.size>5*1024*1024)throw Error('CSS 文件请控制在 5MB 内');
-   const css=await file.text();
-   if(editor.isConnected&&editor===$('#of-css')){
-    editor.value=css;
-    state.editorDraft=css;
-   }
-  }catch(error){fail(error);}finally{input.value='';}
- });
  $('#of-night-mode').addEventListener('change',changeNightMode);
 }
 function toolRow(action,label,mark,id='') {return `<button class="of-tool-row" data-action="${action}" ${id?'data-id="'+escape(id)+'"':''}><span class="of-tool-icon">${icon(mark)}</span><span>${label}</span></button>`;}
@@ -919,19 +907,6 @@ async function onClick(event) {
  case 'restore-one':{const m=chat.history.find(m=>m.id===button.dataset.id);if(m){await setHidden(chat,new Set([m.id]),false);refresh();if(!$('.of-panel').hidden){memoryEditor('hide');}}break;}
  case 'expand-css':$('.of-panel').classList.toggle('of-editor-full');button.setAttribute('aria-pressed',$('.of-panel').classList.contains('of-editor-full'));break;
  case 'find-code':{const editor=$('#of-css'),query=$('#of-find').value;if(!query)break;let pos=editor.value.toLowerCase().indexOf(query.toLowerCase(),editor.selectionEnd);if(pos<0)pos=editor.value.toLowerCase().indexOf(query.toLowerCase());if(pos<0){showToast('未找到关键词');break;}editor.focus();editor.setSelectionRange(pos,pos+query.length);editor.scrollTop=editor.value.slice(0,pos).split('\n').length*18-editor.clientHeight/2;break;}
- case 'paste-css':{
-  const editor=$('#of-css');
-  try{
-   const css=await navigator.clipboard.readText();
-   if(!css){showToast('剪贴板里没有文字');break;}
-   if(editor?.isConnected&&editor===$('#of-css')){
-    editor.setRangeText(css,editor.selectionStart,editor.selectionEnd,'end');
-    state.editorDraft=editor.value;
-    editor.focus();
-   }
-  }catch{editor?.focus();showToast('浏览器没有允许读取剪贴板，可长按输入框粘贴，或导入 CSS 文件');}
-  break;
- }
  case 'apply-css':await setConfig(chat,'css',$('#of-css').value);state.editorDraft=config(chat).css;closePanel();refresh();break;
  case 'reset-css':{
   const editor=$('#of-css');
