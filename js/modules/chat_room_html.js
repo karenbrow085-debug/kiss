@@ -90,6 +90,7 @@ const chatRoomHtml = `
             <div id="panel-function-area" class="panel-area">
                 <div class="expansion-grid">
                     <div class="expansion-item" id="offline-chat-menu-btn" role="button" tabindex="0" aria-label="线下"><div class="expansion-item-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="128" height="128"><path fill="currentColor" stroke="none" d="M10.5 1A1.5 1.5 0 0 1 12 2.5v4.258A4.5 4.5 0 0 1 9.5 15h-3A4.5 4.5 0 0 1 4 6.758V2.5a1.5 1.5 0 1 1 3 0V6h2V2.5A1.5 1.5 0 0 1 10.5 1m-3 11a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1zm-2-3a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0v-2a.5.5 0 0 0-.5-.5m5 0a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0v-2a.5.5 0 0 0-.5-.5"/></svg></div><span class="expansion-item-name">线下</span></div>
+                    <div class="expansion-item" id="committee-chat-menu-btn" role="button" tabindex="0" aria-label="居委会"><div class="expansion-item-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="128" height="128"><path fill="currentColor" stroke="none" d="M12 12c-.83 0-1.5.3-1.5.67c0 .67.67 1.33 1.5 1.33s1.5-.67 1.5-1.33c0-.37-.67-.67-1.5-.67"/><path fill="currentColor" stroke="none" d="M18 2c-1.19 0-2.3.53-3.05 1.43c-1.92-.57-3.99-.57-5.91 0C8.29 2.53 7.18 2 5.99 2c-2.21 0-4 1.79-4 4c0 .94.33 1.82.92 2.53c-.6 1.24-.92 2.6-.92 3.97c0 5.24 4.49 9.5 10 9.5s10-4.26 10-9.5c0-1.37-.32-2.73-.92-3.97c.59-.71.92-1.6.92-2.53c0-2.21-1.79-4-4-4ZM5.62 6.92C5.26 6.77 5 6.41 5 6c0-.55.45-1 1-1c.49 0 .88.36.96.82c-.49.32-.94.69-1.34 1.1M7 9c0-.55.45-1 1-1s1 .45 1 1s-.45 1-1 1s-1-.45-1-1m5 10c-2.21 0-4-2.51-4-5s1.79-4 4-4s4 1.51 4 4s-1.79 5-4 5m4-9c-.55 0-1-.45-1-1s.45-1 1-1s1 .45 1 1s-.45 1-1 1m2.38-3.08c-.4-.41-.85-.78-1.34-1.1c.09-.47.47-.82.96-.82a.997.997 0 0 1 .38 1.92"/></svg></div><span class="expansion-item-name">居委会</span></div>
                     <div class="expansion-item" id="acte-chat-menu-btn" role="button" tabindex="0" aria-label="剧幕"><div class="expansion-item-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="128" height="128"><path fill="currentColor" d="m19.65 6.5l-2.74-3.54l3.93-.78l.78 3.92zm-2.94.57l-2.74-3.53l-1.97.39l2.75 3.53zM4.16 5.5l-.98.19a1.995 1.995 0 0 0-1.57 2.35L2 10l4.9-.97zm7.65 2.55L9.07 4.5l-1.97.41l2.75 3.53zM4 20v-8h16v1.09c.72.12 1.39.37 2 .72V10H2v10a2 2 0 0 0 2 2h9.81c-.35-.61-.59-1.28-.72-2zm19-2.11l-2.89-.25L19 15l-1.13 2.64l-2.87.25l2.18 1.88l-.68 2.81l2.5-1.49l2.45 1.49l-.65-2.81z"/></svg></div><span class="expansion-item-name">剧幕</span></div>
                     <div class="expansion-item" id="regenerate-btn">
                         <div class="expansion-item-icon">
@@ -260,4 +261,5 @@ function injectChatRoomHtml() {
         container.innerHTML = chatRoomHtml;
     }
 }
+
 

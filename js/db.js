@@ -157,7 +157,7 @@ const DEFAULT_COT_PRESETS = [
 ];
 
 const globalSettingKeys = [
-    'daybook',
+    'daybook', 'committee',
     'offlineStylePresets', 'tavernPresets', 'tavernSettings',
     'apiSettings', 'wallpaper', 'homeScreenMode', 'fontUrl', 'customIcons',
     'apiPresets', 'bubbleCssPresets', 'bubblePresetFavorites', 'myPersonaPresets', 'globalCss',
@@ -837,3 +837,4 @@ const dataStorage = {
         };
     }
 };
+

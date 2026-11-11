@@ -202,6 +202,11 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
                 generation.check();
                 systemPrompt += generation.calendarContext.prompt;
             }
+            if (window.CommitteeData && !window.KissOffline?.isActive(chat)) {
+                generation.committeeContext = await CommitteeData.context(chat, {background:isBackground});
+                generation.check();
+                systemPrompt += generation.committeeContext.prompt;
+            }
             if (!window.KissOffline?.isActive(chat) && window.KissActe) {
                 systemPrompt += await window.KissActe.onlineContext(chat).catch(() => '');
                 generation.check();
@@ -737,6 +742,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
         }
     } finally {
         aiGenerationControl.finish(generation);
+        if (chatType === 'private' && window.CommitteeData) CommitteeData.flush().catch(error => console.warn('居委会通知待重试',error.message));
     }
 }
 
@@ -866,6 +872,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         }
 
         if(window.KissWorkFiles){const extracted=await KissWorkFiles.extractReplies(fullResponse,()=>generation?.check(),{request:generation?.workFileRequest,truncated:generation?.workFileTruncated});fullResponse=extracted.text;workReplies=extracted.files;}
+        if(targetChatType === 'private' && window.CommitteeData) fullResponse = await CommitteeData.consume(fullResponse,chat,generation?.committeeContext,()=>generation?.check());
         if(targetChatType === 'private' && window.KissCalendarData) {
             fullResponse = await window.KissCalendarData.consume(fullResponse,chat,generation?.calendarContext,()=>generation?.check());
         }
@@ -1455,5 +1462,6 @@ async function handleRegenerate() {
   if(chat.activeArchiveId===archiveId&&!replied){const ids=new Set(chat.history.map(m=>m.id));chat.history.push(...originalTail.filter(m=>m.id==null?!chat.history.includes(m):!ids.has(m.id)));await (window.PhoneBackup?.saveChat?PhoneBackup.saveChat(chat):saveData());if(chatId===currentChatId&&chatType===currentChatType)renderMessages(false,true);}
  }
 }
+
 
 

@@ -157,6 +157,8 @@ function loadMoreMessages() {
 
 function createMessageBubbleElement(message, isContinuous = false) {
     if (isOfflineChatRecord(message) || message.offlineHidden || isChatGapNotice(message)) return null;
+    if (message.type === 'committee-share' && !message.isWithdrawn) return window.KissCommittee?.renderCard(message) || null;
+    if (message.type === 'committee-notice' && !message.isWithdrawn) return window.KissCommittee?.renderNotice(message) || null;
     if (message.type === 'acte-share' && !message.isWithdrawn) return window.KissActe?.renderCard(message) || null;
     if (message.type === 'daybook-notice' && !message.isWithdrawn) return window.KissCalendarData?.renderNotice(message) || null;
     if (message.type === 'hearu-session-event') return null;
@@ -1594,4 +1596,5 @@ function addMessageBubble(message, targetChatId, targetChatType) {
         }
     }
 }
+
 
