@@ -130,3 +130,68 @@ test('cached local avatar can decode synchronously without losing its load event
  s.FileReader=class{readAsDataURL(){queueMicrotask(()=>this.onload({target:{result:'data:image/png;base64,AAAA'}}));}};
  vm.createContext(s);vm.runInContext(part,s);assert.equal(await s.compressImage({type:'image/png'}),'data:image/jpeg;base64,BBBB');
 });
+
+test('request-only mode rejects unsolicited daily actions and stale requests', async () => {
+ const f = fixture();
+ const character = f.db.characters[0];
+ await f.api.mutate(state => { state.settings.generationMode = 'request'; }, {account:'me'});
+ const reply = '<daybook_action>' + JSON.stringify({type:'daily',rows}) + '</daybook_action>';
+ const unsolicitedContext = await f.api.context(character);
+ assert.match(unsolicitedContext.prompt, /用户尚未点击生成按钮/);
+ await f.api.consume(reply, character, unsolicitedContext);
+ assert.equal((await f.api.read()).days.length, 0);
+ await f.api.mutate(state => { state.requests.a = {id:'expired',at:Date.parse('2026-11-06T06:40Z'),date:'2026-11-06',zone:'Asia/Tokyo'}; }, {account:'me'});
+ await f.api.consume(reply, character, {...await f.api.context(character),dailyRequestId:'expired'});
+ assert.equal((await f.api.read()).days.length, 0);
+});
+
+test('button generation consumes one request, blocks concurrent clicks and keeps the real-time gate', async () => {
+ const f = fixture();
+ const character = f.db.characters[0];
+ await f.api.mutate(state => { state.settings.generationMode = 'request'; }, {account:'me'});
+ let release;
+ const waiting = new Promise(resolve => { release = resolve; });
+ let started;
+ const entered = new Promise(resolve => { started = resolve; });
+ f.sandbox.getAiReply = async () => {
+  started();
+  await waiting;
+  const context = await f.api.context(character);
+  assert.match(context.prompt, /用户已点击/);
+  const reply = '<daybook_action>' + JSON.stringify({type:'daily',rows}) + '</daybook_action>';
+  await Promise.all([f.api.consume(reply,character,context),f.api.consume(reply,character,context)]);
+ };
+ const first = f.api.requestDaily(character);
+ await entered;
+ await assert.rejects(f.api.requestDaily(character), /已经在生成/);
+ release();
+ await first;
+ const state = await f.api.read();
+ assert.equal(state.days.length, 1);
+ assert.equal(state.requests.a, undefined);
+ await assert.rejects(f.api.requestDaily(character), /已经记录过/);
+ f.setNow(Date.parse('2026-11-07T06:59Z'));
+ await assert.rejects(f.api.requestDaily(character), /24小时/);
+});
+
+test('failed requested generation clears the request without consuming the daily gate', async () => {
+ const f = fixture();
+ const character = f.db.characters[0];
+ await f.api.mutate(state => { state.settings.generationMode = 'request'; }, {account:'me'});
+ f.sandbox.getAiReply = async () => { throw Error('network failure'); };
+ await assert.rejects(f.api.requestDaily(character), /network failure/);
+ const state = await f.api.read();
+ assert.equal(state.requests.a, undefined);
+ assert.equal(state.days.length, 0);
+ assert.equal(state.gates.a, undefined);
+});
+
+test('legacy calendar settings default to automatic generation and optional daily titles preserve actions', () => {
+ const state = C.state({settings:{theme:'night'}});
+ assert.equal(state.settings.generationMode,'auto');
+ assert.deepEqual(state.requests,{});
+ const record = C.daily(state,'a','Asia/Tokyo',[{...rows[0],title:'起床',end:'07:40'}],Date.parse('2026-11-06T07:00Z'));
+ assert.equal(record.rows[0].title,'起床');
+ assert.equal(record.rows[0].action,'起床洗漱');
+ assert.equal(record.rows[0].end,'07:40');
+});

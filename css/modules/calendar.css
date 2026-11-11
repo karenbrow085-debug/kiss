@@ -1,272 +1,363 @@
-#kiss-daybook{--dk-bg:#ededee;--dk-paper:#fafafa;--dk-ink:#19191b;--dk-muted:#747479;--dk-line:#d0d0d3;--dk-shadow:0 4px 10px #20202416;--dk-inverse:#fafafa;position:fixed;inset:0;z-index:12500;width:min(100%,580px);height:100%;height:100dvh;margin-inline:auto;display:flex;flex-direction:column;background:var(--dk-bg);color:var(--dk-ink);font:14px/1.55 var(--font-family,-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif);color-scheme:light;isolation:isolate;overflow:hidden;text-align:left;box-shadow:0 0 0 100vmax #0005}
-#kiss-daybook[data-theme=night]{--dk-bg:#1c1c1f;--dk-paper:#27272b;--dk-ink:#eeeef1;--dk-muted:#adadb5;--dk-line:#414148;--dk-shadow:0 4px 10px #0003;--dk-inverse:#1a1a1c;color-scheme:dark}
-#kiss-daybook *{box-sizing:border-box}#kiss-daybook [hidden]{display:none!important}#kiss-daybook :where(h1,h2,h3,p){margin:0}#kiss-daybook :where(button,input,textarea,select){font:inherit;color:inherit}#kiss-daybook button{appearance:none;-webkit-appearance:none;border:0;background:none;padding:0;cursor:pointer;text-align:left;border-radius:0;-webkit-tap-highlight-color:transparent}#kiss-daybook button:disabled{opacity:.5;cursor:wait}#kiss-daybook :where(input,textarea,select){width:100%;min-width:0;border:0;border-bottom:1px solid var(--dk-line);background:transparent;outline-offset:3px;padding:8px 0;border-radius:0;font-size:16px}#kiss-daybook :where(button,input,textarea,select):focus-visible{outline:2px solid var(--dk-muted);outline-offset:3px}#kiss-daybook textarea{resize:vertical}#kiss-daybook svg{width:22px;height:22px;display:block}#kiss-daybook input[type=checkbox]{width:19px;height:19px;flex:none;accent-color:var(--dk-ink)}
-#kiss-daybook .dk-top{display:flex;align-items:center;justify-content:space-between;padding:max(10px,env(safe-area-inset-top)) 18px 4px;min-height:54px;flex:none}#kiss-daybook .dk-top>span{font-size:13px;letter-spacing:.02em}#kiss-daybook .dk-icon{width:38px;min-width:38px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}#kiss-daybook .dk-main{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:12px 24px 24px;scrollbar-width:thin}#kiss-daybook .dk-heading{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:5px 0 23px}#kiss-daybook h1{font-size:26px;line-height:1.25;font-weight:650;letter-spacing:-.8px}#kiss-daybook .dk-heading p{font-size:11px;margin-top:3px}#kiss-daybook .dk-avatar{display:inline-flex;width:43px;height:43px;flex:none;border:2px solid var(--dk-paper);outline:1px solid var(--dk-line);border-radius:50%;background:var(--dk-bg);align-items:center;justify-content:center;overflow:hidden;vertical-align:middle}#kiss-daybook .dk-avatar img{width:100%;height:100%;object-fit:cover}#kiss-daybook .dk-avatar-small{width:32px;height:32px;border-radius:5px;box-shadow:0 2px 4px #0001}#kiss-daybook .dk-pair{display:flex;gap:6px}#kiss-daybook .dk-mini-pair{display:flex;min-width:42px}#kiss-daybook .dk-mini-pair .dk-avatar{width:27px;height:27px;border-radius:50%}#kiss-daybook .dk-mini-pair .dk-avatar+.dk-avatar{margin-left:-9px;position:relative}
-#kiss-daybook .dk-sheet{position:relative;background:var(--dk-paper);border:1px solid var(--dk-line);border-radius:15px;box-shadow:var(--dk-shadow)}#kiss-daybook .dk-calendar:before,#kiss-daybook .dk-calendar:after,#kiss-daybook .dk-week:before{content:"";position:absolute;top:100%;height:7px;background:var(--dk-paper);border:1px solid var(--dk-line);border-top:0;border-radius:0 0 14px 14px;left:5px;right:5px;z-index:-1}#kiss-daybook .dk-calendar:after{top:calc(100% + 6px);left:10px;right:10px;height:5px}#kiss-daybook .dk-calendar{padding:10px 10px 16px;isolation:isolate;margin-bottom:28px}#kiss-daybook .dk-month{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}#kiss-daybook .dk-month strong{font-size:17px;line-height:1.3;font-weight:600}#kiss-daybook .dk-month svg{width:16px;height:16px}#kiss-daybook .dk-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px 0;text-align:center}#kiss-daybook .dk-weekday{font-size:9px;color:var(--dk-muted);padding:8px 0}#kiss-daybook .dk-date{position:relative;text-align:center;height:43px;min-width:0;max-width:39px;width:100%;justify-self:center;display:flex;align-items:center;justify-content:center;flex-direction:column;border-radius:11px;font-size:15px;line-height:1.2}#kiss-daybook .dk-date small{height:11px;max-width:100%;white-space:nowrap;overflow:hidden;font-size:8px;color:var(--dk-muted);margin-top:3px}#kiss-daybook .dk-date i{position:absolute;height:3px;width:3px;bottom:2px;border-radius:50%;background:var(--dk-muted)}#kiss-daybook .dk-date.selected{background:var(--dk-ink);color:var(--dk-inverse)}#kiss-daybook .dk-date.selected small{color:inherit}#kiss-daybook .dk-estimate{border-bottom:1px dashed var(--dk-muted)}
-#kiss-daybook .dk-day-summary{display:flex;align-items:center;gap:12px;padding:10px 1px 17px;border-bottom:1px solid var(--dk-line);margin:12px 0 10px;font-size:12px}#kiss-daybook .dk-day-summary>strong{font-size:42px;letter-spacing:-2px;line-height:1.1;font-weight:650}#kiss-daybook .dk-day-summary small{display:block;font-size:11px;color:var(--dk-muted)}#kiss-daybook .dk-day-summary>div:last-child{margin-left:auto;border-left:1px solid var(--dk-line);padding-left:20px}#kiss-daybook .dk-selected-date{display:flex;justify-content:space-between;align-items:center}#kiss-daybook .dk-link{font-size:11px;color:var(--dk-muted);min-height:36px;padding:7px 1px}#kiss-daybook .dk-section{display:flex;justify-content:space-between;align-items:center;margin:24px 0 9px}#kiss-daybook h3{font-size:13px;font-weight:550}#kiss-daybook .dk-entry{display:flex;gap:11px;align-items:center;padding:13px 0;border-bottom:1px solid var(--dk-line)}#kiss-daybook .dk-entry>time{font-size:12px;width:37px;flex:none;font-variant-numeric:tabular-nums}#kiss-daybook .dk-entry-copy{flex:1;min-width:0;display:block;padding:3px 0}#kiss-daybook .dk-entry-copy strong{display:block;font-size:13px;font-weight:500;overflow-wrap:anywhere}#kiss-daybook .dk-entry-copy small{display:block;color:var(--dk-muted);font-size:10px;line-height:1.6;margin-top:4px;overflow-wrap:anywhere}#kiss-daybook .dk-tag{font-size:9px;color:var(--dk-muted);white-space:nowrap}#kiss-daybook .is-done .dk-entry-copy strong{color:var(--dk-muted);text-decoration:line-through}#kiss-daybook .dk-muted{font-size:11px;color:var(--dk-muted);line-height:1.7;margin-top:12px}#kiss-daybook .dk-empty{font-size:12px;line-height:1.9;color:var(--dk-muted);padding:26px 0}#kiss-daybook .dk-note{font-size:11px;line-height:1.8;border-top:1px solid var(--dk-line);margin-top:25px;padding-top:14px;color:var(--dk-muted)}
-#kiss-daybook .dk-footer{display:flex;gap:12px;padding:8px 20px 0;flex:none}#kiss-daybook .dk-footer nav{display:flex;flex:1;min-width:0;background:var(--dk-paper);border:1px solid var(--dk-line);border-radius:50px;padding:5px 8px;box-shadow:var(--dk-shadow)}#kiss-daybook .dk-footer nav button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:43px;color:var(--dk-muted);border-radius:30px}#kiss-daybook .dk-footer nav button.selected{color:var(--dk-ink);background:var(--dk-bg)}#kiss-daybook .dk-footer small{font-size:9px}#kiss-daybook .dk-add{border:1px solid var(--dk-line);background:var(--dk-paper);box-shadow:var(--dk-shadow);width:55px;height:55px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}#kiss-daybook .dk-role-bar{text-align:center;padding:2px 16px max(5px,env(safe-area-inset-bottom));flex:none}#kiss-daybook .dk-role-bar button{font-size:9px;min-height:26px;padding:3px 6px}#kiss-daybook .dk-tabs{display:flex;border-bottom:1px solid var(--dk-line);margin:5px 0 20px;gap:6px}#kiss-daybook .dk-tabs button{flex:1;text-align:center;min-height:43px;color:var(--dk-muted);font-size:12px;padding:10px 0;border-bottom:2px solid transparent}#kiss-daybook .dk-tabs button.selected{border-bottom-color:var(--dk-ink);color:var(--dk-ink)}#kiss-daybook .dk-count{display:flex;padding:16px;gap:10px;margin:20px 0}#kiss-daybook .dk-count strong{flex:1;text-align:center;font-size:29px;line-height:1.3}#kiss-daybook .dk-count strong+strong{border-left:1px solid var(--dk-line)}#kiss-daybook .dk-count small{font-size:11px;margin-left:9px;font-weight:400;color:var(--dk-muted)}#kiss-daybook .dk-task{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--dk-line)}#kiss-daybook .dk-check{min-width:28px;min-height:40px;display:flex;align-items:center}#kiss-daybook .dk-check svg{width:20px;height:20px}#kiss-daybook .dk-week{display:flex;isolation:isolate;padding:10px 6px;margin-bottom:24px}#kiss-daybook .dk-week button{flex:1;text-align:center;border-radius:8px;min-width:0;min-height:49px;font-size:14px;line-height:1.5}#kiss-daybook .dk-week small{font-size:8px;display:block;color:var(--dk-muted)}#kiss-daybook .dk-week button.selected{background:var(--dk-ink);color:var(--dk-inverse)}#kiss-daybook .dk-week button.selected small{color:inherit}
-#kiss-daybook .dk-field{display:flex;gap:10px;align-items:center;margin:0;padding:12px 0;border-bottom:1px solid var(--dk-line);font-size:12px}#kiss-daybook .dk-field>span{flex:0 0 61px;color:var(--dk-muted);font-size:11px}#kiss-daybook .dk-form{padding:6px 17px 14px}#kiss-daybook .dk-form .dk-field :is(input,select,textarea){font-size:14px}#kiss-daybook .dk-field :is(input,select,textarea){flex:1}#kiss-daybook .dk-form-pair{display:flex;gap:17px}#kiss-daybook .dk-form-pair .dk-field{flex:1;min-width:0;display:block}#kiss-daybook .dk-form-pair .dk-field>span{display:block}#kiss-daybook .dk-setting{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px 0;min-height:49px;border-bottom:1px solid var(--dk-line);font-size:12px}#kiss-daybook .dk-primary{width:100%;min-height:44px;margin-top:24px;border-radius:9px;background:var(--dk-ink);color:var(--dk-inverse);text-align:center;font-size:13px;padding:10px}#kiss-daybook .dk-danger{width:100%;min-height:44px;color:var(--dk-muted);text-align:center;font-size:12px;margin-top:20px}#kiss-daybook .dk-error{font-size:12px;line-height:1.7;white-space:pre-wrap;margin-top:10px}#kiss-daybook .dk-details{padding:10px 18px;margin:12px 0 23px}#kiss-daybook .dk-details>div{display:grid;grid-template-columns:50px 1fr;gap:16px;border-bottom:1px solid var(--dk-line);padding:14px 0;font-size:12px;line-height:1.7}#kiss-daybook .dk-details>div:last-child{border-bottom:0}#kiss-daybook .dk-details span{color:var(--dk-muted);font-size:11px}#kiss-daybook .dk-details p{overflow-wrap:anywhere;white-space:pre-wrap}#kiss-daybook .dk-detail-actions{text-align:right;margin-top:-15px}#kiss-daybook .dk-comment{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--dk-line)}#kiss-daybook .dk-comment>div{flex:1;min-width:0}#kiss-daybook .dk-comment p{font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}#kiss-daybook .dk-comment-head{display:flex;gap:8px;justify-content:space-between;align-items:baseline;margin-bottom:4px}#kiss-daybook .dk-comment-head strong{font-size:11px;font-weight:500}#kiss-daybook .dk-comment-head time{font-size:9px;color:var(--dk-muted)}#kiss-daybook .dk-comment-reply{margin-left:17px}#kiss-daybook .dk-composer{display:flex;border:1px solid var(--dk-line);border-radius:30px;align-items:center;padding:0 8px 0 15px;margin-top:18px;background:var(--dk-paper);gap:8px}#kiss-daybook .dk-composer input{border:0;flex:1;font-size:16px}#kiss-daybook .dk-composer input::placeholder{font-size:12px}#kiss-daybook .dk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-#kiss-daybook .dk-timeline{padding:25px 0 5px}#kiss-daybook .dk-timeline article{display:grid;grid-template-columns:43px 10px 1fr;gap:9px;position:relative;padding-bottom:24px}#kiss-daybook .dk-timeline article:not(:last-child):before{content:"";position:absolute;top:10px;bottom:-5px;left:56px;border-left:1px dashed var(--dk-line)}#kiss-daybook .dk-timeline-dot{width:7px;height:7px;background:var(--dk-ink);border-radius:50%;position:relative;margin-top:7px}#kiss-daybook .dk-timeline time{font-size:12px;font-variant-numeric:tabular-nums;margin-top:2px}#kiss-daybook .dk-timeline article small{display:block;font-size:11px;color:var(--dk-muted);line-height:1.8;margin-top:3px}#kiss-daybook .dk-moment-time strong{display:block;font-size:36px;line-height:1.4;font-weight:600}#kiss-daybook .dk-moment-time small{font-size:11px;color:var(--dk-muted)}#kiss-daybook .dk-festival{padding:28px 22px;margin:15px 0 30px}#kiss-daybook .dk-festival h2{font-size:29px;line-height:1.5;margin:15px 0 8px;font-weight:550}#kiss-daybook .dk-festival small{font-size:11px;color:var(--dk-muted)}#kiss-daybook .dk-anniversary{margin:16px 0;padding:20px}#kiss-daybook .dk-anniversary span{font-size:35px;display:block;margin:15px 0}#kiss-daybook .dk-anniversary span small{display:inline;font-size:12px;margin-left:6px}#kiss-daybook .dk-cycle-summary{padding:20px;margin-bottom:24px}#kiss-daybook .dk-cycle-summary strong{display:block;font-size:25px;line-height:1.6;margin:6px 0}#kiss-daybook .dk-cycle-summary :is(small,p){font-size:11px;color:var(--dk-muted)}#kiss-daybook .dk-share{display:flex;flex-wrap:wrap;gap:10px 17px;margin-top:13px}#kiss-daybook .dk-share label{display:flex;align-items:center;gap:8px;min-height:37px;font-size:12px}#kiss-daybook .dk-cycle-row{display:flex;gap:10px;padding:14px 0;align-items:center;border-bottom:1px solid var(--dk-line)}#kiss-daybook .dk-cycle-row>div{flex:1;min-width:0}#kiss-daybook .dk-cycle-row strong{font-size:11px;font-weight:500}#kiss-daybook .dk-cycle-row small{display:block;color:var(--dk-muted);font-size:10px;overflow-wrap:anywhere}#kiss-daybook .dk-notice{display:flex;gap:12px;padding:17px 0;border-bottom:1px solid var(--dk-line)}#kiss-daybook .dk-menu{position:absolute;right:18px;top:max(54px,calc(env(safe-area-inset-top) + 44px));z-index:4;background:var(--dk-paper);border:1px solid var(--dk-line);box-shadow:var(--dk-shadow);border-radius:12px;padding:7px 15px;min-width:135px;display:flex;flex-direction:column}#kiss-daybook .dk-menu button{font-size:12px;padding:11px 7px;min-height:43px}#kiss-daybook .dk-role-row{display:block;padding:17px 0;border-bottom:1px solid var(--dk-line);width:100%;font-size:14px}
-.daybook-chat-notice button{font:inherit;font-size:11px;line-height:1.7;appearance:none;-webkit-appearance:none;border:0;background:transparent;color:inherit;padding:7px 12px;border-bottom:1px solid currentColor;opacity:.8;max-width:100%;overflow-wrap:anywhere}
-@media(max-width:350px){#kiss-daybook .dk-main{padding-inline:17px}#kiss-daybook .dk-calendar{padding-inline:6px}#kiss-daybook .dk-date{font-size:14px}#kiss-daybook .dk-month strong{font-size:16px}#kiss-daybook .dk-entry{gap:8px}#kiss-daybook .dk-footer{padding-inline:16px;gap:9px}#kiss-daybook .dk-top{padding-inline:12px}}
-@media(min-width:500px){#kiss-daybook .dk-main{padding-inline:36px}#kiss-daybook .dk-date{height:51px;max-width:46px}#kiss-daybook .dk-grid{gap:8px 0}}
-@media(pointer:coarse){#kiss-daybook .dk-form .dk-field :is(input,select,textarea){font-size:16px}}
-/* Reference alignment: stable heading, compact month and a single avatar switch. */
-#kiss-daybook{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif!important;background:radial-gradient(ellipse at 90% 12%,var(--dk-haze,#dfe0e840),transparent 58%),var(--dk-bg);--dk-bg:#eeeef0;--dk-line:#d4d4d8}
-#kiss-daybook[data-theme=night]{--dk-bg:#1c1c20;--dk-line:#414148;--dk-haze:#38384435}
-#kiss-daybook :where(button,input,select,textarea,h1,h2,h3,p,strong,small,span,time,label){font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif!important}
-#kiss-daybook .dk-top{min-height:42px;padding: max(6px,env(safe-area-inset-top)) 16px 0}
-#kiss-daybook .dk-top>span{font-size:12px;font-weight:400}
-#kiss-daybook .dk-titlebar{flex:none;padding:9px 24px 15px;position:relative;z-index:2;overflow:visible}
-#kiss-daybook .dk-heading{margin:0;min-height:60px;align-items:center;gap:10px}
-#kiss-daybook .dk-heading>div:first-child{min-width:0;flex:1}
-#kiss-daybook .dk-heading h1{font-size:26px;line-height:1.2;letter-spacing:-.8px;white-space:normal;overflow-wrap:anywhere}
-#kiss-daybook .dk-heading p{font-size:11px;line-height:1.45;letter-spacing:.02em;margin-top:4px}
-#kiss-daybook .dk-role-switch{flex:none;display:flex;align-items:center;justify-content:center;padding:4px 0;min-height:48px;border-radius:10px}
-#kiss-daybook .dk-pair{gap:10px;align-items:start}
-#kiss-daybook .dk-person{display:flex;flex-direction:column;align-items:center;gap:5px;max-width:58px}
-#kiss-daybook .dk-person>small{font-size:10px;font-weight:400;line-height:1.2;max-width:58px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;color:var(--dk-ink)}
-#kiss-daybook .dk-avatar{width:44px;height:44px;outline:1px solid var(--dk-muted);border:3px solid var(--dk-paper)}
-#kiss-daybook .dk-avatar-small{width:30px;height:30px;border-width:2px;outline-color:var(--dk-line)}
-#kiss-daybook .dk-main{padding:0 24px 16px;scroll-padding-block:8px 18px}
-#kiss-daybook .dk-calendar{padding:8px 10px 12px;margin:0 0 24px;border-radius:17px;border-color:var(--dk-line);box-shadow:0 3px 7px #22222a0c}
-#kiss-daybook .dk-month{margin-bottom:5px}
-#kiss-daybook .dk-month .dk-icon{min-height:34px;height:34px;width:32px;min-width:32px}
-#kiss-daybook .dk-month strong{font-size:17px;font-weight:600;line-height:1.3}
-#kiss-daybook .dk-grid{gap:3px 0}
-#kiss-daybook .dk-weekday{padding:6px 0 7px;font-size:9px;line-height:1.3}
-#kiss-daybook .dk-date{height:35px;max-width:35px;font-size:14px;line-height:1.15;border-radius:10px}
-#kiss-daybook .dk-date small{height:10px;font-size:7px;line-height:10px;margin-top:2px}
-#kiss-daybook .dk-date i{bottom:1px}
-#kiss-daybook .dk-calendar:before{height:6px;left:5px;right:5px}
-#kiss-daybook .dk-calendar:after{top:calc(100% + 5px);height:5px;left:10px;right:10px}
-#kiss-daybook .dk-day-summary{margin:10px 0 4px;padding:7px 0 10px;border:0;gap:9px}
-#kiss-daybook .dk-day-summary>strong{font-size:39px;font-weight:650;letter-spacing:-1.8px}
-#kiss-daybook .dk-day-summary>div:last-child{border:0;padding-left:14px}
-#kiss-daybook .dk-day-summary>span{font-size:11px;line-height:1.6}
-#kiss-daybook .dk-day-summary>div:last-child>span{font-size:12px}
-#kiss-daybook .dk-selected-date{margin:0 0 4px}
-#kiss-daybook .dk-selected-date .dk-link{min-height:27px;padding:3px 0;font-size:10px}
-#kiss-daybook .dk-entry{border:0;padding:11px 0;gap:11px}
-#kiss-daybook .dk-entry .dk-tag{display:none}
-#kiss-daybook .dk-entry>time{width:40px;font-size:12px}
-#kiss-daybook .dk-entry-copy strong{font-size:13px;font-weight:500;line-height:1.5}
-#kiss-daybook .dk-entry-copy small{font-size:10px;margin-top:3px}
-#kiss-daybook .dk-entry-copy .dk-row-annotation{border-left:1px solid var(--dk-muted);padding-left:7px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-#kiss-daybook .dk-empty{padding:18px 0;font-size:12px}
-#kiss-daybook .dk-section{margin:18px 0 7px}
-#kiss-daybook .dk-note{border:0;margin-top:16px;padding-top:0}
-#kiss-daybook .dk-task,#kiss-daybook .dk-comment,#kiss-daybook .dk-notice,#kiss-daybook .dk-setting,#kiss-daybook .dk-cycle-row{border:0}
-#kiss-daybook .dk-task{padding:14px 0}
-#kiss-daybook .dk-details>div{border:0;padding:10px 0;gap:12px}
-#kiss-daybook .dk-details{padding:10px 17px;margin:7px 0 19px}
-#kiss-daybook .dk-field{border:0;padding:9px 0}
-#kiss-daybook .dk-form .dk-field :is(input,select,textarea){font-size:13px;padding:7px 0}
-#kiss-daybook .dk-setting{min-height:46px;padding:11px 0}
-#kiss-daybook .dk-form .dk-setting:last-child{border:0}
-#kiss-daybook .dk-form{padding:5px 16px 13px}
-#kiss-daybook .dk-footer{gap:11px;padding:7px 16px max(12px,env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--dk-bg) 40%)}
-#kiss-daybook .dk-footer nav{padding:4px 7px;border-color:var(--dk-line);box-shadow:0 4px 10px #17171c19}
-#kiss-daybook .dk-footer nav button{min-height:40px;gap:2px}
-#kiss-daybook .dk-footer small{font-size:8px;line-height:1.3}
-#kiss-daybook .dk-footer nav button.selected{background:transparent}
-#kiss-daybook .dk-footer nav button.selected svg{stroke-width:2.1;fill:currentColor;fill-opacity:.12}
-#kiss-daybook .dk-add{height:50px;width:50px}
-#kiss-daybook .dk-week{padding:8px 5px;margin-bottom:19px}
-#kiss-daybook .dk-week button{min-height:45px}
-#kiss-daybook .dk-tabs{margin:0 0 18px;border:0;gap:8px}
-#kiss-daybook .dk-tabs button{padding:8px 0;min-height:37px;font-size:12px}
-#kiss-daybook .dk-count{margin:8px 0 18px;padding:14px}
-#kiss-daybook .dk-count strong+strong{border:0}
-#kiss-daybook .dk-primary{margin-top:19px;min-height:43px}
-#kiss-daybook .dk-comment{padding:12px 0}
-#kiss-daybook .dk-composer{margin-top:15px}
-#kiss-daybook .dk-anniversary{margin:8px 0 20px;padding:24px 18px;text-align:center}
-#kiss-daybook .dk-anniversary .dk-entry-copy{width:100%;text-align:center}
-#kiss-daybook .dk-anniversary-number{display:block;font-size:44px!important;font-weight:600;margin:3px 0 11px!important;line-height:1.2}
-#kiss-daybook .dk-anniversary-number small{font-size:10px!important;display:inline!important;margin-left:7px!important;font-weight:400}
-#kiss-daybook .dk-anniversary-row{display:flex;align-items:center;gap:13px;padding:15px 0}
-#kiss-daybook .dk-anniversary-row>.dk-muted{margin:0;font-size:10px;white-space:nowrap}
-#kiss-daybook .dk-notice{padding:15px 0;position:relative}
-#kiss-daybook .dk-unread:before{content:"";position:absolute;left:-9px;top:26px;background:var(--dk-ink);border-radius:50%;width:4px;height:4px}
-#kiss-daybook .dk-role-overlay{position:absolute;inset:0;z-index:8;background:#0005;display:flex;align-items:flex-end;padding:18px 16px max(18px,env(safe-area-inset-bottom))}
-#kiss-daybook .dk-role-panel{width:100%;max-height:65%;overflow:auto;background:var(--dk-paper);border:1px solid var(--dk-line);border-radius:19px;padding:12px 18px 18px;box-shadow:0 8px 25px #0002}
-#kiss-daybook .dk-role-picker-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
-#kiss-daybook .dk-role-picker-head h2{font-size:16px;font-weight:550;line-height:1.5}
-#kiss-daybook .dk-role-row{display:flex;width:100%;align-items:center;gap:13px;border:0;padding:10px 0;min-height:60px}
-#kiss-daybook .dk-role-row>span:nth-child(2){flex:1;font-size:13px}
-#kiss-daybook .dk-role-row small{display:block;font-size:10px;color:var(--dk-muted);margin-top:3px}
-#kiss-daybook .dk-picked{font-size:16px}
-#kiss-daybook[data-page=day] .dk-entry>time{order:-1}
-#kiss-daybook[data-page=day] .dk-entry{position:relative;padding-left:0;gap:13px}
-#kiss-daybook[data-page=day] .dk-entry:before{content:"";height:5px;width:5px;border-radius:50%;background:var(--dk-muted);position:absolute;left:43px;top:26px}
-#kiss-daybook[data-page=day] .dk-entry .dk-avatar{margin-left:8px}
-#kiss-daybook .dk-timeline{padding-top:17px}
-#kiss-daybook .dk-timeline article{padding-bottom:20px}
-@media(max-width:350px){#kiss-daybook .dk-main,#kiss-daybook .dk-titlebar{padding-inline:18px}#kiss-daybook .dk-heading h1{font-size:23px}#kiss-daybook .dk-pair{gap:7px}#kiss-daybook .dk-person{max-width:47px}#kiss-daybook .dk-avatar{width:39px;height:39px}#kiss-daybook .dk-date{height:33px;max-width:32px}#kiss-daybook .dk-footer{padding-inline:13px;gap:9px}#kiss-daybook .dk-add{height:49px;width:49px}}
-@media(max-height:740px){#kiss-daybook .dk-titlebar{padding-top:3px;padding-bottom:11px}#kiss-daybook .dk-heading{min-height:53px}#kiss-daybook .dk-date{height:32px}#kiss-daybook .dk-calendar{margin-bottom:19px}#kiss-daybook .dk-day-summary{padding-bottom:6px}}
-#kiss-daybook .dk-next-term{display:flex;align-items:center;justify-content:space-between;margin-top:20px;font-size:11px;color:var(--dk-muted)}
-#kiss-daybook .dk-next-term button{display:flex;align-items:center;gap:18px;color:var(--dk-ink);font-size:12px}
-#kiss-daybook .dk-next-term small{font-size:10px;color:var(--dk-muted)}
-#kiss-daybook .dk-setting>input[type=checkbox]{appearance:none;-webkit-appearance:none;width:31px;height:18px;padding:0;border:0;border-radius:20px;position:relative;background:var(--dk-line);vertical-align:middle;transition:background .15s}
-#kiss-daybook .dk-setting>input[type=checkbox]:before{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--dk-paper);box-shadow:0 1px 2px #0002;transition:transform .15s}
-#kiss-daybook .dk-setting>input[type=checkbox]:checked{background:var(--dk-ink)}
-#kiss-daybook .dk-setting>input[type=checkbox]:checked:before{transform:translateX(13px);background:var(--dk-inverse)}
-#kiss-daybook .dk-kind-tabs{display:flex;gap:20px;min-width:0;padding:0;margin:4px 0 10px;border:0}
-#kiss-daybook .dk-kind-tabs label{position:relative;display:flex;align-items:center;min-height:36px;flex:1;justify-content:center;font-size:12px}
-#kiss-daybook .dk-kind-tabs input{position:absolute;opacity:0;width:100%;height:100%;inset:0;cursor:pointer;margin:0}
-#kiss-daybook .dk-kind-tabs span{padding:8px 2px;border-bottom:2px solid transparent;color:var(--dk-muted)}
-#kiss-daybook .dk-kind-tabs input:checked+span{color:var(--dk-ink);border-bottom-color:var(--dk-ink)}
-#kiss-daybook .dk-kind-tabs input:focus-visible+span{outline:2px solid var(--dk-muted);outline-offset:2px}
-#kiss-daybook .dk-owner-choice fieldset{display:flex;flex:1;justify-content:space-between;gap:5px;border:0;padding:0;margin:0;min-width:0}
-#kiss-daybook .dk-owner-choice label{display:flex;align-items:center;gap:4px;font-size:11px;min-height:37px}
-#kiss-daybook .dk-owner-choice input{width:12px;height:12px;margin:0;flex:none;padding:0;accent-color:var(--dk-ink);border:0}
-#kiss-daybook .dk-owner-choice .dk-avatar{width:20px;height:20px;border-radius:50%;border-width:1px}
-
-/* Three complete sheets: the lower silhouettes stay behind the front face. */
-#kiss-daybook .dk-main{padding-inline:16px}
-#kiss-daybook :is(.dk-calendar,.dk-week,.dk-festival,.dk-anniversary-hero,[data-paper-stack]){position:relative;isolation:isolate;overflow:visible;border:0;border-radius:20px;background:var(--dk-paper);box-shadow:0 1px 1px #20202618,0 5px 12px #2020260b;margin-bottom:30px}
-#kiss-daybook :is(.dk-calendar,.dk-week,.dk-festival,.dk-anniversary-hero,[data-paper-stack])::before,
-#kiss-daybook :is(.dk-calendar,.dk-week,.dk-festival,.dk-anniversary-hero,[data-paper-stack])::after{content:"";position:absolute;display:block;pointer-events:none;height:auto;top:7px;bottom:-7px;left:5px;right:5px;z-index:-1;border:0;border-radius:inherit;background:var(--dk-paper);box-shadow:0 1px 0 #9b9ba14a,0 3px 3px #24243014}
-#kiss-daybook :is(.dk-calendar,.dk-week,.dk-festival,.dk-anniversary-hero,[data-paper-stack])::after{top:14px;bottom:-14px;left:10px;right:10px;z-index:-2;box-shadow:0 1px 0 #9b9ba145,0 4px 5px #24243016}
-#kiss-daybook .dk-calendar{padding:12px 13px 17px}
-#kiss-daybook .dk-date{height:38px;max-width:38px}
-#kiss-daybook .dk-month{margin-bottom:9px}
-#kiss-daybook .dk-titlebar{padding-bottom:15px}
-#kiss-daybook .dk-person>.dk-avatar{width:50px;height:50px;box-shadow:0 1px 2px #0002}
-#kiss-daybook .dk-footer{gap:12px;padding:10px 16px max(16px,env(safe-area-inset-bottom))}
-#kiss-daybook .dk-footer nav{height:54px;padding:3px 9px;border:0;box-shadow:0 4px 10px #17171c20}
-#kiss-daybook .dk-footer nav button{height:48px;min-height:48px;flex-direction:row}
-#kiss-daybook .dk-footer small{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-#kiss-daybook .dk-footer nav svg{width:24px;height:24px}
-#kiss-daybook .dk-add{height:54px;width:54px;border:0}
-#kiss-daybook .dk-mini-pair{min-width:57px;align-items:center;isolation:isolate}
-#kiss-daybook .dk-mini-pair .dk-avatar{width:35px;height:35px;border-radius:6px;border:2px solid var(--dk-paper);outline:0;box-shadow:0 0 0 1px #aaa8,0 2px 4px #0002;position:relative;z-index:1}
-#kiss-daybook .dk-mini-pair .dk-avatar+.dk-avatar{margin-left:-12px;border-radius:50%;z-index:2}
-#kiss-daybook .dk-plan-people{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:0 8px}
-#kiss-daybook .dk-plan-people .dk-mini-pair .dk-avatar{width:49px;height:49px;border-radius:50%;border-width:3px}
-#kiss-daybook .dk-plan-people .dk-mini-pair .dk-avatar+.dk-avatar{margin-left:-12px}
-#kiss-daybook .dk-plan-people>small{font-size:11px;border:1px solid var(--dk-line);border-radius:20px;padding:1px 12px}
-#kiss-daybook .dk-details[data-paper-stack]{margin-bottom:33px}
-#kiss-daybook[data-theme=night] :is(.dk-calendar,.dk-week,.dk-festival,.dk-anniversary-hero,[data-paper-stack])::before,
-#kiss-daybook[data-theme=night] :is(.dk-calendar,.dk-week,.dk-festival,.dk-anniversary-hero,[data-paper-stack])::after{box-shadow:0 1px 0 #75758170,0 3px 5px #0004}
-@media(max-width:350px){#kiss-daybook .dk-main{padding-inline:13px}#kiss-daybook .dk-calendar{padding-inline:8px}#kiss-daybook .dk-person>.dk-avatar{width:43px;height:43px}}
-
-/* A separate wrapper lets the front face occlude both full-size lower sheets. */
-#kiss-daybook .dk-paper-stack{position:relative;isolation:isolate;border-radius:20px;margin:0 0 30px}
-#kiss-daybook .dk-paper-stack> :is(.dk-sheet,[data-paper-stack]){position:relative;z-index:1;margin:0!important;isolation:auto;background:var(--dk-paper);border-radius:inherit;box-shadow:0 1px 0 #9999a14a,0 3px 7px #2424300c}
-#kiss-daybook .dk-paper-stack> :is(.dk-sheet,[data-paper-stack])::before,
-#kiss-daybook .dk-paper-stack> :is(.dk-sheet,[data-paper-stack])::after{content:none!important}
-#kiss-daybook .dk-paper-stack::before,#kiss-daybook .dk-paper-stack::after{content:"";position:absolute;pointer-events:none;top:7px;bottom:-7px;left:5px;right:5px;border-radius:inherit;background:var(--dk-paper);box-shadow:0 1px 0 #9999a14a,0 3px 4px #24243016;z-index:0}
-#kiss-daybook .dk-paper-stack::after{top:14px;bottom:-14px;left:10px;right:10px;z-index:-1;box-shadow:0 1px 0 #9999a14a,0 5px 7px #24243016}
-#kiss-daybook[data-theme=night] .dk-paper-stack::before,#kiss-daybook[data-theme=night] .dk-paper-stack::after{box-shadow:0 1px 0 #75758170,0 3px 5px #0004}
-#kiss-daybook .dk-extra-details{margin:-8px 0 14px;color:var(--dk-muted);font-size:10px}
-#kiss-daybook .dk-extra-details summary{cursor:pointer;list-style:none;text-align:right;padding:5px 0}
-#kiss-daybook .dk-extra-details p{margin-top:5px}
-#kiss-daybook .dk-daily-date .dk-field{justify-content:flex-end;padding:0 0 10px}
-#kiss-daybook .dk-daily-date .dk-field>span{display:none}
-#kiss-daybook .dk-daily-date input{max-width:135px;border:0;font-size:11px;padding:0}
-#kiss-daybook .dk-timeline article{grid-template-columns:10px 52px 1fr;gap:10px;padding-bottom:24px}
-#kiss-daybook .dk-timeline article>time{grid-column:2;grid-row:1;font-weight:600}
-#kiss-daybook .dk-timeline-dot{grid-column:1;grid-row:1;width:8px;height:8px}
-#kiss-daybook .dk-timeline article>div{grid-column:3;grid-row:1}
-#kiss-daybook .dk-timeline article:not(:last-child):before{left:3px;top:12px;bottom:-8px;border-left:1px solid var(--dk-line)}
-#kiss-daybook .dk-moment-meta{display:flex;align-items:center;gap:13px;margin:10px 5px 26px}
-#kiss-daybook .dk-moment-meta>.dk-avatar{width:52px;height:52px;border-radius:5px}
-#kiss-daybook .dk-moment-meta>strong{font-size:14px;flex:1}
-#kiss-daybook .dk-moment-time{padding-left:20px;border-left:1px solid var(--dk-line)}
-#kiss-daybook .dk-moment-time strong{font-size:26px;line-height:1.25}
-#kiss-daybook .dk-moment-time small{font-size:10px}
-#kiss-daybook .dk-moment-action{font-size:18px;margin:0 0 8px;padding-left:10px;border-left:3px solid var(--dk-ink)}
-#kiss-daybook[data-page=moment] .dk-details{padding:0 7px}
-#kiss-daybook[data-page=editor] .dk-kind-tabs{margin:0 0 7px;gap:22px;justify-content:flex-start}
-#kiss-daybook[data-page=editor] .dk-kind-tabs label{flex:0 1 auto;padding:0 10px}
-#kiss-daybook[data-page=editor] .dk-form{padding:9px 17px 15px}
-#kiss-daybook[data-page=editor] .dk-field{padding:5px 0}
-#kiss-daybook[data-page=editor] .dk-form-pair .dk-field{display:flex}
-#kiss-daybook[data-page=editor] .dk-form-pair .dk-field>span{flex-basis:28px}
-#kiss-daybook[data-page=editor] textarea{min-height:36px;height:36px;resize:vertical}
-#kiss-daybook[data-page=editor] .dk-primary{margin-top:15px}
-
-#kiss-daybook:focus{outline:none}
-
-/* Match the reference's list hierarchy, local rails and form placement. */
-#kiss-daybook .dk-schedule-group{margin:0 0 20px}
-#kiss-daybook .dk-schedule-date{display:flex;align-items:baseline;gap:16px;margin:0 0 9px 5px}
-#kiss-daybook .dk-schedule-date strong{font-size:18px;letter-spacing:-.5px;line-height:1.4}
-#kiss-daybook .dk-schedule-date small{font-size:11px;color:var(--dk-muted)}
-#kiss-daybook .dk-schedule-rail{position:relative;margin-left:6px;padding-left:23px}
-#kiss-daybook .dk-schedule-rail:before{content:"";position:absolute;left:4px;top:8px;bottom:10px;width:1px;background:var(--dk-line)}
-#kiss-daybook .dk-schedule-rail .dk-entry{position:relative;min-height:57px;padding:8px 0;gap:13px}
-#kiss-daybook .dk-schedule-rail .dk-entry:before{content:"";position:absolute;left:-22px;top:25px;width:7px;height:7px;background:#a4a4a9;border-radius:50%;box-shadow:0 0 0 2px var(--dk-bg)}
-#kiss-daybook .dk-schedule-rail .dk-avatar-small{width:38px;height:38px}
-#kiss-daybook .dk-schedule-rail .dk-mini-pair{min-width:57px}
-#kiss-daybook .dk-schedule-rail .dk-mini-pair .dk-avatar{width:35px;height:35px}
-#kiss-daybook .dk-schedule-rail .dk-entry-copy>small:first-of-type{display:none}
-#kiss-daybook .dk-task{align-items:flex-start;min-height:83px;padding:17px 3px;gap:12px}
-#kiss-daybook .dk-task>.dk-avatar,#kiss-daybook .dk-task>.dk-mini-pair{margin-top:5px}
-#kiss-daybook .dk-task>.dk-avatar-small{width:37px;height:37px}
-#kiss-daybook .dk-task .dk-entry-copy{padding:0}
-#kiss-daybook .dk-task .dk-check{min-width:21px;min-height:28px}
-#kiss-daybook .dk-row-annotation{border-left:1px solid var(--dk-muted);padding-left:8px;margin-top:7px!important}
-#kiss-daybook .dk-count{padding:17px 13px;border:0;border-radius:18px;margin:5px 0 17px}
-#kiss-daybook .dk-count strong{font-size:29px;font-weight:650}
-#kiss-daybook .dk-count strong+strong{border-left:1px solid var(--dk-line)}
-#kiss-daybook .dk-footer nav button{position:relative;isolation:isolate}
-#kiss-daybook .dk-footer nav button.selected:before{content:"";position:absolute;width:32px;height:32px;border-radius:50%;background:var(--dk-ink);z-index:-1;top:50%;left:50%;transform:translate(-50%,-50%)}
-#kiss-daybook .dk-footer nav button.selected svg{width:19px;height:19px;stroke:var(--dk-inverse);fill:none;stroke-width:1.7}
-#kiss-daybook .dk-week button{position:relative;padding:6px 0;min-height:55px}
-#kiss-daybook .dk-week button i{display:block;position:absolute;bottom:3px;left:calc(50% - 2px);height:4px;width:4px;border-radius:50%;background:var(--dk-muted)}
-#kiss-daybook .dk-week button.selected i,#kiss-daybook .dk-date.selected i{background:var(--dk-inverse)}
-#kiss-daybook .dk-form-extra{font-size:10px;color:var(--dk-muted);margin:1px 0 3px}
-#kiss-daybook .dk-form-extra summary{padding:5px 0;cursor:pointer;list-style:none;text-align:right}
-#kiss-daybook .dk-form-extra summary:after{content:" +"}
-#kiss-daybook .dk-form-extra[open] summary:after{content:" −"}
-#kiss-daybook[data-page=editor] .dk-kind-tabs{margin:0 0 10px 12px}
-#kiss-daybook[data-page=editor] .dk-form{border:0;border-radius:17px;padding:7px 17px 16px}
-#kiss-daybook[data-page=editor] .dk-form .dk-primary{margin-top:17px;height:41px}
-#kiss-daybook .dk-completion{justify-content:flex-start;gap:8px;flex-direction:row-reverse;width:max-content;margin:12px 0}
-#kiss-daybook .dk-completion>input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:17px;height:17px;border-radius:3px;margin:0;background:none}
-#kiss-daybook .dk-completion>input[type=checkbox]:before{content:none}
-#kiss-daybook[data-page=anniversaries] .dk-heading{flex-wrap:wrap;row-gap:15px}
-#kiss-daybook[data-page=anniversaries] .dk-heading>div:first-child{flex-basis:100%}
-#kiss-daybook[data-page=anniversaries] .dk-role-switch{margin-inline:auto}
-#kiss-daybook[data-page=anniversaries] .dk-person>small{display:none}
-#kiss-daybook[data-page=anniversaries] .dk-titlebar{padding-bottom:21px}
-#kiss-daybook[data-page=anniversaries] .dk-person>.dk-avatar{width:54px;height:54px}
-#kiss-daybook .dk-anniversary-hero{padding:23px 18px}
-#kiss-daybook .dk-anniversary-number{font-size:50px!important;font-weight:500;letter-spacing:-1px}
-#kiss-daybook .dk-anniversary-row{min-height:67px;padding:12px 5px}
-#kiss-daybook .dk-anniversary-row>.dk-avatar-small{width:39px;height:39px}
-#kiss-daybook .dk-primary{background:linear-gradient(115deg,var(--dk-ink),color-mix(in srgb,var(--dk-ink) 85%,var(--dk-muted)));box-shadow:0 3px 6px #0000000c}
-
-#kiss-daybook .dk-detail-actions{height:0;min-height:0;position:relative;margin:0}
-#kiss-daybook .dk-detail-actions>.dk-link{position:absolute;right:3px;bottom:16px;min-height:28px;font-size:10px}
-#kiss-daybook .dk-extra-details{margin:-15px 0 8px}
-#kiss-daybook .dk-section{justify-content:flex-start;gap:9px}
-#kiss-daybook .dk-section>span{font-size:10px;line-height:15px;border-radius:12px;padding:0 6px;border:1px solid var(--dk-line);margin:0}
-#kiss-daybook .dk-comment{padding:10px 0}
-#kiss-daybook .dk-comment>div>.dk-link{min-height:24px;padding:2px 0;font-size:10px}
-#kiss-daybook .dk-completion{margin:12px 0 0;padding:0;min-height:26px}
-#kiss-daybook .dk-composer{margin-top:10px}
-
-#kiss-daybook .dk-settings-group{margin-bottom:11px;border:0;border-radius:13px;padding:4px 16px 6px;box-shadow:0 2px 6px #2424300c}
-#kiss-daybook .dk-settings-group .dk-setting{min-height:34px;padding:7px 0;font-size:12px}
-#kiss-daybook .dk-setting-info small{font-size:10px;color:var(--dk-muted);text-align:right;max-width:65%;overflow-wrap:anywhere}
-#kiss-daybook .dk-settings-group .dk-field{padding:4px 0;font-size:12px}
-#kiss-daybook .dk-settings-group .dk-field select{font-size:11px;text-align:right;border:0;padding:3px 0;color:var(--dk-muted)}
-#kiss-daybook .dk-setting-help{font-size:10px;color:var(--dk-muted);margin-top:14px;line-height:1.7}
-#kiss-daybook .dk-setting-help summary{cursor:pointer;list-style:none}
-#kiss-daybook .dk-setting-help p{margin-top:9px}
-#kiss-daybook[data-page=settings] .dk-primary{border-radius:24px;margin:23px auto 3px;max-width:82%;display:block;min-height:37px;padding:8px}
-#kiss-daybook .dk-festival{padding:16px 22px 17px}
-#kiss-daybook .dk-festival-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--dk-muted)}
-#kiss-daybook .dk-festival-head>span{font-size:9px;padding:2px 8px;border-radius:20px;background:var(--dk-bg)}
-#kiss-daybook .dk-festival h2{font-weight:650;margin:5px 0 0;font-size:28px}
-#kiss-daybook .dk-festival-date{display:flex;gap:12px;align-items:center}
-#kiss-daybook .dk-festival-date strong{font-size:16px}
-#kiss-daybook .dk-festival-date>span{font-size:11px}
-#kiss-daybook .dk-festival-date>small{margin-left:auto;font-size:9px}
-#kiss-daybook .dk-festival>.dk-muted{font-size:10px;margin-top:13px}
-#kiss-daybook[data-page=holiday] .dk-setting{background:var(--dk-paper);border:1px solid var(--dk-line);border-radius:12px;min-height:38px;padding:7px 13px;margin:7px 0}
-#kiss-daybook .dk-next-term{background:var(--dk-paper);border-radius:12px;border:1px solid var(--dk-line);margin-top:13px;padding:0 12px}
+/* Daybook reference layout. All measurements are CSS pixels in the phone viewport. */
+#kiss-daybook {
+  --dk-bg: #ededf0;
+  --dk-paper: #f9f9fa;
+  --dk-ink: #151517;
+  --dk-muted: #838387;
+  --dk-line: #d0d0d4;
+  --dk-inverse: #fff;
+  --dk-shadow: 0 3px 9px #20202416;
+  position: fixed;
+  inset: 0;
+  z-index: 12500;
+  width: min(100%, 580px);
+  height: 100%;
+  height: 100dvh;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--dk-ink);
+  background: radial-gradient(ellipse at 90% 12%, #dfe0e83b, transparent 60%), var(--dk-bg);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  text-align: left;
+  color-scheme: light;
+  box-shadow: 0 0 0 100vmax #0005;
+}
+#kiss-daybook[data-theme=night] {
+  --dk-bg: #1c1c20;
+  --dk-paper: #27272c;
+  --dk-ink: #ededf0;
+  --dk-muted: #a5a5ad;
+  --dk-line: #45454d;
+  --dk-inverse: #19191c;
+  --dk-shadow: 0 3px 9px #0003;
+  color-scheme: dark;
+}
+#kiss-daybook:focus { outline: none; }
+#kiss-daybook * { box-sizing: border-box; }
+#kiss-daybook [hidden] { display: none !important; }
+#kiss-daybook :where(button,input,select,textarea,h1,h2,h3,p,strong,small,span,time,label) {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif !important;
+}
+#kiss-daybook :where(h1,h2,h3,p) { margin: 0; }
+#kiss-daybook :where(button,input,select,textarea) { font: inherit; color: inherit; }
+#kiss-daybook button {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#kiss-daybook button:disabled { opacity: .5; cursor: wait; }
+#kiss-daybook :where(button,input,textarea,select):focus-visible { outline: 2px solid var(--dk-muted); outline-offset: 3px; }
+#kiss-daybook :where(input,select,textarea) {
+  width: 100%; min-width: 0; border: 0; border-bottom: 1px solid var(--dk-line);
+  border-radius: 0; padding: 7px 0; background: transparent; font-size: 13px;
+}
+#kiss-daybook textarea { resize: vertical; }
+#kiss-daybook svg { width: 22px; height: 22px; display: block; flex: none; }
+#kiss-daybook .dk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#kiss-daybook .dk-top {
+  display: flex; justify-content: space-between; align-items: center; flex: none;
+  min-height: 45px; padding: max(8px, env(safe-area-inset-top)) 24px 0;
+}
+#kiss-daybook .dk-brand { font-size: 13px; min-height: 32px; display: flex; align-items: center; }
+#kiss-daybook[data-page=daily] .dk-brand,
+#kiss-daybook[data-page=detail] .dk-brand,
+#kiss-daybook[data-page=moment] .dk-brand,
+#kiss-daybook[data-page=editor] .dk-brand { font-size: 19px; font-weight: 700; letter-spacing: -.6px; }
+#kiss-daybook .dk-icon { width: 34px; min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; }
+#kiss-daybook .dk-top .dk-icon svg { width: 22px; stroke-width: 3; }
+#kiss-daybook .dk-titlebar { flex: none; padding: 14px 24px 19px; }
+#kiss-daybook .dk-heading { display: flex; align-items: center; gap: 12px; min-height: 60px; }
+#kiss-daybook .dk-heading-copy { min-width: 0; flex: 1; }
+#kiss-daybook h1 { font-size: 27px; line-height: 1.15; font-weight: 700; letter-spacing: -.9px; overflow-wrap: anywhere; }
+#kiss-daybook .dk-heading p { font-size: 11px; line-height: 1.45; margin-top: 4px; }
+#kiss-daybook .dk-heading-back { align-self: flex-start; min-width: 23px; min-height: 35px; display: flex; align-items: center; margin-left: -8px; }
+#kiss-daybook[data-page=detail] h1,
+#kiss-daybook[data-page=moment] h1,
+#kiss-daybook[data-page=editor] h1 { font-size: 23px; letter-spacing: -.5px; }
+#kiss-daybook .dk-main { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 18px; scrollbar-width: none; overscroll-behavior: contain; }
+#kiss-daybook .dk-main::-webkit-scrollbar { display: none; }
+#kiss-daybook .dk-role-switch { display: inline-flex; flex: none; align-items: center; justify-content: center; border-radius: 12px; min-height: 44px; }
+#kiss-daybook .dk-avatar {
+  display: inline-flex; width: 50px; height: 50px; flex: none; overflow: hidden; vertical-align: middle;
+  align-items: center; justify-content: center; border-radius: 50%; border: 3px solid var(--dk-paper);
+  outline: 1px solid #ababaf; background: var(--dk-bg); box-shadow: 0 1px 3px #0002;
+}
+#kiss-daybook .dk-avatar img { width: 100%; height: 100%; object-fit: cover; }
+#kiss-daybook .dk-avatar-small { width: 37px; height: 37px; border-width: 2px; border-radius: 5px; outline: 1px solid #bcbcc0; }
+#kiss-daybook .dk-pair { display: flex; align-items: flex-start; gap: 13px; }
+#kiss-daybook .dk-person { display: flex; flex-direction: column; align-items: center; gap: 5px; max-width: 57px; }
+#kiss-daybook .dk-person>small { max-width: 57px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 1.2; }
+#kiss-daybook .dk-mini-pair { display: inline-flex; flex: none; min-width: 58px; align-items: center; isolation: isolate; }
+#kiss-daybook .dk-mini-pair .dk-avatar { width: 35px; height: 35px; border-radius: 5px; outline: 1px solid #bcbcc0; z-index: 1; position: relative; }
+#kiss-daybook .dk-mini-pair .dk-avatar+.dk-avatar { margin-left: -11px; border-radius: 50%; z-index: 2; }
+#kiss-daybook .dk-sheet { background: var(--dk-paper); border: 0; border-radius: 18px; box-shadow: var(--dk-shadow); }
+/* Full lower sheets sit behind the front card and remain visible around its curved bottom. */
+#kiss-daybook .dk-paper-stack { position: relative; isolation: isolate; border-radius: 19px; margin-bottom: 29px; }
+#kiss-daybook .dk-paper-stack>.dk-sheet { position: relative; z-index: 1; border-radius: inherit; background: var(--dk-paper); box-shadow: 0 1px 0 #a1a1a54d, 0 2px 6px #20202409; }
+#kiss-daybook .dk-paper-stack::before,
+#kiss-daybook .dk-paper-stack::after {
+  content: ""; position: absolute; pointer-events: none; top: 7px; bottom: -7px; left: 5px; right: 5px;
+  border-radius: inherit; background: var(--dk-paper); box-shadow: 0 1px 0 #a1a1a54d, 0 3px 4px #20202412; z-index: 0;
+}
+#kiss-daybook .dk-paper-stack::after { top: 14px; bottom: -14px; left: 10px; right: 10px; z-index: -1; box-shadow: 0 1px 0 #a1a1a54d, 0 5px 7px #20202412; }
+#kiss-daybook[data-theme=night] .dk-paper-stack::before,
+#kiss-daybook[data-theme=night] .dk-paper-stack::after { box-shadow: 0 1px 0 #77778366, 0 4px 7px #0004; }
+#kiss-daybook .dk-calendar { padding: 9px 12px 15px; }
+#kiss-daybook .dk-month { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; min-height: 34px; }
+#kiss-daybook .dk-month strong { font-size: 17px; line-height: 1.25; font-weight: 650; }
+#kiss-daybook .dk-month svg { width: 15px; height: 15px; }
+#kiss-daybook .dk-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px 0; text-align: center; }
+#kiss-daybook .dk-weekday { font-size: 9px; line-height: 18px; padding: 4px 0; color: var(--dk-muted); }
+#kiss-daybook .dk-date { position: relative; width: 35px; max-width: 100%; height: 34px; justify-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 15px; line-height: 1.2; border-radius: 10px; }
+#kiss-daybook .dk-date small { font-size: 7px; line-height: 9px; }
+#kiss-daybook .dk-date i { position: absolute; width: 4px; height: 4px; bottom: 1px; border-radius: 50%; background: var(--dk-muted); }
+#kiss-daybook .dk-date.selected { color: var(--dk-inverse); background: var(--dk-ink); }
+#kiss-daybook .dk-date.selected i { background: var(--dk-inverse); }
+#kiss-daybook .dk-estimate { border-bottom: 1px dashed var(--dk-muted); }
+#kiss-daybook .dk-day-summary { display: flex; align-items: center; gap: 13px; margin: 0 8px 9px; padding: 4px 0 8px; }
+#kiss-daybook .dk-day-summary>strong { font-size: 42px; font-weight: 600; line-height: 1.1; letter-spacing: -2px; }
+#kiss-daybook .dk-day-summary>span { font-size: 12px; line-height: 1.5; }
+#kiss-daybook .dk-day-summary small { display: block; font-size: 10px; color: var(--dk-muted); }
+#kiss-daybook .dk-day-summary>div { margin-left: auto; text-align: left; min-width: 105px; padding-left: 20px; border-left: 1px solid var(--dk-line); font-size: 12px; }
+#kiss-daybook .dk-selected-date { display: flex; justify-content: space-between; margin: 0 8px 4px; }
+#kiss-daybook .dk-selected-date .dk-link { font-size: 9px; min-height: 22px; padding: 2px 0; }
+#kiss-daybook .dk-entry { display: flex; align-items: center; min-height: 52px; gap: 12px; padding: 8px; }
+#kiss-daybook .dk-entry>time { flex: none; width: 42px; font-size: 13px; font-variant-numeric: tabular-nums; }
+#kiss-daybook .dk-entry-copy { display: block; flex: 1; min-width: 0; padding: 2px 0; }
+#kiss-daybook .dk-entry-copy strong { display: block; font-size: 13px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+#kiss-daybook .dk-entry-copy small { display: block; font-size: 10px; line-height: 1.55; color: var(--dk-muted); margin-top: 3px; overflow-wrap: anywhere; }
+#kiss-daybook[data-page=month] .dk-entry-copy>small:first-of-type { display: none; }
+#kiss-daybook .dk-row-annotation { border-left: 1px solid var(--dk-line); padding-left: 7px; }
+#kiss-daybook .dk-entry>.dk-tag { display: none; }
+#kiss-daybook .is-done .dk-entry-copy strong { text-decoration: line-through; color: var(--dk-muted); }
+#kiss-daybook .dk-week { display: flex; align-items: center; padding: 9px 8px; min-height: 75px; }
+#kiss-daybook .dk-week button { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 50px; position: relative; border-radius: 10px; font-size: 14px; }
+#kiss-daybook .dk-week button small { font-size: 9px; color: var(--dk-muted); line-height: 1.7; }
+#kiss-daybook .dk-week button.selected { background: var(--dk-ink); color: var(--dk-inverse); }
+#kiss-daybook .dk-week button.selected small { color: inherit; }
+#kiss-daybook .dk-week button i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--dk-muted); bottom: 2px; }
+#kiss-daybook .dk-week button.selected i { background: var(--dk-inverse); }
+#kiss-daybook .dk-date-facts { display: flex; align-items: center; margin: 2px 10px 16px; padding: 0 0 8px; min-height: 73px; }
+#kiss-daybook .dk-date-facts>div { width: 48%; }
+#kiss-daybook .dk-date-facts small { font-size: 11px; display: block; }
+#kiss-daybook .dk-date-facts strong { font-size: 35px; line-height: 1.1; letter-spacing: -1px; font-weight: 600; }
+#kiss-daybook .dk-date-facts strong span { font-size: 13px; font-weight: 400; letter-spacing: 0; }
+#kiss-daybook .dk-day-holiday { flex: 1; border-left: 1px solid var(--dk-line); padding-left: 23px; font-size: 12px; line-height: 1.7; }
+#kiss-daybook .dk-day-holiday small { color: var(--dk-muted); font-size: 11px; }
+#kiss-daybook .dk-day-entries { padding: 0 9px; }
+#kiss-daybook .dk-day-entries .dk-entry { position: relative; gap: 15px; min-height: 51px; padding: 7px 0; }
+#kiss-daybook .dk-day-entries .dk-entry>time { order: -1; width: 42px; }
+#kiss-daybook .dk-day-entries .dk-entry>.dk-avatar,
+#kiss-daybook .dk-day-entries .dk-entry>.dk-mini-pair { margin-left: 18px; }
+#kiss-daybook .dk-day-entries .dk-entry::before { content: ""; position: absolute; left: 58px; top: 24px; width: 6px; height: 6px; border-radius: 50%; background: var(--dk-muted); }
+#kiss-daybook .dk-day-entries .dk-entry:not(:last-child)::after { content: ""; position: absolute; left: 60px; top: 31px; bottom: -16px; width: 1px; background: var(--dk-line); }
+#kiss-daybook .dk-day-entries .dk-entry-copy>small:first-of-type { display: none; }
+#kiss-daybook .dk-tabs { display: flex; gap: 6px; margin: 0 0 19px; }
+#kiss-daybook .dk-tabs button { flex: 1; min-width: 0; text-align: center; min-height: 35px; font-size: 12px; color: var(--dk-muted); padding: 7px 0; border-bottom: 2px solid transparent; }
+#kiss-daybook .dk-tabs button.selected { border-bottom-color: var(--dk-ink); color: var(--dk-ink); font-weight: 550; }
+#kiss-daybook .dk-schedule-group { margin: 0 0 19px; }
+#kiss-daybook .dk-schedule-date { display: flex; align-items: baseline; gap: 15px; padding: 0 5px 8px; }
+#kiss-daybook .dk-schedule-date strong { font-size: 18px; letter-spacing: -.5px; }
+#kiss-daybook .dk-schedule-date small { font-size: 11px; color: var(--dk-muted); }
+#kiss-daybook .dk-schedule-rail { position: relative; margin-left: 6px; padding-left: 23px; }
+#kiss-daybook .dk-schedule-rail::before { content: ""; position: absolute; left: 4px; top: 8px; bottom: 8px; width: 1px; background: var(--dk-line); }
+#kiss-daybook .dk-schedule-rail .dk-entry { position: relative; min-height: 57px; padding: 8px 0; gap: 12px; }
+#kiss-daybook .dk-schedule-rail .dk-entry::before { content: ""; position: absolute; left: -22px; top: 24px; width: 7px; height: 7px; background: #a5a5aa; border-radius: 50%; box-shadow: 0 0 0 2px var(--dk-bg); }
+#kiss-daybook .dk-schedule-rail .dk-entry-copy>small:first-of-type { display: none; }
+#kiss-daybook .dk-count { display: flex; margin: 0 0 15px; padding: 16px 10px; border-radius: 18px; }
+#kiss-daybook .dk-count strong { flex: 1; font-size: 29px; font-weight: 650; text-align: center; line-height: 1.25; }
+#kiss-daybook .dk-count strong+strong { border-left: 1px solid var(--dk-line); }
+#kiss-daybook .dk-count small { font-size: 11px; margin-left: 9px; font-weight: 400; color: var(--dk-muted); }
+#kiss-daybook .dk-task { display: flex; align-items: flex-start; min-height: 82px; padding: 17px 5px; gap: 12px; }
+#kiss-daybook .dk-task .dk-entry-copy { padding: 0; }
+#kiss-daybook .dk-check { min-width: 22px; min-height: 28px; display: flex; align-items: center; }
+#kiss-daybook .dk-check svg { width: 19px; height: 19px; }
+#kiss-daybook .dk-task>.dk-avatar,
+#kiss-daybook .dk-task>.dk-mini-pair { margin-top: 4px; }
+#kiss-daybook .dk-task .dk-row-annotation { margin-top: 7px; }
+#kiss-daybook[data-page=daily] .dk-titlebar { padding-top: 14px; padding-bottom: 14px; }
+#kiss-daybook[data-page=daily] .dk-heading { gap: 12px; flex-wrap: wrap; }
+#kiss-daybook[data-page=daily] .dk-heading>.dk-role-switch .dk-avatar { width: 62px; height: 62px; border-width: 4px; }
+#kiss-daybook[data-page=daily] h1 { font-size: 23px; letter-spacing: -.5px; }
+#kiss-daybook .dk-heading-date { position: relative; align-self: flex-end; width: 94px; font-size: 10px; color: var(--dk-muted); min-height: 24px; text-align: right; }
+#kiss-daybook .dk-heading-date input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+#kiss-daybook[data-page=daily] .dk-week { min-height: 61px; padding: 7px 6px; }
+#kiss-daybook[data-page=daily] .dk-week button { min-height: 40px; font-size: 12px; border-radius: 7px; }
+#kiss-daybook .dk-week-month { width: 43px; flex: none; text-align: center; font-size: 11px; line-height: 1.5; }
+#kiss-daybook .dk-week-month small { display: block; font-size: 10px; }
+#kiss-daybook .dk-timeline { padding: 0 8px; }
+#kiss-daybook .dk-timeline article { display: grid; grid-template-columns: 9px 52px minmax(0,1fr); column-gap: 13px; position: relative; padding: 0 0 20px; }
+#kiss-daybook .dk-timeline article:not(:last-child)::before { content: ""; position: absolute; left: 4px; top: 12px; bottom: -3px; width: 1px; background: var(--dk-line); }
+#kiss-daybook .dk-timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dk-ink); margin-top: 5px; z-index: 1; }
+#kiss-daybook .dk-timeline time { font-size: 12px; font-weight: 600; line-height: 1.5; }
+#kiss-daybook .dk-timeline article>div { min-width: 0; }
+#kiss-daybook .dk-timeline .dk-entry-copy { padding: 0; width: 100%; }
+#kiss-daybook .dk-timeline strong { font-weight: 600; }
+#kiss-daybook .dk-timeline small { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-size: 10px; margin-top: 2px; line-height: 1.4; }
+#kiss-daybook .dk-daily-action span { padding: 0 4px; }
+#kiss-daybook .dk-record-info { margin: 8px 8px 0; font-size: 10px; color: var(--dk-muted); line-height: 1.7; }
+#kiss-daybook .dk-record-info summary { cursor: pointer; list-style: none; }
+#kiss-daybook .dk-record-info p { margin-top: 6px; }
+#kiss-daybook .dk-plan-people { display: flex; align-items: center; gap: 14px; padding: 0 8px; margin-bottom: 15px; }
+#kiss-daybook .dk-plan-people .dk-mini-pair .dk-avatar { width: 49px; height: 49px; border-radius: 50%; border-width: 3px; }
+#kiss-daybook .dk-plan-people .dk-mini-pair .dk-avatar+.dk-avatar { margin-left: -12px; }
+#kiss-daybook .dk-plan-people>small { font-size: 11px; border: 1px solid var(--dk-line); border-radius: 20px; padding: 0 12px; }
+#kiss-daybook .dk-detail-actions { position: relative; height: 0; }
+#kiss-daybook .dk-detail-actions>.dk-link { position: absolute; right: 7px; bottom: 13px; }
+#kiss-daybook .dk-details { padding: 9px 17px; margin-bottom: 14px; }
+#kiss-daybook .dk-paper-stack>.dk-details { margin: 0; }
+#kiss-daybook .dk-details>div { display: grid; grid-template-columns: 56px minmax(0,1fr); gap: 13px; padding: 9px 0; font-size: 12px; line-height: 1.6; }
+#kiss-daybook .dk-details>div>span { color: var(--dk-muted); font-size: 11px; }
+#kiss-daybook .dk-details p { overflow-wrap: anywhere; white-space: pre-wrap; }
+#kiss-daybook .dk-extra-details { color: var(--dk-muted); font-size: 10px; margin: -13px 4px 6px; }
+#kiss-daybook .dk-extra-details summary { cursor: pointer; list-style: none; text-align: right; padding: 2px 0; }
+#kiss-daybook .dk-moment-meta { display: flex; align-items: center; gap: 13px; margin: 7px 7px 25px; }
+#kiss-daybook .dk-moment-meta .dk-avatar { width: 53px; height: 53px; border-radius: 5px; }
+#kiss-daybook .dk-moment-meta>strong { flex: 1; min-width: 0; font-size: 14px; }
+#kiss-daybook .dk-moment-time { border-left: 1px solid var(--dk-line); padding-left: 23px; }
+#kiss-daybook .dk-moment-time strong { display: block; font-size: 26px; line-height: 1.2; font-weight: 600; }
+#kiss-daybook .dk-moment-time small { color: var(--dk-muted); font-size: 10px; }
+#kiss-daybook .dk-moment-action { font-size: 18px; line-height: 1.3; font-weight: 650; border-left: 3px solid var(--dk-ink); padding-left: 10px; margin: 0 7px 5px; }
+#kiss-daybook[data-page=moment] .dk-details { padding: 0 7px; }
+#kiss-daybook .dk-section { display: flex; align-items: center; gap: 8px; margin: 22px 5px 9px; }
+#kiss-daybook h3 { font-size: 12px; font-weight: 600; }
+#kiss-daybook .dk-section>span { border: 1px solid var(--dk-line); padding: 0 6px; border-radius: 10px; margin: 0; font-size: 9px; line-height: 14px; }
+#kiss-daybook .dk-comment { display: flex; align-items: flex-start; gap: 12px; padding: 10px 5px; }
+#kiss-daybook .dk-comment>.dk-avatar { width: 33px; height: 33px; }
+#kiss-daybook .dk-comment>div { flex: 1; min-width: 0; }
+#kiss-daybook .dk-comment-head { display: flex; justify-content: space-between; align-items: baseline; gap: 9px; margin-bottom: 2px; }
+#kiss-daybook .dk-comment-head strong { font-size: 10px; font-weight: 500; }
+#kiss-daybook .dk-comment-head time { font-size: 9px; color: var(--dk-muted); }
+#kiss-daybook .dk-comment p { font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+#kiss-daybook .dk-comment-reply { padding-left: 18px; }
+#kiss-daybook .dk-composer { display: flex; align-items: center; gap: 8px; border: 1px solid var(--dk-line); border-radius: 30px; background: var(--dk-paper); padding: 0 8px 0 15px; min-height: 35px; margin: 12px 2px 0; }
+#kiss-daybook .dk-composer input { border: 0; flex: 1; font-size: 16px; padding: 5px 0; }
+#kiss-daybook .dk-composer input::placeholder { font-size: 11px; }
+#kiss-daybook .dk-composer .dk-icon svg { width: 17px; height: 17px; color: var(--dk-muted); }
+#kiss-daybook .dk-link { font-size: 10px; min-height: 28px; padding: 4px 0; color: var(--dk-muted); }
+#kiss-daybook .dk-empty { font-size: 12px; line-height: 1.8; color: var(--dk-muted); padding: 20px 8px; }
+#kiss-daybook .dk-muted,
+#kiss-daybook .dk-note { font-size: 10px; color: var(--dk-muted); line-height: 1.7; margin-top: 10px; }
+#kiss-daybook .dk-error { font-size: 11px; line-height: 1.7; margin-top: 8px; white-space: pre-wrap; }
+#kiss-daybook .dk-primary { display: block; width: 100%; min-height: 41px; border-radius: 9px; color: var(--dk-inverse); background: linear-gradient(115deg,var(--dk-ink),color-mix(in srgb,var(--dk-ink) 85%,var(--dk-muted))); text-align: center; font-size: 12px; padding: 9px 12px; margin-top: 19px; }
+#kiss-daybook .dk-danger { color: var(--dk-muted); font-size: 11px; min-height: 40px; text-align: center; width: 100%; margin-top: 13px; }
+#kiss-daybook .dk-form { padding: 8px 17px 17px; border-radius: 16px; }
+#kiss-daybook .dk-field { display: flex; align-items: center; gap: 10px; margin: 0; padding: 5px 0; font-size: 12px; }
+#kiss-daybook .dk-field>span { flex: 0 0 65px; color: var(--dk-muted); font-size: 11px; }
+#kiss-daybook .dk-field :is(input,textarea,select) { flex: 1; }
+#kiss-daybook .dk-field textarea { min-height: 32px; height: 32px; }
+#kiss-daybook .dk-form-pair { display: flex; gap: 14px; }
+#kiss-daybook .dk-form-pair .dk-field { flex: 1; min-width: 0; }
+#kiss-daybook .dk-form-pair .dk-field>span { flex-basis: 28px; }
+#kiss-daybook .dk-kind-tabs { display: flex; gap: 23px; border: 0; padding: 0 12px; margin: 0 0 11px; }
+#kiss-daybook .dk-kind-tabs label { position: relative; min-height: 35px; font-size: 12px; }
+#kiss-daybook .dk-kind-tabs span { display: block; padding: 7px 3px; border-bottom: 2px solid transparent; color: var(--dk-muted); }
+#kiss-daybook .dk-kind-tabs input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; margin: 0; cursor: pointer; }
+#kiss-daybook .dk-kind-tabs input:checked+span { border-bottom-color: var(--dk-ink); color: var(--dk-ink); }
+#kiss-daybook .dk-kind-tabs input:focus-visible+span { outline: 2px solid var(--dk-muted); }
+#kiss-daybook .dk-owner-choice fieldset { display: flex; flex: 1; justify-content: space-between; gap: 4px; padding: 0; border: 0; margin: 0; min-width: 0; }
+#kiss-daybook .dk-owner-choice label { display: flex; align-items: center; gap: 3px; min-height: 34px; font-size: 10px; }
+#kiss-daybook .dk-owner-choice input { width: 12px; height: 12px; padding: 0; margin: 0; accent-color: var(--dk-ink); }
+#kiss-daybook .dk-owner-choice .dk-avatar { width: 19px; height: 19px; border-radius: 50%; border-width: 1px; }
+#kiss-daybook .dk-form-extra { color: var(--dk-muted); font-size: 9px; margin: 2px 0; }
+#kiss-daybook .dk-form-extra summary { text-align: right; list-style: none; cursor: pointer; padding: 4px 0; }
+#kiss-daybook .dk-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 37px; padding: 8px 0; font-size: 12px; }
+#kiss-daybook .dk-setting>input[type=checkbox] { appearance: none; -webkit-appearance: none; position: relative; width: 33px; height: 18px; flex: none; border: 0; border-radius: 20px; padding: 0; background: var(--dk-line); margin: 0; }
+#kiss-daybook .dk-setting>input[type=checkbox]::before { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--dk-paper); box-shadow: 0 1px 2px #0002; transition: transform .15s; }
+#kiss-daybook .dk-setting>input[type=checkbox]:checked { background: var(--dk-ink); }
+#kiss-daybook .dk-setting>input[type=checkbox]:checked::before { transform: translateX(15px); background: var(--dk-inverse); }
+#kiss-daybook .dk-completion { flex-direction: row-reverse; justify-content: flex-end; gap: 7px; min-height: 25px; padding: 0; margin: 12px 5px 0; font-size: 11px; }
+#kiss-daybook .dk-completion>input[type=checkbox] { appearance: auto; -webkit-appearance: checkbox; width: 17px; height: 17px; accent-color: var(--dk-ink); }
+#kiss-daybook .dk-completion>input[type=checkbox]::before { content: none; }
+#kiss-daybook .dk-settings-group { margin-bottom: 10px; padding: 4px 16px 5px; border-radius: 13px; }
+#kiss-daybook .dk-settings-group .dk-setting { min-height: 33px; padding: 6px 0; }
+#kiss-daybook .dk-setting-info small { font-size: 10px; color: var(--dk-muted); text-align: right; max-width: 65%; }
+#kiss-daybook .dk-settings-group .dk-field { padding: 3px 0; }
+#kiss-daybook .dk-settings-group select { font-size: 10px; text-align: right; border: 0; padding: 5px 0; color: var(--dk-muted); }
+#kiss-daybook .dk-settings-group .dk-field>span { color: var(--dk-ink); font-size: 12px; }
+#kiss-daybook .dk-setting-help { color: var(--dk-muted); font-size: 10px; line-height: 1.7; margin: 13px 4px 0; }
+#kiss-daybook .dk-setting-help summary { cursor: pointer; list-style: none; }
+#kiss-daybook .dk-setting-help p { margin-top: 7px; }
+#kiss-daybook[data-page=settings] .dk-primary { width: 82%; border-radius: 22px; min-height: 36px; margin: 23px auto 0; padding: 7px 12px; }
+#kiss-daybook .dk-festival { padding: 17px 22px; }
+#kiss-daybook .dk-festival-head { display: flex; align-items: center; justify-content: space-between; color: var(--dk-muted); font-size: 10px; }
+#kiss-daybook .dk-festival-head>span { background: var(--dk-bg); border-radius: 16px; padding: 2px 7px; font-size: 9px; }
+#kiss-daybook .dk-festival h2 { font-size: 29px; line-height: 1.3; margin: 4px 0 1px; font-weight: 650; }
+#kiss-daybook .dk-festival-date { display: flex; align-items: baseline; gap: 12px; font-size: 11px; }
+#kiss-daybook .dk-festival-date strong { font-size: 16px; }
+#kiss-daybook .dk-festival-date small { margin-left: auto; color: var(--dk-muted); font-size: 9px; }
+#kiss-daybook[data-page=holiday] .dk-setting { padding: 7px 13px; background: var(--dk-paper); border: 1px solid var(--dk-line); border-radius: 11px; margin: 7px 0; }
+#kiss-daybook .dk-next-term { display: flex; align-items: center; justify-content: space-between; background: var(--dk-paper); border: 1px solid var(--dk-line); border-radius: 11px; padding: 0 13px; margin-top: 13px; font-size: 10px; color: var(--dk-muted); }
+#kiss-daybook .dk-next-term button { display: flex; align-items: center; gap: 16px; font-size: 11px; color: var(--dk-ink); }
+#kiss-daybook .dk-next-term small { font-size: 10px; color: var(--dk-muted); }
+#kiss-daybook[data-page=anniversaries] .dk-heading { flex-wrap: wrap; row-gap: 15px; }
+#kiss-daybook[data-page=anniversaries] .dk-heading-copy { flex-basis: 100%; }
+#kiss-daybook[data-page=anniversaries] .dk-heading>.dk-role-switch { margin: 0 auto; }
+#kiss-daybook[data-page=anniversaries] .dk-person small { display: none; }
+#kiss-daybook .dk-anniversary { padding: 24px 18px; text-align: center; }
+#kiss-daybook .dk-anniversary .dk-entry-copy { text-align: center; }
+#kiss-daybook .dk-anniversary-number { display: block; font-size: 49px; line-height: 1.2; font-weight: 500; letter-spacing: -1px; margin-bottom: 7px; }
+#kiss-daybook .dk-anniversary-number small { display: inline; margin-left: 6px; font-size: 10px; font-weight: 400; letter-spacing: 0; }
+#kiss-daybook .dk-anniversary-row { display: flex; align-items: center; gap: 13px; padding: 13px 5px; min-height: 66px; }
+#kiss-daybook .dk-anniversary-row>.dk-muted { margin: 0; white-space: nowrap; }
+#kiss-daybook .dk-notice { display: flex; align-items: flex-start; gap: 12px; position: relative; padding: 14px 5px; }
+#kiss-daybook .dk-unread::before { content: ""; position: absolute; left: -4px; top: 27px; width: 5px; height: 5px; border-radius: 50%; background: var(--dk-ink); }
+#kiss-daybook .dk-cycle-summary { padding: 20px; margin-bottom: 18px; }
+#kiss-daybook .dk-cycle-summary strong { display: block; font-size: 25px; margin: 5px 0; }
+#kiss-daybook .dk-cycle-summary :is(small,p) { font-size: 10px; color: var(--dk-muted); }
+#kiss-daybook .dk-share { display: flex; flex-wrap: wrap; gap: 9px 15px; margin-top: 10px; }
+#kiss-daybook .dk-share label { display: flex; align-items: center; gap: 7px; font-size: 11px; min-height: 30px; }
+#kiss-daybook .dk-share input { width: 16px; height: 16px; accent-color: var(--dk-ink); }
+#kiss-daybook .dk-cycle-row { display: flex; align-items: center; gap: 10px; padding: 13px 0; }
+#kiss-daybook .dk-cycle-row>div { flex: 1; min-width: 0; }
+#kiss-daybook .dk-cycle-row strong { font-size: 11px; font-weight: 500; }
+#kiss-daybook .dk-cycle-row small { display: block; font-size: 10px; color: var(--dk-muted); overflow-wrap: anywhere; }
+#kiss-daybook .dk-footer { flex: none; display: flex; gap: 12px; padding: 8px 16px max(13px, env(safe-area-inset-bottom)); background: linear-gradient(transparent,var(--dk-bg) 60%); }
+#kiss-daybook .dk-footer nav { display: flex; flex: 1; min-width: 0; align-items: center; height: 51px; padding: 3px 9px; background: var(--dk-paper); border-radius: 40px; box-shadow: 0 4px 11px #20202421; }
+#kiss-daybook .dk-footer nav button { position: relative; isolation: isolate; display: flex; flex: 1; min-width: 0; align-items: center; justify-content: center; height: 43px; color: var(--dk-muted); }
+#kiss-daybook .dk-footer nav svg { width: 23px; height: 23px; }
+#kiss-daybook .dk-footer nav button.selected { color: var(--dk-ink); }
+#kiss-daybook .dk-footer nav button.selected::before { content: ""; position: absolute; z-index: -1; width: 31px; height: 31px; border-radius: 50%; background: var(--dk-ink); }
+#kiss-daybook .dk-footer nav button.selected svg { width: 18px; height: 18px; stroke: var(--dk-inverse); fill: none; }
+#kiss-daybook .dk-footer small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#kiss-daybook .dk-add { display: flex; align-items: center; justify-content: center; flex: none; width: 51px; height: 51px; border-radius: 50%; background: var(--dk-paper); box-shadow: 0 4px 11px #20202421; }
+#kiss-daybook .dk-menu { position: absolute; top: max(46px, calc(env(safe-area-inset-top) + 35px)); right: 18px; z-index: 7; display: flex; flex-direction: column; min-width: 135px; padding: 6px 14px; background: var(--dk-paper); border: 1px solid var(--dk-line); border-radius: 13px; box-shadow: 0 7px 18px #0002; }
+#kiss-daybook .dk-menu button { min-height: 38px; padding: 8px 5px; font-size: 12px; }
+#kiss-daybook .dk-role-overlay { position: absolute; inset: 0; z-index: 8; display: flex; align-items: flex-end; padding: 18px 16px max(18px, env(safe-area-inset-bottom)); background: #0005; }
+#kiss-daybook .dk-role-panel { width: 100%; max-height: 65%; overflow: auto; padding: 12px 18px 18px; border-radius: 19px; border: 1px solid var(--dk-line); background: var(--dk-paper); box-shadow: 0 8px 25px #0002; }
+#kiss-daybook .dk-role-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+#kiss-daybook .dk-role-picker-head h2 { font-size: 16px; font-weight: 550; }
+#kiss-daybook .dk-role-row { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 60px; padding: 10px 0; font-size: 13px; }
+#kiss-daybook .dk-role-row>span:nth-child(2) { flex: 1; }
+#kiss-daybook .dk-role-row small { display: block; font-size: 10px; color: var(--dk-muted); margin-top: 3px; }
+#kiss-daybook .dk-picked { font-size: 16px; }
+.daybook-chat-notice button { font: inherit; font-size: 11px; line-height: 1.7; appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; padding: 7px 12px; opacity: .8; max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 350px) {
+  #kiss-daybook .dk-titlebar { padding-inline: 18px; }
+  #kiss-daybook .dk-main { padding-inline: 13px; }
+  #kiss-daybook h1 { font-size: 24px; }
+  #kiss-daybook .dk-person>.dk-avatar { width: 42px; height: 42px; }
+  #kiss-daybook .dk-pair { gap: 9px; }
+  #kiss-daybook .dk-heading-date { width: 80px; }
+  #kiss-daybook .dk-timeline article { grid-template-columns: 8px 45px minmax(0,1fr); column-gap: 9px; }
+  #kiss-daybook .dk-owner-choice .dk-avatar { display: none; }
+}
+@media (min-width: 500px) {
+  #kiss-daybook .dk-main { padding-inline: 30px; }
+  #kiss-daybook .dk-date { height: 42px; width: 42px; }
+}
+@media (pointer: coarse) {
+  #kiss-daybook .dk-form .dk-field :is(input,select,textarea) { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #kiss-daybook * { transition: none !important; }
+}
