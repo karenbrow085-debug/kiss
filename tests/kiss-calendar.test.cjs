@@ -195,3 +195,18 @@ test('legacy calendar settings default to automatic generation and optional dail
  assert.equal(record.rows[0].action,'起床洗漱');
  assert.equal(record.rows[0].end,'07:40');
 });
+
+test('calendar due reminders never call AI unless the role enabled automatic messages',async()=>{
+ const f=fixture(),character=f.db.characters[0],calls=[];
+ f.db.apiSettings={url:'https://test.invalid/v1',key:'test-key',model:'test-model'};
+ f.window.KissClock.isQuiet=()=>false;
+ f.window.PhoneBackup.isPinned=()=>false;
+ f.sandbox.getAiReply=async(...args)=>calls.push(args);
+ await f.api.saveEntry({title:'出门',date:'2026-11-06',time:'16:00',zone:'Asia/Tokyo',roleId:'a',remind:0},null,{account:'me'});
+ await f.api.tick();
+ assert.equal(calls.length,0,'unset automatic messages must stay off');
+ assert.equal((await f.api.read()).notices.filter(n=>n.kind==='reminder').length,1,'local reminder remains available');
+ character.autoReply={enabled:false};await f.api.tick();assert.equal(calls.length,0);
+ character.autoReply.enabled=true;await f.api.tick();assert.deepEqual(calls,[['a','private',true,'daybook-reminder']]);
+ character.autoReply.enabled=false;f.setNow(Date.parse('2026-11-06T07:16Z'));await f.api.tick();assert.equal(calls.length,1,'turning off again blocks later timer passes');
+});

@@ -134,7 +134,7 @@ async function collectReminders(at=Date.now()){
 async function tick(){
  if(tickBusy||document.hidden||typeof db==='undefined'||!db.characters||typeof dexieDB==='undefined'||!dexieDB?.globalSettings||window.kissCleanupLocked)return;tickBusy=true;
  try{await collectReminders();await flush();const s=await read();if(!s.settings.reminders)return;
- for(const c of db.characters){const rid=String(c.id),pending=s.notices.some(n=>n.roleId===rid&&n.kind==='reminder'&&n.delivered&&!n.spoken);if(!pending||blocked(c)||window.KissOffline?.isActive(c)||window.KissClock?.isQuiet(c,'chat')||window.PhoneBackup?.isPinned(c)||typeof aiGenerationControl!=='undefined'&&aiGenerationControl.isChatActive(c.id,'private'))continue;
+ for(const c of db.characters){const rid=String(c.id),pending=s.notices.some(n=>n.roleId===rid&&n.kind==='reminder'&&n.delivered&&!n.spoken);if(!pending||c.autoReply?.enabled!==true||blocked(c)||window.KissOffline?.isActive(c)||window.KissClock?.isQuiet(c,'chat')||window.PhoneBackup?.isPinned(c)||typeof aiGenerationControl!=='undefined'&&aiGenerationControl.isChatActive(c.id,'private'))continue;
   if(Date.now()-(tasks.get(rid)||0)<15*60000)continue;tasks.set(rid,Date.now());
   if(typeof getAiReply==='function'&&db.apiSettings?.url&&db.apiSettings?.key&&db.apiSettings?.model){await getAiReply(c.id,'private',true,'daybook-reminder');break;}
  }
@@ -145,4 +145,5 @@ window.KissCalendarData={read,mutate,account,capture,guard,character,name,zone,u
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick();});
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(tick,4000);setInterval(tick,30000);});
 })();
+
 
