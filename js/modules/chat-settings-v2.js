@@ -27,7 +27,6 @@ function mount(container){
  container.addEventListener('change',e=>{syncInline();updateClocks();syncPortraits();if(e.target.closest('#setting-tab-style'))refreshPreview();});container.addEventListener('input',e=>{if(e.target.matches('#setting-char-realname,#setting-char-remark,#setting-my-name,#setting-my-remark-name'))syncPortraits();if(e.target.matches('#setting-avatar-radius'))refreshPreview();});
  const avatarObserver=new MutationObserver(syncPortraits);['setting-char-avatar-preview','setting-my-avatar-preview'].forEach(id=>avatarObserver.observe($(id),{attributes:true,attributeFilter:['src']}));
  $('setting-chat-bg-upload').addEventListener('change',()=>setTimeout(syncBackground,250));$('reset-chat-bg-btn').addEventListener('click',()=>setTimeout(syncBackground,0));
- for(const [who,id] of [['char','ksv-header-character'],['my','ksv-header-user']]){const img=$(id);img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-controls','ksv-fields-'+who);img.setAttribute('aria-expanded','false');img.onclick=()=>toggleProfile(who,true);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();img.click();}};}
  setupCities();syncInline();clearInterval(clockTimer);clockTimer=setInterval(()=>{if(container.classList.contains('active'))updateClocks();},30000);
 }
 function buildBasic(){const basic=$('setting-tab-basic'),zone=basic.querySelector('.kc-card'),oldGroups=[...basic.querySelectorAll(':scope > .kkt-group')];
@@ -39,7 +38,7 @@ function buildBasic(){const basic=$('setting-tab-basic'),zone=basic.querySelecto
  const shared=group('Profile','ksv-profile');shared.querySelector('h2').innerHTML='<span class="ksv-profile-tag">ふたり</span><span class="ksv-profile-title">Profile</span>';
  const identities=el('div','ksv-identities');
  for(const [who,name,handle] of [['char','角色','@character'],['my','自訂','@you']]){
-  const entry=el('div','ksv-identity'),img=$(who==='char'?'setting-char-avatar-preview':'setting-my-avatar-preview');img.className='ksv-id-avatar';img.alt=who==='char'?'编辑角色资料':'编辑我的资料';img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label',img.alt);img.onclick=()=>toggleProfile(who,true);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();img.click();}};
+  const entry=el('div','ksv-identity'),img=$(who==='char'?'setting-char-avatar-preview':'setting-my-avatar-preview');img.className='ksv-id-avatar';img.alt=who==='char'?'编辑角色资料':'编辑我的资料';img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label',img.alt);img.setAttribute('aria-controls','ksv-fields-'+who);img.setAttribute('aria-expanded','false');img.onclick=()=>toggleProfile(who);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();img.click();}};
   const frame=el('div','ksv-avatar-frame');frame.append(img);if(who==='char'){const camera=button('',()=>$(who==='char'?'setting-char-avatar-upload':'setting-my-avatar-upload').click(),'ksv-avatar-camera');camera.setAttribute('aria-label','更换角色头像');camera.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h4l1.5-2h5l1.5 2h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="4"/></svg>';frame.append(camera);}entry.append(frame);const info=el('div','ksv-id-copy',`<div class="ksv-id-name-line"><b id="ksv-${who}-name">${name}</b>${who==='char'?'<svg class="ksv-profile-verified" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="m12 5 2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7L5.2 10l4.7-.7L12 5Z" fill="white"/></svg>':''}</div><small>${handle}</small>`);info.tabIndex=0;info.setAttribute('role','button');info.setAttribute('aria-label',who==='char'?'编辑角色资料':'编辑我的资料');info.setAttribute('aria-controls','ksv-fields-'+who);info.setAttribute('aria-expanded','false');info.onclick=()=>toggleProfile(who);info.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();info.click();}};entry.append(info);identities.append(entry);
  }
  shared.append(identities);
@@ -52,9 +51,9 @@ function buildBasic(){const basic=$('setting-tab-basic'),zone=basic.querySelecto
  const books=button('關聯世界書',()=>{const g=$('ksv-fields-books');if(g)g.hidden=!g.hidden;},'ksv-books-link');shared.append(books);
  const board=el('div','ksv-basic-board');board.append(time,shared);basic.append(board);
 }
-function toggleProfile(who,open=false){
+function toggleProfile(who){
  const n=$('ksv-fields-'+who);if(!n)return;
- n.hidden=open?false:!n.hidden;
+ n.hidden=!n.hidden;
  if(!n.hidden)openContainingSection(n);
  root.querySelectorAll('[aria-controls="ksv-fields-'+who+'"]').forEach(control=>control.setAttribute('aria-expanded',String(!n.hidden)));
  // Keep the mobile keyboard closed until the user chooses a field to edit.
