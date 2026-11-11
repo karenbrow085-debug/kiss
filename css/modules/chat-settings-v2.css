@@ -530,3 +530,11 @@
 .bps-overlay .bps-favorite svg{display:block;width:22px!important;height:22px!important;overflow:visible;fill:transparent;stroke:currentColor;stroke-width:1.65;stroke-linejoin:round;transform:none!important}
 .bps-overlay .bps-favorite[aria-pressed=true] svg{fill:currentColor}
 .bps-overlay .bps-row[hidden]{display:none!important}
+
+/* Bound long sticker lists; tags must not paint over the following controls. */
+#chat-settings-screen.ksv-settings #setting-char-sticker-groups-container{
+ max-height:175px!important;overflow-y:auto!important;overflow-x:hidden!important;
+ flex-shrink:0;align-content:flex-start;overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch;
+}
+#chat-settings-screen.ksv-settings .ksv-pair img[role="button"]{cursor:pointer}
