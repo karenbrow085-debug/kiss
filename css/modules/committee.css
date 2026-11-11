@@ -172,3 +172,53 @@
 #kiss-committee .cm-record-list .cm-post-row{min-height:56px;padding:7px 0}
 #kiss-committee footer nav button.selected{background:transparent}
 @media(max-width:350px){#kiss-committee .cm-record-heading h1{font-size:20px}#kiss-committee .cm-record-heading .cm-pair .cm-avatar{width:33px;height:33px}#kiss-committee .cm-feature{padding-inline:15px}#kiss-committee .cm-quick-reply{margin-inline:-15px;padding-inline:15px}}
+/* Decision cards and case reviews: one selection per ballot, no crowded action links. */
+#kiss-committee .cm-choice-fieldset{border:0;margin:20px 0 14px;padding:0;min-width:0}
+#kiss-committee .cm-choice-fieldset legend{font-size:12px;font-weight:600;margin-bottom:10px;padding:0;color:#65758a}
+#kiss-committee .cm-choice-list{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
+#kiss-committee .cm-choice{display:flex;position:relative;align-items:center;gap:11px;min-height:54px;padding:12px 14px;border:1px solid #dce4ef;border-radius:15px;background:linear-gradient(120deg,#fff,#f3f6fb);cursor:pointer;line-height:1.6;font-size:13px;overflow-wrap:anywhere}
+#kiss-committee .cm-choice>input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+#kiss-committee .cm-choice>span:last-child{min-width:0;pointer-events:none}
+#kiss-committee .cm-choice-mark{display:grid;place-items:center;border:1.5px solid #b4c1d2;border-radius:50%;width:25px;height:25px;flex:none;color:#8e9fb5;font-size:11px;pointer-events:none}
+#kiss-committee .cm-choice:has(input:checked){border-color:#8da7c8;background:#eaf0f9;box-shadow:inset 0 0 0 1px #a4b7d14d}
+#kiss-committee .cm-choice:has(input:checked) .cm-choice-mark{background:#869fbe;border-color:#869fbe;color:white}
+#kiss-committee .cm-choice:has(input:checked) .cm-choice-mark:empty::after{content:'✓';font-size:15px}
+#kiss-committee .cm-choice:has(input:focus-visible){outline:2px solid #7794b8;outline-offset:2px}
+#kiss-committee .cm-submit-review{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px}
+#kiss-committee .cm-review-submit{flex:1;text-align:center;padding:11px 17px;border-radius:24px;color:white;background:linear-gradient(125deg,#98adca,#7189aa);font-size:12px;box-shadow:0 3px 8px #6e839d22}
+#kiss-committee .cm-submit-review>.cm-text{padding:9px 4px;font-size:11px}
+#kiss-committee .cm-comment-stance{display:inline-block!important;margin:5px 0 1px!important;padding:2px 7px;border-radius:7px;background:#f1f4f8;color:#98a2af;font-size:9px!important;max-width:100%;overflow-wrap:anywhere}
+#kiss-committee .cm-comment-stance.has-choice{color:#6b87a8;background:#e9eff7}
+#kiss-committee .cm-other-claim{border-radius:14px;background:#eff3f8;padding:13px 14px;margin:14px 0}
+#kiss-committee .cm-other-claim h3{font-size:11px;color:#8392a5;margin-bottom:6px}
+#kiss-committee .cm-other-claim p{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+#kiss-committee .cm-case-result{padding:15px 0 5px;margin-top:10px}
+#kiss-committee .cm-case-result>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#kiss-committee .cm-case-result h3{font-size:12px}
+#kiss-committee .cm-case-result small{font-size:9px;color:#919dab}
+#kiss-committee .cm-case-result>strong{display:block;font-size:13px;margin:8px 0 12px;color:#6d829f}
+#kiss-committee .cm-result-row{display:grid;grid-template-columns:minmax(0,1fr) 65px 26px;align-items:center;gap:10px;margin:8px 0;font-size:11px}
+#kiss-committee .cm-result-row>span{overflow-wrap:anywhere}
+#kiss-committee .cm-result-row meter{width:65px;height:7px;border:0;background:#e7edf5;border-radius:6px;overflow:hidden}
+#kiss-committee meter::-webkit-meter-bar{background:#e7edf5;border:0;border-radius:6px;height:7px}
+#kiss-committee meter::-webkit-meter-optimum-value{background:#93a8c4;border-radius:6px}
+#kiss-committee meter::-moz-meter-bar{background:#93a8c4}
+#kiss-committee .cm-npc-list{margin-top:16px}
+#kiss-committee .cm-npc-list>article{display:flex;gap:12px;padding:16px 0}
+#kiss-committee .cm-npc-list>article+article{border-top:1px solid #ebeff5}
+#kiss-committee .cm-npc-list>article>div{flex:1;min-width:0}
+#kiss-committee .cm-npc-list strong{font-size:13px}
+#kiss-committee .cm-npc-list strong small{font-size:10px;color:#a1aab7;font-weight:400}
+#kiss-committee .cm-npc-list p{font-size:11px;color:#8b96a6;line-height:1.8;margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere}
+#kiss-committee .cm-npc-actions{display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin-top:9px}
+#kiss-committee .cm-npc-actions>span{flex-basis:100%;color:#9ba5b2;font-size:10px}
+#kiss-committee .cm-npc-actions button{padding:5px 2px}
+#kiss-committee .cm-npc-editor{margin-top:14px}
+#kiss-committee .cm-npc-editor h2{margin-bottom:15px}
+#kiss-committee .cm-npc-editor textarea{min-height:95px}
+#kiss-committee .cm-npc-avatar{display:flex;gap:15px;align-items:center;margin:12px 0}
+#kiss-committee .cm-npc-avatar>label{position:relative;overflow:hidden}
+#kiss-committee .cm-npc-avatar input{position:absolute;inset:0;opacity:0;cursor:pointer}
+@media(min-width:370px){#kiss-committee .cm-choice-pair{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#kiss-committee .cm-choice-copy{flex:1;min-width:0;pointer-events:none}
+#kiss-committee .cm-choice-count{flex:none;align-self:center;color:#95a3b6;font-size:10px;white-space:nowrap;pointer-events:none}

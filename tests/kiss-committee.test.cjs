@@ -46,7 +46,7 @@ test('chat evidence exposes only selected ordinary messages, not hidden or syste
 test('model post generation obeys configured type/count, fixed identities, dedup and no user impersonation',async()=>{
  const f=fixture();await f.D.saveSettings({counts:{purchase:1},comments:3,allowActor:true},f.scope);
  f.setResponse({posts:[{...draft(),authorType:'user',authorId:'user'},{...draft(),authorType:'npc',authorId:'npc-b'},{...draft({title:'第二张'}),authorType:'npc',authorId:'npc-c'},{...draft({type:'reason',title:'不该生成'}),authorType:'npc',authorId:'npc-a'}]});
- assert.equal(await f.D.generate(f.scope),1);const s=await f.D.read();assert.equal(s.posts.length,1);assert.equal(s.posts[0].author.id,'npc-b');assert.match(f.requests[0].messages[0].content,/保持原有活人感/);
+ assert.equal(await f.D.generate(f.scope),1);const s=await f.D.read();assert.equal(s.posts.length,1);assert.equal(s.posts[0].author.id,'npc-b');assert.match(f.requests[0].messages[0].content,/申请审批与纠纷评议/);
 });
 test('submitting images sends real vision parts, saves observations and never accepts model user replies',async()=>{
  const f=fixture(),p=await f.D.create(draft({images:['data:image/png;base64,aGVsbG8=']}),f.scope);f.setResponse({observations:[{index:1,description:'画面中的椅子'}],responses:[{authorType:'user',authorId:'user',text:'伪造的用户回复'},{authorType:'npc',authorId:'npc-a',text:'靠背先试一下'}]});
@@ -74,8 +74,40 @@ test('chat integrations register one menu entry and cards contain no arrow icon'
 });
 
 test('NPC court posts disclose both fixed parties and cannot conscript the user into consenting',async()=>{
- const f=fixture();await f.D.saveSettings({counts:{court:1},comments:3,allowActor:true},f.scope);f.setResponse({posts:[{...draft({type:'court',title:'楼道里放纸箱该怎么商量'}),authorType:'npc',authorId:'npc-b',otherPartyId:'npc-c',otherStatement:'我想先问清楚纸箱什么时候搬走。',bothConsented:true}]});await f.D.generate(f.scope);const p=(await f.D.read()).posts[0];assert(p.npcCase);assert.equal(p.parties[1].id,'npc-c');assert(C.eligible(p));await assert.rejects(()=>f.D.act(p.id,'consent',{accept:false},f.scope),/不能替NPC/);
+ const f=fixture();await f.D.saveSettings({counts:{court:1},comments:3,allowActor:true},f.scope);f.setResponse({posts:[{...draft({type:'court',title:'楼道里放纸箱该怎么商量'}),authorType:'npc',authorId:'npc-b',otherPartyId:'npc-c',claim:'请决定纸箱是否必须当天搬走',otherStatement:'我想先问清楚纸箱什么时候搬走。',bothConsented:true}]});await f.D.generate(f.scope);const p=(await f.D.read()).posts[0];assert(p.npcCase);assert.equal(p.parties[1].id,'npc-c');assert(C.eligible(p));await assert.rejects(()=>f.D.act(p.id,'consent',{accept:false},f.scope),/不能替NPC/);
 });
 test('turning off proactive permission during a response also blocks that response actions',async()=>{
  const f=fixture(),c=f.db.characters[0];c.autoReply={enabled:true};await f.D.saveSettings({counts:{purchase:1},allowActor:true,autoPost:true},f.scope);const ctx=await f.D.context(c,{background:true});assert(ctx.allow);c.autoReply.enabled=false;await f.D.consume('<committee_action>'+JSON.stringify({type:'post',post:draft()})+'</committee_action>',c,ctx);assert.equal((await f.D.read()).posts.length,0);
+});
+
+test('comment ballots retain historical selections across repeated changes and plain comments do not borrow a vote',()=>{
+ const p=C.post(draft({type:'poll',choices:['A','B','C'],quorum:9}),me,'a');
+ C.vote(p,npc,'A','这个更合适');C.vote(p,npc,'B','改一下');C.vote(p,npc,'C','改一下');C.vote(p,npc,'A','改一下');
+ assert.deepEqual(p.comments.map(c=>C.commentChoice(p,c)),['A','B','C','A']);assert.equal(p.votes.length,1);
+ const plain=C.comment(p,npc,'还有个问题');assert.equal(C.commentChoice(p,plain),'');
+ const legacy={...p.comments[0]};delete legacy.choice;const oldVote={...p,votes:[{choice:'A',commentId:legacy.id}]};assert.equal(C.commentChoice(oldVote,legacy),'A');
+});
+test('NPC edits affect future prompts while disabled reviewers stay disabled without rewriting saved authors',async()=>{
+ const f=fixture();await f.D.mutate(s=>f.D.roster(s),f.scope);const before=(await f.D.read()).npcs[0];
+ const p=await f.D.create(draft(),f.scope);f.setResponse({responses:[{authorType:'npc',authorId:before.id,text:'先试坐再决定',choice:'再等等'}]});await f.D.enrich(p.id,f.scope);
+ const added=await f.D.saveNpc({name:'梁阿姨',persona:'开过裁缝店，关心耐用程度',avatar:'https://example.invalid/a.png'},f.scope);assert(added.id.startsWith('npc-'));
+ await f.D.saveNpc({...before,name:'陈姐新名',persona:'先看事实再表态'},f.scope);
+ const state=await f.D.read();assert.equal(state.posts[0].comments[0].author.name,before.name);assert(f.D.prompt(state,f.scope).includes('陈姐新名'));
+ await f.D.removeNpc(before.id,f.scope);assert(!f.D.roster(await f.D.read()).some(n=>n.id===before.id));
+ f.setResponse({responses:[{authorType:'npc',authorId:before.id,text:'被删除后不应出现'}]});await f.D.enrich(p.id,f.scope);assert.equal((await f.D.read()).posts[0].comments.length,1);
+ const names=(await f.D.read()).npcs;for(const n of names)await f.D.removeNpc(n.id,f.scope);assert.equal(f.D.roster(await f.D.read()).length,0);
+ await assert.rejects(()=>f.D.saveNpc({name:'',persona:'x'},f.scope),/姓名/);
+});
+test('reviewer writes reject stale persona scopes and duplicate active names',async()=>{
+ const f=fixture();await f.D.saveNpc({name:'陈老师',persona:'退休教师'},f.scope);await assert.rejects(()=>f.D.saveNpc({name:'陈老师',persona:'另一人'},f.scope),/同名/);
+ f.db.activePersonaId='other';await assert.rejects(()=>f.D.saveNpc({name:'旧请求',persona:'不应写入'},f.scope),/切换/);
+});
+test('generated dispute cases require an actionable claim and both accounts rather than forum topics',async()=>{
+ const f=fixture();await f.D.saveSettings({counts:{reason:1},comments:3,allowActor:true},f.scope);
+ f.setResponse({posts:[{...draft({type:'reason',title:'谁见过楼下的猫'}),authorType:'npc',authorId:'npc-a'}]});await assert.rejects(()=>f.D.generate(f.scope),/缺少待决诉求/);assert.equal((await f.D.read()).posts.length,0);
+ f.setResponse({posts:[{...draft({type:'reason',title:'商品尺寸不符是否应退款',claim:'退还购买款',otherStatement:'卖方称详情页已经标注尺寸',caseTheme:'交易纠纷'}),authorType:'npc',authorId:'npc-a'}]});await f.D.generate(f.scope);const p=(await f.D.read()).posts[0];assert.equal(p.claim,'退还购买款');assert.equal(p.otherStatement,'卖方称详情页已经标注尺寸');assert(C.caseReady(p));
+ const system=f.requests[0].messages[0].content;assert(system.includes('禁止普通日常动态'));assert(!system.includes('保持原有活人感与角色一致性'));
+});
+test('review results expose vote counts and ties without asserting purchases or settlements',()=>{
+ const p=C.post(draft({quorum:2}),me,'a');C.vote(p,npc,'通过','合理');C.vote(p,other,'再等等','先试坐');const v=C.verdict(p);assert.equal(v.total,2);assert(v.finished);assert.equal(v.leading,'');assert.equal(p.decision,'');assert.equal(p.outcome,'');
 });
