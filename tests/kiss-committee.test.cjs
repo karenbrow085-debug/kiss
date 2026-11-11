@@ -70,7 +70,7 @@ test('chat action context honors disabled proactive messages and strips malforme
 });
 test('chat integrations register one menu entry and cards contain no arrow icon',()=>{
  const menu=fs.readFileSync('js/modules/chat_room_html.js','utf8'),index=fs.readFileSync('index.html','utf8');assert.equal((menu.match(/id="committee-chat-menu-btn"/g)||[]).length,1);for(const file of ['committee-core','committee-data','committee'])assert(index.includes('js/modules/'+file+'.js'));
- const ui=fs.readFileSync('js/modules/committee.js','utf8').split('function chatCard(p)')[1].split('function renderCard')[0];assert(!ui.includes('icon('));assert(!ui.includes('↗'));assert(fs.readFileSync('js/db.js','utf8').includes("'committee'"));
+ const ui=fs.readFileSync('js/modules/committee.js','utf8').split('function chatCard(p)')[1].split('function renderCard')[0];assert(!ui.includes("icon('right')"));assert(!ui.includes('↗'));assert(fs.readFileSync('js/db.js','utf8').includes("'committee'"));
 });
 
 test('NPC court posts disclose both fixed parties and cannot conscript the user into consenting',async()=>{

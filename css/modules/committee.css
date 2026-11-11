@@ -75,3 +75,5 @@
 
 #kiss-committee .cm-post-options{margin:10px 0;color:#7f8fa4;font-size:11px}
 #kiss-committee .cm-post-options summary{padding:5px 0}
+
+.cm-card-head>small:first-child{display:flex;align-items:center;gap:7px}.cm-card-head>small:first-child svg{width:17px;height:17px}.cm-card-kind{display:inline-block;background:#e8ecf3;color:#85909f;font-size:10px;border-radius:6px;padding:1px 6px;margin-top:7px}
