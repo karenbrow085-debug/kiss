@@ -77,7 +77,7 @@ const defaultIcons = {
     'mono-app': {name: 'MONO', url: 'https://i.ibb.co/8LG9Km5Q/1791213449565.png'},
     'chat-list-screen': {name: '404', url: 'https://i.postimg.cc/VvQB8dQT/chan-143.png'},
     'api-settings-screen': {name: 'api', url: 'https://i.postimg.cc/50FqT8GL/chan-125.png'},
-    'wallpaper-screen': {name: '壁纸', url: 'https://i.postimg.cc/3wqFttL3/chan-90.png'},
+    'wallpaper-screen': {name: '工作台', url: 'https://i.postimg.cc/3wqFttL3/chan-90.png'},
     'world-book-screen': {name: '世界书', url: 'https://i.postimg.cc/prCWkrKT/chan-74.png'},
     'customize-screen': {name: '自定义', url: 'https://i.postimg.cc/vZVdC7gt/chan-133.png'},
     'font-settings-screen': {name: '字体', url: 'https://i.postimg.cc/FzVtC0x4/chan-21.png'},

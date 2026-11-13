@@ -369,3 +369,15 @@
   #kiss-daybook * { transition: none !important; }
 }
 
+
+/* Reveal-to-delete: one moving layer; vertical scrolling stays native. */
+#kiss-daybook .dk-swipe{position:relative;overflow:hidden;isolation:isolate;border-radius:12px;touch-action:pan-y;margin:3px 0}
+#kiss-daybook .dk-swipe-front{position:relative;z-index:1;background:var(--dk-bg,#f8f9fc);transition:transform .18s ease;will-change:auto}
+#kiss-daybook .dk-swipe.is-open .dk-swipe-front{transform:translateX(-76px)}
+#kiss-daybook .dk-swipe-delete{position:absolute;inset:0 0 0 auto;width:76px;border:0;background:#b96870;color:#fff;font:inherit;font-size:12px;display:grid;place-items:center;border-radius:0 12px 12px 0}
+#kiss-daybook .dk-swipe:focus-visible{outline:2px solid #9baac4;outline-offset:2px}
+#kiss-daybook[data-theme=night] .dk-swipe-front{background:#20232b}
+@media(prefers-reduced-motion:reduce){#kiss-daybook .dk-swipe-front{transition:none}}
+
+#kiss-daybook .dk-paper-stack>.dk-swipe .dk-sheet{position:relative;z-index:1;border-radius:inherit;background:var(--dk-paper);box-shadow:0 1px 0 #a1a1a54d,0 2px 6px #20202409}
+#kiss-daybook .dk-timeline>.dk-swipe:not(:last-child)::after{content:"";position:absolute;left:4px;top:12px;bottom:0;width:1px;background:var(--dk-line);z-index:2;pointer-events:none}

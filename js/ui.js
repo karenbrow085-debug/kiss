@@ -71,11 +71,7 @@ function setupAirDropPanelBtn() {
 const switchScreen = (targetId) => {
     if(targetId === 'phone-screen' && window.KissMoments){window.KissMoments.open();return;}
     if(targetId === 'moments-screen' && window.KissMoments){window.KissMoments.openProfile(currentChatId);return;}
-    if (targetId === 'wallpaper-screen') {
-        targetId = 'customize-screen';
-        renderCustomizeForm();
-        requestAnimationFrame(() => { const section=document.getElementById('kp-wallpaper');if(section)section.scrollIntoView({block:'start'}); });
-    }
+    if (targetId === 'wallpaper-screen') window.KissStyleWorkbench?.mount();
 
     // 离开聊天室时清理自定义样式
     if (targetId !== 'chat-room-screen') {
