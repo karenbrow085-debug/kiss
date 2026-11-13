@@ -71,6 +71,15 @@ function previewMarkup(mode,c,settings,hasCSS,externalGlobal){
   node.querySelector('.of-title strong')?.replaceChildren(document.createTextNode(title(c)));return '<div id="wb-offline-host" data-theme="'+(db.offlineNightMode?'night':'day')+'">'+node.outerHTML+'</div>';
  }
  const id=mode==='global'?'home-screen':mode==='list'?'chat-list-screen':'chat-room-screen';const original=document.getElementById(id);node=original?sanitizedClone(original):document.createElement('section');node.id=id;node.classList.add('screen','active');if(mode==='list'&&externalGlobal){node.classList.remove('ku-mounted');node.querySelectorAll('.ku-view').forEach(n=>n.remove());}
+ if(mode==='list'){
+  let list=node.querySelector('#chat-list-container');
+  if(!list){const main=document.createElement('main');main.className='content';list=document.createElement('ul');list.id='chat-list-container';list.className='list-container';main.append(list);node.append(main);}
+  const avatar=c?.avatar||'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="18" fill="#dfe6f0"/><circle cx="40" cy="30" r="13" fill="#a3b0c5"/><path d="M16 72a24 24 0 0 1 48 0" fill="#a3b0c5"/></svg>');
+  const rows=[[title(c),'慢慢来，我们还有时间。','12:40','2'],['午后放映室','[图片]','11:25',''],['周末计划','下次一起去看看吧。','昨天','']];
+  list.innerHTML=rows.map(([name,text,time,unread],i)=>`<li class="list-item chat-item${i===0?' pinned':''}" data-id="wb-list-${i}" data-type="${i===1?'group':'private'}"><img src="${E(avatar)}" alt="${E(name)}" class="chat-avatar${i===1?' group-avatar':''}"><div class="item-details"><div class="item-details-row" style="justify-content:flex-start;align-items:center"><div class="item-name">${E(name)}</div></div><div class="item-preview-wrapper"><div class="item-preview">${E(text)}</div></div></div><div class="item-meta-container"><span class="item-time">${time}</span><span class="unread-badge${unread?' visible':''}">${unread}</span></div></li>`).join('');
+  node.querySelector('#no-chats-placeholder')?.remove();
+  const tabs=node.querySelector('#chat-category-tabs');if(tabs)tabs.innerHTML='<div class="tab-item active pill-black">All</div>';
+ }
  if(mode==='chat'){
   if(!node.querySelector('#message-area'))node.innerHTML='<header class="app-header"><button>‹</button><h1 id="chat-room-title"></h1><button>···</button></header><main class="message-area" id="message-area"></main><footer class="message-input-area"><button>＋</button><input placeholder="输入消息…"><button>发送</button></footer>';
   const name=node.querySelector('#chat-room-title');if(name)name.textContent=title(c);const area=node.querySelector('#message-area');area.innerHTML=c?sampleChat({...c,...settings,me:c.me||{avatar:c.myAvatar,nickname:c.myName||'我'},members:c.members||[],useCustomBubbleCss:hasCSS}):'<p style="padding:30px">先添加角色即可预览聊天美化。</p>';
