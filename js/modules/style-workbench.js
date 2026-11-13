@@ -8,9 +8,10 @@ const icons={back:'m15 5-7 7 7 7',image:'M3 3h18v18H3zM3 16l5-5 5 5 3-3 5 5M15 7
 const filledIcons={zoom:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" style="fill:currentColor;stroke:none"><path fill="currentColor" d="M11 17h2v-4h4v-2h-4V7h-2v4H7v2h4zm1 5q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12t.788-3.9t2.137-3.175T8.1 2.788T12 2t3.9.788t3.175 2.137T21.213 8.1T22 12v8q0 .825-.587 1.413T20 22zm0-2q3.35 0 5.675-2.325T20 12t-2.325-5.675T12 4T6.325 6.325T4 12t2.325 5.675T12 20m0-8"/></svg>`,tools:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true" style="fill:currentColor;stroke:none"><path d="M380 64.4z" fill="currentColor"/><path d="M275.1 57.6c-9.4-5.9-23.3-9.6-37.9-9.6-14.3 0-30.3 2.5-46.7 9.2-46.5 19-74 45.4-81.1 52.4-7 7-16.8 18-22.9 26.6-6.1 8.7 1.9 21-6.1 29s-24.7 0-24.7 0c-1.4 0-2.9.5-3.9 1.6l-34.1 33.9c-2.2 2.1-2.2 5.7 0 7.8l63.5 63.1c1.1 1.1 2.5 1.6 3.9 1.6s2.9-.5 3.9-1.6l33.2-34.8c2.2-2.1 2.2-5.7 0-7.8 0 0-5.3-5.2-12.1-12s.8-19.3 5.3-23.4c4.5-4.1 11.6-6.8 21.1-6.8 4.3 0 7.4.7 11.4 1.8 12.2 3.4 25.8 15.9 50.9 40.8l-3.9 6.5c-2.3 3.8-.9 8.3 1.3 10.4 0 0-5-4.9 13.1 13.1l50-47.2c-19.1-18.9-14.5-14.1-14.5-14.1-1.4-1.4-3.8-2.3-6.3-2.3-1.4 0-2.9.3-4.2 1l-5.6 3c-28-27.8-35.3-40.2-34.3-61.7 1.1-22.4 12.3-37.1 30.5-52.7 24.7-21.1 60.6-15.2 60.6-15.2 8-.1-4.2-8.6-10.4-12.6z" fill="currentColor"/><path d="M462.5 399.9s-68.9-57.2-130.2-115.7l-47.7 50.6c58.5 60.6 114.9 127.6 114.9 127.6 1.1 1.1 2.5 1.6 3.9 1.6s2.9-.5 3.9-1.6l55.1-54.7c2.2-2.1 2.2-5.7.1-7.8z" fill="currentColor"/><path d="M479.2 125.3l-52.4 52.6-51.1-9.3-9.2-51.1 52.4-52.6c-11.1-11.1-26.8-16.6-39-16.6-.7 0-1.4 0-2 .1-12.5.6-39.2 7.7-59.9 29.7-20 21.1-41.1 60.6-22.4 104.3 2.2 5.3 4.7 12.2-2.7 19.7-1.5 1.4-9.9 9.4-22.5 21.3-3.6 3.4-7.4 7-11.6 11-8 7.6-17.1 16.2-26.8 25.2-3.8 3.6-7.7 7.2-11.6 11-57 53.8-126.9 119.5-126.9 119.5-18 15.5-16.7 44.1-.1 60.8 8.5 8.4 20 12.8 31.3 12.8 11 0 21.9-4.2 29.5-13.1 0 0 65.5-69.8 119.3-126.9 3.7-4 7.4-7.8 11-11.7 9.3-9.9 18-19.1 25.8-27.3 3.9-4.2 7.6-8.1 11-11.6 11.5-12.2 19.3-20.4 21-22 4-3.9 7.7-5.1 11.1-5.1 3.3 0 6.2 1.2 8.6 2.4 9.9 5.1 21 7.3 32.4 7.3 26.7 0 55-12.4 72.1-29.5 24.4-24.4 28.8-47.9 29.6-60 .6-11.8-3.6-27.6-16.9-40.9zM137.4 426.1c-5.5 5.4-14.4 5.4-19.8 0-5.4-5.5-5.4-14.4 0-19.8 5.5-5.4 14.4-5.4 19.8 0 5.4 5.5 5.4 14.4 0 19.8z" fill="currentColor"/></svg>`,file:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" style="fill:currentColor;stroke:none"><path fill="currentColor" d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/></svg>`};
 const icon=k=>filledIcons[k]||`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[k]||icons.grid}"/></svg>`;
 const button=(a,label,cls='',extra='')=>`<button type="button" data-wb="${a}" class="${cls}" ${extra}>${label}</button>`;
-let host,ui,view='studio',kind='chat',globalView='list',offlineView='sample',selected=null,chatId='',baseline='',draft=null,reference='',notes='',apiName='',outputLimit=8192,showOriginal=false,busy=false,saving=false,controller=null,frame=null,token=0,observer=null,galleryObserver=null,thumbBusy=false,thumbQueue=[],galleryKind='all',query='',gallerySeq=0,thumbFrame=null,lastGalleryScroll=0;
+let host,ui,view='studio',kind='chat',globalView='list',offlineView='sample',selected=null,chatId='',baseline='',draft=null,reference='',notes='',apiName='',outputLimit=8192,showOriginal=false,busy=false,saving=false,controller=null,frame=null,token=0,observer=null,galleryObserver=null,thumbBusy=false,thumbQueue=[],galleryKind='all',query='',gallerySeq=0,thumbFrame=null;
 let uploadRevision=0,referenceLoading=false;
-const cache=new Map(),referenceCache=new Map();let frameMeta=null,offlineBase='',offlineStylePromise=null;
+const referenceCache=new Map(),galleryFrames=new Map();
+const MAX_GALLERY_FRAMES=6;let frameMeta=null,offlineBase='',offlineStylePromise=null;
 function offlineHostCSS(css){
  const source=String(css||''),host='[id="kiss-offline-screen"]';let out='',i=0;
  const quotedEnd=(at)=>{const quote=source[at];for(let j=at+1;j<source.length;j++){if(source[j]==='\\'){j++;continue;}if(source[j]===quote)return j+1;}return source.length;};
@@ -42,15 +43,15 @@ function status(text,error=false){const node=$('.wb-status');if(node){node.textC
 function title(c){return c?.remarkName||c?.realName||c?.name||'角色';}
 function disposeFrame(){frame?._wbResize?.disconnect();frame?._wbCancel?.();frame?.remove();frame=null;}
 function invalidateUpload(){uploadRevision++;referenceLoading=false;}
-function stop(){invalidateUpload();clearTimeout(searchTimer);token++;gallerySeq++;controller?.abort();controller=null;busy=saving;disposeFrame();thumbFrame?._wbCancel?.();thumbFrame?.remove();thumbFrame=null;galleryObserver?.disconnect();thumbQueue=[];}
+function stop(){releaseGalleryFrames();invalidateUpload();clearTimeout(searchTimer);token++;gallerySeq++;controller?.abort();controller=null;busy=saving;disposeFrame();thumbFrame?._wbCancel?.();thumbFrame?.remove();thumbFrame=null;galleryObserver?.disconnect();thumbQueue=[];}
 function sourceForCurrent(){return Core.choose(kind,chat());}
 function setSource(source){if(draft&&!confirm('放弃未保存的修复草稿？'))return false;invalidateUpload();controller?.abort();selected={...source,kind:source.kind==='global'?'list':source.kind};kind=selected.kind;baseline=Core.resolve(source).css;draft=null;showOriginal=false;reference=referenceCache.get(sourceKey())||'';if(source.chatId)chatId=source.chatId;return true;}
 function sourceKey(){return [kind,selected?.store||'current',selected?.id||selected?.chatId||selected?.name||kind].join(':');}
 function activeCSS(){return draft&&!showOriginal?draft.css:baseline;}
 function mount(){
  host=document.getElementById('wallpaper-screen');if(!host)return;
- if(!ui){host.replaceChildren();ui=host.attachShadow({mode:'open'});ui.innerHTML='<link rel="stylesheet" href="css/modules/style-workbench.css?v=20261114-studio-8"><div class="wb-app"></div>';ui.addEventListener('click',onClick);ui.addEventListener('change',onChange);ui.addEventListener('input',onInput);ui.addEventListener('keydown',e=>{if(e.key==='Escape'){if(busy){controller?.abort();return;}if(view==='gallery'||view==='code'||view==='zoom'||view==='notice'||view==='settings'||view==='repair'){view='studio';render();}else close();}});observer=new MutationObserver(()=>{if(!host.classList.contains('active'))stop();});observer.observe(host,{attributes:true,attributeFilter:['class']});}
- if(accountAtOpen!==account()){stop();selected=null;draft=null;reference='';referenceCache.clear();cache.clear();accountAtOpen=account();}
+ if(!ui){host.replaceChildren();ui=host.attachShadow({mode:'open'});ui.innerHTML='<link rel="stylesheet" href="css/modules/style-workbench.css?v=20261114-native-preview-11"><div class="wb-app"></div>';ui.addEventListener('click',onClick);ui.addEventListener('change',onChange);ui.addEventListener('input',onInput);ui.addEventListener('keydown',e=>{if(e.key==='Escape'){if(busy){controller?.abort();return;}if(view==='gallery'||view==='code'||view==='zoom'||view==='notice'||view==='settings'||view==='repair'){view='studio';render();}else close();}});observer=new MutationObserver(()=>{if(!host.classList.contains('active'))stop();});observer.observe(host,{attributes:true,attributeFilter:['class']});}
+ if(accountAtOpen!==account()){stop();selected=null;draft=null;reference='';referenceCache.clear();accountAtOpen=account();}
  if(!chats().some(c=>String(c.id)===chatId))chatId='';
  if(!chatId)chatId=String((typeof currentChatId!=='undefined'&&chats().find(c=>c.id===currentChatId)?.id)||chat()?.id||'');
  if(selected&&!draft){try{baseline=Core.resolve(selected).css;selected={...selected,css:baseline};}catch(_){selected=null;}}
@@ -58,7 +59,7 @@ function mount(){
  requestAnimationFrame(()=>{if(host.classList.contains('active'))render();});
 }
 function close(){if(busy)controller?.abort();stop();switchScreen('home-screen');}
-function render(){
+function render(){releaseGalleryFrames();
  const app=$('.wb-app');if(!app||!host?.classList.contains('active'))return;
  token++;disposeFrame();galleryObserver?.disconnect();thumbQueue=[];
  const heading=view==='gallery'?'选择当前美化':view==='notice'?'授权与使用说明':view==='settings'?'工作台设置':view==='code'?'样式代码':view==='zoom'?'放大预览':view==='repair'?'修复预览':'美化工作台';
@@ -77,7 +78,7 @@ function studio(){
  return `<div class="wb-toolbar">${button('gallery',`<span>当前美化</span><strong>${E(selected?.name||'当前样式')}</strong><span class="wb-chevron">›</span>`,'wb-current',disabled)}</div><nav class="wb-tabs" aria-label="预览类型">${[['chat','聊天'],['offline','线下'],['list','列表']].map(([id,t])=>button('kind:'+id,t,id===kind?'selected':'',`aria-pressed="${id===kind}" ${disabled}`)).join('')}</nav>${draft?button('result','查看修复预览','wb-result-link',disabled):''}${shellSwitcher()}<section class="wb-comparison"><div class="wb-preview-column"><header>当前效果</header><div class="wb-live wb-frame-slot"></div><div class="wb-preview-foot"><span>实时预览</span>${button('zoom',icon('zoom'),'wb-tiny','aria-label="放大实时预览"')}</div></div><div class="wb-preview-column"><header>作者原图</header><div class="wb-reference">${reference?`<img src="${E(reference)}" alt="美化作者的参考原图">`:`<div class="wb-upload-empty">${icon('image')}<span>上传作者原图</span></div>`}</div><div class="wb-preview-foot"><span>参考原图</span>${button('upload',reference?'更换原图':'上传原图','wb-upload',disabled)}</div></div></section><input id="wb-reference-file" type="file" accept="image/*" hidden>${adjustmentFields(disabled)}<p class="wb-save-note">确认前不会覆盖当前美化</p><div class="wb-underlinks">${button('notice','授权与使用说明 · 使用前须取得作者许可','wb-legal-link')}${button('settings','接口 / 预览设置','wb-legal-link')}</div>`;
 }
 function adjustmentFields(disabled){return `<section class="wb-notes"><label for="wb-note">调整要求</label><textarea id="wb-note" data-field="notes" placeholder="输入栏上移，气泡恢复浅灰白。" ${disabled}>${E(notes)}</textarea></section>${button(busy?'cancel':'repair',saving?'保存中…':busy?'停止生成':'对比并生成修复预览','wb-primary wb-wide wb-generate',saving||referenceLoading||!reference&&!busy?'disabled':'')}`;}
-function gallery(){return `<div class="wb-gallery-head"><p>像挑选主题一样，先看效果再选。</p><input type="search" data-field="search" value="${E(query)}" placeholder="搜索已有美化" aria-label="搜索已有美化"><nav class="wb-gallery-tabs">${[['all','全部'],['chat','聊天'],['offline','线下'],['list','列表']].map(([id,t])=>button('filter:'+id,t,id===galleryKind?'selected':'')).join('')}</nav></div><div class="wb-gallery-grid"></div><p class="wb-gallery-note">只展示本机已有美化。缩略图按需生成；选择后查看完整实时预览。</p>`;}
+function gallery(){return `<div class="wb-gallery-head"><p>像挑选主题一样，先看效果再选。</p><input type="search" data-field="search" value="${E(query)}" placeholder="搜索已有美化" aria-label="搜索已有美化"><nav class="wb-gallery-tabs">${[['all','全部'],['chat','聊天'],['offline','线下'],['list','列表']].map(([id,t])=>button('filter:'+id,t,id===galleryKind?'selected':'')).join('')}</nav></div><div class="wb-gallery-grid"></div><p class="wb-gallery-note">只展示本机已有美化。仅加载屏幕附近的真实页面，移出屏幕后释放；选择后查看完整实时预览。</p>`;}
 function codeView(){return `<section class="wb-code-view"><p>编辑后仅改变修复草稿，确认保存才覆盖原美化。</p><textarea data-field="css" aria-label="当前美化 CSS" spellcheck="false">${E(activeCSS())}</textarea><div class="wb-actions">${button('studio','取消')}${button('apply-code','预览这份代码','wb-primary')}</div></section>`;}
 function zoomView(){return `${shellSwitcher()}<div class="wb-zoom-frame wb-frame-slot"></div><div class="wb-actions">${button('studio','返回对比')}</div>`;}
 function sampleChat(c){
@@ -134,7 +135,15 @@ function previewMarkup(mode,c,settings,hasCSS,externalGlobal){
   if(!node.querySelector('#message-area'))node.innerHTML='<header class="app-header"><button>‹</button><h1 id="chat-room-title"></h1><button>···</button></header><main class="message-area" id="message-area"></main><footer class="message-input-area"><button>＋</button><input placeholder="输入消息…"><button>发送</button></footer>';
   const name=node.querySelector('#chat-room-title');if(name)name.textContent=title(c);const area=node.querySelector('#message-area');area.innerHTML=c?sampleChat({...c,...settings,me:c.me||{avatar:c.myAvatar,nickname:c.myName||'我'},members:c.members||[],useCustomBubbleCss:hasCSS}):'<p style="padding:30px">先添加角色即可预览聊天美化。</p>';
   node.querySelectorAll('.modal-overlay,.status-panel-overlay,#chat-expansion-panel,#chat-room-header-select,#multi-select-bar,#offline-active-entry,#reply-preview-bar,#capture-mode-bar').forEach(n=>n.remove());
-  const cfg={...(c||{}),...(settings||{})};node.style.backgroundImage='';if(cfg.chatBg)node.style.backgroundImage='url('+JSON.stringify(cfg.chatBg)+')';
+  const cfg={...(c||{}),...(settings||{})};
+  node.className=node.className.replace(/\bchat-active-[^ ]+\b/g,'');if(c?.id)node.classList.add('chat-active-'+c.id);
+  node.classList.toggle('disable-blur',cfg.bubbleBlurEnabled===false);node.classList.toggle('show-timestamp',!!cfg.showTimestamp);
+  node.classList.remove('timestamp-side','timestamp-style-bubble','timestamp-style-avatar');node.classList.add('timestamp-style-'+(cfg.timestampStyle||'bubble'));
+  node.style.setProperty('--chat-avatar-radius',(cfg.avatarRadius??50)+'%');node.style.backgroundImage=cfg.chatBg?'url('+JSON.stringify(cfg.chatBg)+')':'none';
+  const header=node.querySelector('#chat-room-header-default');header?.classList.toggle('title-centered',cfg.titleLayout==='center');
+  const subtitle=node.querySelector('#chat-room-subtitle');if(subtitle)subtitle.style.display=!(db.groups||[]).some(g=>g.id===c?.id)&&cfg.showStatus!==false?'flex':'none';
+  const statusLabel=node.querySelector('#chat-room-status-text');if(statusLabel)statusLabel.textContent=cfg.status||'在线';
+  const statusButton=node.querySelector('#char-status-btn');if(statusButton)statusButton.style.display=cfg.statusPanel?.enabled?'flex':'none';
  }
  const nav=shellPage?document.getElementById('global-bottom-nav'):null;const navCopy=nav?sanitizedClone(nav):null;if(navCopy){navCopy.style.display='flex';for(const item of navCopy.querySelectorAll('[data-target]'))item.classList.toggle('active',item.dataset.target===id);if(externalGlobal){navCopy.classList.remove('ku-custom-nav');navCopy.querySelectorAll('.ku-nav-icon').forEach(n=>n.remove());}}
  return '<div class="phone-screen">'+node.outerHTML+(navCopy?.outerHTML||'')+'</div>';
@@ -147,8 +156,8 @@ function docHTML(source,css,mode,c,freeze=false){
  let localCSS=globalSource?(mode==='chat'&&c?.useCustomBubbleCss?(typeof processTemplate==='function'?processTemplate(c.customBubbleCss||'',c):c.customBubbleCss||''):''):processed;
  if(mode==='offline')localCSS=offlineHostCSS(localCSS);
  const externalGlobal=!!globalCSS.replace(/\/\*[\s\S]*?\*\//g,'').trim();const markup=previewMarkup(mode,c,setting,!!localCSS,externalGlobal),classes=document.body.className;const htmlClass=externalGlobal?document.documentElement.className.replace(/\bku-mode\b|\bku-nav-active\b/g,''):document.documentElement.className;
- const viewport=size();let inherited='';if(mode==='offline'&&root.getComputedStyle){const computed=root.getComputedStyle(document.querySelector('.phone-screen')||document.documentElement);for(const name of computed)if(name.startsWith('--'))inherited+=name+':'+computed.getPropertyValue(name)+';';inherited=':root{'+inherited+'}';}
- return `<!doctype html><html class="${E(htmlClass)}"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: https: http:; style-src 'unsafe-inline' https: http:; font-src data: https: http:; base-uri 'self'; frame-src 'self'; form-action 'none';"><base href="${E(document.baseURI)}"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}${mode==='offline'?'<style>'+cssText(inherited+offlineBase)+'</style>':''}<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}.phone-screen{width:100%!important;height:100%!important;max-width:none!important;min-height:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}.screen.active{display:flex!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important}#home-screen{background-image:url(${JSON.stringify(db.wallpaper||'')})}.of-page{height:100vh;color:var(--of-text,#303137)}#char-status-overlay,.typing-indicator{display:none!important}</style><style>${cssText(globalCSS)}</style>${!['global','list'].includes(mode)?'<style>'+cssText(localCSS)+'</style>':''}${freeze?'<style>*,*::before,*::after{transition:none!important;caret-color:transparent!important}.screen.active{animation:none!important}</style>':''}</head><body class="${E(classes)}">${markup}</body></html>`;
+ let inherited='';if(mode==='offline'&&root.getComputedStyle){const computed=root.getComputedStyle(document.querySelector('.phone-screen')||document.documentElement);for(const name of computed)if(name.startsWith('--'))inherited+=name+':'+computed.getPropertyValue(name)+';';inherited=':root{'+inherited+'}';}
+ return `<!doctype html><html class="${E(htmlClass)}" style="${E(document.documentElement.style?.cssText||'')}"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: https: http:; style-src 'unsafe-inline' https: http:; font-src data: https: http:; base-uri 'self'; frame-src 'self'; form-action 'none';"><base href="${E(document.baseURI)}"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}${mode==='offline'?'<style>'+cssText(inherited+offlineBase)+'</style>':''}<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}.phone-screen{width:100%!important;height:100%!important;max-width:none!important;min-height:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}.screen.active{display:flex!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important}#home-screen{background-image:url(${JSON.stringify(db.wallpaper||'')})}.of-page{height:100vh;color:var(--of-text,#303137)}#char-status-overlay,.typing-indicator{display:none!important}</style><style>${cssText(globalCSS)}</style>${!['global','list'].includes(mode)?'<style>'+cssText(localCSS)+'</style>':''}${freeze?'<style>*,*::before,*::after{transition:none!important;caret-color:transparent!important}.screen.active{animation:none!important}</style>':''}</head><body class="${E(classes)}">${markup}</body></html>`;
 }
 function makeFrame(html){const f=document.createElement('iframe');f.title='美化实时预览';f.setAttribute('sandbox','allow-same-origin');f.setAttribute('referrerpolicy','no-referrer');const d=size();f.width=d.width;f.height=d.height;f.srcdoc=html;return f;}
 function frameReady(f){const pending=new Promise((resolve,reject)=>{let settled=false;const finish=(error)=>{if(settled)return;settled=true;clearTimeout(timer);error?reject(error):resolve();};const timer=setTimeout(()=>finish(Error('预览载入超时，请重新预览')),15000);f.onload=()=>finish();f.onerror=()=>finish(Error('预览加载失败'));f._wbCancel=()=>finish(new DOMException('预览已关闭','AbortError'));});f._wbReady=pending;return pending;}
@@ -159,18 +168,26 @@ async function paintPreview(){
  f._wbResize=resize;
 }
 function fitPreview(width,height,availableWidth,availableHeight){const scale=Math.min(availableWidth/width,availableHeight/height);return {scale,left:(availableWidth-width*scale)/2,height:height*scale};}
-function thumbnailKey(p){const c=chat();return Core.hash([c?.id,title(c),c?.myName,c?.theme,c?.chatBg,JSON.stringify(c?.me||{}),JSON.stringify((c?.members||[]).map(m=>({id:m.id,name:m.realName||m.name,avatar:m.avatar}))),'preview-pseudo-5',root.devicePixelRatio||1,p.kind,p.kind==='offline'?offlineView:'',p.css,JSON.stringify(p.settings),db.globalCss,chat()?.avatar,chat()?.myAvatar,db.wallpaper,db.fontUrl,db.fontSizeScale,db.offlineNightMode,JSON.stringify(size()),account()].join('|'));}
+function releaseThumb(card){
+ const f=galleryFrames.get(card);if(!f)return;
+ galleryFrames.delete(card);f._wbResize?.disconnect();f._wbCancel?.();f.remove();if(thumbFrame===f)thumbFrame=null;
+ const box=card.querySelector('.wb-thumb');if(box)box.innerHTML='<span>滑动到此处显示预览</span>';
+}
+function releaseGalleryFrames(){for(const card of [...galleryFrames.keys()])releaseThumb(card);}
 function loadGallery(){
  const list=galleryCatalog().filter(p=>(galleryKind==='all'||p.kind===galleryKind)&&p.name.toLowerCase().includes(query.toLowerCase())),grid=$('.wb-gallery-grid'),seq=++gallerySeq;
- $('.wb-main').addEventListener('scroll',()=>{lastGalleryScroll=performance.now();},{passive:true});
  const count=document.createElement('p');count.className='wb-gallery-count';count.textContent=list.length+' 份已有美化';grid.before(count);
  if(!list.length){grid.innerHTML='<p class="wb-empty">还没有匹配的美化。可在原有设置中导入或保存。</p>';return;}
- galleryObserver=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{for(const entry of entries){entry.target._visible=entry.isIntersecting;if(entry.isIntersecting)queueThumb(entry.target,entry.target._preset);else{const box=entry.target.querySelector('.wb-thumb');if(box?.querySelector('img'))box.innerHTML='<span>滑动到此处显示预览</span>';}}}, {root:$('.wb-main'),rootMargin:'100px'}):null;
- let offset=0;function appendBatch(){if(seq!==gallerySeq||view!=='gallery')return;const fragment=document.createDocumentFragment();for(const p of list.slice(offset,offset+24)){const card=document.createElement('button');card.type='button';card.className='wb-theme-card';card.dataset.wb='pick';card._preset=p;card.innerHTML=`<div class="wb-thumb"><span>正在准备预览</span></div><strong>${E(p.name)}</strong><small>${({global:'全局美化',chat:'聊天美化',offline:'线下美化',list:'列表美化'})[p.kind]}</small>`;fragment.append(card);}const cards=[...fragment.children];grid.append(fragment);for(const card of cards){if(galleryObserver)galleryObserver.observe(card);else if(offset<6)queueThumb(card,card._preset);}offset+=24;if(offset<list.length)(root.requestIdleCallback||requestAnimationFrame)(appendBatch);}
+ galleryObserver=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{
+  for(const entry of entries){entry.target._visible=entry.isIntersecting;if(!entry.isIntersecting)releaseThumb(entry.target);}
+  for(const entry of entries)if(entry.isIntersecting)queueThumb(entry.target,entry.target._preset);
+  pumpThumbs();
+ },{root:$('.wb-main'),rootMargin:'0px',threshold:0}):null;
+ const viewport=size();let offset=0;
+ function appendBatch(){if(seq!==gallerySeq||view!=='gallery')return;const fragment=document.createDocumentFragment();for(const p of list.slice(offset,offset+24)){const card=document.createElement('button');card.type='button';card.className='wb-theme-card';card.dataset.wb='pick';card._preset=p;card.innerHTML=`<div class="wb-thumb" style="aspect-ratio:${viewport.width}/${viewport.height}"><span>滑动到此处显示预览</span></div><strong>${E(p.name)}</strong><small>${({global:'全局美化',chat:'聊天美化',offline:'线下美化',list:'列表美化'})[p.kind]}</small>`;fragment.append(card);}const cards=[...fragment.children];grid.append(fragment);for(const card of cards){if(galleryObserver)galleryObserver.observe(card);else if(offset<6)queueThumb(card,card._preset);}offset+=24;if(offset<list.length)(root.requestIdleCallback||requestAnimationFrame)(appendBatch);}
  appendBatch();
 }
-function queueThumb(card,preset){if(!preset||!card.isConnected||!host?.classList.contains('active')||card._queued)return;const key=thumbnailKey(preset),cached=cache.get(key);if(cached){showThumb(card,cached);return;}card._queued=true;thumbQueue.push({card,preset,key,seq:gallerySeq});pumpThumbs();}
-function showThumb(card,data){const box=card.querySelector('.wb-thumb');if(box){const img=new Image();img.src=data;img.alt=card._preset.name+' 效果预览';img.loading='lazy';box.replaceChildren(img);}}
+function queueThumb(card,preset){if(!preset||!card.isConnected||!host?.classList.contains('active')||card._queued||galleryFrames.has(card))return;card._queued=true;thumbQueue.push({card,preset,seq:gallerySeq});pumpThumbs();}
 async function waitPaint(f){try{await Promise.race([f.contentDocument.fonts?.ready,new Promise(r=>setTimeout(r,1200))]);}catch(_){}await new Promise(r=>setTimeout(r,160));}
 function prepareCaptureClone(doc){
  // html2canvas materializes ::before/::after as ordinary nodes. Its default
@@ -191,11 +208,21 @@ async function capture(f,small=false){
 }
 async function pumpThumbs(){
  if(thumbBusy)return;thumbBusy=true;
- try{while(thumbQueue.length){const job=thumbQueue.shift();job.card._queued=false;if(job.seq!==gallerySeq||view!=='gallery'||!host?.classList.contains('active')||!job.card.isConnected||galleryObserver&&!job.card._visible)continue;
-  if(job.preset.kind==='offline'){try{await ensureOfflineStyles();}catch(_){continue;}if(job.seq!==gallerySeq)continue;}
-  const f=makeFrame(docHTML(job.preset,job.preset.css,job.preset.kind,chat(),true));f._wbThumbWidth=job.card.querySelector('.wb-thumb')?.clientWidth||180;f.className='wb-thumbnail-renderer';thumbFrame=f;const ready=frameReady(f);ui.append(f);
-  try{await ready;await waitPaint(f);if(job.seq!==gallerySeq||!f.isConnected)continue;while(performance.now()-lastGalleryScroll<160&&job.seq===gallerySeq)await new Promise(r=>setTimeout(r,160));if(job.seq!==gallerySeq||!f.isConnected)continue;const data=await capture(f,true);if(job.seq!==gallerySeq||!job.card.isConnected)continue;cache.set(job.key,data);while(cache.size>36)cache.delete(cache.keys().next().value);if(job.card.isConnected&&job.card._visible!==false){showThumb(job.card,data);}}catch(_){const label=job.card.querySelector('.wb-thumb span');if(label)label.textContent='点击查看实时效果';}finally{f.remove();if(thumbFrame===f)thumbFrame=null;}
-  await new Promise(r=>setTimeout(r,45));
+ try{while(thumbQueue.length&&galleryFrames.size<MAX_GALLERY_FRAMES){
+  const job=thumbQueue.shift();job.card._queued=false;
+  const current=()=>job.seq===gallerySeq&&view==='gallery'&&host?.classList.contains('active')&&job.card.isConnected&&(!galleryObserver||job.card._visible);
+  if(!current()||galleryFrames.has(job.card))continue;
+  if(job.preset.kind==='offline'){try{await ensureOfflineStyles();}catch(_){continue;}if(!current())continue;}
+  // Native rendering preserves generated content, masks, gradients, backdrop
+  // filters and font metrics; html2canvas cannot faithfully rasterize them.
+  const box=job.card.querySelector('.wb-thumb'),f=makeFrame(docHTML(job.preset,job.preset.css,job.preset.kind,chat(),true));
+  f.className='wb-gallery-frame';f.title=job.preset.name+' 效果预览';f.tabIndex=-1;
+  const ready=frameReady(f);galleryFrames.set(job.card,f);thumbFrame=f;box.replaceChildren(f);
+  const fit=()=>{if(!f.isConnected)return;const layout=fitPreview(Number(f.width),Number(f.height),box.clientWidth,box.clientHeight);f.style.transform='scale('+layout.scale+')';f.style.left=layout.left+'px';f.style.top=Math.max(0,(box.clientHeight-layout.height)/2)+'px';};
+  const resize=new ResizeObserver(fit);f._wbResize=resize;resize.observe(box);fit();
+  ready.then(()=>{if(!current())releaseThumb(job.card);else fit();})
+   .catch(()=>{releaseThumb(job.card);if(current()){const label=box.querySelector('span');if(label)label.textContent='点击查看实时效果';}})
+   .finally(()=>{if(thumbFrame===f)thumbFrame=null;pumpThumbs();});
  }}finally{thumbBusy=false;}
 }
 async function readReference(file){
@@ -255,7 +282,7 @@ function refreshSavedStyle(source,css){
 }
 async function save(){
  if(!draft||busy)return;if(referenceLoading)throw Error('参考图正在读取，请稍后保存');if(!confirm('覆盖「'+selected.name+'」？正在使用这份样式的聊天也会同步更新。'))return;
- const source=selected,repairDraft=draft,owner=accountAtOpen,database=db;saving=true;busy=true;render();try{const result=await Core.saveRepair(source,baseline,repairDraft.css,owner);if(selected!==source||account()!==owner||db!==database){saving=false;busy=false;return;}baseline=repairDraft.css;draft=null;view='studio';selected={...selected,css:baseline};cache.clear();
+ const source=selected,repairDraft=draft,owner=accountAtOpen,database=db;saving=true;busy=true;render();try{const result=await Core.saveRepair(source,baseline,repairDraft.css,owner);if(selected!==source||account()!==owner||db!==database){saving=false;busy=false;return;}baseline=repairDraft.css;draft=null;view='studio';selected={...selected,css:baseline};
   let refreshFailed=false;try{refreshSavedStyle(source,baseline);}catch(_){refreshFailed=true;}
   saving=false;busy=false;render();status('已覆盖保存，'+result.updatedChats+' 个使用中的聊天已同步更新'+(refreshFailed?'；界面刷新未完成，请重新打开聊天查看':''),refreshFailed);
  }catch(error){saving=false;busy=false;render();status(error.message,true);}

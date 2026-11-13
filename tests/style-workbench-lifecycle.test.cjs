@@ -9,7 +9,7 @@ function harness(){
  const Core={hash:s=>s,resolve:s=>({css:s.css}),saveRepair:async(s,old,next,owner)=>{writes.push({source:s,old,next,owner});s.css=next;c.customBubbleCss=next;return {updatedChats:1};}};
  const box={window:{KissStyleCore:Core},db,console,AbortController,DOMException,setTimeout,clearTimeout,currentChatId:'a',currentChatType:'private',confirm:()=>true,URL:{createObjectURL:file=>'blob:'+file.name,revokeObjectURL:url=>revoked.push(url)},Image:class{constructor(){this.naturalWidth=600;this.naturalHeight=900;this.ready=deferred();images.push(this);}decode(){return this.ready.promise;}},innerWidth:390,innerHeight:800,document:{querySelector:()=>null,getElementById:id=>ids.get(id)||null,createElement:tag=>{assert.equal(tag,'canvas');return canvas;}},updateCustomBubbleStyle:(...args)=>refreshes.push(args)};
  vm.createContext(box);
- const hook=`root.__test={setup(p){if('selected'in p)selected=p.selected;if('kind'in p)kind=p.kind;if('draft'in p)draft=p.draft;if('frame'in p)frame=p.frame;if('reference'in p)reference=p.reference;if('baseline'in p)baseline=p.baseline;if('ui'in p)ui=p.ui;if('host'in p)host=p.host;if('owner'in p)accountAtOpen=p.owner;if('chatId'in p)chatId=p.chatId;},state(){return {selected,draft,reference,referenceLoading,busy,saving,baseline};},readReference,setSource,stop,save,repair,refreshSavedStyle,thumbnailKey,prepareCaptureClone,previewMarkup,replaceCapture(fn){capture=fn;}};`;
+ const hook=`root.__test={setup(p){if('view'in p)view=p.view;if('selected'in p)selected=p.selected;if('kind'in p)kind=p.kind;if('draft'in p)draft=p.draft;if('frame'in p)frame=p.frame;if('reference'in p)reference=p.reference;if('baseline'in p)baseline=p.baseline;if('ui'in p)ui=p.ui;if('host'in p)host=p.host;if('owner'in p)accountAtOpen=p.owner;if('chatId'in p)chatId=p.chatId;},state(){return {selected,draft,reference,referenceLoading,busy,saving,baseline};},readReference,setSource,stop,save,repair,refreshSavedStyle,prepareCaptureClone,previewMarkup,queueThumb,pumpThumbs,releaseThumb,galleryCount(){return galleryFrames.size;},replaceGalleryFactories(html,frame){docHTML=html;makeFrame=frame;},replaceCapture(fn){capture=fn;}};`;
  const code=fs.readFileSync('js/modules/style-workbench.js','utf8').replace('root.KissStyleWorkbench={',hook+'\nroot.KissStyleWorkbench={');vm.runInContext(code,box);
  const api=box.window.__test;api.setup({selected:source,kind:'chat',baseline:source.css,reference:'old-reference',owner:'owner',chatId:'a',ui,host});
  return {api,box,db,c,source,Core,images,revoked,refreshes,writes,selectors,ids,status,repairButton,controls};
@@ -28,7 +28,6 @@ test('repair sends the two images but does not persist a result before confirmat
 test('cancelled repair results arriving late cannot create a draft or write CSS',async()=>{const h=harness(),r=await startRepair(h);h.api.stop();r.response.resolve({ok:true,json:async()=>({candidates:[{content:{parts:[{text:'{"css":".new{}","changes":[]}'}]}}]})});await r.pending;assert.equal(h.api.state().draft,null);assert.equal(h.writes.length,0);assert.equal(h.c.customBubbleCss,'.old{}');});
 test('a repair becomes stale if the original CSS changes while the model is replying',async()=>{const h=harness(),r=await startRepair(h);h.source.css='.external{}';r.response.resolve({ok:true,json:async()=>({candidates:[{content:{parts:[{text:'{"css":".new{}","changes":[]}'}]}}]})});await r.pending;assert.equal(h.api.state().draft,null);assert.equal(h.writes.length,0);assert.match(h.status.textContent,/已变化/);});
 test('offline repair instructions preserve actual Shadow DOM host selectors',async()=>{const h=harness();h.api.setup({kind:'offline'});const r=await startRepair(h);assert.match(r.body.contents[0].parts[0].text,/宿主规则须保留 :host/);r.response.resolve({ok:false,status:500});await r.pending;assert.equal(h.writes.length,0);});
-test('thumbnail identity changes when the selected role or its default theme changes',()=>{const h=harness(),preset={kind:'chat',css:'.a{}'};const first=h.api.thumbnailKey(preset);h.c.realName='Renamed';const renamed=h.api.thumbnailKey(preset);assert.notEqual(renamed,first);h.c.theme='other';assert.notEqual(h.api.thumbnailKey(preset),renamed);});
 
 test('capture suppresses only pseudo elements already materialized by html2canvas',()=>{
  const h=harness(),appended=[],doc={createElement:tag=>{assert.equal(tag,'style');return {textContent:''};},head:{append:node=>appended.push(node)}};
@@ -47,7 +46,7 @@ test('capture suppresses only pseudo elements already materialized by html2canva
 });
 test('chat preview uses the canonical room instead of live theme decorations',()=>{
  const h=harness(),depths=[],area={innerHTML:''},label={textContent:''};
- const node={attributes:[],tagName:'SECTION',style:{},classList:{add(){}},innerHTML:'',cloneNode:()=>node,querySelectorAll:()=>[],querySelector:s=>s==='#message-area'?area:s==='#chat-room-title'?label:null,get outerHTML(){return this.innerHTML;}};
+ const node={attributes:[],tagName:'SECTION',className:'screen chat-active-old',style:{setProperty(){}},classList:{add(){},toggle(){},remove(){}},innerHTML:'',cloneNode:()=>node,querySelectorAll:()=>[],querySelector:s=>s==='#message-area'?area:s==='#chat-room-title'?label:null,get outerHTML(){return this.innerHTML;}};
  const original={cloneNode:deep=>{depths.push(deep);return node;}};
  h.box.chatRoomHtml='<header>canonical-room</header><main id="message-area"></main>';
  h.ids.set('chat-room-screen',original);
@@ -57,4 +56,29 @@ test('chat preview uses the canonical room instead of live theme decorations',()
  assert.ok(html.includes('canonical-room'));
  assert.match(area.innerHTML,/先添加角色/);
  assert.equal(h.box.chatRoomHtml,'<header>canonical-room</header><main id="message-area"></main>');
+});
+
+function galleryHarness(){
+ const h=harness(),frames=[],cards=[],resizes=[];h.api.setup({view:'gallery'});
+ h.box.ResizeObserver=class{constructor(fn){this.fn=fn;resizes.push(this);}observe(){this.fn();}disconnect(){this.disconnected=true;}};
+ h.api.replaceGalleryFactories((p,css)=>css,html=>{const f={html,width:390,height:844,isConnected:false,style:{},remove(){this.isConnected=false;}};frames.push(f);return f;});
+ function card(index){const label={textContent:''},box={clientWidth:160,clientHeight:346,innerHTML:'',replaceChildren(f){this.frame=f;f.isConnected=true;},querySelector:()=>label};const c={isConnected:true,_visible:true,_preset:{kind:'chat',name:'Theme '+index,css:'#header::before{content:"'+index+'"}'},querySelector:()=>box};cards.push(c);return c;}
+ return {...h,frames,cards,resizes,card};
+}
+test('a 482-theme gallery creates at most six native previews and never calls the screenshot renderer',async()=>{
+ const h=galleryHarness();h.api.replaceCapture(()=>{throw Error('gallery must not rasterize CSS');});
+ for(let i=0;i<482;i++){const c=h.card(i);h.api.queueThumb(c,c._preset);}
+ assert.equal(h.api.galleryCount(),6);assert.equal(h.frames.length,6);
+ assert.ok(h.frames.every(f=>f.isConnected&&f.title.endsWith('效果预览')));
+ // A pending load in the first frame cannot block the other visible cards.
+ assert.equal(h.frames[0].contentDocument,undefined);
+ h.api.stop();await Promise.resolve();await Promise.resolve();
+ assert.equal(h.api.galleryCount(),0);assert.ok(h.frames.every(f=>!f.isConnected));assert.ok(h.resizes.every(r=>r.disconnected));
+});
+test('scrolling out releases a native frame and gives the next visible card a slot',async()=>{
+ const h=galleryHarness();for(let i=0;i<7;i++){const c=h.card(i);h.api.queueThumb(c,c._preset);}
+ h.cards[0]._visible=false;h.api.releaseThumb(h.cards[0]);await h.api.pumpThumbs();
+ assert.equal(h.api.galleryCount(),6);assert.equal(h.frames.length,7);assert.equal(h.frames[0].isConnected,false);assert.equal(h.frames[6].isConnected,true);
+ h.api.stop();await Promise.resolve();await Promise.resolve();
+ assert.equal(h.api.galleryCount(),0);
 });
