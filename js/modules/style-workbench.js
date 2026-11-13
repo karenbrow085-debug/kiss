@@ -27,7 +27,9 @@ function mount(){
  host=document.getElementById('wallpaper-screen');if(!host)return;
  if(!ui){host.replaceChildren();ui=host.attachShadow({mode:'open'});ui.innerHTML='<link rel="stylesheet" href="css/modules/style-workbench.css?v=20261114-studio-1"><div class="wb-app"></div>';ui.addEventListener('click',onClick);ui.addEventListener('change',onChange);ui.addEventListener('input',onInput);ui.addEventListener('keydown',e=>{if(e.key==='Escape'){if(busy){controller?.abort();return;}if(view==='gallery'||view==='code'||view==='zoom'){view='studio';render();}else close();}});observer=new MutationObserver(()=>{if(!host.classList.contains('active'))stop();});observer.observe(host,{attributes:true,attributeFilter:['class']});}
  if(accountAtOpen!==account()){stop();selected=null;draft=null;reference='';referenceCache.clear();cache.clear();accountAtOpen=account();}
+ if(!chats().some(c=>String(c.id)===chatId))chatId='';
  if(!chatId)chatId=String((typeof currentChatId!=='undefined'&&chats().find(c=>c.id===currentChatId)?.id)||chat()?.id||'');
+ if(selected&&!draft){try{baseline=Core.resolve(selected).css;selected={...selected,css:baseline};}catch(_){selected=null;}}
  if(!selected){selected=sourceForCurrent()||Core.choose('global');kind=selected.kind;baseline=selected.css;}
  requestAnimationFrame(()=>{if(host.classList.contains('active'))render();});
 }
