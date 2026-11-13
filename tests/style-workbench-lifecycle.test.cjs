@@ -9,7 +9,7 @@ function harness(){
  const Core={hash:s=>s,resolve:s=>({css:s.css}),saveRepair:async(s,old,next,owner)=>{writes.push({source:s,old,next,owner});s.css=next;c.customBubbleCss=next;return {updatedChats:1};}};
  const box={window:{KissStyleCore:Core},db,console,AbortController,DOMException,setTimeout,clearTimeout,currentChatId:'a',currentChatType:'private',confirm:()=>true,URL:{createObjectURL:file=>'blob:'+file.name,revokeObjectURL:url=>revoked.push(url)},Image:class{constructor(){this.naturalWidth=600;this.naturalHeight=900;this.ready=deferred();images.push(this);}decode(){return this.ready.promise;}},innerWidth:390,innerHeight:800,document:{querySelector:()=>null,getElementById:id=>ids.get(id)||null,createElement:tag=>{assert.equal(tag,'canvas');return canvas;}},updateCustomBubbleStyle:(...args)=>refreshes.push(args)};
  vm.createContext(box);
- const hook=`root.__test={setup(p){if('selected'in p)selected=p.selected;if('kind'in p)kind=p.kind;if('draft'in p)draft=p.draft;if('frame'in p)frame=p.frame;if('reference'in p)reference=p.reference;if('baseline'in p)baseline=p.baseline;if('ui'in p)ui=p.ui;if('host'in p)host=p.host;if('owner'in p)accountAtOpen=p.owner;if('chatId'in p)chatId=p.chatId;},state(){return {selected,draft,reference,referenceLoading,busy,saving,baseline};},readReference,setSource,stop,save,repair,refreshSavedStyle,thumbnailKey,replaceCapture(fn){capture=fn;}};`;
+ const hook=`root.__test={setup(p){if('selected'in p)selected=p.selected;if('kind'in p)kind=p.kind;if('draft'in p)draft=p.draft;if('frame'in p)frame=p.frame;if('reference'in p)reference=p.reference;if('baseline'in p)baseline=p.baseline;if('ui'in p)ui=p.ui;if('host'in p)host=p.host;if('owner'in p)accountAtOpen=p.owner;if('chatId'in p)chatId=p.chatId;},state(){return {selected,draft,reference,referenceLoading,busy,saving,baseline};},readReference,setSource,stop,save,repair,refreshSavedStyle,thumbnailKey,prepareCaptureClone,previewMarkup,replaceCapture(fn){capture=fn;}};`;
  const code=fs.readFileSync('js/modules/style-workbench.js','utf8').replace('root.KissStyleWorkbench={',hook+'\nroot.KissStyleWorkbench={');vm.runInContext(code,box);
  const api=box.window.__test;api.setup({selected:source,kind:'chat',baseline:source.css,reference:'old-reference',owner:'owner',chatId:'a',ui,host});
  return {api,box,db,c,source,Core,images,revoked,refreshes,writes,selectors,ids,status,repairButton,controls};
@@ -29,3 +29,32 @@ test('cancelled repair results arriving late cannot create a draft or write CSS'
 test('a repair becomes stale if the original CSS changes while the model is replying',async()=>{const h=harness(),r=await startRepair(h);h.source.css='.external{}';r.response.resolve({ok:true,json:async()=>({candidates:[{content:{parts:[{text:'{"css":".new{}","changes":[]}'}]}}]})});await r.pending;assert.equal(h.api.state().draft,null);assert.equal(h.writes.length,0);assert.match(h.status.textContent,/已变化/);});
 test('offline repair instructions preserve actual Shadow DOM host selectors',async()=>{const h=harness();h.api.setup({kind:'offline'});const r=await startRepair(h);assert.match(r.body.contents[0].parts[0].text,/宿主规则须保留 :host/);r.response.resolve({ok:false,status:500});await r.pending;assert.equal(h.writes.length,0);});
 test('thumbnail identity changes when the selected role or its default theme changes',()=>{const h=harness(),preset={kind:'chat',css:'.a{}'};const first=h.api.thumbnailKey(preset);h.c.realName='Renamed';const renamed=h.api.thumbnailKey(preset);assert.notEqual(renamed,first);h.c.theme='other';assert.notEqual(h.api.thumbnailKey(preset),renamed);});
+
+test('capture suppresses only pseudo elements already materialized by html2canvas',()=>{
+ const h=harness(),appended=[],doc={createElement:tag=>{assert.equal(tag,'style');return {textContent:''};},head:{append:node=>appended.push(node)}};
+ h.api.prepareCaptureClone(doc);
+ assert.equal(appended.length,1);
+ const css=appended[0].textContent,rules=css.split('\n');
+ assert.equal(rules.length,2);
+ for(const side of ['before','after']){
+  const rule=rules.find(row=>row.startsWith('.___html2canvas___pseudoelement_'+side));
+  assert.ok(rule);
+  assert.equal((rule.match(/:not\(#wb-capture-unused-/g)||[]).length,32);
+  assert.ok(rule.endsWith('::'+side+'{content:none!important;display:none!important;}'));
+ }
+ // Neither author styles nor the live iframe DOM are an input to this hook.
+ assert.equal(h.c.customBubbleCss,'.old{}');
+});
+test('chat preview uses the canonical room instead of live theme decorations',()=>{
+ const h=harness(),depths=[],area={innerHTML:''},label={textContent:''};
+ const node={attributes:[],tagName:'SECTION',style:{},classList:{add(){}},innerHTML:'',cloneNode:()=>node,querySelectorAll:()=>[],querySelector:s=>s==='#message-area'?area:s==='#chat-room-title'?label:null,get outerHTML(){return this.innerHTML;}};
+ const original={cloneNode:deep=>{depths.push(deep);return node;}};
+ h.box.chatRoomHtml='<header>canonical-room</header><main id="message-area"></main>';
+ h.ids.set('chat-room-screen',original);
+ h.box.document.createTextNode=text=>({textContent:text});
+ const html=h.api.previewMarkup('chat',null,{},false,false);
+ assert.deepEqual(depths,[false]);
+ assert.ok(html.includes('canonical-room'));
+ assert.match(area.innerHTML,/先添加角色/);
+ assert.equal(h.box.chatRoomHtml,'<header>canonical-room</header><main id="message-area"></main>');
+});
