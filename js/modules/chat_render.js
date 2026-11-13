@@ -466,10 +466,11 @@ const contentMatch = content.match(/^\[.*?(?:消息|回复)[：:]([\s\S]+)\]$/);
     }
 
     if (isWithdrawn) {
-        wrapper.className = 'message-wrapper system-notification';
+        const withdrawnRole = role === 'user' ? 'user' : 'char';
+        wrapper.className = `message-wrapper system-notification withdrawn-${withdrawnRole}`;
         if (message.isContextDisabled) wrapper.classList.add('context-disabled');
         const withdrawnText = (role === 'user') ? '你撤回了一条消息' : `${chat.remarkName || chat.name}撤回了一条消息`;
-        wrapper.innerHTML = `<div><span class="withdrawn-message">${withdrawnText}</span></div><div class="withdrawn-content">${originalContent ? DOMPurify.sanitize(originalContent.replace(/\[.*?的消息[：:]([\s\S]+?)\]/, '$1')) : ''}</div>`;
+        wrapper.innerHTML = `<div><span class="withdrawn-message withdrawn-message-${withdrawnRole}">${withdrawnText}</span></div><div class="withdrawn-content withdrawn-content-${withdrawnRole}">${originalContent ? DOMPurify.sanitize(originalContent.replace(/\[.*?的消息[：:]([\s\S]+?)\]/, '$1')) : ''}</div>`;
         const withdrawnMessageSpan = wrapper.querySelector('.withdrawn-message');
         if (withdrawnMessageSpan) {
             withdrawnMessageSpan.addEventListener('click', () => {
