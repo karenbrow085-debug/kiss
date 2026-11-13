@@ -104,3 +104,5 @@ test('legacy offline archive opens with numeric references and repairs missing f
  assert(session.messageIds.includes('not-loaded'));
  assert.equal(chat.history[2].content,'<thinking>inner</thinking>归档原文');
 });
+
+test('style previews reuse the real offline page and message structures without mounting or modifying a chat',()=>{const {api,chat}=harness(),before=JSON.stringify(chat);const page=api.previewPageMarkup();assert(page.includes('class="of-header-profile"'));assert(page.includes('class="of-selection-bar" hidden'));assert(page.includes('<form class="of-composer">'));for(const action of ['generation-tools','story-tools','emoji','send-or-continue'])assert(page.includes('data-action="'+action+'"'));const message=api.messageShellMarkup(false);for(const cls of ['of-avatar','of-message-content','of-byline','of-name','of-badge','of-prose','of-meta'])assert(message.includes('class="'+cls+'"'));assert(message.includes('<time>'));assert.equal(JSON.stringify(chat),before);});
