@@ -413,25 +413,12 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
                 text = data.choices[0].message.content;
             }
 
-            // === CoT 处理：补全开头，提取思考，净化输出 ===
-            if (cotEnabled && text) {
-                // 1. 补全开头 (如果被 Prefill 吃掉)
-                if (!text.trim().startsWith('<thinking>') && text.includes('</thinking>')) {
-                    text = '<thinking>' + text;
-                }
-                
-                // 2. 提取并移除思考内容
-                const lastThinkingIndex = text.lastIndexOf('</thinking>');
-                if (lastThinkingIndex !== -1) {
-                    const thinkingContent = text.substring(0, lastThinkingIndex + 11);
-                    console.log('[VideoCall CoT] Thinking:', thinkingContent);
-                    // 移除思考标签及内容
-                    text = text.substring(lastThinkingIndex + 11).trim();
-                }
-                
-                // 3. 移除 [incipere] (如果有残留)
-                text = text.replace(/\[incipere\]/g, "");
+            // Recognize user-configured tags independently of the CoT switch.
+            if (text) {
+                if(cotEnabled && !text.includes('<thinking>') && text.includes('</thinking>')) text='<thinking>'+text;
+                text=window.KissReasoningTags.split(text).text.replace(/\[incipere\]/g,'').trim();
             }
+
             // =============================================
 
             console.log('[VideoCall] Cleaned AI Response:', text);
@@ -490,24 +477,10 @@ async function getCallReply(chat, callType, callContext, onStreamUpdate, rerollN
 
             console.log('[VideoCall] Final Buffer:', buffer);
 
-            // === CoT 处理：补全开头，提取思考，净化输出 ===
-            if (cotEnabled && buffer) {
-                // 1. 补全开头 (如果被 Prefill 吃掉)
-                if (!buffer.trim().startsWith('<thinking>') && buffer.includes('</thinking>')) {
-                    buffer = '<thinking>' + buffer;
-                }
-                
-                // 2. 提取并移除思考内容
-                const lastThinkingIndex = buffer.lastIndexOf('</thinking>');
-                if (lastThinkingIndex !== -1) {
-                    const thinkingContent = buffer.substring(0, lastThinkingIndex + 11);
-                    console.log('[VideoCall CoT] Thinking:', thinkingContent);
-                    // 移除思考标签及内容
-                    buffer = buffer.substring(lastThinkingIndex + 11).trim();
-                }
-                
-                // 3. 移除 [incipere] (如果有残留)
-                buffer = buffer.replace(/\[incipere\]/g, "");
+            // Recognize user-configured tags independently of the CoT switch.
+            if (buffer) {
+                if(cotEnabled && !buffer.includes('<thinking>') && buffer.includes('</thinking>')) buffer='<thinking>'+buffer;
+                buffer=window.KissReasoningTags.split(buffer).text.replace(/\[incipere\]/g,'').trim();
             }
 
             // 流结束后一次性回调

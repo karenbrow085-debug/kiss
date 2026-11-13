@@ -2,6 +2,7 @@
 (function(root){
 'use strict';
 function split(raw){
+ if(root.KissReasoningTags){const parsed=root.KissReasoningTags.split(raw,{streaming:true});return {text:parsed.text.replace(/\[incipere\]/g,'').trim(),reasoning:parsed.reasoning};}
  let text='',reasoning='',last=0;const value=String(raw||''),pattern=/<(think|thinking)>([\s\S]*?)(?:<\/\1>|$)/gi;
  for(const match of value.matchAll(pattern)){text+=value.slice(last,match.index);reasoning+=(reasoning?'\n\n':'')+match[2];last=match.index+match[0].length;}
  text+=value.slice(last);text=text.replace(/<(?:t(?:h(?:i(?:n(?:k(?:i(?:n(?:g)?)?)?)?)?)?)?)?$/i,'');

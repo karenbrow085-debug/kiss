@@ -723,7 +723,7 @@ async function getAiReply(chatId, chatType, isBackground = false, generationType
             // 仅在 CoT 开启且检测到闭合标签时补全
             const cotEnabled = db.cotSettings && db.cotSettings.enabled;
             // 【修改】去掉了 !isBackground，确保后台模式也能正确补全标签
-            if (cotEnabled && fullResponse && !fullResponse.trim().startsWith('<thinking>')) {
+            if (cotEnabled && fullResponse && !/<thinking\s*>/i.test(fullResponse)) {
                  if (fullResponse.includes('</thinking>')) {
                      fullResponse = '<thinking>' + fullResponse;
                  }
@@ -805,7 +805,7 @@ async function processStream(response, chat, apiType, targetChatId, targetChatTy
     // 无论前台后台，只要是CoT开启且被预填吃掉了开头，都要补回来
     const cotEnabled = db.cotSettings && db.cotSettings.enabled;
     // 【修改】去掉了 !isBackground，确保后台模式也能正确补全标签
-    if (cotEnabled && fullResponse && !fullResponse.trim().startsWith('<thinking>')) {
+    if (cotEnabled && fullResponse && !/<thinking\s*>/i.test(fullResponse)) {
          // 这里判断：如果内容里有闭合的 </thinking> 但开头没有 <thinking>，说明开头被 Prefill 吃掉了
          if (fullResponse.includes('</thinking>')) {
              fullResponse = '<thinking>' + fullResponse;
@@ -828,12 +828,10 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
         // 1. 移除 [incipere] 标签
         fullResponse = fullResponse.replace(/\[incipere\]/g, "");
 
-        // 2. 捕获并分离 <thinking> 内容
-        const lastThinkingIndex = fullResponse.lastIndexOf('</thinking>');
-        if (lastThinkingIndex !== -1) {
-            // 截取从开头到最后一个 </thinking> 的所有内容（包括标签本身）
-            const thinkingContent = fullResponse.substring(0, lastThinkingIndex + 11); // 11 是 '</thinking>'.length
-            
+        // Shared recognition applies to both CoT and Tavern, including unclosed blocks.
+        const thoughtParts = window.KissReasoningTags.split(fullResponse);
+        if (thoughtParts.blocks.length) {
+            const thinkingContent = thoughtParts.blocks.join('\n\n');
             // 创建思考过程消息对象
             const thinkingMsg = {
                 id: `msg_${Date.now()}_${Math.random()}`,
@@ -868,7 +866,7 @@ async function handleAiReplyContent(fullResponse, chat, targetChatId, targetChat
             addMessageBubble(thinkingMsg, targetChatId, targetChatType);
             
             // 从即将显示的文本中移除思考内容
-            fullResponse = fullResponse.substring(lastThinkingIndex + 11);
+            fullResponse = thoughtParts.text;
         }
 
         if(window.KissWorkFiles){const extracted=await KissWorkFiles.extractReplies(fullResponse,()=>generation?.check(),{request:generation?.workFileRequest,truncated:generation?.workFileTruncated});fullResponse=extracted.text;workReplies=extracted.files;}

@@ -126,6 +126,7 @@
 <link rel="stylesheet" href="css/modules/sticker-404.css?v=1">
     <link rel="stylesheet" href="css/modules/status-presets-404.css?v=20261105-1">
     <link rel="stylesheet" href="css/modules/prompt-studio-404.css?v=20261105-social-3">
+<link rel="stylesheet" href="css/modules/reasoning-tags.css?v=20261113-tags-1">
     <link rel="stylesheet" href="css/modules/social-profile.css?v=20261105-ins-compact-1">
 <link rel="stylesheet" href="css/modules/persona-home-404.css?v=20261105-muted-5">
 </head>
@@ -869,6 +870,11 @@
         </nav>
         <main class="content pt-content">
           <div class="pt-hero"><h1 id="pt-page-name">Dialogue.</h1><span id="pt-page-index">01</span><p id="pt-page-caption">聊天提示词</p></div>
+          <button type="button" id="kiss-reasoning-tags" class="kt-entry" aria-haspopup="dialog">
+            <span class="kt-entry-icon" aria-hidden="true">&lt;/&gt;</span>
+            <span class="kt-entry-copy"><strong>思维链识别标签</strong><small>思维链 · 酒馆预设共用</small></span>
+            <span class="kt-entry-count" id="kiss-reasoning-tag-count">管理</span>
+          </button>
           <section id="pt-cot-page">
             <div class="pt-settings">
               <div class="kkt-item"><label for="cot-prompt-version-select">提示词版本</label><select id="cot-prompt-version-select"><option value="uwu">UwU</option><option value="tt">T.T</option><option value="hh">ㅎ.ㅎ（线上）</option><option value="hh_offline">ㅎ-ㅎ（线下）</option></select></div>
@@ -2605,12 +2611,13 @@
 <script src="js/modules/link-context.js?v=20261104-fuzzy-dialogue-1"></script>
 <script src="js/modules/chat_render.js?v=20261112-committee-backdrop-7"></script>
 <script src="js/modules/chat_archives.js?v=20261103-memory-4"></script>
+    <script src="js/modules/reasoning-tags.js?v=20261113-tags-1"></script>
     <script src="js/modules/chat_ai_airdrop.js?v=20261102-v14"></script>
     <script src="js/modules/cot_hh.js?v=20261103-memory-4"></script>
     <script src="js/modules/chat_ai_prompt.js?v=20261103-memory-4"></script>
-    <script src="js/modules/chat_ai_call.js?v=20261103-memory-4"></script>
+    <script src="js/modules/chat_ai_call.js?v=20261113-tags-1"></script>
     <script src="js/modules/reroll-feedback.js?v=20261031-reroll-clean-1"></script>
-<script src="js/modules/chat_ai.js?v=20261112-committee-backdrop-7"></script>
+<script src="js/modules/chat_ai.js?v=20261113-tags-1"></script>
 <script src="js/modules/chat_features.js?v=20261103-album-1"></script>
 <script src="js/modules/message-menu.js?v=20261103-start-menu-3"></script>
 <script src="js/modules/chat_ops.js?v=20261103-work-full-1"></script>
@@ -2710,7 +2717,7 @@
 <script src="js/modules/offline_html.js?v=20261105-acte-theme-1"></script>
 <script src="js/modules/offline_send.js?v=20261031-tavern-safety"></script>
 <script src="js/modules/offline-rich.js?v=20261104-tavern-render-1"></script>
-<script src="js/modules/offline-generation.js?v=20261107-acte-floor-stream-1"></script>
+<script src="js/modules/offline-generation.js?v=20261113-tags-1"></script>
 <script src="js/modules/offline.js?v=20261107-css-paste-only"></script>
 <script src="js/modules/acte-data.js?v=20261107-acte-floor-stream-1"></script>
 <script src="js/modules/acte.js?v=20261107-acte-floor-stream-1"></script>
