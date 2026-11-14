@@ -416,27 +416,37 @@ function calculateTokenBreakdown(chatId, chatType = 'private') {
     breakdown.userPersona = countTextTokens(userPersonaText);
     breakdown.memory = countTextTokens(memoryText);
 
-    // 4. 基础系统词 = 总系统提示词 - 动态部分
+    // Keep the request total, but classify the collection feature's recent
+    // message/status data as history. Its static rules remain system tokens.
+    // Match the exact generated suffix; never strip user-authored text by regex.
     const totalSystemTokens = countTextTokens(systemPrompt);
-    breakdown.baseSystem = Math.max(0, totalSystemTokens - breakdown.worldBook - breakdown.charPersona - breakdown.userPersona - breakdown.memory);
-
-    // 5. 聊天记录
-    let historySlice = chat.history.slice(-chat.maxMemory);
-    historySlice = historySlice.filter(m => !m.isContextDisabled && !m.offlineHidden);
-    
-    let historyText = '';
-    historySlice.forEach(msg => {
-        historyText += msg.content;
-        if (msg.parts) {
-            msg.parts.forEach(p => {
-                if (p.type === 'text') historyText += p.text;
-            });
+    let systemWithoutHistory = systemPrompt;
+    if (chatType === 'private' && window.KissCollections?.tokenContext) {
+        const context = window.KissCollections.tokenContext(chat);
+        const suffix = context + '</收藏功能>\n';
+        if (systemPrompt.endsWith(suffix)) {
+            systemWithoutHistory = systemPrompt.slice(0, -suffix.length) + JSON.stringify({messages:[],states:[]}) + '</收藏功能>\n';
         }
-    });
-    breakdown.history = countTextTokens(historyText);
+    }
+    const staticSystemTokens = countTextTokens(systemWithoutHistory);
+    const historyInSystem = totalSystemTokens - staticSystemTokens;
+    breakdown.baseSystem = Math.max(0, staticSystemTokens - breakdown.worldBook - breakdown.charPersona - breakdown.userPersona - breakdown.memory);
+
+    // Use the same history selection and text representation as the request.
+    const contextHistory = window.KissOffline?.historyForAI ? window.KissOffline.historyForAI(chat) : (chat.history || []);
+    let historySlice = contextHistory.slice(-chat.maxMemory);
+    if (typeof filterHistoryForAI === 'function') historySlice = filterHistoryForAI(chat, historySlice);
+    historySlice = historySlice.filter(m => !m.isContextDisabled && !m.offlineHidden && !m.offlineBoundary && m.type !== 'mcp-activity' && m.type !== 'mcp-request');
+    const historyText = historySlice.map(msg => {
+        if (Array.isArray(msg.parts) && msg.parts.length) {
+            return msg.parts.filter(p => p.type === 'text' || p.type === 'html').map(p => typeof p.text === 'string' ? p.text : '').join('');
+        }
+        return typeof msg.content === 'string' ? msg.content : '';
+    }).join('');
+    breakdown.history = countTextTokens(historyText) + historyInSystem;
 
     // 6. 总计
-    breakdown.total = totalSystemTokens + breakdown.history;
+    breakdown.total = staticSystemTokens + breakdown.history;
 
     return breakdown;
 }
