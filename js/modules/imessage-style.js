@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261116-imessage-shape-9',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261116-imessage-shape-10',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const entryUnread=new WeakMap();
 let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,menuNode=null,menuObserver=null,bodyObserver=null,lastAnchor=null,suppressClick=0,focusedQuote=null;
 const enabled=c=>c?.defaultAppearance==='imessage';
@@ -190,7 +190,8 @@ function syncReplyFocus(){
  const timestamp=Number(message?.timestamp);
  if(Number.isFinite(timestamp)&&timestamp>0){
   const date=document.createElement('time');date.className='reply-date';
-  date.textContent=new Intl.DateTimeFormat('zh-CN',{month:'numeric',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(timestamp);
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('zh-CN',{month:'numeric',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(timestamp).map(({type,value})=>[type,value]));
+  date.textContent=parts.month+'月'+parts.day+'日 '+parts.weekday+' '+parts.hour+':'+parts.minute;
   feed.replaceChildren(date);
  }else feed.replaceChildren();
  if(original){
