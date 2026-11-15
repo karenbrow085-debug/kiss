@@ -66,8 +66,8 @@ function open(items,options) {
  menu.append(actions);window.KissIMessageStyle?.menu(menu);document.body.append(menu);position(menu);
  let frame=0;
  const resize=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>position(menu));};
- const dismiss=e=>{if(!menu.contains(e.target))removeContextMenu();};
- const scroll=e=>{if(!menu.contains(e.target))removeContextMenu();};
+ const dismiss=e=>{if(!menu.contains(e.target)&&!window.KissIMessageStyle?.menuContains(e))removeContextMenu();};
+ const scroll=e=>{if(!menu.contains(e.target)&&!window.KissIMessageStyle?.menuContains(e))removeContextMenu();};
  const key=e=>{
   if(e.key==='Escape'){e.preventDefault();removeContextMenu();previous?.focus?.({preventScroll:true});return;}
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;
