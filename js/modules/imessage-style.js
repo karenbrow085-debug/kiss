@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261115-reference-8',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261116-imessage-shape-9',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const entryUnread=new WeakMap();
 let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,menuNode=null,menuObserver=null,bodyObserver=null,lastAnchor=null,suppressClick=0,focusedQuote=null;
 const enabled=c=>c?.defaultAppearance==='imessage';
@@ -26,7 +26,7 @@ function apply(c){
  const input=source('message-input');if(input?.hasAttribute('data-ki-placeholder')){input.placeholder=input.getAttribute('data-ki-placeholder');input.removeAttribute('data-ki-placeholder');}
  if(!enabled(c)){teardown();lastChatId=null;return;}
  if(!host||!host.isConnected)mount(root);
- if(lastChatId!==c.id){forceBottom=true;lastChatId=c.id;focusedQuote=null;closeMenu();closeTools();}
+ if(lastChatId!==c.id){forceBottom=true;lastChatId=c.id;focusedQuote=null;albumState.clear();closeMenu();closeTools();}
  host.style.setProperty('display','block','important');syncNight();syncHeader();syncControls();schedule();
 }
 function layout(){return `<link rel="stylesheet" href="${asset}"><div class="surface"><div class="wallpaper"></div><main class="history" aria-label="聊天信息" tabindex="-1"></main><section class="reply-focus" aria-label="回复会话" hidden><div class="reply-feed"></div></section><header class="floating-header"><button class="glass back" aria-label="返回聊天列表">${svg('back')}<span class="unread-count" hidden></span></button><button class="contact" aria-label="打开聊天设置"><img class="avatar" alt=""><span class="glass name"><b></b><span aria-hidden="true">›</span></span></button><button class="glass video" aria-label="通话">${svg('video')}</button><button class="glass reply-close" aria-label="关闭回复会话" hidden>${svg('close')}</button></header><div class="typing" role="status" hidden>•••</div><button class="glass jump" aria-label="跳到最新消息" hidden>${svg('down')}<span></span></button><footer class="composer"><div class="compose-row"><button class="glass add" aria-label="聊天功能" aria-expanded="false">${svg('plus')}</button><div class="glass input-capsule"><textarea rows="1" aria-label="iMessage信息" placeholder="iMessage信息" enterkeyhint="send"></textarea><button class="submit" aria-label="获取回复">${svg('wave')}</button></div></div></footer><button class="tools-dismiss" aria-label="收起功能" hidden></button><section class="tools glass" aria-label="聊天功能" hidden><div class="tools-scroll"></div></section><section class="selection glass" hidden><button data-original="cancel-multi-select-btn">取消</button><b></b><button data-original="delete-selected-btn">删除</button><button data-original="collect-selected-btn">收藏</button></section><div class="menu-layer" hidden></div></div>`;}
@@ -46,6 +46,7 @@ function mount(root){
   $('textarea').blur();renderTools();setToolsOpen(true);
  });
  listen($('.tools-dismiss'),'click',closeTools);
+ listen($('.tools'),'keydown',e=>{if(e.key==='Escape'){closeTools();$('.add').focus();}});
  const input=$('textarea');
  listen(input,'input',()=>{const original=source('message-input');if(original){original.value=input.value;original.dispatchEvent(new Event('input',{bubbles:true}));}syncSubmit();resizeInput();});
  listen(input,'keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();submit();}});
@@ -109,7 +110,7 @@ function syncViewport(){if(!host)return;liquid?.schedule();const vv=window.visua
  const composer=$('.composer');
  surface.style.setProperty('--composer-height',composer.getBoundingClientRect().height+'px');
  const add=$('.add').getBoundingClientRect(),bounds=surface.getBoundingClientRect();
- surface.style.setProperty('--tools-bottom',Math.max(0,bounds.bottom-add.top+7)+'px');
+ surface.style.setProperty('--tools-bottom',Math.max(0,bounds.bottom-add.bottom+9)+'px');
  surface.style.setProperty('--tools-space',Math.max(0,add.top-bounds.top-60)+'px');}
 function mirror(original){
  const clone=original.cloneNode(true);const originals=[original,...original.querySelectorAll('*')],clones=[clone,...clone.querySelectorAll('*')];
@@ -145,8 +146,8 @@ function decorateVoice(voice){
  const wave=document.createElement('span');wave.className='voice-wave';wave.setAttribute('aria-hidden','true');
  for(let i=0;i<48;i++){
   const bar=document.createElement('i');
-  const envelope=.2+.8*Math.pow(Math.sin(Math.PI*(i+.5)/48),2);
-  bar.style.height=(2+envelope*(2+6*Math.abs(Math.sin(i*1.72))))+'px';
+  const accent=Math.exp(-Math.pow((i-42)/4.5,2));
+  bar.style.height=(2.5+accent*(1.5+4*Math.abs(Math.sin(i*1.72))))+'px';
   wave.append(bar);
  }
  duration.before(wave);paintVoice(voice,sourceMap.get(voice)?.kissPlaybackProgress);
@@ -172,7 +173,10 @@ function syncReplyFocus(){
  const focus=$('.reply-focus'),feed=$('.reply-feed'),close=$('.reply-close');
  const pending=source('reply-preview-bar')?.classList.contains('visible')&&typeof currentQuoteInfo!=='undefined'?currentQuoteInfo:null;
  const quote=pending||focusedQuote;
- focus.hidden=close.hidden=!quote;$('.video').hidden=!!quote;$('.history').inert=!!quote;
+ focus.hidden=close.hidden=!quote;
+ $('.video').hidden=$('.back').hidden=!!quote;
+ const input=$('textarea');input.placeholder=quote?'回复':'iMessage信息';input.setAttribute('aria-label',input.placeholder);
+ $('.history').inert=!!quote;
  $('.surface').classList.toggle('replying',!!quote);
  if(!quote){feed.replaceChildren();delete feed.replyQuote;return;}
  const revision=$('.history').firstElementChild;
@@ -189,7 +193,17 @@ function syncReplyFocus(){
   date.textContent=new Intl.DateTimeFormat('zh-CN',{month:'numeric',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(timestamp);
   feed.replaceChildren(date);
  }else feed.replaceChildren();
- anchor.append(replyExcerpt(quote,original));feed.append(anchor);
+ if(original){
+  const quoted=mirror(original);
+  quoted.classList.add('reply-origin','tail');
+  quoted.querySelectorAll('.quoted-message').forEach(node=>node.remove());
+  if(message)decoratePhotos(quoted,message);
+  feed.append(quoted);
+ }else{
+  anchor.classList.add('tail');
+  const bubble=document.createElement('div');bubble.className='message-bubble';
+  bubble.textContent=quote.content||'';anchor.append(bubble);feed.append(anchor);
+ }
  const thread=new Set(chat.history.filter(m=>String(m.quote?.messageId??m.quote?.id??'')===id&&m.quote).map(m=>String(m.id)));
  for(const row of $('.history').children){
   if(!thread.has(row.dataset.id))continue;
@@ -216,7 +230,15 @@ function renderMessages(){
   fragment.append(clone);
  }
  list.replaceChildren(fragment);
- const rows=[...list.querySelectorAll('.message-wrapper')];rows.forEach((row,i)=>{const next=rows[i+1];row.classList.toggle('tail',!next||next.dataset.continuous!=='true'||row.classList.contains('sent')!==next.classList.contains('sent'));});
+ const rows=[...list.children];
+ for(const [index,row] of rows.entries()){
+  const next=rows[index+1];
+  const joins=next?.dataset.continuous==='true'&&!next.classList.contains('has-reply')&&
+   row.classList.contains('sent')===next.classList.contains('sent')&&
+   row.querySelector('.message-bubble:not(.html-bubble)')&&next.querySelector('.message-bubble:not(.html-bubble)');
+  row.classList.toggle('tail',!joins);
+  if(joins)next.classList.add('grouped-text');
+ }
  if(forceBottom||wasBottom)list.scrollTop=list.scrollHeight;else if(loadEarlier)list.scrollTop=oldTop+list.scrollHeight-oldHeight;else list.scrollTop=oldTop;
  forceBottom=loadEarlier=false;syncHeader();syncControls();updateJump();
 }
@@ -227,18 +249,33 @@ function clickMessage(e){
  const reference=e.target.closest('.reply-reference');
  if(reference&&!room()?.classList.contains('multi-select-active')){
   if(reference.dataset.replyTarget){
-   focusedQuote={id:reference.dataset.replyTarget,senderId:reference.classList.contains('from-me')?'user_me':'',content:reference.dataset.preview};
    const target=chat.history.find(m=>String(m.id)===reference.dataset.replyTarget);
-   if(target&&typeof startQuoteReply==='function')startQuoteReply(target.id);
+   if(target&&typeof startQuoteReply==='function'){
+    startQuoteReply(target.id);$('textarea').focus();
+   }else focusedQuote={id:reference.dataset.replyTarget,senderId:reference.classList.contains('from-me')?'user_me':'',content:reference.dataset.preview};
    syncControls();
   }
   return;
  }
- const voice=e.target.closest('.voice-bubble');
- if(voice&&!room()?.classList.contains('multi-select-active')){
-  sourceMap.get(voice)?.click();return;
+ if(!$('.tools').hidden){closeTools();return;}
+ if(!room()?.classList.contains('multi-select-active')){
+  const voice=e.target.closest('.voice-bubble');
+  if(voice){sourceMap.get(voice)?.click();return;}
+  const count=e.target.closest('.im-photo-count');
+  if(count){
+   const id=count.closest('[data-id]').dataset.id;
+   const state=albumState.get(id);
+   if(state){state.expanded=!state.expanded;schedule();}
+   return;
+  }
+  const photo=e.target.closest('.im-photo');
+  if(photo){
+   const id=photo.closest('[data-id]').dataset.id;
+   const images=chat.history.find(m=>String(m.id)===id)?.parts?.filter(p=>p.type==='image').map(p=>p.data)||[];
+   if(images.length)window.KissImageAlbum?.viewer(images,Number(photo.dataset.photoIndex)||0);
+   return;
+  }
  }
- if(!room()?.classList.contains('multi-select-active')){const count=e.target.closest('.im-photo-count');if(count){const id=count.closest('[data-id]')?.dataset.id;const images=chat.history.find(m=>String(m.id)===id)?.parts?.filter(p=>p.type==='image').map(p=>p.data)||[];if(images.length)showPhotoGrid(images);return;}const photo=e.target.closest('.im-photo');if(photo){const message=chat.history.find(m=>String(m.id)===photo.closest('[data-id]')?.dataset.id);const images=message?.parts?.filter(p=>p.type==='image').map(p=>p.data)||[];if(images.length)window.KissImageAlbum?.viewer(images,Number(photo.dataset.photoIndex)||0);return;}}if(!$('.tools').hidden){closeTools();return;}
  const badge=e.target.closest('[data-reaction]');if(badge){react(badge.closest('[data-id]')?.dataset.id,badge.dataset.reaction);return;}
  const original=sourceMap.get(e.target)||sourceMap.get(e.target.closest('.message-wrapper'));if(original){original.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));schedule();}
 }
@@ -246,13 +283,13 @@ function longPress(row,x,y){const original=sourceMap.get(row);if(!original||!row
 const albumState=new Map();
 function decoratePhotos(row,message){
  const album=row.querySelector('.kia-album');if(!album){const single=row.querySelector('.image-bubble:not(.kia-album) img');if(single&&single.alt!=='表情包'){const original=sourceMap.get(single);single.closest('.image-bubble').classList.add('im-single-photo');single.closest('.image-bubble').style.setProperty('--photo-width',(original?.naturalWidth>original?.naturalHeight?190:214)+'px');single.addEventListener('load',()=>{single.closest('.image-bubble')?.style.setProperty('--photo-width',(single.naturalWidth>single.naturalHeight?190:214)+'px');liquid?.schedule();},{once:true});}return;}
- const parts=message.parts?.filter(p=>p.type==='image')||[];if(parts.length<2)return;const id=String(message.id),state=albumState.get(id)||{index:0,expanded:parts.length===2};state.index=Math.max(0,Math.min(parts.length-1,state.index));albumState.set(id,state);const original=sourceMap.get(album),originalImages=original?[...original.querySelectorAll('.kia-card img')]:[];
+ const parts=message.parts?.filter(p=>p.type==='image')||[];if(parts.length<2)return;const id=String(message.id),state=albumState.get(id)||{index:0,expanded:false};state.index=Math.max(0,Math.min(parts.length-1,state.index));albumState.set(id,state);const original=sourceMap.get(album),originalImages=original?[...original.querySelectorAll('.kia-card img')]:[];
  album.className='image-bubble im-album';album.dataset.photoCount=parts.length;album.classList.toggle('im-album-expanded',state.expanded);album.replaceChildren();const deck=document.createElement('div');deck.className='im-album-deck';
  const front=originalImages[state.index],aspect=front?.naturalWidth&&front?.naturalHeight?Math.max(.6,Math.min(1.6,front.naturalWidth/front.naturalHeight)):.75;deck.style.setProperty('--photo-aspect',aspect);deck.style.setProperty('--photo-front-width',(aspect>1?190:214)+'px');album.style.setProperty('--photo-front-width',(aspect>1?190:214)+'px');
  for(let i=0;i<parts.length;i++){const card=document.createElement('button');card.className='im-photo';card.dataset.photoIndex=i;card.setAttribute('aria-label','查看第 '+(i+1)+' 张照片');const img=document.createElement('img');img.src=parts[i].data;img.alt='第 '+(i+1)+' 张，共 '+parts.length+' 张照片';img.draggable=false;img.addEventListener('load',()=>{if(state.expanded)card.style.aspectRatio=String(img.naturalWidth/img.naturalHeight);else if(i===state.index){const ratio=Math.max(.6,Math.min(1.6,img.naturalWidth/img.naturalHeight));deck.style.setProperty('--photo-aspect',ratio);deck.style.setProperty('--photo-front-width',(ratio>1?190:214)+'px');album.style.setProperty('--photo-front-width',(ratio>1?190:214)+'px');}liquid?.schedule();},{once:true});card.append(img);
  if(state.expanded){card.style.setProperty('--photo-stagger',i%2===0?'46px':'0px');const own=originalImages[i];if(own?.naturalWidth&&own?.naturalHeight)card.style.aspectRatio=String(own.naturalWidth/own.naturalHeight);}else{const depth=(i-state.index+parts.length)%parts.length;card.style.setProperty('--depth',Math.min(depth,2));card.style.zIndex=String(10-depth);card.hidden=depth>2;card.tabIndex=depth===0?0:-1;}
  deck.append(card);}
- const label=document.createElement('button');label.className='im-photo-count';label.setAttribute('aria-expanded',String(state.expanded));label.innerHTML='<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect width="6" height="6" rx="1"/><rect x="8" width="6" height="6" rx="1"/><rect y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></svg>';const text=document.createElement('span');text.textContent=parts.length+' 张照片';label.append(text);album.append(deck);if(parts.length>2)album.prepend(label);
+ const label=document.createElement('button');label.className='im-photo-count';label.setAttribute('aria-expanded',String(state.expanded));label.innerHTML='<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect width="6" height="6" rx="1"/><rect x="8" width="6" height="6" rx="1"/><rect y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></svg>';const text=document.createElement('span');text.textContent=parts.length+' 张照片';label.append(text);album.append(deck,label);
 }
 function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';b.textContent=reaction.emoji;b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
 const pendingReactions=new WeakSet();
@@ -271,24 +308,17 @@ function closeTools(){
  setToolsOpen(false);
  if(source('chat-expansion-panel')?.classList.contains('visible')&&typeof showPanel==='function')showPanel('none');
 }
-function showPhotoGrid(images){
- const layer=$('.menu-layer');
- const grid=document.createElement('section');grid.className='photo-grid';grid.setAttribute('aria-label','查看照片');
- const back=document.createElement('button');back.className='glass photo-grid-back';back.innerHTML=svg('back');
- back.setAttribute('aria-label','返回聊天');back.onclick=closeMenu;grid.append(back);
- images.forEach((src,index)=>{
-  const button=document.createElement('button'),img=document.createElement('img');
-  img.src=src;img.alt='第 '+(index+1)+' 张照片';button.append(img);
-  button.onclick=()=>window.KissImageAlbum?.viewer(images,index);grid.append(button);
- });
- layer.replaceChildren(grid);layer.hidden=false;back.focus({preventScroll:true});liquid?.schedule();
-}
 function renderTools(){
  const tools=$('.tools-scroll');tools.replaceChildren();tools.scrollTop=0;
- const order=['photo-video-btn','sticker-toggle-btn','voice-message-btn'];const nodes=[...document.querySelectorAll('#chat-expansion-panel .expansion-item')];
- const items=order.map(id=>source(id)).filter(n=>nodes.includes(n)).concat(nodes.filter(n=>!order.includes(n.id)));
- const colors=['#32c966','#a875f5','#ff594f','#ffad0a','#00b9e9','#6c91f1'];
- items.forEach((n,i)=>{if(n.style.display==='none'||n.hidden)return;const b=document.createElement('button');b.className='tool';const icon=document.createElement('span');icon.className='tool-icon';icon.style.background=colors[i%colors.length];const image=n.querySelector('svg,img');if(image)icon.append(image.cloneNode(true));else icon.innerHTML=svg('more');const name=document.createElement('span');name.textContent=n.id==='sticker-toggle-btn'?'贴纸':n.querySelector('.expansion-item-name')?.textContent||n.getAttribute('title')||'更多';b.append(icon,name);b.onclick=e=>{e.stopPropagation();setToolsOpen(false);action(n.id);};tools.append(b);});
+ const order=['photo-video-btn','image-recognition-btn','sticker-toggle-btn','voice-message-btn'];const nodes=[...document.querySelectorAll('#chat-expansion-panel .expansion-item')];
+ const items=order.map(id=>source(id)).filter(Boolean).concat(nodes.filter(n=>!order.includes(n.id)));
+ const colors=['#2acb65','#2396ee','#a578f6','#ff563f','#ffad14','#00bce7','#6388ef'];
+ items.forEach((n,i)=>{if(n.style.display==='none'||n.hidden)return;const b=document.createElement('button');b.className='tool';const icon=document.createElement('span');icon.className='tool-icon';icon.style.background=colors[i%colors.length];
+ const image=n.querySelector('svg,img');
+ if(n.id==='voice-message-btn')icon.innerHTML=svg('wave');
+ else if(n.id==='sticker-toggle-btn')icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#f4f1ff" d="M20 13A9 9 0 1 1 9 3c1.4 5.1 5.9 9.6 11 10Z"/><path fill="#ccb8f7" d="M9 3c.7 4.9 5.7 9.9 11 10-4.3.2-7.7-.9-9.4-2.7C8.8 8.4 8.6 5.6 9 3Z"/></svg>';
+ else if(image)icon.append(image.cloneNode(true));
+ else icon.innerHTML=svg('more');const name=document.createElement('span');name.textContent=n.id==='sticker-toggle-btn'?'贴纸':n.querySelector('.expansion-item-name')?.textContent||n.getAttribute('title')||'更多';b.append(icon,name);b.onclick=e=>{e.stopPropagation();setToolsOpen(false);action(n.id);};tools.append(b);});
 }
 function syncPanel(){
  if(!host)return;const panel=source('chat-expansion-panel'),sticker=source('panel-sticker-area');if(panel?.classList.contains('visible')&&sticker?.style.display!=='none'&&sticker){const tools=$('.tools-scroll');setToolsOpen(true);const clone=mirror(sticker);clone.classList.add('sticker-panel');tools.replaceChildren(clone);clone.addEventListener('click',e=>{e.stopPropagation();sourceMap.get(e.target)?.click();});}
@@ -307,7 +337,14 @@ function renderMenu(node){
  if(menuNode!==node||!host)return;const layer=$('.menu-layer');layer.replaceChildren();layer.hidden=false;
  const scrim=document.createElement('button');scrim.className='scrim';scrim.setAttribute('aria-label','关闭消息菜单');scrim.onclick=e=>{e.stopPropagation();closeMenu();};layer.append(scrim);
  const card=document.createElement('div');card.className='message-actions glass';card.setAttribute('role','menu');
- const reactionStrip=document.createElement('div');reactionStrip.className='quick-reactions glass';for(const emoji of ['❤️','👍','👎','😂','‼️','❓']){const b=document.createElement('button');b.textContent=emoji;b.setAttribute('aria-label','贴 '+emoji);b.onclick=e=>{e.stopPropagation();react(lastAnchor?.dataset.id,emoji);};reactionStrip.append(b);}layer.append(reactionStrip);
+ const reactionStrip=document.createElement('div');reactionStrip.className='quick-reactions glass';for(const emoji of ['🩷','👍','👎','💦','‼️','❓','👀']){const b=document.createElement('button');b.textContent=emoji;b.setAttribute('aria-label','贴 '+emoji);b.onclick=e=>{e.stopPropagation();react(lastAnchor?.dataset.id,emoji);};reactionStrip.append(b);}
+ const reactionMessage=chat.history.find(m=>String(m.id)===lastAnchor?.dataset.id);
+ if(reactionMessage&&window.KissReactions?.picker){
+  const all=document.createElement('button');all.className='all-reactions';all.textContent='☺';
+  all.setAttribute('aria-label','全部表情');all.onclick=()=>{closeMenu();window.KissReactions.picker(chat,reactionMessage);};
+  reactionStrip.append(all);
+ }
+ layer.append(reactionStrip);
  const originals=[...node.querySelectorAll('.kmsg-action')];
  const make=(label,icon,run)=>{const b=document.createElement('button');b.className='message-action';b.setAttribute('role','menuitem');b.innerHTML=svg(icon);const text=document.createElement('span');text.textContent=label;b.append(text);b.onclick=e=>{e.stopPropagation();run();syncControls();schedule();};card.append(b);return b;};
  const reply=originals.find(b=>b.querySelector('span')?.textContent==='引用');if(reply)make('回复','reply',()=>{reply.click();$('textarea')?.focus();});
@@ -340,7 +377,9 @@ function renderMenu(node){
 function previewDocument(c){
  const doc=document.implementation.createHTMLDocument('iMessage 预览');doc.body.innerHTML=layout();const link=doc.body.querySelector('link');if(link)doc.head.append(link);const meta=doc.createElement('meta');meta.name='viewport';meta.content='width=device-width,initial-scale=1';doc.head.append(meta);doc.body.className='ki-preview-host';doc.body.style.cssText='margin:0;width:100%;height:100vh;overflow:hidden';doc.body.toggleAttribute('dark-backdrop',!!c.chatBg&&night());doc.body.toggleAttribute('wallpaper',!!c.chatBg);doc.body.dataset.platform=/Android/i.test(typeof navigator!=='undefined'?navigator.userAgent:'')?'android':'other';
  doc.querySelector('.name b').textContent=c.remarkName||c.realName||'';doc.querySelector('.avatar').src=c.avatar||'';doc.querySelector('.wallpaper').style.backgroundImage=c.chatBg?'url('+JSON.stringify(c.chatBg)+')':'none';
- const list=doc.querySelector('.history');for(const [side,text]of [['received','今天也想和你说说话。'],['sent','我在听。']]){const row=doc.createElement('div');row.className='message-wrapper tail '+side;const bubble=doc.createElement('div');bubble.className='message-bubble '+side;bubble.textContent=text;row.append(bubble);list.append(row);}doc.querySelectorAll('button,textarea').forEach(n=>n.tabIndex=-1);return '<!doctype html>'+doc.documentElement.outerHTML;
+ const list=doc.querySelector('.history');
+ const sample=[['sent','你最近在听什么歌',true],['received','今天想换一首来听听',false],['received','最近在听这个',true]];
+ for(const [side,text,tail]of sample){const row=doc.createElement('div');row.className='message-wrapper '+side;if(tail)row.classList.add('tail');if(text==='最近在听这个')row.classList.add('grouped-text');const bubble=doc.createElement('div');bubble.className='message-bubble '+side;bubble.textContent=text;row.append(bubble);list.append(row);}doc.querySelectorAll('button,textarea').forEach(n=>n.tabIndex=-1);return '<!doctype html>'+doc.documentElement.outerHTML;
 }
 window.KissIMessageStyle={enabled,enter,apply,syncNight,schedule,decorate:()=>schedule(),menu,menuContains,previewDocument};
 })();
