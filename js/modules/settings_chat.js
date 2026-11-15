@@ -430,6 +430,7 @@ function loadSettingsToSidebar() {
         document.getElementById('setting-my-remark-name').value = e.myRemarkName || '';
         document.getElementById('setting-my-persona').value = e.myPersona;
         document.getElementById('setting-theme-color').value = e.theme || 'white_pink';
+        document.getElementById('setting-default-appearance').value = e.defaultAppearance === 'imessage' ? 'imessage' : 'default';
         document.getElementById('setting-max-memory').value = e.maxMemory;
         
         document.getElementById('setting-reply-count-enabled').checked = e.replyCountEnabled || false;
@@ -776,6 +777,7 @@ async function saveSettingsFromSidebar() {
         e.myRemarkName = document.getElementById('setting-my-remark-name').value.trim();
         e.myPersona = document.getElementById('setting-my-persona').value;
         e.theme = document.getElementById('setting-theme-color').value;
+        e.defaultAppearance = document.getElementById('setting-default-appearance').value === 'imessage' ? 'imessage' : 'default';
         e.maxMemory = document.getElementById('setting-max-memory').value;
         e.replyCountEnabled = document.getElementById('setting-reply-count-enabled').checked;
         e.replyCountMin = parseInt(document.getElementById('setting-reply-count-min').value, 10) || 3;

@@ -63,7 +63,7 @@ function open(items,options) {
   }
   actions.append(row);
  }
- menu.append(actions);document.body.append(menu);position(menu);
+ menu.append(actions);window.KissIMessageStyle?.menu(menu);document.body.append(menu);position(menu);
  let frame=0;
  const resize=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>position(menu));};
  const dismiss=e=>{if(!menu.contains(e.target))removeContextMenu();};

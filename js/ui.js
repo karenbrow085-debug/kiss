@@ -311,6 +311,10 @@ function updateCustomBubbleStyle(chatId, css, enabled) {
     const existingStyles = document.querySelectorAll(`.${STYLE_TAG_CLASS}, style[id^="custom-bubble-style-for-"]`);
     existingStyles.forEach(el => el.remove());
 
+    const appearanceChat = typeof db !== 'undefined' ? db.characters.find(c => c.id === chatId) || db.groups.find(c => c.id === chatId) : null;
+    window.KissIMessageStyle?.apply(appearanceChat);
+    if (appearanceChat?.defaultAppearance === 'imessage') return;
+
     if (!enabled || !css) return;
 
     // 获取 chat 对象以支持模板变量
@@ -1303,6 +1307,7 @@ async function applyHomeScreenMode(mode) {
         homeScreen.classList.remove('day-mode');
     }
     db.homeScreenMode = mode;
+    window.KissIMessageStyle?.syncNight();
     await saveData();
 }
 

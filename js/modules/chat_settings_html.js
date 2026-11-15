@@ -422,6 +422,15 @@ const chatSettingsHtml = `
                                 </div>
                             </div>
                             <div class="kkt-item">
+                                <div class="kkt-item-label">默认样式</div>
+                                <div class="kkt-item-control">
+                                    <select id="setting-default-appearance" aria-label="默认样式" style="border:none;background:transparent;text-align:right;">
+                                        <option value="default">原有默认</option>
+                                        <option value="imessage">iMessage</option>
+                                    </select><span class="kkt-arrow">›</span>
+                                </div>
+                            </div>
+                            <div class="kkt-item">
                                 <div class="kkt-item-label">头像显示模式</div>
                                 <div class="kkt-item-control">
                                     <select id="setting-avatar-mode" style="border:none; background:transparent; text-align:right;">

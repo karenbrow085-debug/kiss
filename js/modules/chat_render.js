@@ -14,6 +14,7 @@ function isChatGapNotice(message) {
 
 function renderMessages(isLoadMore = false, forceScrollToBottom = false, focusMessageId = null) {
     window.KissOffline?.refresh(forceScrollToBottom);
+    window.KissIMessageStyle?.schedule();
     const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
     if (!chat || !chat.history) return;
     const oldScrollHeight = messageArea.scrollHeight;
