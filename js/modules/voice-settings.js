@@ -39,7 +39,12 @@ function renderBooks(id,selected=[]){
 }
 async function busy(button,fn){const text=button.textContent,epoch=listEpoch;button.disabled=true;button.textContent='读取中…';try{await fn();}catch(e){if(epoch===listEpoch)status(e.message,true);}finally{button.disabled=false;button.textContent=text;}}
 async function fetchList(kind,more=false){if(kind==='voices')$('kv-voice-library').open=true;collect();const id=selected,p=S.clone(draft.profiles[id]),epoch=listEpoch,page=more?voicePage+1:1;const result=await S.list(p,kind,{page,scope:$('kv-voice-scope').value,search:$('kv-voice-search').value.trim()});if(epoch!==listEpoch||selected!==id)return;const items=more?[...(draft.profiles[id][kind]||[]),...result.items]:result.items;draft.profiles[id][kind]=[...new Map(items.map(x=>[x.id,x])).values()];if(kind==='voices'){voicePage=page;hasMore=result.hasMore;renderVoices();}else renderLists();status(result.catalog?'已载入官方模型目录；账号可用权限以试听结果为准。':`已读取 ${result.items.length} 个${kind==='voices'?'音色':'模型'}${more?'，已合并到列表':''}。${kind==='voices'&&!result.items.length?'可直接填写已知音色 ID。':''}`);}
-function resetBubble(){if(activeBubble){activeBubble.classList.remove('kv-loading','kv-playing');const label=activeBubble.querySelector('[data-kv-original-icon]');if(label){label.innerHTML=label.dataset.kvOriginalIcon;delete label.dataset.kvOriginalIcon;}activeBubble=null;}}
+function reportProgress(bubble,progress){
+ if(!bubble)return;
+ bubble.kissPlaybackProgress=progress;
+ bubble.dispatchEvent(new CustomEvent('kiss-voice-progress',{bubbles:true,detail:progress}));
+}
+function resetBubble(){if(activeBubble){reportProgress(activeBubble,0);activeBubble.classList.remove('kv-loading','kv-playing');const label=activeBubble.querySelector('[data-kv-original-icon]');if(label){label.innerHTML=label.dataset.kvOriginalIcon;delete label.dataset.kvOriginalIcon;}activeBubble=null;}}
 let previousAudioSession=null,releaseKeepAlive=null;
 function releasePlaybackChannel(){const release=releaseKeepAlive;releaseKeepAlive=null;if(release)release();}
 function beginAudioSession(){try{if(navigator.audioSession){previousAudioSession=navigator.audioSession.type;navigator.audioSession.type='playback';}}catch{previousAudioSession=null;}}
@@ -50,12 +55,19 @@ async function play(p,text,bubble=null,waitEnd=false){
  stop();unlock();const token=playGeneration;controller=new AbortController();const signal=controller.signal;activeBubble=bubble;bubble?.classList.add('kv-loading');
  audio=sharedAudio||new Audio();sharedAudio=audio;const player=audio;player.preload='auto';player.volume=1;player.playbackRate=1;player.defaultPlaybackRate=1;
  releaseKeepAlive=window.KeepAliveManager?.acquirePlayback?.()||null;beginAudioSession();
- const playing=()=>{if(token!==playGeneration)return;bubble?.classList.remove('kv-loading');bubble?.classList.add('kv-playing');const icon=bubble?.querySelector('.play-icon');if(icon&&!icon.hasAttribute('data-kv-original-icon')){icon.dataset.kvOriginalIcon=icon.innerHTML;icon.innerHTML='<path fill="currentColor" d="M7 5h4v14H7zM14 5h4v14h-4z"/>';}status('正在播放，可点击停止。');};
+ let part=1,parts=1,progressFrame=0;
+ const tick=()=>{
+  if(token!==playGeneration||!bubble)return;
+  const fraction=Number.isFinite(player.duration)&&player.duration>0?player.currentTime/player.duration:0;
+  reportProgress(bubble,Math.min(1,(part-1+fraction)/parts));
+  progressFrame=requestAnimationFrame(tick);
+ };
+ const playing=()=>{if(token!==playGeneration)return;bubble?.classList.remove('kv-loading');bubble?.classList.add('kv-playing');const icon=bubble?.querySelector('.play-icon');if(icon&&!icon.hasAttribute('data-kv-original-icon')){icon.dataset.kvOriginalIcon=icon.innerHTML;icon.innerHTML='<path fill="currentColor" d="M7 5h4v14H7zM14 5h4v14h-4z"/>';}status('正在播放，可点击停止。');if(bubble&&!progressFrame&&bubble.closest('.ki-imessage'))progressFrame=requestAnimationFrame(tick);};
  try{
-  await window.KissVoicePlayer.play(S,p,text,{player,signal,onPlaying:playing,onPart:(i,total)=>{if(token===playGeneration&&total>1)status(`连续播放 · 第 ${i} / ${total} 段`);},onDuration:seconds=>{const d=bubble?.querySelector('.duration');if(d)d.textContent=Math.ceil(seconds)+'"';}});
+  await window.KissVoicePlayer.play(S,p,text,{player,signal,onPlaying:playing,onPart:(i,total)=>{part=i;parts=total;if(token===playGeneration&&total>1)status(`连续播放 · 第 ${i} / ${total} 段`);},onDuration:seconds=>{const d=bubble?.querySelector('.duration');if(d)d.textContent=Math.ceil(seconds)+'"';}});
   if(token===playGeneration){endAudioSession();resetBubble();status('播放完成。');}
  }catch(e){if(token!==playGeneration)return;controller?.abort();endAudioSession();resetBubble();const message=e.name==='NotAllowedError'?'浏览器暂时阻止播放，音频已保留缓存，请再次点击。':e.message;status(message,true);toast(message);}
- finally{if(token===playGeneration){controller=null;player.pause();player.removeAttribute('src');player.load();}}
+ finally{cancelAnimationFrame(progressFrame);if(token===playGeneration){controller=null;player.pause();player.removeAttribute('src');player.load();}}
 }
 
 async function save(){collect();saveBindingDraft();try{

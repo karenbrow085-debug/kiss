@@ -32,7 +32,7 @@ function create({host,root}){
  function update(){
   frame=0;if(disposed||!host.isConnected)return;const surface=root.querySelector('.surface'),history=root.querySelector('.history');if(!surface||!history)return;const sr=surface.getBoundingClientRect();if(!sr.width||!sr.height)return;
   const rows=[...history.children].map(node=>({node,r:node.getBoundingClientRect()})).filter(({r})=>r.bottom>sr.top&&r.top<sr.bottom);
-  const glass=[...root.querySelectorAll('.glass')].filter(n=>!n.closest('.liquid-optics'));
+  const glass=[...root.querySelectorAll('.glass')].filter(n=>!n.closest('.liquid-optics,.tools,.menu-layer,.reply-focus'));
   for(const target of glass){const r=target.getBoundingClientRect();if(r.width<8||r.height<8||r.bottom<sr.top||r.top>sr.bottom)continue;let record=records.get(target);
    if(!record){const optics=doc.createElement('span');optics.className='liquid-optics';optics.setAttribute('aria-hidden','true');const lens=doc.createElement('span');lens.className='liquid-lens';const wall=doc.createElement('span');wall.className='liquid-wallpaper';lens.append(wall);optics.append(lens);target.prepend(optics);record={optics,lens,wall,rows:new Map(),size:''};records.set(target,record);}
    const w=Math.round(r.width),h=Math.round(r.height),style=getComputedStyle(target),radius=style.borderTopLeftRadius.includes('%')?Math.min(w,h)/2:Math.min(parseFloat(style.borderTopLeftRadius)||20,w/2,h/2),key=[w,h,radius].join('-');
