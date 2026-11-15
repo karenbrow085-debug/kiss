@@ -1,13 +1,37 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261116-imessage-media-11',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261116-imessage-static-12',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const entryUnread=new WeakMap();
 const textPhotoOrder=new Map();
 const textPhotoPattern=/\[(?:.+?)发来的(?:照片\/视频|照片|视频)[：:]/;
-function textPhotoCover(id){
- return textPhotoCovers[(textPhotoOrder.get(String(id))??0)%textPhotoCovers.length];
+function textPhotoCover(id,depth=0){
+ return textPhotoCovers[((textPhotoOrder.get(String(id))??0)+depth)%textPhotoCovers.length];
+}
+function decorateTextPhoto(card,id){
+ const content=card.querySelector('.pv-card-content');
+ if(!content)return;
+ const deck=document.createElement('div');
+ deck.className='im-album-deck';
+ card.className='image-bubble im-album im-text-photo';
+ for(let depth=2;depth>=0;depth--){
+  const layer=document.createElement('div');
+  layer.className='im-photo';
+  layer.style.setProperty('--depth',depth);
+  layer.style.zIndex=String(10-depth);
+  const image=document.createElement('img');
+  image.src=textPhotoCover(id,depth);
+  image.alt='';
+  image.draggable=false;
+  layer.append(image);
+  if(depth===0){
+   layer.classList.add('im-text-front');
+   layer.append(content);
+  }else layer.setAttribute('aria-hidden','true');
+  deck.append(layer);
+ }
+ card.replaceChildren(deck);
 }
 let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,menuNode=null,menuObserver=null,bodyObserver=null,lastAnchor=null,suppressClick=0,focusedQuote=null;
 const enabled=c=>c?.defaultAppearance==='imessage';
@@ -74,7 +98,7 @@ function mount(root){
  listen($('.jump'),'click',()=>{$('.history').scrollTo({top:$('.history').scrollHeight,behavior:'smooth'});$('.jump').hidden=true;});
  listen($('.selection'),'click',e=>{const b=e.target.closest('[data-original]');if(b)action(b.dataset.original);});
  const history=$('.history');listen(history,'click',clickMessage);listen(history,'contextmenu',e=>{e.preventDefault();const row=e.target.closest('.message-wrapper');if(row)longPress(row,e.clientX,e.clientY);});
- listen(history,'pointerdown',e=>{if(e.button!==0)return;const row=e.target.closest('.message-wrapper[data-id]');if(!row)return;pressed={x:e.clientX,y:e.clientY,row,album:e.target.closest('.im-album')};clearTimeout(hold);hold=setTimeout(()=>{suppressClick=Date.now()+650;longPress(row,e.clientX,e.clientY);},450);});
+ listen(history,'pointerdown',e=>{if(e.button!==0)return;const row=e.target.closest('.message-wrapper[data-id]');if(!row)return;pressed={x:e.clientX,y:e.clientY,row,album:e.target.closest('.im-album[data-photo-count]')};clearTimeout(hold);hold=setTimeout(()=>{suppressClick=Date.now()+650;longPress(row,e.clientX,e.clientY);},450);});
  const release=()=>{clearTimeout(hold);pressed=null;};listen(history,'pointerup',e=>{if(pressed?.album&&!room()?.classList.contains('multi-select-active')){const dx=e.clientX-pressed.x,dy=e.clientY-pressed.y,id=pressed.row.dataset.id,count=Number(pressed.album.dataset.photoCount)||0,state=albumState.get(id)||{index:0,expanded:false};if(!state.expanded&&Math.abs(dx)>28&&Math.abs(dx)>Math.abs(dy)){state.index=Math.max(0,Math.min(count-1,state.index+(dx<0?1:-1)));albumState.set(id,state);suppressClick=Date.now()+450;schedule();}}release();});listen(history,'pointercancel',release);listen(history,'pointermove',e=>{if(pressed&&Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>8){clearTimeout(hold);if(!pressed.album)pressed=null;}});
  listen(history,'scroll',()=>{clearTimeout(hold);updateJump();},{passive:true});
  observe(source('message-area'),()=>schedule(),{childList:true,subtree:true,characterData:true,attributes:true});
@@ -126,14 +150,9 @@ function mirror(original){
  for(const brand of clone.querySelectorAll('.receipt-brand'))brand.textContent=clone.querySelector('.pay-status-text')?'付款请求':'订单';
  for(const oldIcon of clone.querySelectorAll('.gift-card-icon')){const icon=document.createElement('span');icon.className='gift-icon';icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14"/><path d="M12 7H8a3 3 0 1 1 3-3Zm0 0h4a3 3 0 1 0-3-3Z"/></svg>';oldIcon.replaceWith(icon);}
  for(const voice of clone.querySelectorAll('.voice-bubble'))decorateVoice(voice);
- for(const card of clone.querySelectorAll('.pv-card')){
-  card.classList.add('im-text-photo');
-  const overlay=card.querySelector('.pv-card-image-overlay');
-  if(overlay){
-   const cover=textPhotoCover(clone.dataset.id);
-   overlay.style.backgroundImage='url('+JSON.stringify(cover)+')';
-   card.classList.toggle('im-photo-open',overlay.classList.contains('hidden'));
-  }
+ for(const card of clone.querySelectorAll('.pv-card'))decorateTextPhoto(card,clone.dataset.id);
+ for(const bubble of clone.querySelectorAll('.message-bubble:not(.html-bubble)')){
+  if(Array.from(bubble.querySelector('.bubble-content')?.textContent?.trim()||'').length===1)bubble.classList.add('single-glyph');
  }
  return clone;
 }
@@ -261,7 +280,7 @@ function renderMessages(){
    row.querySelector('.message-bubble:not(.html-bubble)')&&next.querySelector('.message-bubble:not(.html-bubble)');
   row.classList.toggle('tail',!joins);
   if(joins)next.classList.add('grouped-text');
-  const photo=row.querySelector('.im-text-photo:not(.im-photo-open),.im-single-photo');
+  const photo=row.querySelector('.im-single-photo');
   if(!photo||row.classList.contains('has-reply')){previousPhoto=null;photoPosition=0;continue;}
   const side=row.classList.contains('sent')?'sent':'received';
   if(row.dataset.continuous==='true'&&side===previousPhoto){
@@ -291,6 +310,7 @@ function clickMessage(e){
  }
  if(!$('.tools').hidden){closeTools();return;}
  if(!room()?.classList.contains('multi-select-active')){
+  if(e.target.closest('.im-text-photo'))return;
   const voice=e.target.closest('.voice-bubble');
   if(voice){sourceMap.get(voice)?.click();return;}
   const count=e.target.closest('.im-photo-count');
@@ -314,7 +334,7 @@ function clickMessage(e){
 function longPress(row,x,y){const original=sourceMap.get(row);if(!original||!row.dataset.id)return;lastAnchor=row;if(typeof handleMessageLongPress==='function')handleMessageLongPress(original,x,y);}
 const albumState=new Map();
 function decoratePhotos(row,message){
- const album=row.querySelector('.kia-album');if(!album){const single=row.querySelector('.image-bubble:not(.kia-album) img');if(single&&single.alt!=='表情包'){const original=sourceMap.get(single);single.closest('.image-bubble').classList.add('im-single-photo');single.closest('.image-bubble').style.setProperty('--photo-width',(original?.naturalWidth>original?.naturalHeight?164:176)+'px');single.addEventListener('load',()=>{single.closest('.image-bubble')?.style.setProperty('--photo-width',(single.naturalWidth>single.naturalHeight?164:176)+'px');liquid?.schedule();},{once:true});}return;}
+ const album=row.querySelector('.kia-album');if(!album){const single=row.querySelector('.image-bubble:not(.kia-album,.im-text-photo) img');if(single&&single.alt!=='表情包'){const original=sourceMap.get(single);single.closest('.image-bubble').classList.add('im-single-photo');single.closest('.image-bubble').style.setProperty('--photo-width',(original?.naturalWidth>original?.naturalHeight?164:176)+'px');single.addEventListener('load',()=>{single.closest('.image-bubble')?.style.setProperty('--photo-width',(single.naturalWidth>single.naturalHeight?164:176)+'px');liquid?.schedule();},{once:true});}return;}
  const parts=message.parts?.filter(p=>p.type==='image')||[];if(parts.length<2)return;const id=String(message.id),state=albumState.get(id)||{index:0,expanded:false};state.index=Math.max(0,Math.min(parts.length-1,state.index));albumState.set(id,state);const original=sourceMap.get(album),originalImages=original?[...original.querySelectorAll('.kia-card img')]:[];
  album.className='image-bubble im-album';album.dataset.photoCount=parts.length;album.classList.toggle('im-album-expanded',state.expanded);album.replaceChildren();const deck=document.createElement('div');deck.className='im-album-deck';
  const front=originalImages[state.index],aspect=front?.naturalWidth&&front?.naturalHeight?Math.max(.6,Math.min(1.6,front.naturalWidth/front.naturalHeight)):.75;deck.style.setProperty('--photo-aspect',aspect);deck.style.setProperty('--photo-front-width',(aspect>1?166:184)+'px');album.style.setProperty('--photo-front-width',(aspect>1?166:184)+'px');
@@ -380,7 +400,7 @@ function renderMenu(node){
  const originals=[...node.querySelectorAll('.kmsg-action')];
  const make=(label,icon,run)=>{const b=document.createElement('button');b.className='message-action';b.setAttribute('role','menuitem');b.innerHTML=svg(icon);const text=document.createElement('span');text.textContent=label;b.append(text);b.onclick=e=>{e.stopPropagation();run();syncControls();schedule();};card.append(b);return b;};
  const reply=originals.find(b=>b.querySelector('span')?.textContent==='引用');if(reply)make('回复','reply',()=>{reply.click();$('textarea')?.focus();});
- make('拷贝','copy',()=>{const text=lastAnchor?.querySelector('.bubble-content,.voice-transcript,.receipt-bubble,.forwarded-chat-preview')?.textContent||lastAnchor?.textContent||'';copy(text);closeMenu();});
+ make('拷贝','copy',()=>{const text=lastAnchor?.querySelector('.bubble-content,.pv-card-content,.voice-transcript,.receipt-bubble,.forwarded-chat-preview')?.textContent||lastAnchor?.textContent||'';copy(text);closeMenu();});
  const translation=lastAnchor?.querySelector('.translation-text');if(translation)make('显示译文','translate',()=>{sourceMap.get(translation)?.classList.toggle('active');closeMenu();});
  const selection=originals.find(b=>b.querySelector('span')?.textContent==='删除');if(selection)make('选择','select',()=>selection.click());
  make('更多…','more',()=>{card.replaceChildren();make('返回','back',()=>renderMenu(node));for(const original of originals){const label=original.querySelector('span')?.textContent||original.textContent;const b=make(label,label.includes('编辑')?'edit':label.includes('删除')?'trash':'more',()=>original.click());if(original.classList.contains('danger')||label==='删除')b.classList.add('danger');}});layer.append(card);
