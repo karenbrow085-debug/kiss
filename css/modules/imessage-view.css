@@ -68,3 +68,5 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
 
 :host{--top-clearance:env(safe-area-inset-top,0px)}:host([data-platform=android]){--top-clearance:max(12px,env(safe-area-inset-top,0px))}
 .floating-header{height:calc(106px + var(--top-clearance))}.back,.video{top:calc(9px + var(--top-clearance))}.contact{top:calc(4px + var(--top-clearance))}.history{padding-top:calc(111px + var(--top-clearance))}
+
+.surface{width:100%;max-width:480px;margin-inline:auto}

@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261115-isolated-3',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261115-isolated-4',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const entryUnread=new WeakMap();
 let chat=null,host=null,shadow=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,menuNode=null,menuObserver=null,bodyObserver=null,lastAnchor=null,suppressClick=0;
 const enabled=c=>c?.defaultAppearance==='imessage';
@@ -14,7 +14,7 @@ function listen(node,type,fn,opts){if(!node)return;node.addEventListener(type,fn
 function observe(node,fn,options){if(!node)return;const o=new MutationObserver(fn);o.observe(node,options);observers.push(o);}
 function enter(c){entryUnread.set(c,Math.max(0,Number(c.unreadCount)||0));}
 function night(){return typeof db!=='undefined'&&db.homeScreenMode==='night';}
-function syncNight(){if(host)host.toggleAttribute('night',night());}
+function syncNight(){if(host){host.toggleAttribute('night',night());host.style.setProperty('background-color',night()?'#000':'#fff','important');}}
 function action(id){source(id)?.click();syncControls();}
 function closeMenu(){if(typeof removeContextMenu==='function')removeContextMenu();clearOwnMenu();}
 function teardown(){clearTimeout(hold);cancelAnimationFrame(frame);frame=0;observers.forEach(o=>o.disconnect());observers=[];disposers.forEach(f=>f());disposers=[];closeMenu();host?.remove();host=shadow=null;sourceMap=new WeakMap();}
@@ -164,7 +164,7 @@ function renderMenu(node){
  const translation=lastAnchor?.querySelector('.translation-text');if(translation)make('显示译文','translate',()=>{translation.classList.add('active');closeMenu();});
  const selection=originals.find(b=>b.querySelector('span')?.textContent==='删除');if(selection)make('选择','select',()=>selection.click());
  make('更多…','more',()=>{card.replaceChildren();make('返回','back',()=>renderMenu(node));for(const original of originals){const label=original.querySelector('span')?.textContent||original.textContent;const b=make(label,label.includes('编辑')?'edit':label.includes('删除')?'trash':'more',()=>original.click());if(original.classList.contains('danger')||label==='删除')b.classList.add('danger');}});layer.append(card);
- const bounds=host.getBoundingClientRect(),a=lastAnchor?.querySelector('.message-bubble,.image-bubble,.voice-bubble')?.getBoundingClientRect()||lastAnchor?.getBoundingClientRect()||bounds;
+ const bounds=$('.surface').getBoundingClientRect(),a=lastAnchor?.querySelector('.message-bubble,.image-bubble,.voice-bubble')?.getBoundingClientRect()||lastAnchor?.getBoundingClientRect()||bounds;
  if(lastAnchor&&a.top>=bounds.top&&a.bottom<=bounds.bottom){const preview=lastAnchor.cloneNode(true);preview.classList.add('menu-preview');preview.style.left=(a.left-bounds.left)+'px';preview.style.top=(a.top-bounds.top)+'px';preview.style.width=a.width+'px';layer.append(preview);}
  const left=Math.max(12,Math.min(a.left-bounds.left,bounds.width-252));const available=Math.max(110,bounds.height-160);card.style.maxHeight=Math.min(400,available)+'px';const h=card.getBoundingClientRect().height;
  let top=a.bottom-bounds.top+12;if(top+h>bounds.height-72)top=Math.max(112,a.top-bounds.top-h-12);top=Math.max(112,Math.min(top,bounds.height-h-72));card.style.left=left+'px';card.style.top=top+'px';card.style.maxHeight=Math.max(100,bounds.height-top-72)+'px';reactionStrip.style.left=Math.max(10,Math.min(a.left-bounds.left,bounds.width-294))+'px';reactionStrip.style.top=Math.max(60,Math.min(a.top-bounds.top-55,top-56))+'px';
