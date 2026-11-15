@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261115-isolated-4',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261115-isolated-5',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const entryUnread=new WeakMap();
 let chat=null,host=null,shadow=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,menuNode=null,menuObserver=null,bodyObserver=null,lastAnchor=null,suppressClick=0;
 const enabled=c=>c?.defaultAppearance==='imessage';
@@ -29,12 +29,13 @@ function apply(c){
  if(lastChatId!==c.id){forceBottom=true;lastChatId=c.id;closeMenu();}
  host.style.setProperty('display','block','important');syncNight();syncHeader();syncControls();schedule();
 }
+function layout(){return `<link rel="stylesheet" href="${asset}"><div class="surface"><div class="wallpaper"></div><main class="history" aria-label="聊天信息" tabindex="-1"></main><header class="floating-header"><button class="glass back" aria-label="返回聊天列表">${svg('back')}<span class="unread-count" hidden></span></button><button class="contact" aria-label="打开聊天设置"><img class="avatar" alt=""><span class="glass name"><b></b><span aria-hidden="true">›</span></span></button><button class="glass video" aria-label="通话">${svg('video')}</button></header><div class="typing" role="status" hidden>•••</div><button class="glass jump" aria-label="跳到最新消息" hidden>${svg('down')}<span></span></button><footer class="composer"><div class="quote glass" hidden><span></span><button aria-label="取消引用">${svg('close')}</button></div><div class="compose-row"><button class="glass add" aria-label="展开功能">${svg('plus')}</button><div class="glass input-capsule"><textarea rows="1" aria-label="iMessage信息" placeholder="iMessage信息" enterkeyhint="send"></textarea><button class="submit" aria-label="获取回复">${svg('wave')}</button></div></div></footer><section class="tools glass" aria-label="聊天功能" hidden></section><section class="selection glass" hidden><button data-original="cancel-multi-select-btn">取消</button><b></b><button data-original="delete-selected-btn">删除</button><button data-original="collect-selected-btn">收藏</button></section><div class="menu-layer" hidden></div></div>`;}
 function mount(root){
  host=document.createElement('kiss-imessage-view');
  for(const [k,v]of Object.entries({all:'initial',display:'block',position:'absolute',inset:'0',width:'100%',height:'100%',margin:'0',padding:'0',border:'0',zIndex:'12',isolation:'isolate',visibility:'visible',pointerEvents:'auto',transform:'none',filter:'none',opacity:'1'}))host.style.setProperty(k.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()),v,'important');
  host.dataset.platform=/Android/i.test(typeof navigator!=='undefined'?navigator.userAgent:'')?'android':'other';
  shadow=host.attachShadow({mode:'open'});
- shadow.innerHTML=`<link rel="stylesheet" href="${asset}"><div class="surface"><div class="wallpaper"></div><main class="history" aria-label="聊天信息" tabindex="-1"></main><header class="floating-header"><button class="glass back" aria-label="返回聊天列表">${svg('back')}<span class="unread-count" hidden></span></button><button class="contact" aria-label="打开聊天设置"><img class="avatar" alt=""><span class="glass name"><b></b><span aria-hidden="true">›</span></span></button><button class="glass video" aria-label="通话">${svg('video')}</button></header><div class="typing" role="status" hidden>•••</div><button class="glass jump" aria-label="跳到最新消息" hidden>${svg('down')}<span></span></button><footer class="composer"><div class="quote glass" hidden><span></span><button aria-label="取消引用">${svg('close')}</button></div><div class="compose-row"><button class="glass add" aria-label="展开功能">${svg('plus')}</button><div class="glass input-capsule"><textarea rows="1" aria-label="iMessage信息" placeholder="iMessage信息" enterkeyhint="send"></textarea><button class="submit" aria-label="获取回复">${svg('wave')}</button></div></div></footer><section class="tools glass" aria-label="聊天功能" hidden></section><section class="selection glass" hidden><button data-original="cancel-multi-select-btn">取消</button><b></b><button data-original="delete-selected-btn">删除</button><button data-original="collect-selected-btn">收藏</button></section><div class="menu-layer" hidden></div></div>`;
+ shadow.innerHTML=layout();
  root.append(host);
  listen($('.back'),'click',e=>{e.stopPropagation();root.querySelector('#chat-room-header-default .back-btn')?.click();});
  listen($('.contact'),'click',e=>{e.stopPropagation();closeMenu();action('chat-settings-btn');});
@@ -169,5 +170,10 @@ function renderMenu(node){
  const left=Math.max(12,Math.min(a.left-bounds.left,bounds.width-252));const available=Math.max(110,bounds.height-160);card.style.maxHeight=Math.min(400,available)+'px';const h=card.getBoundingClientRect().height;
  let top=a.bottom-bounds.top+12;if(top+h>bounds.height-72)top=Math.max(112,a.top-bounds.top-h-12);top=Math.max(112,Math.min(top,bounds.height-h-72));card.style.left=left+'px';card.style.top=top+'px';card.style.maxHeight=Math.max(100,bounds.height-top-72)+'px';reactionStrip.style.left=Math.max(10,Math.min(a.left-bounds.left,bounds.width-294))+'px';reactionStrip.style.top=Math.max(60,Math.min(a.top-bounds.top-55,top-56))+'px';
  layer.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeMenu();}});}
-window.KissIMessageStyle={enabled,enter,apply,syncNight,schedule,decorate:()=>schedule(),menu,menuContains};
+function previewDocument(c){
+ const doc=document.implementation.createHTMLDocument('iMessage 预览');doc.body.innerHTML=layout();const link=doc.body.querySelector('link');if(link)doc.head.append(link);const meta=doc.createElement('meta');meta.name='viewport';meta.content='width=device-width,initial-scale=1';doc.head.append(meta);doc.body.className='ki-preview-host';doc.body.style.cssText='margin:0;width:100%;height:100vh;overflow:hidden';doc.body.toggleAttribute('night',night());doc.body.toggleAttribute('wallpaper',!!c.chatBg);doc.body.dataset.platform=/Android/i.test(typeof navigator!=='undefined'?navigator.userAgent:'')?'android':'other';
+ doc.querySelector('.name b').textContent=c.remarkName||c.realName||'';doc.querySelector('.avatar').src=c.avatar||'';doc.querySelector('.wallpaper').style.backgroundImage=c.chatBg?'url('+JSON.stringify(c.chatBg)+')':'none';
+ const list=doc.querySelector('.history');for(const [side,text]of [['received','今天也想和你说说话。'],['sent','我在听。']]){const row=doc.createElement('div');row.className='message-wrapper tail '+side;const bubble=doc.createElement('div');bubble.className='message-bubble '+side;bubble.textContent=text;row.append(bubble);list.append(row);}doc.querySelectorAll('button,textarea').forEach(n=>n.tabIndex=-1);return '<!doctype html>'+doc.documentElement.outerHTML;
+}
+window.KissIMessageStyle={enabled,enter,apply,syncNight,schedule,decorate:()=>schedule(),menu,menuContains,previewDocument};
 })();
