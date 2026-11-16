@@ -32,8 +32,8 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:1.45,saturation:1.28,displacement:21},
- composer:{blur:2.1,saturation:1.34,displacement:23},
+ control:{blur:1.6,saturation:1.19,displacement:18},
+ composer:{blur:3.05,saturation:1.16,displacement:20},
  panel:{blur:7.2,saturation:1.22,displacement:20}
 };
 function create({host,root}){
@@ -41,7 +41,7 @@ function create({host,root}){
  const prefix='ki-lens-'+(++instanceId)+'-';
  const records=new Map(),maps=new Map();
  const transparency=view.matchMedia('(prefers-reduced-transparency: reduce)');
- let nextFilter=0,frame=0,disposed=false,background='',probe=null;
+ let nextFilter=0,frame=0,warmup=0,started=false,disposed=false,background='',probe=null;
  const element=(tag,attrs)=>{
   const node=doc.createElementNS(ns,tag);
   for(const [key,value]of Object.entries(attrs))node.setAttribute(key,String(value));
@@ -55,7 +55,7 @@ function create({host,root}){
   const key=[w,h,r,profile].join('-');
   const cached=maps.get(key);
   if(cached)return cached;
-  const scale=Math.min(2,Math.max(1,view.devicePixelRatio||1));
+  const scale=Math.min(profile==='panel'?1:1.5,Math.max(1,view.devicePixelRatio||1));
   const canvas=doc.createElement('canvas');
   canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
   const ctx=canvas.getContext('2d');
@@ -181,9 +181,14 @@ function create({host,root}){
    capture(record,rect,surfaceRect,surface,rows);
   }
   for(const [target,record]of records)if(!visibleTargets.has(target))removeRecord(target,record);
-  for(const [key,map]of maps)if(!usedMaps.has(map)){map.filter.remove();maps.delete(key);}
+  if(maps.size>14){
+   for(const [key,map]of maps){
+    if(!usedMaps.has(map)){map.filter.remove();maps.delete(key);}
+    if(maps.size<=14)break;
+   }
+  }
  }
- function schedule(){if(!disposed&&!frame)frame=view.requestAnimationFrame(update);}
+ function schedule(){if(!disposed&&started&&!frame)frame=view.requestAnimationFrame(update);}
  function setBackground(src){
   src=src||'';
   if(background===src)return;
@@ -211,10 +216,13 @@ function create({host,root}){
  transparency.addEventListener('change',schedule);
  const resize=typeof view.ResizeObserver==='function'?new view.ResizeObserver(schedule):null;
  resize?.observe(root.querySelector('.surface'));
- schedule();
+ // Paint the CSS material first and build the displacement maps after entry.
+ warmup=view.requestAnimationFrame(()=>{
+  warmup=view.requestAnimationFrame(()=>{started=true;schedule();});
+ });
  return {schedule,setBackground,dispose(){
   disposed=true;
-  view.cancelAnimationFrame(frame);
+  view.cancelAnimationFrame(frame);view.cancelAnimationFrame(warmup);
   resize?.disconnect();
   root.removeEventListener('scroll',schedule,true);
   root.removeEventListener('load',schedule,true);
