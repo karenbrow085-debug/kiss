@@ -33,8 +33,8 @@ function luminance(data){
 
 const profiles={
  control:{blur:1.6,saturation:1.13,displacement:10,rimWidth:5},
- contact:{blur:1.2,saturation:1.18,displacement:14,rimWidth:5},
- composer:{blur:2.8,saturation:1.13,displacement:11,rimWidth:6},
+ contact:{blur:2.65,saturation:1.20,displacement:16,rimWidth:6},
+ composer:{blur:3.7,saturation:1.14,displacement:14,rimWidth:7},
  panel:{blur:5.2,saturation:1.17,displacement:17,rimWidth:10}
 };
 function create({host,root}){
@@ -72,10 +72,10 @@ function create({host,root}){
     const map=displacement.data;
     map[i]=128-nx*bend*120;map[i+1]=128-ny*bend*120;map[i+2]=128;map[i+3]=255;
     if(distance>0||depth>8)continue;
-    const direction=(-nx*.53-ny*.85);
+    const direction=(-nx*.36-ny*.93);
     const band=Math.exp(-((depth-.65)**2)/.63);
     const broadGlint=Math.exp(-((depth-2.1)**2)/4.5)*.11*Math.max(0,direction)**4;
-    const glint=band*(.05+.56*Math.max(0,direction)**3+.32*Math.max(0,-direction)**5)+broadGlint;
+    const glint=band*(.05+.56*Math.max(0,direction)**3+.49*Math.max(0,-direction)**5)+broadGlint;
     const bevel=Math.exp(-((depth-2.6)**2)/2.9)*(.01+.10*Math.max(0,-direction)**2);
     const shade=reflections.data;
     const highlight=glint>=bevel;
