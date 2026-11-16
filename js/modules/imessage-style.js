@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261117-imessage-menu-20',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261117-imessage-menu-21',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -66,7 +66,7 @@ function observeMessageChanges(records){
  }
  if(needsRender)schedule();
 }
-let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,suppressClick=0,focusedQuote=null,styleReady=false,bubbleResize=null;
+let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,suppressClick=0,suppressHoldClick=false,focusedQuote=null,styleReady=false,bubbleResize=null;
 const enabled=c=>c?.defaultAppearance==='imessage';
 const room=()=>document.getElementById('chat-room-screen');
 const $=s=>shadow?.querySelector(s);
@@ -147,6 +147,12 @@ function mount(root){
   $('textarea').blur();
  });
  listen($('.reply-feed'),'click',clickMessage);
+ listen(shadow,'pointerdown',()=>{suppressHoldClick=false;},{capture:true});
+ listen(shadow,'click',event=>{
+  if(!suppressHoldClick||event.detail===0)return;
+  suppressHoldClick=false;
+  event.preventDefault();event.stopImmediatePropagation();
+ },{capture:true});
  listen($('.menu-layer'),'keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeMenu();}});
  listen(source('message-area'),'kiss-voice-progress',e=>{
   const original=e.target.closest('.message-wrapper'),id=original?.dataset.id;
@@ -159,7 +165,7 @@ function mount(root){
  listen($('.jump'),'click',()=>{$('.history').scrollTo({top:$('.history').scrollHeight,behavior:'smooth'});$('.jump').hidden=true;});
  listen($('.selection'),'click',e=>{const b=e.target.closest('[data-original]');if(b)action(b.dataset.original);});
  const history=$('.history');listen(history,'click',clickMessage);listen(history,'contextmenu',e=>{e.preventDefault();const row=e.target.closest('.message-wrapper');if(row)longPress(row,e.clientX,e.clientY);});
- listen(history,'pointerdown',e=>{if(e.button!==0)return;const row=e.target.closest('.message-wrapper[data-id]');if(!row)return;pressed={x:e.clientX,y:e.clientY,row,album:e.target.closest('.im-album[data-photo-count]:not(.im-text-photo)')};clearTimeout(hold);hold=setTimeout(()=>{suppressClick=Date.now()+650;longPress(row,e.clientX,e.clientY);},450);});
+ listen(history,'pointerdown',e=>{if(e.button!==0)return;const row=e.target.closest('.message-wrapper[data-id]');if(!row)return;pressed={x:e.clientX,y:e.clientY,row,album:e.target.closest('.im-album[data-photo-count]:not(.im-text-photo)')};clearTimeout(hold);hold=setTimeout(()=>{suppressClick=Date.now()+650;suppressHoldClick=true;longPress(row,e.clientX,e.clientY);},450);});
  const release=()=>{clearTimeout(hold);pressed=null;};listen(history,'pointerup',e=>{if(pressed?.album&&!room()?.classList.contains('multi-select-active')){const dx=e.clientX-pressed.x,dy=e.clientY-pressed.y,id=pressed.row.dataset.id,count=Number(pressed.album.dataset.photoCount)||0,state=albumState.get(id)||{index:0,expanded:false};if(!state.expanded&&Math.abs(dx)>28&&Math.abs(dx)>Math.abs(dy)){state.index=Math.max(0,Math.min(count-1,state.index+(dx<0?1:-1)));albumState.set(id,state);suppressClick=Date.now()+450;schedule();}}release();});listen(history,'pointercancel',release);listen(history,'pointermove',e=>{if(pressed&&Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>8){clearTimeout(hold);if(!pressed.album)pressed=null;}});
  listen(history,'scroll',()=>{clearTimeout(hold);updateJump();},{passive:true});
  observe(source('message-area'),observeMessageChanges,{childList:true,subtree:true,characterData:true,attributes:true});
