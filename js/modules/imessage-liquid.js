@@ -33,8 +33,8 @@ function luminance(data){
 
 const profiles={
  control:{blur:1.6,saturation:1.19,displacement:18},
- composer:{blur:3.05,saturation:1.16,displacement:20},
- panel:{blur:7.2,saturation:1.22,displacement:20}
+ composer:{blur:1.35,saturation:1.12,displacement:17},
+ panel:{blur:5.2,saturation:1.17,displacement:17}
 };
 function create({host,root}){
  const doc=host.ownerDocument,view=doc.defaultView,ns='http://www.w3.org/2000/svg';
@@ -220,7 +220,14 @@ function create({host,root}){
  warmup=view.requestAnimationFrame(()=>{
   warmup=view.requestAnimationFrame(()=>{started=true;schedule();});
  });
- return {schedule,setBackground,dispose(){
+ function invalidate(row){
+  for(const record of records.values()){
+   const copy=record.rows.get(row);
+   if(copy){copy.remove();record.rows.delete(row);}
+  }
+  schedule();
+ }
+ return {schedule,setBackground,invalidate,dispose(){
   disposed=true;
   view.cancelAnimationFrame(frame);view.cancelAnimationFrame(warmup);
   resize?.disconnect();
