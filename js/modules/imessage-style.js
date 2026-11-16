@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261117-imessage-menu-21',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261117-imessage-glass-22',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -280,6 +280,9 @@ function decorateReply(row,quote,originalRows,adjacent,sourceWithdrawn){
  const target=originalRows.get(id),sent=target?target.classList.contains('sent'):quote.senderId==='user_me';
  const ref=document.createElement('button');ref.type='button';
  ref.className='reply-reference '+(sent?'from-me':'from-them');
+ row.classList.add(sent?'source-sent':'source-received');
+ row.classList.toggle('reply-same-side',sent===row.classList.contains('sent'));
+ if(sourceWithdrawn)ref.classList.add('reply-unavailable');
  ref.dataset.replyTarget=id;ref.dataset.preview=sourceWithdrawn?'已撤回的信息':quote.content||'';
  ref.setAttribute('aria-label','查看被引用的信息');
  const excerpt=document.createElement('span');excerpt.className='reply-excerpt';
@@ -299,18 +302,17 @@ function decorateReply(row,quote,originalRows,adjacent,sourceWithdrawn){
   outline.setAttribute('class','quote-outline');
   outline.setAttribute('aria-hidden','true');
   outline.append(document.createElementNS(ns,'path'));
-  excerpt.append(text,outline);
+  excerpt.append(outline,text);
  }
  const connector=document.createElement('span');
  connector.className='reply-connector';
  connector.setAttribute('aria-hidden','true');
  if(adjacent){
-  row.classList.add('reply-adjacent',sent?'source-sent':'source-received');
-  row.classList.toggle('reply-same-side',sent===row.classList.contains('sent'));
+  row.classList.add('reply-adjacent');
   row.prepend(connector);
  }else{
-  ref.append(excerpt);
-  row.prepend(ref,connector);
+  ref.append(excerpt,connector);
+  row.prepend(ref);
  }
  row.classList.add('has-reply');
 }
@@ -454,7 +456,7 @@ function renderMessages(){
     decorateReply(clone,message.isWithdrawn?null:message.quote,originalRows,adjacent,sourceWithdrawn);
     if(count&&!message.isWithdrawn){
      const replies=document.createElement('button');replies.type='button';replies.className='reply-count';
-     replies.dataset.replyTarget=id;replies.textContent=count+'个回复';clone.append(replies);
+     replies.dataset.replyTarget=id;replies.textContent=count+'个回复';replies.insertAdjacentHTML('beforeend',svg('chevron'));clone.append(replies);
     }
     decoratePhotos(clone,message);decorateReactions(clone,message);
     if(delivered){const label=document.createElement('small');label.className='delivery';label.textContent=delivered;clone.append(label);}
@@ -514,6 +516,8 @@ function clickMessage(e){
  if(!$('.tools').hidden){closeTools();return;}
  if(!room()?.classList.contains('multi-select-active')){
   const row=e.target.closest('.message-wrapper');
+  const badge=e.target.closest('.tapback');
+  if(badge){if(badge.dataset.reaction)react(row?.dataset.id,badge.dataset.reaction);return;}
   const textPhoto=e.target.closest('.im-text-photo');
   if(textPhoto){
    const open=!textPhoto.classList.contains('text-photo-open');
@@ -544,7 +548,6 @@ function clickMessage(e){
    return;
   }
  }
- const badge=e.target.closest('[data-reaction]');if(badge){react(badge.closest('[data-id]')?.dataset.id,badge.dataset.reaction);return;}
  const original=sourceMap.get(e.target)||sourceMap.get(e.target.closest('.message-wrapper'));if(original){original.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}
 }
 function longPress(row,x,y){if(!$('.menu-layer')?.hidden)return;const original=sourceMap.get(row);if(!original||!row.dataset.id)return;if(typeof handleMessageLongPress==='function')handleMessageLongPress(original,x,y);}
@@ -597,7 +600,7 @@ function paintReaction(button,emoji){
  if(emoji==='🤣')button.innerHTML='<span class="reaction-laugh" aria-hidden="true">哈<i>哈</i></span>';
  if(emoji==='❔')button.innerHTML='<span class="reaction-symbol" aria-hidden="true">?</span>';
 }
-function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';paintReaction(b,reaction.emoji);b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
+function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';b.type='button';paintReaction(b,reaction.emoji);b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
 const pendingReactions=new WeakSet();
 async function react(id,emoji){
  const message=chat?.history?.find(m=>String(m.id)===String(id));if(!message||message.isWithdrawn||!['user','assistant'].includes(message.role)||pendingReactions.has(message))return;
@@ -672,7 +675,7 @@ function menu(items,options){
  const count=row.querySelector('.reply-count');
  if(count){
   const label=document.createElement('span');label.className='reply-count';
-  label.textContent=count.textContent;preview.append(label);
+  label.replaceChildren(...Array.from(count.childNodes,node=>node.cloneNode(true)));preview.append(label);
  }
  preview.style.left=left+'px';preview.style.width=a.width+'px';layer.append(preview);
 

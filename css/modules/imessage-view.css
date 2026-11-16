@@ -66,7 +66,6 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
 .html-bubble{padding:0;background:none;max-width:88%;width:300px;border-radius:16px;overflow:hidden;white-space:normal}.red-packet-card{border-radius:18px;background:#ff7849;max-width:77%;width:250px;color:white;padding:15px}.red-packet-top{display:flex;gap:10px;align-items:center}.red-packet-type{font-size:11px;opacity:.7;margin-top:4px}
 .message-bubble-row>[class*="card"]:not(.transfer-card):not(.gift-card):not(.forwarded-chat-card):not(.pv-card),.message-bubble-row>[class*="invite"]{max-width:79%;border-radius:20px;background:var(--incoming);padding:12px;color:var(--ink);overflow:hidden}.message-bubble-row>[class*="card"] img{max-height:170px;border-radius:10px}.message-bubble-row>[class*="card"] button{padding:8px 10px;border-radius:12px;color:#007aff;background:#ffffff20}
 .load-more-btn{display:block;margin:8px auto 14px;color:#007aff;font-size:12px;padding:5px 12px;border-radius:12px;background:var(--glass)}
-.reacted{margin-top:20px!important}.tapbacks{position:absolute;top:-19px;right:4px;display:flex;align-items:center;gap:2px;z-index:2;white-space:normal}.received .tapbacks{right:auto;left:4px}.tapback{position:relative;border-radius:16px;min-width:31px;height:29px;padding:2px 6px;background:var(--incoming);border:2px solid var(--paper);font:19px/1 'Apple Color Emoji','Segoe UI Emoji',sans-serif;box-shadow:0 1px 2px #0001}.sent .tapback{background:#209cff}.tapback:before{content:'';position:absolute;left:2px;bottom:-4px;width:6px;height:6px;border-radius:50%;background:inherit;border:1px solid var(--paper)}
 .composer{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:7px 28px max(20px,calc(env(safe-area-inset-bottom) - 7px));background:none;border:0;pointer-events:none}.compose-row{display:flex;align-items:center;gap:12px;pointer-events:none}.compose-row>*{pointer-events:auto}.add{height:40px;width:40px;min-width:40px;border-radius:50%;display:grid;place-items:center;color:var(--ink);align-self:center}.add svg{width:23px;height:23px}
 .input-capsule{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 28px;align-items:center;gap:6px;flex:1;min-width:0;min-height:40px;padding:0 6px 0 15px;border-radius:25px}.input-capsule textarea{resize:none;display:block;min-width:0;width:100%;max-height:122px;min-height:40px;padding:9px 0;background:transparent;color:var(--ink);font:16px/22px -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;overflow-y:auto;caret-color:#007aff;white-space:pre-wrap}.input-capsule textarea::placeholder{font-size:14px;color:var(--muted);opacity:.8}.submit{position:relative;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;color:var(--muted);background:none}.submit svg{width:20px;height:20px;stroke-width:1.5}.submit.send{background:#007aff;color:#fff}.submit.send svg{width:19px;height:19px;stroke-width:2.2}
 .typing{position:absolute;left:19px;bottom:65px;padding:2px 14px 6px;border-radius:18px;background:var(--incoming);color:var(--muted);font-size:23px;letter-spacing:2px;z-index:4}
@@ -359,12 +358,14 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
  margin-bottom:8px;
  text-align:left;
  --quote-color:#8e8e93;
- --quote-edge:#a8a8ae8c;
+ --quote-edge:#b1b1b770;
+ --quote-fill:#f1f1f46e;
 }
 .reply-reference.from-me{
  align-self:flex-end;
  --quote-color:#168ae1;
- --quote-edge:#49a9ee91;
+ --quote-edge:#49a9ee81;
+ --quote-fill:#eef7ff73;
 }
 .reply-excerpt{
  position:relative;
@@ -376,6 +377,7 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
  font:400 11px/18px -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
 }
 .reply-excerpt>span{
+ position:relative;
  display:-webkit-box;
  -webkit-line-clamp:2;
  -webkit-box-orient:vertical;
@@ -385,13 +387,22 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
 }
 .quote-outline{
  position:absolute;inset:0;width:100%;height:100%;
- fill:none;stroke:var(--quote-edge);stroke-width:1;overflow:visible;pointer-events:none;
+ fill:var(--quote-fill);stroke:var(--quote-edge);stroke-width:.85;overflow:visible;pointer-events:none;
 }
 .reply-reference.from-me .quote-outline{transform:scaleX(-1)}
 .reply-with-photo .reply-excerpt{padding:0}
 .reply-with-photo img{width:auto;max-width:121px;height:68px;border-radius:14px}
-:host([dark-backdrop]) .reply-reference.from-them{--quote-color:#e3e9f4;--quote-edge:#d1dff477}
-:host([dark-backdrop]) .reply-reference.from-me{--quote-color:#88caff;--quote-edge:#41aaffb3}
+:host([dark-backdrop]) .reply-reference.from-them{--quote-color:#fff;--quote-edge:#d9e5ec66;--quote-fill:#1d3142a1}
+:host([dark-backdrop]) .reply-reference.from-me{--quote-color:#cee9ff;--quote-edge:#69b5e58c;--quote-fill:#16374d99}
+.reply-reference:not(.reply-with-photo) .reply-excerpt{
+ border-radius:14px;
+ -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+}
+.reply-unavailable{--quote-fill:transparent!important}
+.reply-unavailable .quote-outline{stroke-dasharray:3 3}
+@media(prefers-reduced-transparency:reduce){
+ .reply-reference:not(.reply-with-photo) .reply-excerpt{-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 .replying .reply-origin .message-bubble:before{opacity:1}
 
 .sent .voice-bubble{background:#0c85fc;--wave-remaining:#fffc}
@@ -411,15 +422,27 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
 .message-wrapper .message-bubble.single-glyph .bubble-content{display:block}
 .time-divider+.message-wrapper.has-reply{margin-top:4px}
 .delivery{margin-top:4px;padding-right:7px}
-.tapbacks{left:-14px;right:auto;top:-26px}
-.received .tapbacks{left:auto;right:-14px}
-.tapback,.sent .tapback{width:34px;height:34px;min-width:34px;padding:0;border:0;border-radius:50%;background:#e9e9eb;color:#111;box-shadow:none}
-.received .tapback{background:linear-gradient(155deg,#24a5fb,#007cf3)}
-.tapback:before,.tapback:after{content:'';position:absolute;left:0;bottom:-1px;width:10px;height:10px;border:0;border-radius:50%;background:inherit;z-index:-1}
-.tapback:after{left:-3px;bottom:-7px;width:5px;height:5px}
-.received .tapback:before{left:auto;right:0}
-.received .tapback:after{left:auto;right:-3px}
-.reacted{margin-top:26px!important}
+.tapbacks{
+ position:absolute;top:-27px;left:-16px;right:auto;z-index:2;
+ display:flex;flex-direction:row-reverse;align-items:center;gap:3px;white-space:normal;
+}
+.received .tapbacks{left:auto;right:-16px;flex-direction:row}
+.tapback{
+ --reaction-fill:#e8e8ea;
+ position:relative;display:grid;place-items:center;
+ width:34px;height:34px;flex:0 0 34px;
+ border:0;border-radius:50%;background:var(--reaction-fill);box-shadow:none;
+ font:20px/1 'Apple Color Emoji','Segoe UI Emoji',sans-serif;
+}
+.received .tapback{--reaction-fill:linear-gradient(154deg,#4cb7fd,#2096f1)}
+.tapback::before,.tapback::after{
+ content:'';position:absolute;left:1px;bottom:-3px;width:11px;height:11px;
+ border-radius:50%;background:var(--reaction-fill);pointer-events:none;z-index:-1;
+}
+.tapback::after{left:-3px;bottom:-8px;width:5px;height:5px}
+.received .tapback::before{left:auto;right:1px}
+.received .tapback::after{left:auto;right:-3px}
+.reacted{margin-top:27px!important}
 
 .tools{left:10px;bottom:var(--tools-bottom,42px);width:min(80%,320px);border-radius:33px}
 .tools-scroll{max-height:min(53dvh,456px,var(--tools-space,456px));padding:18px 18px}
@@ -542,63 +565,70 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
  background:linear-gradient(to top,#071327a8,#0a153849 52%,transparent);
 }
 .name,.input-capsule,.add,.back,.video,.jump{
- --liquid-tint:#ffffffe0;
- --liquid-rim-strength:.28;
+ --liquid-tint:linear-gradient(168deg,#fffffff0,#ffffffd6 61%,#ffffffe8);
+ --liquid-rim-strength:.34;
 }
-.composer .input-capsule{--liquid-tint:#ffffffbd}
+.composer .input-capsule{--liquid-tint:linear-gradient(168deg,#ffffffe2,#ffffffc8 58%,#ffffffdd)}
 .name[data-liquid-ready],.input-capsule[data-liquid-ready],
 .add[data-liquid-ready],.back[data-liquid-ready],.video[data-liquid-ready],.jump[data-liquid-ready]{
- box-shadow:0 13px 30px #20222c12,0 2px 8px #20222c05;
+ box-shadow:0 14px 36px #252b3811,0 3px 11px #31374704;
 }
 .liquid-optics:after{opacity:var(--liquid-rim-strength,.76)}
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) :is(.input-capsule,.name,.add,.back,.video,.jump){
- --liquid-tint:linear-gradient(142deg,#3b719029,#0d29332b 57%,#0e68793b);
- --liquid-rim-strength:.83;
+ --liquid-tint:linear-gradient(152deg,#34516843,#0c202b5c 56%,#0b3e4a39);
+ --liquid-rim-strength:.66;
 }
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) :is(.input-capsule,.name,.add,.back,.video,.jump)[data-liquid-ready]{
- box-shadow:0 5px 18px #07152224,inset 0 0 0 .55px #93cade27;
+ box-shadow:0 6px 19px #07152229;
+}
+:is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) :is(.input-capsule,.name,.add,.back,.video,.jump)>.liquid-optics{
+ box-shadow:inset 0 0 0 .65px #b5e2f52e;
+}
+:is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) .liquid-optics:after{
+ mix-blend-mode:screen;
 }
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) .name > svg{opacity:.44}
 
 .message-wrapper.has-reply{margin-top:28px}
 .message-wrapper.reply-adjacent{margin-top:6px}
-.message-wrapper.reply-same-side{margin-top:29px}
+.message-wrapper.reply-adjacent.reply-same-side{margin-top:29px}
+.reply-same-side:not(.reply-adjacent) .reply-reference{margin-bottom:27px}
 .reply-count{
- margin:3px 20px 0;
- color:#138fe6;
- font-size:11px;
- line-height:18px;
+ display:inline-flex;align-items:center;gap:3px;
+ margin:4px 19px 0;color:#168bdf;font-size:11px;line-height:17px;
 }
+.reply-count > svg{width:6px;height:9px;stroke-width:2.4;opacity:.85}
+:host([dark-backdrop]) .reply-count{color:#fff}
 .reply-connector{
- pointer-events:none;
- position:absolute;
- z-index:0;
- top:15px;left:13px;
- width:35px;height:18px;
- border:solid #e5e5e7;
- border-width:3.5px 0 0 3.5px;
- border-radius:23px 0 0;
+ --quote-rail:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 27'%3E%3Cpath d='M4 4q1 19 20 19h8' fill='none' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E");
+ --quote-rail-core:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 27'%3E%3Cpath d='M4 4q1 19 20 19h8' fill='none' stroke='white' stroke-width='3.6' stroke-linecap='round'/%3E%3C/svg%3E");
+ position:absolute;top:26px;left:13px;z-index:0;
+ width:36px;height:27px;pointer-events:none;
 }
-.reply-connector:after{
- content:'';
- width:3.5px;height:3.5px;
- border-radius:50%;
- background:#e5e5e7;
- position:absolute;top:-3.5px;right:-1.5px;
+.reply-connector::before,.reply-connector::after{
+ content:'';position:absolute;inset:0;
+ mask:var(--quote-rail) center / 100% 100% no-repeat;
+ background:#dedee0b8;
 }
-.sent:not(.reply-adjacent) .reply-connector{left:auto;right:13px;transform:scaleX(-1)}
-.message-wrapper.reply-adjacent .reply-connector{
- top:2px;
- height:23px;
- border-width:0 0 3.5px 3.5px;
- border-radius:0 0 0 23px;
+.reply-connector::after{
+ mask-image:var(--quote-rail-core);
+ background:#e9e9eb;
 }
-.reply-adjacent .reply-connector:after{top:auto;bottom:-3.5px}
-.reply-adjacent .reply-connector{mask-image:linear-gradient(90deg,#000 70%,#000b)}
-.reply-adjacent.source-sent .reply-connector{left:auto;right:13px;transform:scaleX(-1)}
-.reply-adjacent.source-received .reply-connector{left:13px;right:auto}
-:host([dark-backdrop]) .reply-connector{border-color:#ffffff36}
-:host([dark-backdrop]) .reply-connector:after{background:#ffffff36}
+.reply-reference>.reply-connector{top:100%}
+.reply-adjacent .reply-connector{top:1px}
+.reply-adjacent.reply-same-side .reply-connector{top:-25px}
+.source-sent .reply-connector{left:auto;right:13px;transform:scaleX(-1)}
+:host([dark-backdrop]) .reply-connector::before{background:#c8e0ec4d}
+:host([dark-backdrop]) .reply-connector::after{
+ background:#263c4680;
+ -webkit-backdrop-filter:blur(2.6px) saturate(115%);
+ backdrop-filter:blur(2.6px) saturate(115%);
+}
+@media(prefers-reduced-transparency:reduce){
+ :host([dark-backdrop]) .reply-connector::after{
+  background:#354c58;-webkit-backdrop-filter:none;backdrop-filter:none;
+ }
+}
 
 .menu-layer .scrim{
  background:#34334343;

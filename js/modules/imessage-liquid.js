@@ -12,8 +12,8 @@ function rimGeometry(x,y,w,h,r){
  if(length)return [distance,ox/length*Math.sign(px),oy/length*Math.sign(py)];
  return qx>qy?[distance,Math.sign(px),0]:[distance,0,Math.sign(py)];
 }
-function rimBend(distance,r){
- const t=Math.max(0,Math.min(1,1+distance/Math.min(10,r*.82)));
+function rimBend(distance,r,rimWidth=10){
+ const t=Math.max(0,Math.min(1,1+distance/Math.min(rimWidth,r*.82)));
  return t*t*(3-2*t);
 }
 function lensVector(x,y,w,h,r){
@@ -32,9 +32,9 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:2.2,saturation:1.04,displacement:7},
- composer:{blur:3.05,saturation:1.08,displacement:7},
- panel:{blur:5.2,saturation:1.17,displacement:17}
+ control:{blur:1.75,saturation:1.11,displacement:11,rimWidth:6},
+ composer:{blur:2.35,saturation:1.13,displacement:12,rimWidth:7},
+ panel:{blur:5.2,saturation:1.17,displacement:17,rimWidth:10}
 };
 function create({host,root}){
  const doc=host.ownerDocument,view=doc.defaultView,ns='http://www.w3.org/2000/svg';
@@ -53,6 +53,7 @@ function create({host,root}){
 
  function shader(w,h,r,profile){
   const key=[w,h,r,profile].join('-');
+  const material=profiles[profile];
   const cached=maps.get(key);
   if(cached)return cached;
   const scale=Math.min(profile==='panel'?1:1.5,Math.max(1,view.devicePixelRatio||1));
@@ -65,15 +66,16 @@ function create({host,root}){
   for(let y=0;y<canvas.height;y++){
    for(let x=0;x<canvas.width;x++){
     const [distance,nx,ny]=rimGeometry((x+.5)/scale,(y+.5)/scale,w,h,r);
-    const bend=rimBend(distance,r),depth=Math.max(0,-distance);
+    const bend=rimBend(distance,r,material.rimWidth),depth=Math.max(0,-distance);
     const i=(y*canvas.width+x)*4;
     const map=displacement.data;
     map[i]=128-nx*bend*120;map[i+1]=128-ny*bend*120;map[i+2]=128;map[i+3]=255;
     if(distance>0||depth>8)continue;
     const direction=(-nx*.53-ny*.85);
-    const band=Math.exp(-((depth-.64)**2)/.48);
-    const glint=band*(.06+.61*Math.max(0,direction)**3+.25*Math.max(0,-direction)**6);
-    const bevel=Math.exp(-((depth-2.35)**2)/1.8)*(.012+.08*Math.max(0,-direction)**2);
+    const band=Math.exp(-((depth-.65)**2)/.63);
+    const broadGlint=Math.exp(-((depth-2.1)**2)/4.5)*.11*Math.max(0,direction)**4;
+    const glint=band*(.05+.56*Math.max(0,direction)**3+.32*Math.max(0,-direction)**5)+broadGlint;
+    const bevel=Math.exp(-((depth-2.6)**2)/2.9)*(.01+.10*Math.max(0,-direction)**2);
     const shade=reflections.data;
     const highlight=glint>=bevel;
     shade[i]=highlight?255:16;
@@ -88,7 +90,6 @@ function create({host,root}){
   const reflection=canvas.toDataURL();
   const id=prefix+(++nextFilter);
   const filter=element('filter',{id,filterUnits:'userSpaceOnUse',primitiveUnits:'userSpaceOnUse',x:-28,y:-28,width:w+56,height:h+56,'color-interpolation-filters':'sRGB'});
-  const material=profiles[profile];
   filter.append(
    element('feImage',{href:field,x:0,y:0,width:w,height:h,preserveAspectRatio:'none',result:'lensField'}),
    element('feGaussianBlur',{in:'SourceGraphic',stdDeviation:material.blur,result:'softScene'}),
