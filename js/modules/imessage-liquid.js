@@ -32,8 +32,9 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:1.75,saturation:1.11,displacement:11,rimWidth:6},
- composer:{blur:2.35,saturation:1.13,displacement:12,rimWidth:7},
+ control:{blur:1.6,saturation:1.13,displacement:10,rimWidth:5},
+ contact:{blur:1.2,saturation:1.18,displacement:14,rimWidth:5},
+ composer:{blur:2.8,saturation:1.13,displacement:11,rimWidth:6},
  panel:{blur:5.2,saturation:1.17,displacement:17,rimWidth:10}
 };
 function create({host,root}){
@@ -170,7 +171,7 @@ function create({host,root}){
    const record=records.get(target)||makeRecord(target);
    const borderRadius=view.getComputedStyle(target).borderTopLeftRadius;
    const radius=Math.round(borderRadius.includes('%')?Math.min(w,h)/2:Math.min(parseFloat(borderRadius)||20,w/2,h/2));
-   const profile=target.matches('.tools')?'panel':target.matches('.input-capsule,.name')?'composer':'control';
+   const profile=target.matches('.tools')?'panel':target.matches('.input-capsule')?'composer':target.matches('.name')?'contact':'control';
    const material=shader(w,h,radius,profile);
    if(!material)continue;
    usedMaps.add(material);

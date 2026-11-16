@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261117-imessage-glass-22',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261117-imessage-photo-23',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -18,6 +18,7 @@ function decorateTextPhoto(card,id){
  const description=document.createElement('span');description.className='text-photo-content';
  description.textContent=content;front.append(description);
  setTextPhotoOpen(card,revealedPhotos.has(String(id)));
+ attachPhotoDownload(card,true);
 }
 function setTextPhotoOpen(card,open){
  card.classList.toggle('text-photo-open',open);
@@ -76,6 +77,7 @@ icons.chevron='<path d="m10 5 5 7-5 7"/>';
 Object.assign(icons,{
  code:'<path d="m7 6-5 6 5 6m10-12 5 6-5 6m-3-14-4 16"/>',
  codeOff:'<path d="m7 6-5 6 5 6m11-11 4 5-2 2M3 3l18 18"/>',
+ downloadPhoto:'<path d="M8 7H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3M12 1v14m-4-4 4 4 4-4"/>',
  receive:'<path d="M12 2v12m-4-4 4 4 4-4M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/>',
  addMessage:'<path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm8 4v7m-3.5-3.5h7"/>',
  favorite:'<path d="M12 20 4 12a5 5 0 0 1 8-6 5 5 0 0 1 8 6Z"/>',
@@ -127,7 +129,8 @@ function mount(root){
  },{once:true});
  root.append(host);
  listen($('.back'),'click',e=>{e.stopPropagation();root.querySelector('#chat-room-header-default .back-btn')?.click();});
- listen($('.contact'),'click',e=>{e.stopPropagation();closeMenu();action('chat-settings-btn');});
+ listen($('.contact'),'click',e=>{e.stopPropagation();closeMenu();closeTools();$('textarea')?.blur();
+  if(typeof openCurrentChatSettings==='function')openCurrentChatSettings();else action('chat-settings-btn');});
  listen($('.video'),'click',e=>{e.stopPropagation();action('video-call-btn');});
  listen($('.add'),'click',e=>{
   e.stopPropagation();
@@ -311,8 +314,13 @@ function decorateReply(row,quote,originalRows,adjacent,sourceWithdrawn){
   row.classList.add('reply-adjacent');
   row.prepend(connector);
  }else{
-  ref.append(excerpt,connector);
+  ref.append(excerpt);
   row.prepend(ref);
+  const bubbleRow=row.querySelector('.message-bubble-row');
+  if(bubbleRow){
+   bubbleRow.classList.add('reply-anchor');
+   bubbleRow.prepend(connector);
+  }else ref.append(connector);
  }
  row.classList.add('has-reply');
 }
@@ -518,6 +526,8 @@ function clickMessage(e){
   const row=e.target.closest('.message-wrapper');
   const badge=e.target.closest('.tapback');
   if(badge){if(badge.dataset.reaction)react(row?.dataset.id,badge.dataset.reaction);return;}
+  const download=e.target.closest('.im-photo-download');
+  if(download){downloadPhoto(download,row);return;}
   const textPhoto=e.target.closest('.im-text-photo');
   if(textPhoto){
    const open=!textPhoto.classList.contains('text-photo-open');
@@ -551,15 +561,69 @@ function clickMessage(e){
  const original=sourceMap.get(e.target)||sourceMap.get(e.target.closest('.message-wrapper'));if(original){original.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}
 }
 function longPress(row,x,y){if(!$('.menu-layer')?.hidden)return;const original=sourceMap.get(row);if(!original||!row.dataset.id)return;if(typeof handleMessageLongPress==='function')handleMessageLongPress(original,x,y);}
+function attachPhotoDownload(photo,fromText=false){
+ if(!photo.closest('.received'))return;
+ const button=document.createElement('button');
+ button.className='im-photo-download';button.type='button';
+ button.setAttribute('aria-label',fromText?'接收文字照片':photo.matches('.im-album')?'下载当前照片':'下载照片');
+ button.innerHTML=svg('downloadPhoto');
+ photo.classList.add('im-downloadable');photo.append(button);
+}
+async function downloadPhoto(button,row){
+ const message=chat?.history?.find(item=>String(item.id)===row?.dataset.id);
+ if(!message||button.disabled)return;
+ const photo=button.parentElement;
+ button.disabled=true;
+ let src;
+ try{
+  if(photo.classList.contains('im-text-photo')){
+   await receiveAirDropPhoto(message.id);
+   return;
+  }
+  const index=albumState.get(row.dataset.id)?.index??0;
+  const image=photo.querySelector(photo.classList.contains('im-album')?`.im-photo[data-photo-index="${index}"] img`:':scope > img');
+  src=image?.currentSrc||image?.src;
+  if(!src)throw Error('照片尚未加载');
+  const response=await fetch(src);
+  if(!response.ok)throw Error('照片下载失败');
+  const bytes=await response.blob();
+  const extension=bytes.type.match(/^image\/([a-z0-9.+-]+)/i)?.[1]
+   ||new URL(src).pathname.match(/\.(jpe?g|png|webp|gif|avif|heic|bmp|svg)$/i)?.[1]||'jpg';
+  const link=document.createElement('a');
+  const url=URL.createObjectURL(bytes);
+  link.href=url;link.download='KISS-照片-'+(message.timestamp||Date.now())+'-'+(index+1)+'.'+(extension==='jpeg'?'jpg':extension==='svg+xml'?'svg':extension);
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+ }catch{
+  if(/^https?:/i.test(src||'')&&window.KissImageAlbum?.viewer){
+   window.KissImageAlbum.viewer([src]);
+   window.showToast?.('原图无法直接下载，可以在预览中长按保存');
+  }else window.showToast?.('照片暂时无法下载，请重试');
+ }finally{button.disabled=false;}
+}
 const albumState=new Map();
 function decoratePhotos(row,message){
- const album=row.querySelector('.kia-album');if(!album){const single=row.querySelector('.image-bubble:not(.kia-album,.im-text-photo) img');if(single&&single.alt!=='表情包'){const original=sourceMap.get(single);single.closest('.image-bubble').classList.add('im-single-photo');single.closest('.image-bubble').style.setProperty('--photo-width',(original?.naturalWidth>original?.naturalHeight?164:176)+'px');single.addEventListener('load',()=>{single.closest('.image-bubble')?.style.setProperty('--photo-width',(single.naturalWidth>single.naturalHeight?164:176)+'px');liquid?.schedule();},{once:true});}return;}
+ const album=row.querySelector('.kia-album');
+ if(!album){
+  const single=row.querySelector('.image-bubble:not(.kia-album,.im-text-photo) img');
+  if(!single||single.alt==='表情包')return;
+  const photo=single.closest('.image-bubble');
+  const original=sourceMap.get(single);
+  photo.classList.add('im-single-photo');
+  const resize=image=>photo.style.setProperty('--photo-width',(image?.naturalWidth>image?.naturalHeight?164:176)+'px');
+  resize(original);
+  single.addEventListener('load',()=>{resize(single);liquid?.schedule();},{once:true});
+  attachPhotoDownload(photo);
+  return;
+ }
+
  const images=(message.parts||[]).filter(part=>part.type==='image').map(part=>part.data);
  if(images.length<2)return;
  const id=String(message.id),state=albumState.get(id)||{index:0,expanded:false};
  state.index=Math.max(0,Math.min(images.length-1,state.index));albumState.set(id,state);
  const originalImages=[...(sourceMap.get(album)?.querySelectorAll('.kia-card img')||[])];
  buildPhotoAlbum(album,images,originalImages,state,row.classList.contains('sent'),false);
+ attachPhotoDownload(album);
 }
 function buildPhotoAlbum(album,images,originalImages,state,sent,textPhoto){
  album.className='image-bubble im-album';
@@ -600,7 +664,9 @@ function paintReaction(button,emoji){
  if(emoji==='🤣')button.innerHTML='<span class="reaction-laugh" aria-hidden="true">哈<i>哈</i></span>';
  if(emoji==='❔')button.innerHTML='<span class="reaction-symbol" aria-hidden="true">?</span>';
 }
-function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';b.type='button';paintReaction(b,reaction.emoji);b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
+function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';b.type='button';const glyph=document.createElement('span');glyph.className='tapback-glyph';paintReaction(glyph,reaction.emoji);
+ b.innerHTML='<svg class="tapback-shape" viewBox="0 0 42 45" aria-hidden="true"><path d="M21 1a17 17 0 0 0-13 28.2 5.8 5.8 0 0 0 7.9 8.5 10 10 0 0 0 2.2-3A17 17 0 1 0 21 1Z"/><circle cx="4" cy="42" r="2.5"/></svg>';
+ b.append(glyph);b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
 const pendingReactions=new WeakSet();
 async function react(id,emoji){
  const message=chat?.history?.find(m=>String(m.id)===String(id));if(!message||message.isWithdrawn||!['user','assistant'].includes(message.role)||pendingReactions.has(message))return;

@@ -11,6 +11,17 @@ function retainOfflineHistory(chat) {
         isOfflineChatRecord(message) || archivedIds.has(String(message.id)));
 }
 
+function openCurrentChatSettings() {
+    const privateChat = currentChatType === 'private';
+    if (!privateChat && currentChatType !== 'group') return;
+    const chats = privateChat ? db.characters : db.groups;
+    if (!chats.some(chat => chat?.id === currentChatId)) return;
+
+    if (privateChat) loadSettingsToSidebar();
+    else loadGroupSettingsToSidebar();
+    switchScreen(privateChat ? 'chat-settings-screen' : 'group-settings-screen');
+}
+
 function setupChatSettings() {
     if (typeof injectChatSettingsHtml === 'function') {
         injectChatSettingsHtml();
@@ -25,15 +36,7 @@ function setupChatSettings() {
         themeSelect.appendChild(option);
     });
     
-    document.getElementById('chat-settings-btn').addEventListener('click', () => {
-        if (currentChatType === 'private') {
-            loadSettingsToSidebar();
-            switchScreen('chat-settings-screen');
-        } else if (currentChatType === 'group') {
-            loadGroupSettingsToSidebar();
-            switchScreen('group-settings-screen');
-        }
-    });
+    document.getElementById('chat-settings-btn').addEventListener('click', openCurrentChatSettings);
 
     const moreSettingsBtn = document.getElementById('more-settings-btn');
     if (moreSettingsBtn) {
@@ -402,8 +405,8 @@ function loadSettingsToSidebar() {
         const stickerGroupsContainer = document.getElementById('setting-char-sticker-groups-container');
         stickerGroupsContainer.innerHTML = '';
         
-        const allGroups = [...new Set(db.myStickers.map(s => s.group || '未分类'))].filter(g => g);
-        const charGroups = (e.stickerGroups || '').split(/[,，]/).map(s => s.trim());
+        const allGroups = [...new Set((db.myStickers || []).filter(Boolean).map(s => s.group || '未分类'))].filter(g => g);
+        const charGroups = String(e.stickerGroups || '').split(/[,，]/).map(s => s.trim());
 
         if (allGroups.length === 0) {
             stickerGroupsContainer.innerHTML = '<span style="color:#999; font-size:12px;">暂无表情包分组，请先在表情包管理中添加。</span>';
@@ -453,7 +456,7 @@ function loadSettingsToSidebar() {
             // 填充预设列表
             exclusiveApiPresetSelect.innerHTML = '<option value="">请选择预设</option>';
             const presets = db.apiPresets || [];
-            presets.forEach(p => {
+            presets.filter(Boolean).forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.name;
                 opt.textContent = cotPresetDisplayName(p);
@@ -474,7 +477,7 @@ function loadSettingsToSidebar() {
         if (exclusiveCotPresetSelect) {
             exclusiveCotPresetSelect.innerHTML = '<option value="">跟随全局</option>';
             if (db.cotPresets && db.cotPresets.length > 0) {
-                db.cotPresets.forEach(p => {
+                db.cotPresets.filter(Boolean).forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
                     opt.textContent = cotPresetDisplayName(p);
@@ -489,7 +492,7 @@ function loadSettingsToSidebar() {
         if (exclusiveWorkshopPresetSelect) {
             exclusiveWorkshopPresetSelect.innerHTML = '<option value="">跟随全局</option>';
             if (db.workshopPromptPresets && db.workshopPromptPresets.length > 0) {
-                db.workshopPromptPresets.forEach(p => {
+                db.workshopPromptPresets.filter(Boolean).forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
                     opt.textContent = cotPresetDisplayName(p);
@@ -566,7 +569,7 @@ function loadSettingsToSidebar() {
         useCustomCssCheckbox.checked = e.useCustomBubbleCss || false;
         customCssTextarea.value = e.customBubbleCss || '';
         customCssTextarea.disabled = !useCustomCssCheckbox.checked;
-        const theme = colorThemes[e.theme || 'white_pink'];
+        const theme = colorThemes[e.theme] || colorThemes.white_pink;
         updateBubbleCssPreview(privatePreviewBox, e.customBubbleCss, !e.useCustomBubbleCss, theme);
         populateBubblePresetSelect('bubble-preset-select');
         populateMyPersonaSelect();
