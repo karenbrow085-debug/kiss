@@ -415,7 +415,6 @@ async function openChatRoom(chatId, type, navigationGuard = null) {
         saveData(); // 迁移后立即保存
     }
 
-    window.KissIMessageStyle?.enter(chat);
     if (chat.unreadCount && chat.unreadCount > 0) {
         chat.unreadCount = 0;
         saveData();
