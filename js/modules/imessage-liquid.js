@@ -32,9 +32,10 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:1.2,saturation:1.17,displacement:16},
- composer:{blur:.95,saturation:1.13,displacement:16},
- panel:{blur:5.2,saturation:1.17,displacement:17}
+ control:{blur:1.85,saturation:1.14,displacement:10},
+ composer:{blur:2.15,saturation:1.13,displacement:10},
+ panel:{blur:5.2,saturation:1.17,displacement:17},
+ menu:{blur:6.5,saturation:1.25,displacement:5}
 };
 function create({host,root}){
  const doc=host.ownerDocument,view=doc.defaultView,ns='http://www.w3.org/2000/svg';
@@ -55,7 +56,7 @@ function create({host,root}){
   const key=[w,h,r,profile].join('-');
   const cached=maps.get(key);
   if(cached)return cached;
-  const scale=Math.min(profile==='panel'?1:1.5,Math.max(1,view.devicePixelRatio||1));
+  const scale=Math.min(profile==='panel'||profile==='menu'?1:1.5,Math.max(1,view.devicePixelRatio||1));
   const canvas=doc.createElement('canvas');
   canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
   const ctx=canvas.getContext('2d');
@@ -168,7 +169,7 @@ function create({host,root}){
    const record=records.get(target)||makeRecord(target);
    const borderRadius=view.getComputedStyle(target).borderTopLeftRadius;
    const radius=Math.round(borderRadius.includes('%')?Math.min(w,h)/2:Math.min(parseFloat(borderRadius)||20,w/2,h/2));
-   const profile=target.matches('.tools,.message-actions,.quick-reactions')?'panel':target.matches('.input-capsule,.name')?'composer':'control';
+   const profile=target.matches('.message-actions,.quick-reactions')?'menu':target.matches('.tools')?'panel':target.matches('.input-capsule,.name')?'composer':'control';
    const material=shader(w,h,radius,profile);
    if(!material)continue;
    usedMaps.add(material);

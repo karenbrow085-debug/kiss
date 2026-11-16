@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261117-imessage-detail-18',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261117-imessage-material-19',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -72,7 +72,7 @@ const room=()=>document.getElementById('chat-room-screen');
 const $=s=>shadow?.querySelector(s);
 const source=id=>document.getElementById(id);
 const icons={smile:'<circle cx="12" cy="12" r="10"/><path d="M7 13a5 5 0 0 0 10 0Zm2-4h.01M15 9h.01"/>',copy:'<rect x="8" y="8" width="12" height="14" rx="2"/><path d="M16 8V2H3v15h5"/>',translate:'<path d="M3 5h12M9 2v3m4 0C11 11 8 15 3 17m2-9c2 4 5 7 9 9m0 3 4-11 4 11m-7-3h6"/>',select:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 12 3 3 7-7"/>',edit:'<path d="m4 16 12-12 4 4L8 20H4Zm9-9 4 4"/>',trash:'<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',back:'<path d="m14 4-8 8 8 8"/>',video:'<rect x="1.4" y="5.2" width="15.2" height="13.6" rx="2.8"/><path d="M16.6 9.8 21.2 6.4q1.2-.9 1.2.6v10q0 1.5-1.2.6l-4.6-3.4"/>',plus:'<path d="M12 5v14M5 12h14"/>',wave:'<path d="M4 10v4m4-7v10m4-14v18m4-14v10m4-7v4"/>',up:'<path d="M12 19V5m-6 6 6-6 6 6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',down:'<path d="m5 9 7 7 7-7"/>',reply:'<path d="m9 5-7 6 7 6v-4h5c4 0 6 2 8 6-1-8-5-10-13-10Z"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',check:'<path d="m5 12 4 4L19 6"/>'};
-icons.sticker='<path d="M5 16a8 8 0 1 1 11 4c-3-1-1-5 2-6M3 17h6m-3-3v6"/>';
+icons.sticker='<path d="M5 12C4 7 7 3.5 10.6 3.2c4.2 2.3 8.4 6.1 10.4 10.4-.2 4.7-4.2 7.5-8.5 6.7m-1.8-16.8c.2 5.4 4 9.4 9.8 10"/><circle cx="5.8" cy="17.9" r="4"/><path d="M3.8 17.9h4m-2-2v4"/>';
 icons.undo='<circle cx="12" cy="12" r="9"/><path d="m10 8-3 3 3 3m-3-3h6a3 3 0 0 1 0 6"/>';
 const svg=(name)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(icons[name]||icons.more)+'</svg>';
 function listen(node,type,fn,opts){if(!node)return;node.addEventListener(type,fn,opts);disposers.push(()=>node.removeEventListener(type,fn,opts));}
@@ -186,7 +186,13 @@ function syncControls(){
  syncNight();syncViewport();
 }
 function syncSubmit(){const b=$('.submit');if(!b)return;const text=$('textarea').value.trim();const generating=!!source('get-reply-btn')?.disabled;b.classList.toggle('send',!!text);b.innerHTML=svg(text?'up':'wave');b.setAttribute('aria-label',text?'发送信息':'获取回复');b.disabled=generating;}
-function resizeInput(){const input=$('textarea');if(!input)return;input.style.height='22px';input.style.height=Math.min(104,Math.max(22,input.scrollHeight))+'px';}
+function resizeInput(){
+ const input=$('textarea');
+ if(!input)return;
+ input.style.height='40px';
+ input.style.height=Math.min(122,Math.max(40,input.scrollHeight))+'px';
+ syncViewport();
+}
 function submit(){if(!host)return;const sending=!!$('textarea').value.trim();
  if(sending&&focusedQuote&&!source('reply-preview-bar')?.classList.contains('visible')){
   const target=chat.history.find(message=>String(message.id)===focusedQuote.id);
@@ -571,7 +577,12 @@ function buildPhotoAlbum(album,images,originalImages,state,sent,textPhoto){
  label.innerHTML='<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect width="6" height="6" rx="1"/><rect x="8" width="6" height="6" rx="1"/><rect y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></svg>';
  const text=document.createElement('span');text.textContent=images.length+' 张照片';label.append(text);album.replaceChildren(label,deck);
 }
-function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';b.textContent=reaction.emoji;b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
+function paintReaction(button,emoji){
+ button.textContent=emoji;
+ if(emoji==='🤣')button.innerHTML='<span class="reaction-laugh" aria-hidden="true">哈<i>哈</i></span>';
+ if(emoji==='❔')button.innerHTML='<span class="reaction-symbol" aria-hidden="true">?</span>';
+}
+function decorateReactions(row,message){const reactions=Object.entries(message.bubbleReactions||{}).filter(([,r])=>r?.emoji);if(!reactions.length)return;const anchor=row.querySelector('.message-bubble,.voice-bubble,.image-bubble')||row;const dock=document.createElement('div');dock.className='tapbacks';for(const [author,reaction]of reactions){const b=document.createElement('button');b.className='tapback';paintReaction(b,reaction.emoji);b.setAttribute('aria-label',(author==='user'?'我':'角色')+'贴的表情 '+reaction.emoji);if(author==='user')b.dataset.reaction=reaction.emoji;dock.append(b);}anchor.append(dock);row.classList.add('reacted');}
 const pendingReactions=new WeakSet();
 async function react(id,emoji){
  const message=chat?.history?.find(m=>String(m.id)===String(id));if(!message||message.isWithdrawn||!['user','assistant'].includes(message.role)||pendingReactions.has(message))return;
@@ -620,15 +631,16 @@ function renderMenu(node){
  const actionList=document.createElement('div');actionList.className='message-actions-scroll';card.append(actionList);
  const reactionStrip=document.createElement('div');reactionStrip.className='quick-reactions glass';
  const reactions=document.createElement('div');reactions.className='reaction-items';reactionStrip.append(reactions);
- for(const emoji of ['🩷','👍','👎','💦','‼️','❔','😂','❤️']){
-  const b=document.createElement('button');b.textContent=emoji;
+ for(const emoji of ['🩷','👍','👎','🤣','‼️','❔','😂','❤️']){
+  const b=document.createElement('button');paintReaction(b,emoji);
   b.setAttribute('aria-label','贴 '+emoji);
   b.onclick=e=>{e.stopPropagation();react(lastAnchor?.dataset.id,emoji);};
   reactions.append(b);
  }
  const reactionMessage=chat.history.find(m=>String(m.id)===lastAnchor?.dataset.id);
  if(reactionMessage&&window.KissReactions?.picker){
-  const all=document.createElement('button');all.className='all-reactions glass';all.innerHTML=svg('smile');
+  const all=document.createElement('button');all.className='all-reactions';
+  all.innerHTML='<svg class="reaction-drop" viewBox="0 0 48 52" aria-hidden="true"><path stroke="none" d="M5 0h38l-4 12H9Z"/><path d="M5 1c4 0-.7 6-.7 13.3 0 5.3 2 9.8 5.2 13.3-2.9 3-2.2 7.9 1.1 10.3 3.9 2.8 8.6.7 12.2-3.3 1.2.2 1.7.3 2.9.3A21 21 0 0 0 44 14.3C44 7 39.5 1 43 1"/><circle cx="4.6" cy="45" r="3.3"/></svg>'+svg('smile');
   all.setAttribute('aria-label','全部表情');all.onclick=()=>{closeMenu();window.KissReactions.picker(chat,reactionMessage);};
   reactionStrip.append(all);
  }
@@ -669,7 +681,7 @@ function renderMenu(node){
  const clamp=(x,min,max)=>Math.max(min,Math.min(x,max));
  const cardWidth=card.getBoundingClientRect().width,stripBox=reactionStrip.getBoundingClientRect();
  const topInset=14+(parseFloat(getComputedStyle($('.back')).top)||0);
- const bottom=bounds.height-12;
+ const bottom=bounds.height-18;
  const preview=layer.querySelector('.menu-preview');
  const fullPreviewHeight=preview?.offsetHeight||0;
  const previewHeight=Math.min(fullPreviewHeight,Math.max(36,(bottom-topInset)*.46));
@@ -689,7 +701,7 @@ function renderMenu(node){
  const stripLeft=clamp(sent?right-stripBox.width:left,12,bounds.width-stripBox.width-12);
  reactionStrip.style.left=stripLeft+'px';
  const pickerCenter=sent?left-stripLeft-26:right-stripLeft+26;
- reactionStrip.style.setProperty('--picker-left',clamp(pickerCenter-20,18,stripBox.width-58)+'px');
+ reactionStrip.style.setProperty('--picker-left',clamp(pickerCenter-24,18,stripBox.width-62)+'px');
  card.tabIndex=-1;
  card.focus({preventScroll:true});
  liquid?.schedule();
