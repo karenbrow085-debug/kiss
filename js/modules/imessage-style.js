@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261117-imessage-material-19',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261117-imessage-menu-20',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -66,13 +66,23 @@ function observeMessageChanges(records){
  }
  if(needsRender)schedule();
 }
-let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,menuNode=null,menuObserver=null,bodyObserver=null,lastAnchor=null,suppressClick=0,focusedQuote=null,styleReady=false,bubbleResize=null;
+let chat=null,host=null,shadow=null,liquid=null,frame=0,observers=[],disposers=[],sourceMap=new WeakMap(),forceBottom=false,loadEarlier=false,lastChatId=null,hold=0,pressed=null,suppressClick=0,focusedQuote=null,styleReady=false,bubbleResize=null;
 const enabled=c=>c?.defaultAppearance==='imessage';
 const room=()=>document.getElementById('chat-room-screen');
 const $=s=>shadow?.querySelector(s);
 const source=id=>document.getElementById(id);
 const icons={smile:'<circle cx="12" cy="12" r="10"/><path d="M7 13a5 5 0 0 0 10 0Zm2-4h.01M15 9h.01"/>',copy:'<rect x="8" y="8" width="12" height="14" rx="2"/><path d="M16 8V2H3v15h5"/>',translate:'<path d="M3 5h12M9 2v3m4 0C11 11 8 15 3 17m2-9c2 4 5 7 9 9m0 3 4-11 4 11m-7-3h6"/>',select:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 12 3 3 7-7"/>',edit:'<path d="m4 16 12-12 4 4L8 20H4Zm9-9 4 4"/>',trash:'<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',back:'<path d="m14 4-8 8 8 8"/>',video:'<rect x="1.4" y="5.2" width="15.2" height="13.6" rx="2.8"/><path d="M16.6 9.8 21.2 6.4q1.2-.9 1.2.6v10q0 1.5-1.2.6l-4.6-3.4"/>',plus:'<path d="M12 5v14M5 12h14"/>',wave:'<path d="M4 10v4m4-7v10m4-14v18m4-14v10m4-7v4"/>',up:'<path d="M12 19V5m-6 6 6-6 6 6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',down:'<path d="m5 9 7 7 7-7"/>',reply:'<path d="m9 5-7 6 7 6v-4h5c4 0 6 2 8 6-1-8-5-10-13-10Z"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',check:'<path d="m5 12 4 4L19 6"/>'};
-icons.sticker='<path d="M5 12C4 7 7 3.5 10.6 3.2c4.2 2.3 8.4 6.1 10.4 10.4-.2 4.7-4.2 7.5-8.5 6.7m-1.8-16.8c.2 5.4 4 9.4 9.8 10"/><circle cx="5.8" cy="17.9" r="4"/><path d="M3.8 17.9h4m-2-2v4"/>';
+icons.chevron='<path d="m10 5 5 7-5 7"/>';
+Object.assign(icons,{
+ code:'<path d="m7 6-5 6 5 6m10-12 5 6-5 6m-3-14-4 16"/>',
+ codeOff:'<path d="m7 6-5 6 5 6m11-11 4 5-2 2M3 3l18 18"/>',
+ receive:'<path d="M12 2v12m-4-4 4 4 4-4M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/>',
+ addMessage:'<path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm8 4v7m-3.5-3.5h7"/>',
+ favorite:'<path d="M12 20 4 12a5 5 0 0 1 8-6 5 5 0 0 1 8 6Z"/>',
+ unfavorite:'<path d="M20 13a5 5 0 0 0-8-7M4 7a5 5 0 0 0 0 5l8 8 4-4M3 3l18 18"/>',
+ branch:'<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10v2a5 5 0 0 1-5 5H6"/>',
+ tool:'<path d="m14 6 4-3 3 3-3 4h-3l-8 9a2 2 0 0 1-3-3l9-8Z"/>'
+});
 icons.undo='<circle cx="12" cy="12" r="9"/><path d="m10 8-3 3 3 3m-3-3h6a3 3 0 0 1 0 6"/>';
 const svg=(name)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(icons[name]||icons.more)+'</svg>';
 function listen(node,type,fn,opts){if(!node)return;node.addEventListener(type,fn,opts);disposers.push(()=>node.removeEventListener(type,fn,opts));}
@@ -93,7 +103,7 @@ function apply(c){
  if(lastChatId!==c.id){revealedPhotos.clear();revealedWithdrawals.clear();rowCache=new WeakMap();forceBottom=true;lastChatId=c.id;focusedQuote=null;albumState.clear();closeMenu();closeTools();}
  host.style.setProperty('display','block','important');syncNight();syncHeader();syncControls();schedule();
 }
-function layout(){return `<link rel="stylesheet" href="${asset}"><div class="surface"><div class="wallpaper"></div><svg class="bubble-outline-defs" width="0" height="0" aria-hidden="true"><defs><linearGradient id="ki-incoming-rim" x1="0%" y1="20%" x2="100%" y2="80%"><stop offset="0%" stop-color="#e8e7ff" stop-opacity=".34"/><stop offset="60%" stop-color="#aecbe6" stop-opacity=".20"/><stop offset="100%" stop-color="#60b3d5" stop-opacity=".07"/></linearGradient></defs></svg><main class="history" aria-label="聊天信息" tabindex="-1"></main><div class="edge-haze edge-top"></div><div class="edge-haze edge-bottom"></div><section class="reply-focus" aria-label="回复会话" hidden><div class="reply-feed"></div></section><header class="floating-header"><button class="glass back" aria-label="返回聊天列表">${svg('back')}<span class="unread-count" hidden></span></button><button class="contact" aria-label="打开聊天设置"><img class="avatar" alt=""><span class="glass name"><b></b><span aria-hidden="true">›</span></span></button><button class="glass video" aria-label="通话">${svg('video')}</button><button class="glass reply-close" aria-label="关闭回复会话" hidden>${svg('close')}</button></header><div class="typing" role="status" hidden>•••</div><button class="glass jump" aria-label="跳到最新消息" hidden>${svg('down')}<span></span></button><footer class="composer"><div class="compose-row"><button class="glass add" aria-label="聊天功能" aria-expanded="false">${svg('plus')}</button><div class="glass input-capsule"><textarea rows="1" aria-label="iMessage信息" placeholder="iMessage信息" enterkeyhint="send"></textarea><button class="submit" aria-label="获取回复">${svg('wave')}</button></div></div></footer><button class="tools-dismiss" aria-label="收起功能" hidden></button><section class="tools glass" aria-label="聊天功能" hidden><div class="tools-scroll"></div></section><section class="selection glass" hidden><button data-original="cancel-multi-select-btn">取消</button><b></b><button data-original="delete-selected-btn">删除</button><button data-original="collect-selected-btn">收藏</button></section><div class="menu-layer" hidden></div></div>`;}
+function layout(){return `<link rel="stylesheet" href="${asset}"><div class="surface"><div class="wallpaper"></div><svg class="bubble-outline-defs" width="0" height="0" aria-hidden="true"><defs><linearGradient id="ki-incoming-rim" x1="0%" y1="20%" x2="100%" y2="80%"><stop offset="0%" stop-color="#e8e7ff" stop-opacity=".34"/><stop offset="60%" stop-color="#aecbe6" stop-opacity=".20"/><stop offset="100%" stop-color="#60b3d5" stop-opacity=".07"/></linearGradient></defs></svg><main class="history" aria-label="聊天信息" tabindex="-1"></main><div class="edge-haze edge-top"></div><div class="edge-haze edge-bottom"></div><section class="reply-focus" aria-label="回复会话" hidden><div class="reply-feed"></div></section><header class="floating-header"><button class="glass back" aria-label="返回聊天列表">${svg('back')}<span class="unread-count" hidden></span></button><button class="contact" aria-label="打开聊天设置"><img class="avatar" alt=""><span class="glass name"><b></b>${svg('chevron')}</span></button><button class="glass video" aria-label="通话">${svg('video')}</button><button class="glass reply-close" aria-label="关闭回复会话" hidden>${svg('close')}</button></header><div class="typing" role="status" hidden>•••</div><button class="glass jump" aria-label="跳到最新消息" hidden>${svg('down')}<span></span></button><footer class="composer"><div class="compose-row"><button class="glass add" aria-label="聊天功能" aria-expanded="false">${svg('plus')}</button><div class="glass input-capsule"><textarea rows="1" aria-label="iMessage信息" placeholder="iMessage信息" enterkeyhint="send"></textarea><button class="submit" aria-label="获取回复">${svg('wave')}</button></div></div></footer><button class="tools-dismiss" aria-label="收起功能" hidden></button><section class="tools glass" aria-label="聊天功能" hidden><div class="tools-scroll"></div></section><section class="selection glass" hidden><button data-original="cancel-multi-select-btn">取消</button><b></b><button data-original="delete-selected-btn">删除</button><button data-original="collect-selected-btn">收藏</button></section><div class="menu-layer" hidden></div></div>`;}
 function mount(root){
  host=document.createElement('kiss-imessage-view');
  for(const [k,v]of Object.entries({all:'initial',display:'block',position:'absolute',inset:'0',width:'100%',height:'100%',margin:'0',padding:'0',border:'0',zIndex:'12',isolation:'isolate',visibility:'visible',pointerEvents:'auto',transform:'none',filter:'none',opacity:'1'}))host.style.setProperty(k.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()),v,'important');
@@ -247,9 +257,8 @@ function decorateVoice(voice){
  const wave=document.createElement('span');wave.className='voice-wave';wave.setAttribute('aria-hidden','true');
  for(let i=0;i<48;i++){
   const bar=document.createElement('i');
-  const swell=Math.exp(-Math.pow((i-42)/4.7,2));
-  const variation=Math.abs(Math.sin(i*.38))*.12+Math.abs(Math.sin(i*1.2))*.07;
-  bar.style.height=(i===47?3:16+8*i/48+7*swell+variation*20)+'px';
+  const variation=Math.sin(i*.62)*1.45+Math.sin(i*1.89)*1.05;
+  bar.style.height=(23+variation)+'px';
   wave.append(bar);
  }
  duration.before(wave);paintVoice(voice,sourceMap.get(voice)?.kissPlaybackProgress);
@@ -532,7 +541,7 @@ function clickMessage(e){
  const badge=e.target.closest('[data-reaction]');if(badge){react(badge.closest('[data-id]')?.dataset.id,badge.dataset.reaction);return;}
  const original=sourceMap.get(e.target)||sourceMap.get(e.target.closest('.message-wrapper'));if(original){original.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}
 }
-function longPress(row,x,y){const original=sourceMap.get(row);if(!original||!row.dataset.id)return;lastAnchor=row;if(typeof handleMessageLongPress==='function')handleMessageLongPress(original,x,y);}
+function longPress(row,x,y){if(!$('.menu-layer')?.hidden)return;const original=sourceMap.get(row);if(!original||!row.dataset.id)return;if(typeof handleMessageLongPress==='function')handleMessageLongPress(original,x,y);}
 const albumState=new Map();
 function decoratePhotos(row,message){
  const album=row.querySelector('.kia-album');if(!album){const single=row.querySelector('.image-bubble:not(.kia-album,.im-text-photo) img');if(single&&single.alt!=='表情包'){const original=sourceMap.get(single);single.closest('.image-bubble').classList.add('im-single-photo');single.closest('.image-bubble').style.setProperty('--photo-width',(original?.naturalWidth>original?.naturalHeight?164:176)+'px');single.addEventListener('load',()=>{single.closest('.image-bubble')?.style.setProperty('--photo-width',(single.naturalWidth>single.naturalHeight?164:176)+'px');liquid?.schedule();},{once:true});}return;}
@@ -615,96 +624,137 @@ function syncPanel(){
  if(!host)return;const panel=source('chat-expansion-panel'),sticker=source('panel-sticker-area');if(panel?.classList.contains('visible')&&sticker?.style.display!=='none'&&sticker){const tools=$('.tools-scroll');setToolsOpen(true);const clone=mirror(sticker);clone.classList.add('sticker-panel');tools.replaceChildren(clone);clone.addEventListener('click',e=>{e.stopPropagation();sourceMap.get(e.target)?.click();});}
 }
 async function copy(text){try{await navigator.clipboard.writeText(text);}catch{const field=document.createElement('textarea');field.value=text;field.style.cssText='position:fixed;left:-9999px';document.body.append(field);field.select();try{document.execCommand('copy');}finally{field.remove();}}}
-function clearOwnMenu(){menuObserver?.disconnect();bodyObserver?.disconnect();menuObserver=bodyObserver=null;menuNode=null;const layer=$('.menu-layer');if(layer){layer.hidden=true;layer.replaceChildren();}}
-function menuContains(event){const layer=$('.menu-layer');return !!layer&&!layer.hidden&&(event.composedPath?.().includes(layer));}
-function menu(node){
- if(!host||!styleReady||!room()?.classList.contains('active'))return;
- clearOwnMenu();menuNode=node;node.classList.add('ki-source-menu');node.style.setProperty('visibility','hidden','important');node.setAttribute('aria-hidden','true');
- const update=()=>requestAnimationFrame(()=>{if(node.isConnected&&host)renderMenu(node);});
- menuObserver=new MutationObserver(update);menuObserver.observe(node,{subtree:true,childList:true});
- bodyObserver=new MutationObserver(()=>{if(!node.isConnected)clearOwnMenu();});bodyObserver.observe(document.body,{childList:true});update();
+function clearOwnMenu(){
+ const layer=$('.menu-layer');
+ if(layer){layer.hidden=true;layer.replaceChildren();}
 }
-function renderMenu(node){
- if(menuNode!==node||!host)return;const layer=$('.menu-layer');layer.replaceChildren();layer.hidden=false;
- const scrim=document.createElement('button');scrim.className='scrim';scrim.setAttribute('aria-label','关闭消息菜单');scrim.onclick=e=>{e.stopPropagation();closeMenu();};layer.append(scrim);
- const card=document.createElement('div');card.className='message-actions glass';card.setAttribute('role','menu');
+function menu(items,options){
+ if(!host||!styleReady||!room()?.classList.contains('active'))return false;
+ const history=$('.history'),row=rowCache.get(options.anchor)?.clone;
+ if(!row||!history.contains(row))return false;
+ const layer=$('.menu-layer');
+ clearOwnMenu();
+ const selected=row.querySelector('.message-bubble,.image-bubble,.voice-bubble,.receipt-bubble,.forwarded-chat-card,.pv-card')||row;
+ const debug=selected.classList.contains('debug-visible');
+ const message=chat.history.find(item=>String(item.id)===row.dataset.id);
+ const bounds=$('.surface').getBoundingClientRect();
+ const a=selected.getBoundingClientRect();
+ const left=a.left-bounds.left,right=a.right-bounds.left,sent=row.classList.contains('sent');
+
+ const scrim=document.createElement('button');scrim.className='scrim';scrim.setAttribute('aria-label','关闭消息菜单');
+ scrim.onclick=closeMenu;layer.append(scrim);
+ const card=document.createElement('div');card.className='message-actions';card.setAttribute('role','menu');card.setAttribute('aria-label','消息操作');
  const actionList=document.createElement('div');actionList.className='message-actions-scroll';card.append(actionList);
- const reactionStrip=document.createElement('div');reactionStrip.className='quick-reactions glass';
+ const reactionStrip=debug?null:renderReactionStrip(row);
+ if(reactionStrip)layer.append(reactionStrip);
+ layer.append(card);
+
+ const preview=document.createElement('div');
+ preview.className='message-wrapper menu-preview';
+ for(const name of ['sent','received','tail'])preview.classList.toggle(name,row.classList.contains(name));
+ const excerptOnly=debug||a.height>bounds.height*.31;
+ const picked=excerptOnly?document.createElement('div'):selected.cloneNode(true);
+ picked.querySelectorAll('.tapbacks,iframe,video,object,embed').forEach(item=>item.remove());
+ if(excerptOnly){
+  picked.className='message-bubble menu-excerpt-bubble'+(debug?' debug-visible':'');
+  const excerpt=document.createElement('div');excerpt.className='menu-excerpt';
+  excerpt.textContent=selected.querySelector('.bubble-content')?.textContent||selected.textContent;
+  picked.append(excerpt);
+  preview.style.setProperty('--menu-excerpt-height',Math.max(26,Math.min(108,bounds.height*.17))+'px');
+ }
+ preview.append(picked);
+ const count=row.querySelector('.reply-count');
+ if(count){
+  const label=document.createElement('span');label.className='reply-count';
+  label.textContent=count.textContent;preview.append(label);
+ }
+ preview.style.left=left+'px';preview.style.width=a.width+'px';layer.append(preview);
+
+ const get=label=>items.find(item=>item.label===label);
+ const translation=row.querySelector('.translation-text');
+ const actions=[
+  !debug&&get('引用'),
+  debug&&message&&typeof startDebugEdit==='function'?{label:'编辑源码',action:()=>startDebugEdit(message.id)}:get('编辑'),
+  get('撤回'),
+  {label:'拷贝',action:()=>copy(options.anchor.querySelector('.pv-card-content')?.textContent||row.querySelector('.bubble-content,.voice-transcript,.receipt-bubble,.forwarded-chat-preview')?.textContent||selected.textContent)},
+  translation&&{label:'翻译',action:()=>sourceMap.get(translation)?.classList.toggle('active')},
+  get('删除')&&{label:'选择',action:get('删除').action}
+ ].filter(Boolean);
+ const primaryLabels=new Set(actions.map(item=>item.label));
+ const extras=items.filter(item=>!primaryLabels.has(item.label)&&item.label!=='删除'&&!(debug&&['编辑','引用','接收照片','新增'].includes(item.label)));
+ const iconsByAction={
+  引用:'reply',编辑:'edit',编辑源码:'code',撤回:'undo',拷贝:'copy',翻译:'translate',选择:'select',
+  接收照片:'receive',新增:'addMessage',进入调试:'code',退出调试:'codeOff',收藏:'favorite',取消收藏:'unfavorite',从这里创建分支:'branch'
+ };
+ function draw(more){
+  actionList.replaceChildren();
+  const visible=more?[{label:'返回',icon:'back',action:()=>draw(false)},...extras]:actions.slice();
+  if(!more&&extras.length)visible.push({label:'更多…',icon:'more',action:()=>draw(true)});
+  for(const item of visible){
+   const button=document.createElement('button');button.type='button';button.className='message-action';button.setAttribute('role','menuitem');
+   button.innerHTML=svg(item.icon||iconsByAction[item.label]||'tool');
+   const label=document.createElement('span');label.textContent=item.label==='从这里创建分支'?'创建分支':item.label;button.append(label);
+   if(item.danger)button.classList.add('danger');
+   if(!more&&(item.label==='引用'&&(get('编辑')||get('撤回'))||item.label==='撤回'||item.label==='编辑'&&!get('撤回')))button.classList.add('menu-group-end');
+   button.onclick=event=>{
+    event.stopPropagation();
+    if(item.icon){item.action();return;}
+    closeMenu();
+    try{
+     if(item.label==='引用')focusedQuote=null;
+     Promise.resolve(item.action()).catch(error=>window.showToast?.(error.message||'操作失败'));
+     if(item.label==='引用')$('textarea')?.focus();
+    }catch(error){window.showToast?.(error.message||'操作失败');}
+   };
+   actionList.append(button);
+  }
+  actionList.scrollTop=0;
+  layoutMenu();
+  card.focus({preventScroll:true});
+ }
+ function layoutMenu(){
+  const clamp=(x,min,max)=>Math.max(min,Math.min(x,max));
+  const bar=reactionStrip?.getBoundingClientRect();
+  const inset=12+(parseFloat(getComputedStyle($('.back')).top)||0);
+  const bottom=bounds.height-18;
+  const stripSpace=bar?bar.height+8:0;
+  const previewHeight=preview.offsetHeight;
+  const available=Math.max(56,bottom-inset-stripSpace-previewHeight-12);
+  card.style.maxHeight=Math.min(380,available)+'px';
+  const size=card.getBoundingClientRect();
+  const top=clamp(a.top-bounds.top-stripSpace,inset,bottom-stripSpace-previewHeight-size.height-12);
+  preview.style.top=(top+stripSpace)+'px';
+  card.style.top=(top+stripSpace+previewHeight+12)+'px';
+  card.style.left=clamp(sent?right-size.width:left,12,bounds.width-size.width-12)+'px';
+  if(bar){
+   const stripLeft=clamp(sent?right-bar.width:left,12,bounds.width-bar.width-12);
+   reactionStrip.style.top=top+'px';reactionStrip.style.left=stripLeft+'px';
+   const pickerCenter=sent?left-stripLeft-26:right-stripLeft+26;
+   reactionStrip.style.setProperty('--picker-left',clamp(pickerCenter-24,18,bar.width-62)+'px');
+  }
+ }
+ card.tabIndex=-1;
+ layer.hidden=false;
+ draw(false);
+ return true;
+}
+function renderReactionStrip(row){
+ const reactionStrip=document.createElement('div');reactionStrip.className='quick-reactions';
  const reactions=document.createElement('div');reactions.className='reaction-items';reactionStrip.append(reactions);
  for(const emoji of ['🩷','👍','👎','🤣','‼️','❔','😂','❤️']){
   const b=document.createElement('button');paintReaction(b,emoji);
   b.setAttribute('aria-label','贴 '+emoji);
-  b.onclick=e=>{e.stopPropagation();react(lastAnchor?.dataset.id,emoji);};
+  b.onclick=e=>{e.stopPropagation();react(row.dataset.id,emoji);};
   reactions.append(b);
  }
- const reactionMessage=chat.history.find(m=>String(m.id)===lastAnchor?.dataset.id);
+ const reactionMessage=chat.history.find(m=>String(m.id)===row.dataset.id);
  if(reactionMessage&&window.KissReactions?.picker){
   const all=document.createElement('button');all.className='all-reactions';
   all.innerHTML='<svg class="reaction-drop" viewBox="0 0 48 52" aria-hidden="true"><path stroke="none" d="M5 0h38l-4 12H9Z"/><path d="M5 1c4 0-.7 6-.7 13.3 0 5.3 2 9.8 5.2 13.3-2.9 3-2.2 7.9 1.1 10.3 3.9 2.8 8.6.7 12.2-3.3 1.2.2 1.7.3 2.9.3A21 21 0 0 0 44 14.3C44 7 39.5 1 43 1"/><circle cx="4.6" cy="45" r="3.3"/></svg>'+svg('smile');
   all.setAttribute('aria-label','全部表情');all.onclick=()=>{closeMenu();window.KissReactions.picker(chat,reactionMessage);};
   reactionStrip.append(all);
  }
- layer.append(reactionStrip);
- const originals=[...node.querySelectorAll('.kmsg-action')];
- const make=(label,icon,run)=>{const b=document.createElement('button');b.className='message-action';b.setAttribute('role','menuitem');b.innerHTML=svg(icon);const text=document.createElement('span');text.textContent=label;b.append(text);b.onclick=e=>{e.stopPropagation();run();syncControls();schedule();};actionList.append(b);return b;};
- const reply=originals.find(b=>b.querySelector('span')?.textContent==='引用');if(reply)make('回复','reply',()=>{focusedQuote=null;reply.click();$('textarea')?.focus();});
- const sticker=make('附加贴纸','sticker',()=>{
-  closeMenu();action('sticker-toggle-btn');
- });
- sticker.classList.add('menu-group-end');
- const edit=originals.find(b=>b.getAttribute('aria-label')==='编辑');
- const undo=originals.find(b=>b.getAttribute('aria-label')==='撤回');
- const editAction=edit&&make('编辑','edit',()=>edit.click());
- const undoAction=undo&&make('撤回','undo',()=>undo.click());
- (undoAction||editAction)?.classList.add('menu-group-end');
- make('拷贝','copy',()=>{const text=sourceMap.get(lastAnchor)?.querySelector('.pv-card-content')?.textContent||lastAnchor?.querySelector('.bubble-content,.voice-transcript,.receipt-bubble,.forwarded-chat-preview')?.textContent||lastAnchor?.textContent||'';copy(text);closeMenu();});
- const translation=lastAnchor?.querySelector('.translation-text');if(translation)make('翻译','translate',()=>{sourceMap.get(translation)?.classList.toggle('active');closeMenu();});
- const selection=originals.find(b=>b.querySelector('span')?.textContent==='删除');if(selection)make('选择','select',()=>selection.click());
- make('更多…','more',()=>{actionList.replaceChildren();make('返回','back',()=>renderMenu(node));for(const original of originals){const label=original.querySelector('span')?.textContent||original.textContent;const b=make(label,label.includes('编辑')?'edit':label.includes('删除')?'trash':'more',()=>original.click());if(original.classList.contains('danger')||label==='删除')b.classList.add('danger');}});layer.append(card);
- const bounds=$('.surface').getBoundingClientRect();
- const selected=lastAnchor?.querySelector('.message-bubble,.image-bubble,.voice-bubble,.receipt-bubble,.forwarded-chat-card,.pv-card');
- const a=selected?.getBoundingClientRect()||bounds;
- if(selected){
-  const preview=document.createElement('div');
-  preview.className='message-wrapper menu-preview';
-  for(const name of ['sent','received','tail'])preview.classList.toggle(name,lastAnchor.classList.contains(name));
-  const picked=selected.cloneNode(true);picked.querySelectorAll('.tapbacks').forEach(item=>item.remove());
-  preview.append(picked);
-  const count=lastAnchor.querySelector('.reply-count');
-  if(count){
-   const label=document.createElement('span');label.className='reply-count';
-   label.textContent=count.textContent;preview.append(label);
-  }
-  preview.style.left=(a.left-bounds.left)+'px';preview.style.width=a.width+'px';
-  layer.append(preview);
- }
- const clamp=(x,min,max)=>Math.max(min,Math.min(x,max));
- const cardWidth=card.getBoundingClientRect().width,stripBox=reactionStrip.getBoundingClientRect();
- const topInset=14+(parseFloat(getComputedStyle($('.back')).top)||0);
- const bottom=bounds.height-18;
- const preview=layer.querySelector('.menu-preview');
- const fullPreviewHeight=preview?.offsetHeight||0;
- const previewHeight=Math.min(fullPreviewHeight,Math.max(36,(bottom-topInset)*.46));
- if(previewHeight<fullPreviewHeight){
-  preview.style.transform='scale('+previewHeight/fullPreviewHeight+')';
-  preview.style.transformOrigin=(lastAnchor.classList.contains('sent')?'right':'left')+' top';
- }
- const menuHeight=Math.max(56,bottom-topInset-stripBox.height-previewHeight-16);
- card.style.maxHeight=Math.min(380,menuHeight)+'px';
- const total=stripBox.height+previewHeight+card.getBoundingClientRect().height+16;
- const top=clamp(a.top-bounds.top-stripBox.height-8,topInset,bottom-total);
- if(preview)preview.style.top=(top+stripBox.height+8)+'px';
- reactionStrip.style.top=top+'px';
- card.style.top=(top+stripBox.height+previewHeight+16)+'px';
- const sent=lastAnchor?.classList.contains('sent'),left=a.left-bounds.left,right=a.right-bounds.left;
- card.style.left=clamp(sent?right-cardWidth:left,12,bounds.width-cardWidth-12)+'px';
- const stripLeft=clamp(sent?right-stripBox.width:left,12,bounds.width-stripBox.width-12);
- reactionStrip.style.left=stripLeft+'px';
- const pickerCenter=sent?left-stripLeft-26:right-stripLeft+26;
- reactionStrip.style.setProperty('--picker-left',clamp(pickerCenter-24,18,stripBox.width-62)+'px');
- card.tabIndex=-1;
- card.focus({preventScroll:true});
- liquid?.schedule();
+ return reactionStrip;
 }
 function previewDocument(c){
  const doc=document.implementation.createHTMLDocument('iMessage 预览');doc.body.innerHTML=layout();const link=doc.body.querySelector('link');if(link)doc.head.append(link);const meta=doc.createElement('meta');meta.name='viewport';meta.content='width=device-width,initial-scale=1';doc.head.append(meta);doc.body.className='ki-preview-host';doc.body.style.cssText='margin:0;width:100%;height:100vh;overflow:hidden';doc.body.toggleAttribute('dark-backdrop',!!c.chatBg&&night());doc.body.toggleAttribute('wallpaper',!!c.chatBg);doc.body.dataset.wallpaperSource=c.chatBg||'';doc.body.dataset.platform=/Android/i.test(typeof navigator!=='undefined'?navigator.userAgent:'')?'android':'other';
@@ -713,5 +763,5 @@ function previewDocument(c){
  const sample=[['sent','你最近在听什么歌',true],['received','今天想换一首来听听',false],['received','最近在听这个',true]];
  for(const [side,text,tail]of sample){const row=doc.createElement('div');row.className='message-wrapper '+side;if(tail)row.classList.add('tail');if(text==='最近在听这个')row.classList.add('grouped-text');const bubble=doc.createElement('div');bubble.className='message-bubble '+side;bubble.textContent=text;row.append(bubble);list.append(row);}doc.querySelectorAll('button,textarea').forEach(n=>n.tabIndex=-1);return '<!doctype html>'+doc.documentElement.outerHTML;
 }
-window.KissIMessageStyle={enabled,apply,syncNight,schedule,decorate:()=>schedule(),menu,menuContains,previewDocument};
+window.KissIMessageStyle={enabled,apply,syncNight,schedule,decorate:()=>schedule(),menu,closeMenu:clearOwnMenu,previewDocument};
 })();

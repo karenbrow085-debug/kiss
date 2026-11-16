@@ -49,6 +49,20 @@ function position(menu) {
  menu.style.visibility='visible';
 }
 function open(items,options) {
+ if(window.KissIMessageStyle?.menu?.(items,options)){
+  const handle=document.createElement('div');
+  handle.className='context-menu ki-source-menu';handle.hidden=true;
+  const close=()=>removeContextMenu();
+  window.addEventListener('resize',close);
+  window.visualViewport?.addEventListener('resize',close);
+  handle._kissMenuCleanup=()=>{
+   window.removeEventListener('resize',close);
+   window.visualViewport?.removeEventListener('resize',close);
+   window.KissIMessageStyle?.closeMenu?.();
+  };
+  document.body.append(handle);
+  return handle;
+ }
  const previous=document.activeElement;
  const menu=document.createElement('div');menu.className='context-menu km-message-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','消息操作');menu.style.visibility='hidden';menu._kissAnchor=options;
  const actions=document.createElement('div');actions.className='kmsg-actions';
@@ -63,11 +77,11 @@ function open(items,options) {
   }
   actions.append(row);
  }
- menu.append(actions);window.KissIMessageStyle?.menu(menu);document.body.append(menu);position(menu);
+ menu.append(actions);document.body.append(menu);position(menu);
  let frame=0;
  const resize=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>position(menu));};
- const dismiss=e=>{if(!menu.contains(e.target)&&!window.KissIMessageStyle?.menuContains(e))removeContextMenu();};
- const scroll=e=>{if(!menu.contains(e.target)&&!window.KissIMessageStyle?.menuContains(e))removeContextMenu();};
+ const dismiss=e=>{if(!menu.contains(e.target))removeContextMenu();};
+ const scroll=e=>{if(!menu.contains(e.target))removeContextMenu();};
  const key=e=>{
   if(e.key==='Escape'){e.preventDefault();removeContextMenu();previous?.focus?.({preventScroll:true});return;}
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;
