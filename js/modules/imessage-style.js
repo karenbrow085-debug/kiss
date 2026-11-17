@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261118-imessage-cards-1',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261118-imessage-cards-2',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -238,7 +238,7 @@ function decorateGift(card,description){
  const label=document.createElement('div');label.className='im-gift-label';
  label.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14"/><path d="M12 7H8a3 3 0 1 1 3-3Zm0 0h4a3 3 0 1 0-3-3Z"/></svg>礼物';
  const title=card.querySelector('.gift-card-text');
- title.textContent=description?.textContent.trim().split(/\r?\n/,1)[0]||title.textContent;
+ title.textContent='你收到一份礼物';
  body.append(label,title);
  const footer=document.createElement('div');footer.className='im-gift-footer';
  const status=document.createElement('span');
@@ -262,18 +262,23 @@ function decorateTransfer(card){
  // The transfer mark uses a local silhouette with its finish supplied by CSS.
  const mark=document.createElement('span');mark.className='im-transfer-mark';mark.setAttribute('aria-hidden','true');
  primary.append(mark,amount);
- const note=content.querySelector('.transfer-remark');
- if(note)primary.append(note);
  const footer=document.createElement('div');footer.className='im-transfer-footer';
+ const brand=document.createElement('span');brand.textContent='U&Me';
+ const label=document.createElement('span');label.textContent='转账';
+ footer.append(label,brand);
  if(card.classList.contains('sent-transfer')){
   if(card.classList.contains('received'))status.textContent='对方已收款';
-  else if(card.classList.contains('returned'))status.textContent='已退回';
  }else{
-  if(title.textContent==='转账')title.textContent='收到转账';
   if(status.textContent==='转账给你')status.textContent='待查收';
  }
- footer.append(title,status);
+ const meta=document.createElement('div');meta.className='im-transfer-meta';
+ if(title.textContent!=='转账'&&title.textContent!=='给你转账')meta.append(title);
+ const note=content.querySelector('.transfer-remark');
+ if(note)meta.append(note);
+ meta.append(status);
+ meta.setAttribute('aria-live','polite');
  content.replaceChildren(primary,footer);
+ content.after(meta);
 }
 function mirror(original){
  const clone=original.cloneNode(true);const originals=[original,...original.querySelectorAll('*')],clones=[clone,...clone.querySelectorAll('*')];
