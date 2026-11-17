@@ -32,9 +32,9 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:2.15,saturation:1.20,displacement:14,rimWidth:4.5,clearRim:true},
- contact:{blur:2.9,saturation:1.27,displacement:19,rimWidth:5.5,clearRim:true},
- composer:{blur:3.25,saturation:1.22,displacement:18,rimWidth:5.5,clearRim:true},
+ control:{blur:.45,saturation:1.12,displacement:11,rimWidth:2.6},
+ contact:{blur:.6,saturation:1.16,displacement:14,rimWidth:3.2},
+ composer:{blur:.65,saturation:1.14,displacement:13,rimWidth:3.1},
  panel:{blur:5.2,saturation:1.17,displacement:17,rimWidth:10}
 };
 function create({host,root}){
@@ -64,7 +64,6 @@ function create({host,root}){
   if(!ctx)return null;
   const displacement=ctx.createImageData(canvas.width,canvas.height);
   const reflections=ctx.createImageData(canvas.width,canvas.height);
-  const rimMask=material.clearRim?ctx.createImageData(canvas.width,canvas.height):null;
   for(let y=0;y<canvas.height;y++){
    for(let x=0;x<canvas.width;x++){
     const [distance,nx,ny]=rimGeometry((x+.5)/scale,(y+.5)/scale,w,h,r);
@@ -73,7 +72,6 @@ function create({host,root}){
     const map=displacement.data;
     map[i]=128-nx*bend*120;map[i+1]=128-ny*bend*120;map[i+2]=128;map[i+3]=255;
     if(distance>0||depth>8)continue;
-    if(rimMask)rimMask.data[i+3]=Math.round(205*Math.exp(-((depth-1.55)**2)/3.6));
     const direction=(-nx*.36-ny*.93);
     const band=Math.exp(-((depth-.65)**2)/.49);
     const broadGlint=Math.exp(-((depth-1.9)**2)/3.6)*.075*Math.max(0,direction)**4;
@@ -91,11 +89,6 @@ function create({host,root}){
   const field=canvas.toDataURL();
   ctx.putImageData(reflections,0,0);
   const reflection=canvas.toDataURL();
-  let clearRim;
-  if(rimMask){
-   ctx.putImageData(rimMask,0,0);
-   clearRim=canvas.toDataURL();
-  }
   const id=prefix+(++nextFilter);
   const filter=element('filter',{id,filterUnits:'userSpaceOnUse',primitiveUnits:'userSpaceOnUse',x:-28,y:-28,width:w+56,height:h+56,'color-interpolation-filters':'sRGB'});
   filter.append(
@@ -103,16 +96,7 @@ function create({host,root}){
    element('feGaussianBlur',{in:'SourceGraphic',stdDeviation:material.blur,result:'softScene'}),
    element('feDisplacementMap',{in:'softScene',in2:'lensField',scale:material.displacement,xChannelSelector:'R',yChannelSelector:'G',result:'bentScene'})
   );
-  if(clearRim){
-   filter.append(
-    element('feGaussianBlur',{in:'SourceGraphic',stdDeviation:.55,result:'clearScene'}),
-    element('feDisplacementMap',{in:'clearScene',in2:'lensField',scale:material.displacement,xChannelSelector:'R',yChannelSelector:'G',result:'clearRefraction'}),
-    element('feImage',{href:clearRim,x:0,y:0,width:w,height:h,preserveAspectRatio:'none',result:'rimMask'}),
-    element('feComposite',{in:'clearRefraction',in2:'rimMask',operator:'in',result:'rimRefraction'}),
-    element('feComposite',{in:'rimRefraction',in2:'bentScene',operator:'over',result:'bentGlass'})
-   );
-  }
-  filter.append(element('feColorMatrix',{in:clearRim?'bentGlass':'bentScene',type:'saturate',values:material.saturation}));
+  filter.append(element('feColorMatrix',{in:'bentScene',type:'saturate',values:material.saturation}));
   defs.append(filter);
   const result={id,filter,reflection};
   maps.set(key,result);

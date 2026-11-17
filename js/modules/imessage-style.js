@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261118-imessage-glass-28',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261118-imessage-glass-29',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -261,10 +261,14 @@ function decorateTransfer(card){
  const primary=document.createElement('div');primary.className='im-transfer-main';
  // The transfer mark uses a local silhouette with its finish supplied by CSS.
  const mark=document.createElement('span');mark.className='im-transfer-mark';mark.setAttribute('aria-hidden','true');
- primary.append(mark,amount);
+ const figure=document.createElement('div');figure.className='im-transfer-figure';
+ figure.append(amount);
+ const note=content.querySelector('.transfer-remark');
+ if(note?.textContent.trim())figure.append(note);
+ primary.append(mark,figure);
  const footer=document.createElement('div');footer.className='im-transfer-footer';
  const brand=document.createElement('span');brand.textContent='U&Me';
- const label=document.createElement('span');label.textContent='转账';
+ const label=document.createElement('span');label.textContent=title.textContent==='给你转账'?'给你转账':'转账';
  footer.append(label,brand);
  if(card.classList.contains('sent-transfer')){
   if(card.classList.contains('received'))status.textContent='对方已收款';
@@ -273,8 +277,6 @@ function decorateTransfer(card){
  }
  const meta=document.createElement('div');meta.className='im-transfer-meta';
  if(title.textContent!=='转账'&&title.textContent!=='给你转账')meta.append(title);
- const note=content.querySelector('.transfer-remark');
- if(note)meta.append(note);
  meta.append(status);
  meta.setAttribute('aria-live','polite');
  content.replaceChildren(primary,footer);
