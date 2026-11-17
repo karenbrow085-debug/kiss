@@ -32,9 +32,9 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:1.6,saturation:1.13,displacement:10,rimWidth:5},
- contact:{blur:3.1,saturation:1.18,displacement:15,rimWidth:6,clearRim:true},
- composer:{blur:3.8,saturation:1.14,displacement:13,rimWidth:7,clearRim:true},
+ control:{blur:1.35,saturation:1.13,displacement:13,rimWidth:5,clearRim:true},
+ contact:{blur:2.1,saturation:1.17,displacement:18,rimWidth:6,clearRim:true},
+ composer:{blur:2.45,saturation:1.15,displacement:17,rimWidth:7,clearRim:true},
  panel:{blur:5.2,saturation:1.17,displacement:17,rimWidth:10}
 };
 function create({host,root}){
@@ -73,11 +73,11 @@ function create({host,root}){
     const map=displacement.data;
     map[i]=128-nx*bend*120;map[i+1]=128-ny*bend*120;map[i+2]=128;map[i+3]=255;
     if(distance>0||depth>8)continue;
-    if(rimMask)rimMask.data[i+3]=Math.round(166*Math.exp(-((depth-1.3)**2)/4.8));
+    if(rimMask)rimMask.data[i+3]=Math.round(205*Math.exp(-((depth-1.55)**2)/3.6));
     const direction=(-nx*.36-ny*.93);
-    const band=Math.exp(-((depth-.65)**2)/.63);
-    const broadGlint=Math.exp(-((depth-2.1)**2)/4.5)*.11*Math.max(0,direction)**4;
-    const glint=band*(.05+.56*Math.max(0,direction)**3+.49*Math.max(0,-direction)**5)+broadGlint;
+    const band=Math.exp(-((depth-.65)**2)/.49);
+    const broadGlint=Math.exp(-((depth-1.9)**2)/3.6)*.075*Math.max(0,direction)**4;
+    const glint=band*(.035+.51*Math.max(0,direction)**3+.37*Math.max(0,-direction)**5)+broadGlint;
     const bevel=Math.exp(-((depth-2.6)**2)/2.9)*(.01+.10*Math.max(0,-direction)**2);
     const shade=reflections.data;
     const highlight=glint>=bevel;
@@ -105,7 +105,7 @@ function create({host,root}){
   );
   if(clearRim){
    filter.append(
-    element('feGaussianBlur',{in:'SourceGraphic',stdDeviation:1.05,result:'clearScene'}),
+    element('feGaussianBlur',{in:'SourceGraphic',stdDeviation:.55,result:'clearScene'}),
     element('feDisplacementMap',{in:'clearScene',in2:'lensField',scale:material.displacement,xChannelSelector:'R',yChannelSelector:'G',result:'clearRefraction'}),
     element('feImage',{href:clearRim,x:0,y:0,width:w,height:h,preserveAspectRatio:'none',result:'rimMask'}),
     element('feComposite',{in:'clearRefraction',in2:'rimMask',operator:'in',result:'rimRefraction'}),

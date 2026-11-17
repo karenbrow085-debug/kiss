@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261117-imessage-glass-26',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261118-imessage-glass-27',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
