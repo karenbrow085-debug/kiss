@@ -56,11 +56,61 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
 .voice-transcript,.translation-text,.gift-card-description{display:none;max-width:79%;margin-top:3px;padding:5px 10px;font-size:12px;line-height:1.4;color:var(--muted);white-space:pre-wrap}.voice-transcript.active,.translation-text.active,.gift-card-description.active{display:block}.bilingual-bubble .translation-text{display:block;color:inherit;opacity:.7;border-top:1px solid #8883;margin-top:5px;padding:5px 0 0}.bilingual-divider{border-top:1px solid #8883;margin:5px 0}
 .quoted-message{border-left:2px solid currentColor;padding:2px 7px;margin:0 0 5px;font-size:12px;border-radius:2px;opacity:.75;white-space:normal;max-width:100%}.quoted-sender{font-weight:600}.quoted-text{margin:1px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* Existing message kinds get an independent, compact iMessage attachment skin. */
-.receipt-bubble,.gift-card,.transfer-card,.forwarded-chat-card,.pv-card,.kt-invite-card,.kwf-card,.klc-card,.kc-share-card,.acte-share-card{position:relative;max-width:77%;width:270px;border-radius:20px;overflow:hidden;background:color-mix(in srgb,var(--incoming) 88%,transparent);color:var(--ink);border:1px solid color-mix(in srgb,var(--glass-edge) 40%,transparent);font:14px/1.4 -apple-system,sans-serif;box-shadow:0 2px 8px #00000006}
-:host([wallpaper]) .receipt-bubble,.ki-preview-host[wallpaper] .receipt-bubble,:host([wallpaper]) .gift-card,.ki-preview-host[wallpaper] .gift-card,:host([wallpaper]) .transfer-card,.ki-preview-host[wallpaper] .transfer-card,:host([wallpaper]) .forwarded-chat-card,.ki-preview-host[wallpaper] .forwarded-chat-card{-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);background:color-mix(in srgb,var(--glass) 75%,var(--incoming) 25%)}
+.receipt-bubble,.forwarded-chat-card,.pv-card,.kt-invite-card,.kwf-card,.klc-card,.kc-share-card,.acte-share-card{position:relative;max-width:77%;width:270px;border-radius:20px;overflow:hidden;background:color-mix(in srgb,var(--incoming) 88%,transparent);color:var(--ink);border:1px solid color-mix(in srgb,var(--glass-edge) 40%,transparent);font:14px/1.4 -apple-system,sans-serif;box-shadow:0 2px 8px #00000006}
+:host([wallpaper]) .receipt-bubble,.ki-preview-host[wallpaper] .receipt-bubble,:host([wallpaper]) .forwarded-chat-card,.ki-preview-host[wallpaper] .forwarded-chat-card{-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);background:color-mix(in srgb,var(--glass) 75%,var(--incoming) 25%)}
 .receipt-header{display:flex;flex-direction:column;gap:2px;padding:12px 14px 8px}.receipt-brand{font-size:11px;font-weight:650;letter-spacing:.2px;color:var(--muted)}.receipt-id{display:none}.receipt-items{padding:0 14px 9px}.receipt-item-row{display:flex;gap:8px;justify-content:space-between;line-height:1.5}.receipt-item-name{flex:1}.receipt-item-qty{color:var(--muted);font-size:12px}.receipt-dots{display:none}.receipt-total-section{padding:8px 14px;border-top:1px solid #8882}.receipt-total-price{font:600 22px/1.2 -apple-system,sans-serif}.receipt-footer{padding:0 14px 10px;font-size:11px;color:var(--muted)}.receipt-delivery-info{display:flex;justify-content:space-between;gap:6px}.receipt-actions{display:flex;gap:1px;margin:9px -14px -10px;border-top:1px solid #8882}.receipt-action-btn{flex:1;padding:11px;color:#007aff;font-size:14px;background:#ffffff0d}.receipt-action-btn+.receipt-action-btn{border-left:1px solid #8882}.receipt-pickup-code{padding:7px 0;font-weight:600;color:var(--ink)}
-.gift-card{display:flex;align-items:center;gap:10px;padding:15px 14px;width:250px;min-height:70px}.gift-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#8881;color:var(--muted)}.gift-icon svg{width:25px;height:25px}.gift-card-icon{width:34px;height:34px;object-fit:contain;filter:grayscale(1)}.gift-card-text{font-size:14px}.gift-card.received:after{content:'已查收';position:absolute;bottom:4px;right:12px;color:var(--muted);font-size:10px}
-.transfer-content{padding:13px 15px}.transfer-title{font-size:12px;color:var(--muted)}.transfer-amount{font-size:25px;font-weight:500;margin:4px 0}.transfer-remark{font-size:13px}.transfer-status{font-size:11px;color:var(--muted);margin-top:7px}
+.transfer-card,.gift-card{
+ overflow:hidden;font:13px/1.3 -apple-system,BlinkMacSystemFont,sans-serif;
+ box-shadow:0 3px 8px #11131a14;
+}
+.transfer-card{
+ --transfer-body:#ebebef;
+ --transfer-footer:#dcdce2;
+ --transfer-ink:#232329;
+ --transfer-muted:#42434c;
+ --transfer-metal:linear-gradient(145deg,#96969e 5%,#43434b 59%,#75757e 90%);
+ width:218px;max-width:78%;border-radius:10px;
+ background:var(--transfer-body);color:var(--transfer-ink);
+}
+.transfer-card.sent-transfer,
+:is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) .transfer-card{
+ --transfer-body:#303037;
+ --transfer-footer:#55555e;
+ --transfer-ink:#fafafd;
+ --transfer-muted:#f6f6f9;
+ --transfer-metal:linear-gradient(150deg,#d3d3dc 6%,#9999a4 37%,#62626d 60%,#b0b0ba 94%);
+}
+.im-transfer-main{
+ display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;
+ min-height:60px;padding:8px 10px;
+}
+.im-transfer-mark{
+ --mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28'%3E%3Cpath d='M16.9.8c.3 2.5-1.8 5.1-4.5 5.4-.1-2.4 1.9-4.9 4.5-5.4Zm5 20.5c-.6 1.5-2.5 5.7-5 5.7-1.6 0-2.3-1-4.3-1-2 0-2.8 1-4.3 1C5 27 1.6 20.2 1.6 15c0-4.8 2.9-7.8 6.1-7.8 1.7 0 2.9 1.1 4.4 1.1 1.4 0 2.9-1.2 4.9-1.2 1.7 0 3.3.8 4.5 2.3-4 2.6-3.7 9.1.4 11.9Z'/%3E%3C/svg%3E");
+ flex:none;width:39px;height:44px;background:var(--transfer-metal);
+ -webkit-mask:var(--mark) center/contain no-repeat;mask:var(--mark) center/contain no-repeat;
+}
+.transfer-amount{min-width:0;font-size:clamp(18px,6.5vw,27px);font-weight:680;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.transfer-remark{width:100%;font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap}
+.im-transfer-footer,.im-gift-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.im-transfer-footer{min-height:22px;padding:4px 10px;background:var(--transfer-footer);color:var(--transfer-muted);font-size:11px}
+.transfer-title{min-width:0;overflow-wrap:anywhere}.transfer-status{flex:none}
+.gift-card{
+ width:176px;max-width:78%;border:1px solid #fffd;border-radius:17px;
+ background:#ebebee;color:#222329;--gift-muted:#575d69;--gift-line:#d4d5db;--gift-action:#1464c4;
+}
+:is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) .gift-card{
+ border-color:#ffffff47;background:#2c313c;color:#fff;
+ --gift-muted:#d2d6e0;--gift-line:#ffffff28;--gift-action:#8cc6ff;
+}
+.group-msg-content>.transfer-card,.group-msg-content>.gift-card{max-width:100%}
+.im-gift-body{min-height:59px;padding:10px 12px 8px}
+.im-gift-label{display:flex;align-items:center;gap:4px;color:var(--gift-muted);font-size:11px}
+.im-gift-label svg{width:13px;height:13px}
+.gift-card-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;margin-top:5px;font-size:15px;font-weight:650}
+.im-gift-footer{min-height:29px;padding:0 12px;border-top:1px solid var(--gift-line);color:var(--gift-muted);font-size:11px}
+.gift-card .im-gift-footer .im-gift-details{min-height:29px;padding:4px 0;background:none;color:var(--gift-action);font-size:inherit}
+.im-gift-footer .im-gift-details:focus-visible{outline-offset:1px}
+.menu-preview>.transfer-card,.menu-preview>.gift-card{max-width:none;width:100%}
 .forwarded-chat-title{padding:12px 14px 5px;font-size:14px;font-weight:600}.forwarded-chat-preview{font-size:12px;color:var(--muted);padding:0 14px 10px;line-height:1.5;max-height:80px;overflow:hidden}.forwarded-chat-footer{padding:8px 14px;border-top:1px solid #8882;color:var(--muted);font-size:11px}
 .pv-card-content{padding:14px;min-height:120px}.pv-card-footer{display:flex;align-items:center;gap:8px;border-top:1px solid #8882;padding:9px 12px;font-size:11px;color:var(--muted)}.pv-card-footer svg{width:18px;height:18px}.pv-card-image-overlay{display:none}.pv-card .hidden{display:none}
 .html-bubble{padding:0;background:none;max-width:88%;width:300px;border-radius:16px;overflow:hidden;white-space:normal}.red-packet-card{border-radius:18px;background:#ff7849;max-width:77%;width:250px;color:white;padding:15px}.red-packet-top{display:flex;gap:10px;align-items:center}.red-packet-type{font-size:11px;opacity:.7;margin-top:4px}

@@ -1,7 +1,7 @@
 /* An isolated iMessage view. The existing chat remains the data/action controller. */
 (() => {
 'use strict';
-const asset=new URL('imessage-view.css?v=20261118-imessage-glass-27',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
+const asset=new URL('imessage-view.css?v=20261118-imessage-cards-1',document.currentScript.src.replace('/js/modules/','/css/modules/')).href;
 const textPhotoCovers=[1,2,3].map(index=>new URL('../../assets/imessage/text-photo-'+index+'.webp',document.currentScript.src).href);
 const revealedPhotos=new Set(),revealedWithdrawals=new Set();
 let rowCache=new WeakMap(),viewOfSource=new WeakMap(),dirtyRows=new WeakSet(),historyRevision=0;
@@ -55,6 +55,7 @@ function observeMessageChanges(records){
   }
   if(record.type==='attributes'&&view?.isConnected&&el.matches('.voice-transcript,.translation-text,.gift-card-description,.voice-bubble')){
    for(const name of inlineClasses)view.classList.toggle(name,el.classList.contains(name));
+   if(el.matches('.gift-card-description'))syncGiftDetails(view);
    if(el.matches('.voice-bubble')){
     const glyph=view.querySelector('.play-icon');
     if(glyph)glyph.innerHTML=el.querySelector('.play-icon')?.innerHTML||'';
@@ -225,13 +226,63 @@ function syncViewport(){if(!host||!styleReady)return;liquid?.schedule();const vv
  const add=$('.add').getBoundingClientRect(),bounds=surface.getBoundingClientRect();
  surface.style.setProperty('--tools-bottom',Math.max(0,bounds.bottom-add.bottom+9)+'px');
  surface.style.setProperty('--tools-space',Math.max(0,add.top-bounds.top-60)+'px');}
+function syncGiftDetails(description){
+ const trigger=description.closest('.message-wrapper')?.querySelector('.im-gift-details');
+ if(!trigger)return;
+ const open=description.classList.contains('active');
+ trigger.setAttribute('aria-expanded',String(open));
+ trigger.textContent=open?'收起礼物':'查看礼物';
+}
+function decorateGift(card,description){
+ const body=document.createElement('div');body.className='im-gift-body';
+ const label=document.createElement('div');label.className='im-gift-label';
+ label.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14"/><path d="M12 7H8a3 3 0 1 1 3-3Zm0 0h4a3 3 0 1 0-3-3Z"/></svg>礼物';
+ const title=card.querySelector('.gift-card-text');
+ title.textContent=description?.textContent.trim().split(/\r?\n/,1)[0]||title.textContent;
+ body.append(label,title);
+ const footer=document.createElement('div');footer.className='im-gift-footer';
+ const status=document.createElement('span');
+ status.textContent=card.classList.contains('received')?'已查收':'待查收';
+ footer.append(status);
+ if(description?.textContent.trim()){
+  const details=document.createElement('button');details.type='button';details.className='im-gift-details';
+  footer.append(details);
+ }
+ const quote=card.querySelector('.quoted-message');
+ card.replaceChildren(body,footer);
+ if(quote)card.prepend(quote);
+ if(description)syncGiftDetails(description);
+}
+function decorateTransfer(card){
+ const content=card.querySelector('.transfer-content');
+ const title=content?.querySelector('.transfer-title'),amount=content?.querySelector('.transfer-amount');
+ const status=content?.querySelector('.transfer-status');
+ if(!title||!amount||!status)return;
+ const primary=document.createElement('div');primary.className='im-transfer-main';
+ // The transfer mark uses a local silhouette with its finish supplied by CSS.
+ const mark=document.createElement('span');mark.className='im-transfer-mark';mark.setAttribute('aria-hidden','true');
+ primary.append(mark,amount);
+ const note=content.querySelector('.transfer-remark');
+ if(note)primary.append(note);
+ const footer=document.createElement('div');footer.className='im-transfer-footer';
+ if(card.classList.contains('sent-transfer')){
+  if(card.classList.contains('received'))status.textContent='对方已收款';
+  else if(card.classList.contains('returned'))status.textContent='已退回';
+ }else{
+  if(title.textContent==='转账')title.textContent='收到转账';
+  if(status.textContent==='转账给你')status.textContent='待查收';
+ }
+ footer.append(title,status);
+ content.replaceChildren(primary,footer);
+}
 function mirror(original){
  const clone=original.cloneNode(true);const originals=[original,...original.querySelectorAll('*')],clones=[clone,...clone.querySelectorAll('*')];
  clones.forEach((n,i)=>{sourceMap.set(n,originals[i]);viewOfSource.set(originals[i],n);n.removeAttribute('style');for(const a of [...n.attributes])if(a.name.startsWith('on'))n.removeAttribute(a.name);});
  clone.querySelectorAll('.message-info,.message-time,.ki-receipt,.ki-unread-divider,.kr-dock').forEach(n=>n.remove());
  clone.querySelectorAll('script,style,link').forEach(n=>n.remove());
  for(const brand of clone.querySelectorAll('.receipt-brand'))brand.textContent=clone.querySelector('.pay-status-text')?'付款请求':'订单';
- for(const oldIcon of clone.querySelectorAll('.gift-card-icon')){const icon=document.createElement('span');icon.className='gift-icon';icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14"/><path d="M12 7H8a3 3 0 1 1 3-3Zm0 0h4a3 3 0 1 0-3-3Z"/></svg>';oldIcon.replaceWith(icon);}
+ for(const card of clone.querySelectorAll('.gift-card'))decorateGift(card,card.closest('.message-wrapper')?.querySelector('.gift-card-description'));
+ for(const card of clone.querySelectorAll('.transfer-card'))decorateTransfer(card);
  for(const voice of clone.querySelectorAll('.voice-bubble'))decorateVoice(voice);
  for(const card of clone.querySelectorAll('.pv-card'))decorateTextPhoto(card,clone.dataset.id);
  const withdrawal=clone.querySelector('.withdrawn-message');
@@ -560,7 +611,7 @@ function clickMessage(e){
    return;
   }
  }
- const original=sourceMap.get(e.target)||sourceMap.get(e.target.closest('.message-wrapper'));if(original){original.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}
+ const original=sourceMap.get(e.target.closest('.gift-card,.transfer-card'))||sourceMap.get(e.target)||sourceMap.get(e.target.closest('.message-wrapper'));if(original){original.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}
 }
 function longPress(row,x,y){if(!$('.menu-layer')?.hidden)return;const original=sourceMap.get(row);if(!original||!row.dataset.id)return;if(typeof handleMessageLongPress==='function')handleMessageLongPress(original,x,y);}
 function attachPhotoDownload(photo,fromText=false){
@@ -711,7 +762,7 @@ function menu(items,options){
  if(!row||!history.contains(row))return false;
  const layer=$('.menu-layer');
  clearOwnMenu();
- const selected=row.querySelector('.message-bubble,.image-bubble,.voice-bubble,.receipt-bubble,.forwarded-chat-card,.pv-card')||row;
+ const selected=row.querySelector('.message-bubble,.image-bubble,.voice-bubble,.receipt-bubble,.forwarded-chat-card,.pv-card,.gift-card,.transfer-card')||row;
  const debug=selected.classList.contains('debug-visible');
  const message=chat.history.find(item=>String(item.id)===row.dataset.id);
  const bounds=$('.surface').getBoundingClientRect();
