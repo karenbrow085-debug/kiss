@@ -32,9 +32,9 @@ function luminance(data){
 }
 
 const profiles={
- control:{blur:1.35,saturation:1.13,displacement:13,rimWidth:5,clearRim:true},
- contact:{blur:2.1,saturation:1.17,displacement:18,rimWidth:6,clearRim:true},
- composer:{blur:2.45,saturation:1.15,displacement:17,rimWidth:7,clearRim:true},
+ control:{blur:2.15,saturation:1.20,displacement:14,rimWidth:4.5,clearRim:true},
+ contact:{blur:2.9,saturation:1.27,displacement:19,rimWidth:5.5,clearRim:true},
+ composer:{blur:3.25,saturation:1.22,displacement:18,rimWidth:5.5,clearRim:true},
  panel:{blur:5.2,saturation:1.17,displacement:17,rimWidth:10}
 };
 function create({host,root}){

@@ -342,8 +342,8 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
 }
 :host([wallpaper]),.ki-preview-host[wallpaper]{
  --sent-blue-top:#0094fa;
- --sent-blue-bottom:#0082f5;
- --sent-blue-opacity:87%;
+ --sent-blue-bottom:#0085f5;
+ --sent-blue-opacity:91%;
 }
 @media(prefers-reduced-transparency:reduce){
  :host,.ki-preview-host,:host([wallpaper]),.ki-preview-host[wallpaper]{--sent-blue-opacity:100%}
@@ -654,28 +654,28 @@ p{margin:0}img{max-width:100%;object-fit:cover;display:block}a{color:inherit}ifr
  background:linear-gradient(to top,#071327a8,#0a153849 52%,transparent);
 }
 .name,.input-capsule,.add,.back,.video,.jump{
- --liquid-tint:linear-gradient(150deg,#ffffffb8,#ffffff54 58%,#ffffff87);
- --liquid-rim-strength:.65;
+ --liquid-tint:linear-gradient(150deg,#ffffffa8,#ffffff52 58%,#ffffff81);
+ --liquid-rim-strength:.78;
 }
-.composer .input-capsule{--liquid-tint:linear-gradient(166deg,#ffffffa1,#ffffff5e 56%,#ffffff89)}
-.name{--liquid-tint:linear-gradient(158deg,#ffffffa8,#ffffff46 51%,#ffffff83)}
+.composer .input-capsule{--liquid-tint:linear-gradient(166deg,#ffffffa0,#ffffff52 56%,#ffffff7a)}
+.name{--liquid-tint:linear-gradient(158deg,#ffffff98,#ffffff36 51%,#ffffff76)}
 .name[data-liquid-ready],.input-capsule[data-liquid-ready],
 .add[data-liquid-ready],.back[data-liquid-ready],.video[data-liquid-ready],.jump[data-liquid-ready]{
  box-shadow:0 14px 36px #252b3811,0 3px 11px #31374704;
 }
 .liquid-optics:after{opacity:var(--liquid-rim-strength,.76)}
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) :is(.input-capsule,.name,.add,.back,.video,.jump){
- --liquid-tint:linear-gradient(150deg,#526a873d,#142a421f 55%,#19365348);
+ --liquid-tint:linear-gradient(150deg,#3d58743c,#10273b30 55%,#16354b42);
  --liquid-rim-strength:.72;
 }
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) :is(.input-capsule,.name,.add,.back,.video,.jump)[data-liquid-ready]{
  box-shadow:0 6px 19px #07152229;
 }
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) :is(.input-capsule,.name,.add,.back,.video,.jump)>.liquid-optics{
- box-shadow:inset 0 .6px .7px #cbe7ff42,inset 0 -.55px .8px #9cbed83b;
+ box-shadow:inset 0 .55px .5px #cbe7ff32,inset 0 -.6px .55px #a8d0e34a;
 }
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) .name{
- --liquid-tint:linear-gradient(152deg,#4c6a852f,#142e411a 56%,#1d3c5139);
+ --liquid-tint:linear-gradient(152deg,#3d566e32,#132d3d2b 56%,#24445a38);
 }
 :is(:host([dark-backdrop]),.ki-preview-host[dark-backdrop]) .name > .liquid-optics{
  box-shadow:inset 0 .55px .7px #bcdff63d,inset 0 -.5px .6px #a3c5e84a;
